@@ -76,3 +76,36 @@ async fn test_delete_dog() {
     let body: serde_json::Value = res.json().await.unwrap();
     assert_eq!(body["data"]["deleteDog"], true, "got: {:?}", body);
 }
+
+#[tokio::test]
+async fn test_generate_dog_photo_upload_url() {
+    let client = common::test_client().await;
+    // 犬を作成
+    let create_res = client
+        .post("/graphql")
+        .header("Authorization", "Bearer test-token")
+        .json(&serde_json::json!({
+            "query": r#"mutation { createDog(input: { name: "PhotoDog" }) { id } }"#
+        }))
+        .send().await.unwrap();
+    let create_body: serde_json::Value = create_res.json().await.unwrap();
+    let dog_id = create_body["data"]["createDog"]["id"].as_str().unwrap();
+
+    // プレサインドURL取得
+    let res = client
+        .post("/graphql")
+        .header("Authorization", "Bearer test-token")
+        .json(&serde_json::json!({
+            "query": format!(
+                r#"mutation {{ generateDogPhotoUploadUrl(dogId: "{}") {{ url key expiresAt }} }}"#,
+                dog_id
+            )
+        }))
+        .send().await.unwrap();
+    assert_eq!(res.status(), 200);
+    let body: serde_json::Value = res.json().await.unwrap();
+    let url = body["data"]["generateDogPhotoUploadUrl"]["url"].as_str().unwrap();
+    assert!(url.starts_with("http"), "URL should be an HTTP URL, got: {}", url);
+    assert!(body["data"]["generateDogPhotoUploadUrl"]["key"].is_string());
+    assert!(body["data"]["generateDogPhotoUploadUrl"]["expiresAt"].is_string());
+}

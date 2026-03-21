@@ -1,8 +1,15 @@
-use async_graphql::{Context, InputObject, Object, Result, ID};
+use async_graphql::{Context, InputObject, Object, Result, SimpleObject, ID};
 use std::sync::Arc;
 use crate::AppState;
 use crate::graphql::types::dog::{BirthDateInput, Dog};
-use crate::services::{dog_service, user_service};
+use crate::services::{dog_service, s3_service, user_service};
+
+#[derive(SimpleObject)]
+pub struct PresignedUrlOutput {
+    pub url: String,
+    pub key: String,
+    pub expires_at: String,
+}
 
 #[derive(InputObject)]
 pub struct CreateDogInput {
@@ -76,9 +83,23 @@ impl DogMutation {
 
     async fn generate_dog_photo_upload_url(
         &self,
-        _ctx: &Context<'_>,
-        _dog_id: ID,
-    ) -> Result<String> {
-        Err(async_graphql::Error::new("Not implemented"))
+        ctx: &Context<'_>,
+        dog_id: ID,
+    ) -> Result<PresignedUrlOutput> {
+        let state = ctx.data::<Arc<AppState>>()?;
+        let dog_uuid = uuid::Uuid::parse_str(&dog_id)
+            .map_err(|_| async_graphql::Error::new("Invalid dog ID"))?;
+        let presigned = s3_service::generate_dog_photo_upload_url(
+            &state.s3,
+            &state.config.s3_bucket_dog_photos,
+            dog_uuid,
+        )
+        .await
+        .map_err(|e| e.into_graphql_error())?;
+        Ok(PresignedUrlOutput {
+            url: presigned.url,
+            key: presigned.key,
+            expires_at: presigned.expires_at.to_rfc3339(),
+        })
     }
 }

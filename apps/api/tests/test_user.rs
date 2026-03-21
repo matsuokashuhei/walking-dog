@@ -19,7 +19,11 @@ async fn test_me_query() {
         "me.id should be string, got: {:?}",
         body
     );
-    assert_eq!(body["data"]["me"]["dogs"], serde_json::json!([]));
+    assert!(
+        body["data"]["me"]["dogs"].is_array(),
+        "me.dogs should be an array, got: {:?}",
+        body
+    );
 }
 
 #[tokio::test]

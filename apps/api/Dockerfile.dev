@@ -1,0 +1,14 @@
+FROM rust:1-slim-bookworm
+RUN apt-get update && apt-get install -y pkg-config libssl-dev && rm -rf /var/lib/apt/lists/*
+RUN cargo install cargo-watch
+WORKDIR /app
+# キャッシュ用に先にCargo.tomlだけコピーしてビルド
+COPY Cargo.toml ./
+COPY migration/Cargo.toml ./migration/
+RUN mkdir -p src migration/src && \
+    echo "fn main() {}" > src/main.rs && \
+    echo "" > migration/src/lib.rs && \
+    echo "fn main() {}" > migration/src/main.rs && \
+    cargo build 2>/dev/null || true
+# ソースコードはボリュームマウントで提供するため COPY しない
+CMD ["cargo", "watch", "-x", "run"]

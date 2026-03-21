@@ -1,0 +1,56 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: walking_dog
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: walking_dog_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  localstack:
+    image: localstack/localstack:3
+    environment:
+      SERVICES: dynamodb,s3
+      AWS_DEFAULT_REGION: ap-northeast-1
+    ports:
+      - "4566:4566"
+    volumes:
+      - localstack_data:/var/lib/localstack
+
+  cognito-local:
+    image: jagregory/cognito-local:latest
+    ports:
+      - "9229:9229"
+    volumes:
+      - cognito_data:/app/.cognito
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app                          # ソースコードをマウント
+      - cargo_cache:/usr/local/cargo    # cargoキャッシュを永続化
+      - target_cache:/app/target        # ビルドキャッシュを永続化
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgres://walking_dog:password@postgres:5432/walking_dog_dev
+      AWS_ENDPOINT_URL: http://localstack:4566
+      COGNITO_ENDPOINT_URL: http://cognito-local:9229
+    depends_on:
+      - postgres
+      - localstack
+      - cognito-local
+
+volumes:
+  postgres_data:
+  localstack_data:
+  cognito_data:
+  cargo_cache:
+  target_cache:

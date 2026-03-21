@@ -1,0 +1,18 @@
+FROM node:20-slim
+
+WORKDIR /app
+
+# Expo CLI needs git for some operations
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+
+# Install dependencies first for better caching
+COPY package.json package-lock.json ./
+RUN npm ci
+
+# Copy the rest of the source
+COPY . .
+
+EXPOSE 8081 19000 19001 19002
+
+# Start Expo on LAN mode for Docker network access
+CMD ["npx", "expo", "start", "--host", "lan"]

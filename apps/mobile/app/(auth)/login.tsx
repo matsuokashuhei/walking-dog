@@ -3,11 +3,11 @@ import { StyleSheet } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 
-export default function HomeScreen() {
+export default function LoginScreen() {
   return (
     <ThemedView style={styles.container}>
-      <ThemedText type="title">Home</ThemedText>
-      <ThemedText>Today's walk summary will appear here.</ThemedText>
+      <ThemedText type="title">Walking Dog</ThemedText>
+      <ThemedText>Login screen — coming in Auth increment.</ThemedText>
     </ThemedView>
   );
 }

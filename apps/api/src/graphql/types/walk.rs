@@ -1,7 +1,7 @@
 use async_graphql::{Context, Object, Result, SimpleObject, ID};
 use std::sync::Arc;
 use crate::AppState;
-use crate::services::dog_service;
+use crate::services::{dog_service, walk_points_service};
 
 #[derive(SimpleObject, Clone, Debug)]
 pub struct WalkPoint {
@@ -52,9 +52,14 @@ impl Walk {
         Ok(dogs)
     }
 
-    /// Stub: implemented in Task 10
-    async fn points(&self, _ctx: &Context<'_>) -> Result<Vec<WalkPoint>> {
-        Ok(vec![])
+    async fn points(&self, ctx: &Context<'_>) -> Result<Vec<WalkPoint>> {
+        let state = ctx.data::<Arc<AppState>>()?;
+        walk_points_service::get_walk_points(
+            &state.dynamo,
+            &state.config.dynamodb_table_walk_points,
+            self.id,
+        )
+        .await
     }
 }
 

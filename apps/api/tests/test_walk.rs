@@ -103,3 +103,34 @@ async fn test_my_walks_query() {
     assert!(walks.len() >= 2, "expected >= 2 walks, got: {}", walks.len());
     assert!(walks[0]["dogs"].is_array());
 }
+
+#[tokio::test]
+async fn test_add_walk_points() {
+    let client = common::test_client().await;
+    let dog_id = create_test_dog(&client).await;
+
+    let start_res = client
+        .post("/graphql")
+        .header("Authorization", "Bearer test-token")
+        .json(&serde_json::json!({
+            "query": format!(r#"mutation {{ startWalk(dogIds: ["{}"]) {{ id }} }}"#, dog_id)
+        }))
+        .send().await.unwrap();
+    let start_body: serde_json::Value = start_res.json().await.unwrap();
+    let walk_id = start_body["data"]["startWalk"]["id"].as_str().unwrap();
+
+    let res = client
+        .post("/graphql")
+        .header("Authorization", "Bearer test-token")
+        .json(&serde_json::json!({
+            "query": format!(r#"mutation {{
+                addWalkPoints(walkId: "{}", points: [
+                    {{ lat: 35.6762, lng: 139.6503, recordedAt: "2026-03-21T10:00:00Z" }},
+                    {{ lat: 35.6763, lng: 139.6504, recordedAt: "2026-03-21T10:00:05Z" }}
+                ])
+            }}"#, walk_id)
+        }))
+        .send().await.unwrap();
+    let body: serde_json::Value = res.json().await.unwrap();
+    assert_eq!(body["data"]["addWalkPoints"], true, "got: {:?}", body);
+}

@@ -1,0 +1,109 @@
+{
+  "version": 1,
+  "project": "mobile",
+  "date": "2026-03-20T10:05:22.180Z",
+  "score": 85,
+  "strengths": [
+    {
+      "category": "Security",
+      "title": "No hardcoded secrets detected in source"
+    },
+    {
+      "category": "Performance",
+      "title": "Reanimated available for UI thread animations"
+    },
+    {
+      "category": "Performance",
+      "title": "expo-image for optimized image loading"
+    },
+    {
+      "category": "Performance",
+      "title": "Hermes JS engine enabled"
+    },
+    {
+      "category": "Code Quality",
+      "title": "TypeScript enabled"
+    },
+    {
+      "category": "Code Quality",
+      "title": "TypeScript strict mode enabled"
+    },
+    {
+      "category": "Architecture",
+      "title": "Navigation: expo-router"
+    },
+    {
+      "category": "Dependencies",
+      "title": "Reasonable dependency count (25 packages)"
+    },
+    {
+      "category": "Dependencies",
+      "title": "Lock file present for reproducible builds"
+    },
+    {
+      "category": "React Native",
+      "title": "New Architecture enabled"
+    },
+    {
+      "category": "React Native",
+      "title": "Modern Expo SDK (54)"
+    },
+    {
+      "category": "React Native",
+      "title": "Native gesture handling configured"
+    },
+    {
+      "category": "React Native",
+      "title": "Safe area handling configured"
+    },
+    {
+      "category": "Code Quality",
+      "title": "ESLint configured"
+    },
+    {
+      "category": "Code Quality",
+      "title": "Functional components (modern pattern)"
+    }
+  ],
+  "findings": [
+    {
+      "severity": "warning",
+      "category": "Performance",
+      "title": "Using FlatList instead of FlashList",
+      "detail": "FlashList provides significantly better performance for large lists (100+ items).",
+      "fix": "npm install @shopify/flash-list"
+    },
+    {
+      "severity": "warning",
+      "category": "Architecture",
+      "title": "No error boundary detected",
+      "detail": "App crashes will show white screen instead of graceful error UI.",
+      "fix": "Add an ErrorBoundary component wrapping your root navigator"
+    },
+    {
+      "severity": "critical",
+      "category": "Testing",
+      "title": "No test files detected",
+      "detail": "No testing framework or tests found.",
+      "fix": "npx expo install jest @testing-library/react-native jest-expo"
+    }
+  ],
+  "stack": {
+    "state": "none",
+    "serverState": "none",
+    "navigation": "expo-router",
+    "styling": "stylesheet",
+    "lists": "flatlist",
+    "images": "expo-image",
+    "forms": "none",
+    "storage": "async-storage",
+    "testing": "none",
+    "build": "manual"
+  },
+  "meta": {
+    "framework": "expo-managed",
+    "typescript": true,
+    "newArch": true,
+    "monorepo": false
+  }
+}

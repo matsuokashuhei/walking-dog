@@ -26,8 +26,8 @@ impl Walk {
         ID(self.id.to_string())
     }
 
-    async fn status(&self) -> &str {
-        &self.status
+    async fn status(&self) -> String {
+        self.status.to_uppercase()
     }
 
     async fn distance_m(&self) -> Option<i32> {

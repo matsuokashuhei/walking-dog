@@ -1,4 +1,6 @@
 use async_graphql::{Context, InputObject, Object, Result, SimpleObject, ID};
+use std::sync::Arc;
+use crate::AppState;
 
 #[derive(SimpleObject, Clone, Debug)]
 pub struct BirthDate {
@@ -96,14 +98,20 @@ impl Dog {
         self.created_at.to_rfc3339()
     }
 
-    /// Stub: implemented in Task 9
     async fn walks(
         &self,
-        _ctx: &Context<'_>,
-        _limit: Option<i32>,
-        _offset: Option<i32>,
+        ctx: &Context<'_>,
+        limit: Option<i32>,
+        offset: Option<i32>,
     ) -> Result<Vec<super::walk::Walk>> {
-        Ok(vec![])
+        let state = ctx.data::<Arc<AppState>>()?;
+        let walks = crate::services::walk_service::get_walks_by_dog_id(
+            &state.db,
+            self.id,
+            limit.unwrap_or(20) as u64,
+            offset.unwrap_or(0) as u64,
+        ).await?;
+        Ok(walks)
     }
 
     /// Stub: implemented in Task 11

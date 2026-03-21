@@ -114,17 +114,13 @@ impl Dog {
         Ok(walks)
     }
 
-    /// Stub: implemented in Task 11
     async fn walk_stats(
         &self,
-        _ctx: &Context<'_>,
-        _period: StatsPeriod,
+        ctx: &Context<'_>,
+        period: StatsPeriod,
     ) -> Result<WalkStats> {
-        Ok(WalkStats {
-            total_walks: 0,
-            total_distance_m: 0,
-            total_duration_sec: 0,
-        })
+        let state = ctx.data::<Arc<AppState>>()?;
+        crate::services::walk_service::get_walk_stats(&state.db, self.id, period).await.map_err(Into::into)
     }
 }
 

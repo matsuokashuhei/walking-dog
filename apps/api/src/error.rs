@@ -15,12 +15,11 @@ pub enum AppError {
     Internal(String),
 }
 
-/// AppError を async_graphql::Error に変換する。
-/// エラー種別に応じて GraphQL extension code を付与する。
-impl From<AppError> for async_graphql::Error {
-    fn from(e: AppError) -> Self {
+impl AppError {
+    /// Convert to async_graphql::Error with extension code.
+    pub fn into_graphql_error(self) -> async_graphql::Error {
         use async_graphql::ErrorExtensions;
-        match e {
+        match self {
             AppError::BadRequest(msg) => {
                 async_graphql::Error::new(msg).extend_with(|_, ext| {
                     ext.set("code", "BAD_USER_INPUT");

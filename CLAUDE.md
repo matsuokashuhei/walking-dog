@@ -1,5 +1,24 @@
 # walking-dog — Monorepo
 
+## General Rules
+
+- **git コマンドを実行する前に必ず `pwd` で作業ディレクトリを確認する**
+
+## Development Rules
+
+### API (apps/api/)
+- **Rust コマンドはすべて Docker 経由で実行する**
+  - `cargo build`, `cargo test`, `cargo run` などは直接実行しない
+  - Docker Compose の `api` サービス経由で実行する:
+    ```bash
+    docker compose -f apps/api/compose.yml run --rm api cargo build
+    docker compose -f apps/api/compose.yml run --rm api cargo test
+    ```
+  - または既存コンテナで実行:
+    ```bash
+    docker compose -f apps/api/compose.yml exec api cargo test
+    ```
+
 ## Directory Structure
 
 ```

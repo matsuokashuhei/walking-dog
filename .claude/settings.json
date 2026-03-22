@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(cargo*)",
+      "Bash(npx playwright*)",
+      "Bash(playwright test*)",
+      "Bash(playwright-cli*)"
+    ]
+  }
+}

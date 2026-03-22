@@ -64,6 +64,10 @@ services:
       EXPO_DEVTOOLS_LISTEN_ADDRESS: "0.0.0.0"
       REACT_NATIVE_PACKAGER_HOSTNAME: "192.168.68.66"
       API_URL: http://api:3000
+      COGNITO_USER_POOL_ID: ""
+      COGNITO_CLIENT_ID: ""
+      COGNITO_ENDPOINT_URL: "http://cognito-local:9229"
+      COGNITO_REGION: "ap-northeast-1"
     depends_on:
       - api
 

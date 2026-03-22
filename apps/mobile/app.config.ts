@@ -72,5 +72,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     cognitoUserPoolId: process.env.COGNITO_USER_POOL_ID ?? '',
     cognitoClientId: process.env.COGNITO_CLIENT_ID ?? '',
     cognitoRegion: process.env.COGNITO_REGION ?? 'ap-northeast-1',
+    cognitoEndpointUrl: process.env.COGNITO_ENDPOINT_URL ?? '',
   },
 });

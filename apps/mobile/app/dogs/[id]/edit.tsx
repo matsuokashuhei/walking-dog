@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { Alert, ScrollView, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useDog } from '@/hooks/use-dog';
@@ -35,6 +35,8 @@ export default function EditDogScreen() {
       await uploadToPresignedUrl(url, uri, contentType);
       // Invalidate dog cache so the updated photoUrl is fetched from the server
       queryClient.invalidateQueries({ queryKey: dogKeys.all });
+    } catch {
+      Alert.alert('エラー', '写真のアップロードに失敗しました。もう一度お試しください。');
     } finally {
       setPhotoLoading(false);
     }

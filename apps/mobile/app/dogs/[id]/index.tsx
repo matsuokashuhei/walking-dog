@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { useDog } from '@/hooks/use-dog';
@@ -26,8 +26,12 @@ export default function DogDetailScreen() {
   if (isLoading || !dog) return <LoadingScreen />;
 
   async function handleDelete() {
-    await deleteDog(id);
-    router.replace('/(tabs)/dogs');
+    try {
+      await deleteDog(id);
+      router.replace('/(tabs)/dogs');
+    } catch {
+      Alert.alert('エラー', '犬の削除に失敗しました。もう一度お試しください。');
+    }
   }
 
   return (
@@ -48,9 +52,11 @@ export default function DogDetailScreen() {
         ) : null}
       </View>
 
-      <View style={styles.statsSection}>
-        <DogStatsCard stats={dog.walkStats} />
-      </View>
+      {dog.walkStats ? (
+        <View style={styles.statsSection}>
+          <DogStatsCard stats={dog.walkStats} />
+        </View>
+      ) : null}
 
       <View style={styles.actions}>
         <Button

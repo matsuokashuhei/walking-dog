@@ -30,8 +30,7 @@ export interface Dog {
 }
 
 export interface DogWithStats extends Dog {
-  walkStats: WalkStats;
-  walks: Walk[];
+  walkStats: WalkStats | null;
 }
 
 export interface Walk {

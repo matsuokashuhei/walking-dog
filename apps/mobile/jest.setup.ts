@@ -24,6 +24,7 @@ if (!i18n.isInitialized) {
     lng: 'ja',
     fallbackLng: 'ja',
     interpolation: { escapeValue: false },
+    initImmediate: false,
   });
 }
 

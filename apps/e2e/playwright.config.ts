@@ -9,7 +9,14 @@ export default defineConfig({
     trace: 'retain-on-failure',
   },
   projects: [
-    { name: 'iPhone 14', use: { ...devices['iPhone 14'] } },
+    {
+      name: 'iPhone 14 - ja-JP',
+      use: { ...devices['iPhone 14'], locale: 'ja-JP' },
+    },
+    {
+      name: 'iPhone 14 - en-US',
+      use: { ...devices['iPhone 14'], locale: 'en-US' },
+    },
   ],
   reporter: [['html', { open: 'never' }]],
 });

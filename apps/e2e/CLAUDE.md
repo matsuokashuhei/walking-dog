@@ -1,8 +1,20 @@
 # e2e — Development Rules
 
-## `playwright-cli` を使う — `npx playwright test` は使わない
-
 ## すべて Docker Compose 経由で実行する
+
+### テスト実行（`npx playwright test`）
+
+- 全テスト実行（ja-JP + en-US）:
+  ```bash
+  docker compose -f apps/compose.yml --profile e2e run --rm e2e npx playwright test
+  ```
+- ロケール別実行:
+  ```bash
+  docker compose -f apps/compose.yml --profile e2e run --rm e2e npx playwright test --project "iPhone 14 - ja-JP"
+  docker compose -f apps/compose.yml --profile e2e run --rm e2e npx playwright test --project "iPhone 14 - en-US"
+  ```
+
+### インタラクティブ操作（`playwright-cli`）
 
 - 新規コンテナで実行:
   ```bash
@@ -30,3 +42,20 @@
 
 - `ja-JP`
 - `en-US`
+
+`playwright.config.ts` の projects で両ロケールが定義されている。ラベルは `tests/helpers/i18n.ts` で管理。
+
+## テストの構成
+
+```
+tests/
+├── helpers/
+│   ├── i18n.ts          # ロケール別ラベルマップ
+│   ├── fixtures.ts      # カスタム test fixture (labels)
+│   ├── auth.ts          # 認証ヘルパー (registerUser, loginUser, etc.)
+│   ├── navigation.ts    # ナビゲーションヘルパー
+│   └── screenshot.ts    # スクリーンショットヘルパー (YYYYmmddHHMMSS-{xxx}.png)
+├── smoke.spec.ts        # スモークテスト
+├── auth.spec.ts         # 認証テスト
+└── dogs.spec.ts         # 犬プロフィール CRUD テスト
+```

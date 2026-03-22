@@ -76,10 +76,13 @@ services:
     working_dir: /app
     volumes:
       - ./e2e:/app
+      - e2e_node_modules:/app/node_modules  # bind mount による上書きを防止
       - ./e2e/logs:/logs                 # スクリーンショット保存先
     environment:
       BASE_URL: http://mobile:8081
       DISPLAY: ":99"
+      COGNITO_ENDPOINT: http://cognito-local:9229
+      COGNITO_USER_POOL_ID: "local_2yovNmW0"
     ports:
       - "5900:5900"                     # VNC (headed モードの視覚確認用)
     depends_on:
@@ -95,3 +98,4 @@ volumes:
   cargo_cache:
   target_cache:
   mobile_node_modules:
+  e2e_node_modules:

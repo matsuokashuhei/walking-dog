@@ -82,5 +82,9 @@
       "change": "Change Photo",
       "add": "Add Photo"
     }
+  },
+  "settings": {
+    "title": "Settings",
+    "signOut": "Sign Out"
   }
 }

@@ -1,5 +1,5 @@
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QuerySelect, Set,
+    ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect, Set,
 };
 use uuid::Uuid;
 use chrono::Utc;
@@ -120,6 +120,7 @@ pub async fn get_walks_by_user_id(
 ) -> Result<Vec<WalkModel>, AppError> {
     let walks = WalkEntity::find()
         .filter(walks::Column::UserId.eq(user_id))
+        .order_by_desc(walks::Column::StartedAt)
         .all(db)
         .await?;
     Ok(walks)

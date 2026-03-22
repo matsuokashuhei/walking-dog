@@ -51,6 +51,10 @@ pub async fn update_profile(
         .await?
         .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
 
+    if display_name.is_none() {
+        return Ok(model);
+    }
+
     let mut active: users::ActiveModel = model.into();
     if let Some(name) = display_name {
         active.display_name = Set(Some(name));

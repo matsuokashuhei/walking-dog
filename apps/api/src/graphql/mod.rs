@@ -37,8 +37,6 @@ pub fn build_schema(state: Arc<AppState>) -> AppSchema {
         // Query output types
         .register(custom_queries::walk_point_type())
         .register(custom_queries::walk_stats_type())
-        // Query input types
-        .register(custom_queries::update_profile_input_type())
         // Mutation output types
         .register(custom_mutations::birth_date_type())
         .register(custom_mutations::dog_output_type())
@@ -50,6 +48,7 @@ pub fn build_schema(state: Arc<AppState>) -> AppSchema {
         .register(custom_mutations::create_dog_input_type())
         .register(custom_mutations::update_dog_input_type())
         .register(custom_mutations::walk_point_input_type())
+        .register(custom_mutations::update_profile_input_type())
         .data(state)
         .finish()
         .expect("Failed to build GraphQL schema")

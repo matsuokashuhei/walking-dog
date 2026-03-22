@@ -140,6 +140,26 @@ pub fn dog_output_type() -> Object {
                 Ok(Some(FieldValue::value(d.created_at.clone())))
             })
         }))
+        .field(
+            Field::new("walkStats", TypeRef::named("WalkStats"), |ctx| {
+                FieldFuture::new(async move {
+                    let d = ctx.parent_value.try_downcast_ref::<DogOutput>()?;
+                    let dog_id = d.id;
+                    let state = ctx.data::<Arc<crate::AppState>>()?;
+                    let period = ctx.args.try_get("period")
+                        .ok()
+                        .and_then(|v| v.string().ok().map(|s| s.to_string()))
+                        .unwrap_or_else(|| "ALL".to_string());
+                    let stats = crate::services::walk_service::get_walk_stats(&state.db, dog_id, &period)
+                        .await
+                        .map_err(crate::error::AppError::into_graphql_error)?;
+                    Ok(Some(FieldValue::owned_any(
+                        crate::graphql::custom_queries::WalkStatsOutput::from(stats)
+                    )))
+                })
+            })
+            .argument(InputValue::new("period", TypeRef::named(TypeRef::STRING)))
+        )
 }
 
 pub fn create_dog_input_type() -> InputObject {
@@ -192,6 +212,7 @@ pub struct UserOutput {
     pub id: Uuid,
     pub cognito_sub: String,
     pub display_name: Option<String>,
+    pub avatar_url: Option<String>,
     pub created_at: String,
 }
 
@@ -202,6 +223,7 @@ impl From<crate::entities::users::Model> for UserOutput {
             id: m.id,
             cognito_sub: m.cognito_sub,
             display_name: m.display_name,
+            avatar_url: m.avatar_url,
             created_at: created.to_rfc3339(),
         }
     }
@@ -289,6 +311,27 @@ pub fn user_output_type() -> Object {
             FieldFuture::new(async move {
                 let u = ctx.parent_value.try_downcast_ref::<UserOutput>()?;
                 Ok(u.display_name.clone().map(FieldValue::value))
+            })
+        }))
+        .field(Field::new("avatarUrl", TypeRef::named(TypeRef::STRING), |ctx| {
+            FieldFuture::new(async move {
+                let u = ctx.parent_value.try_downcast_ref::<UserOutput>()?;
+                Ok(u.avatar_url.clone().map(FieldValue::value))
+            })
+        }))
+        .field(Field::new("dogs", TypeRef::named_nn_list_nn("DogOutput"), |ctx| {
+            FieldFuture::new(async move {
+                let u = ctx.parent_value.try_downcast_ref::<UserOutput>()?;
+                let user_id = u.id;
+                let state = ctx.data::<Arc<crate::AppState>>()?;
+                let dogs = crate::services::dog_service::get_dogs_by_user_id(&state.db, user_id)
+                    .await
+                    .map_err(crate::error::AppError::into_graphql_error)?;
+                let values: Vec<FieldValue> = dogs
+                    .into_iter()
+                    .map(|d| FieldValue::owned_any(DogOutput::from(d)))
+                    .collect();
+                Ok(Some(FieldValue::list(values)))
             })
         }))
         .field(Field::new("createdAt", TypeRef::named_nn(TypeRef::STRING), |ctx| {

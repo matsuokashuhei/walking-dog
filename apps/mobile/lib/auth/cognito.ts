@@ -43,6 +43,8 @@ export function signIn(email: string, password: string): Promise<SignInResult> {
       onFailure: (err) => reject(err),
     };
 
+    // USER_PASSWORD_AUTH avoids SRP which cognito-local doesn't support
+    user.setAuthenticationFlowType('USER_PASSWORD_AUTH');
     user.authenticateUser(authDetails, callbacks);
   });
 }

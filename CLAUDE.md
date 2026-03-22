@@ -6,56 +6,10 @@
 
 ## Development Rules
 
-### API (apps/api/)
-- **Rust コマンドはすべて Docker 経由で実行する**
-  - `cargo build`, `cargo test`, `cargo run` などは直接実行しない
-  - Docker Compose の `api` サービス経由で実行する:
-    ```bash
-    docker compose -f apps/compose.yml run --rm api cargo build
-    docker compose -f apps/compose.yml run --rm api cargo test
-    ```
-  - または既存コンテナで実行:
-    ```bash
-    docker compose -f apps/compose.yml exec api cargo test
-    ```
-
-### Mobile (apps/mobile/)
-- **Expo QR コードの確認方法**
-  - ターミナルでは QR コードが表示されないため、ブラウザで以下の URL を開く:
-    ```
-    https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=exp%3A%2F%2F192.168.68.66%3A8081
-    ```
-  - `192.168.68.66` はホストマシンの LAN IP。変わった場合は `REACT_NATIVE_PACKAGER_HOSTNAME` も更新する。
-
-- **npm コマンドはすべて Docker 経由で実行する**
-  - `npm install`, `npm run`, `npx` などは直接実行しない
-  - Docker Compose の `mobile` サービス経由で実行する:
-    ```bash
-    docker compose -f apps/compose.yml run --rm mobile npm install
-    docker compose -f apps/compose.yml run --rm mobile npx expo start
-    ```
-  - または既存コンテナで実行:
-    ```bash
-    docker compose -f apps/compose.yml exec mobile npm test
-    ```
-
-### E2E / Playwright (apps/playwright/)
-- **`playwright-cli` を使う** — `npx playwright test` は使わない
-- **すべて Docker Compose 経由で実行する**
-  - 新規コンテナで実行:
-    ```bash
-    docker compose -f apps/compose.yml run --rm playwright playwright-cli ${COMMAND}
-    ```
-  - 起動済みコンテナで実行:
-    ```bash
-    docker compose -f apps/compose.yml exec playwright playwright-cli ${COMMAND}
-    ```
-  - 例:
-    ```bash
-    docker compose -f apps/compose.yml exec playwright playwright-cli open http://mobile:8081
-    docker compose -f apps/compose.yml exec playwright playwright-cli snapshot
-    docker compose -f apps/compose.yml exec playwright playwright-cli screenshot --filename=/logs/result.png
-    ```
+各サービスの詳細な開発ルールはそれぞれの CLAUDE.md を参照：
+- API: `apps/api/CLAUDE.md`
+- Mobile: `apps/mobile/CLAUDE.md`
+- E2E: `apps/e2e/CLAUDE.md`
 
 ## Directory Structure
 
@@ -78,19 +32,28 @@ walking-dog/
 
 This project uses the obra/superpowers plugin. Always check for relevant skills before taking any action.
 
-## PR修正ワークフロー
+## 開発フェーズとスキル
 
-PRのレビューコメントへの対応は以下のスキルを順番に使うこと：
+各フェーズで以下の superpowers スキルを使うこと：
 
-1. **receiving-code-review** — レビューコメントを受け取ったら、盲目的に実装せず必ず技術的に検証してから対応する
-2. **test-driven-development** — 修正は必ずRED→GREEN→REFACTORのサイクルで行う。実装コードより先にテストを書くこと
-3. **requesting-code-review** — 修正完了後、subagentにコードレビューを依頼する
+### 設計フェーズ
+- **brainstorming** — アイデア出し・方針検討
+- **writing-plans** — 実装計画の作成
 
-## エージェントの引き継ぎ
+### 実装フェーズ
+- **using-git-worktrees** — フィーチャーブランチの作業環境を分離
+- **subagent-driven-development** — subagent に実装を委譲
+- **executing-plans** — 作成した計画を実行
+- **dispatching-parallel-agents** — 独立したタスクを並列実行
+- **test-driven-development** — RED → GREEN → REFACTOR サイクルで実装
 
-コンテキストウィンドウの残量が少なくなってきたら：
-- **dispatching-parallel-agents** または **subagent-driven-development** を使って作業を引き継ぐ
-- 引き継ぎ時はコンテキストを最小限に絞って渡すこと
+### レビューフェーズ
+- **requesting-code-review** — 実装完了後、subagent にコードレビューを依頼
+- **receiving-code-review** — レビューコメントを受け取ったら、盲目的に実装せず技術的に検証してから対応
+- **finishing-a-development-branch** — 実装完了後のブランチをクリーンアップして PR を作成
+
+### デバッグフェーズ
+- **systematic-debugging** — バグ・テスト失敗・CI エラーに直面したら使う
 
 ## セッション終了時
 

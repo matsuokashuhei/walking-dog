@@ -65,7 +65,7 @@ services:
     environment:
       EXPO_DEVTOOLS_LISTEN_ADDRESS: "0.0.0.0"
       REACT_NATIVE_PACKAGER_HOSTNAME: "192.168.68.66"
-      API_URL: http://api:3000
+      API_URL: http://192.168.68.66:3000
     depends_on:
       - api
 

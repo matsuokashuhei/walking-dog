@@ -36,11 +36,10 @@ pub async fn add_walk_points(
     let pk = format!("WALK#{}", walk_id);
     let all_requests: Vec<WriteRequest> = points
         .iter()
-        .enumerate()
-        .map(|(seq, point)| {
+        .map(|point| {
             let item = std::collections::HashMap::from([
                 ("pk".to_string(), AttributeValue::S(pk.clone())),
-                ("sk".to_string(), AttributeValue::S(format!("PT#{:06}", seq))),
+                ("sk".to_string(), AttributeValue::S(format!("PT#{}", point.recorded_at))),
                 ("lat".to_string(), AttributeValue::N(point.lat.to_string())),
                 ("lng".to_string(), AttributeValue::N(point.lng.to_string())),
                 ("recorded_at".to_string(), AttributeValue::S(point.recorded_at.clone())),

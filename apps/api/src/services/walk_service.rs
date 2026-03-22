@@ -57,6 +57,12 @@ pub async fn finish_walk(
         .await?
         .ok_or_else(|| AppError::NotFound(format!("Walk {} not found", walk_id)))?;
 
+    if walk.status != "active" {
+        return Err(AppError::BadRequest(
+            format!("Walk is not active (current status: {})", walk.status)
+        ));
+    }
+
     let started_at: chrono::DateTime<chrono::Utc> = walk.started_at.into();
     let ended_at = Utc::now();
     let duration_sec = (ended_at - started_at).num_seconds() as i32;

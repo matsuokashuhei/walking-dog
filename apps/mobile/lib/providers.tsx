@@ -1,6 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { PropsWithChildren, useEffect } from 'react';
-import { useAuthStore } from '@/stores/auth-store';
+import { PropsWithChildren } from 'react';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -11,20 +10,10 @@ const queryClient = new QueryClient({
   },
 });
 
-function AuthInitializer({ children }: PropsWithChildren) {
-  const initialize = useAuthStore((s) => s.initialize);
-
-  useEffect(() => {
-    initialize();
-  }, [initialize]);
-
-  return <>{children}</>;
-}
-
 export function AppProviders({ children }: PropsWithChildren) {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthInitializer>{children}</AuthInitializer>
+      {children}
     </QueryClientProvider>
   );
 }

@@ -4,7 +4,7 @@ use uuid::Uuid;
 use crate::AppState;
 use crate::auth;
 use crate::error::AppError;
-use crate::services::{user_service, walk_service, walk_points_service};
+use crate::services::{dog_service, user_service, walk_service, walk_points_service};
 use super::custom_mutations::{UserOutput, WalkOutput};
 
 // ─── Custom output types ──────────────────────────────────────────────────────
@@ -97,9 +97,33 @@ pub fn query_fields(state: Arc<AppState>) -> Vec<Field> {
     vec![
         me_field(state.clone()),
         my_walks_field(state.clone()),
+        dog_field(state.clone()),
         dog_walk_stats_field(state.clone()),
         walk_points_field(state),
     ]
+}
+
+fn dog_field(state: Arc<AppState>) -> Field {
+    Field::new("dog", TypeRef::named("DogOutput"), move |ctx| {
+        let state = state.clone();
+        FieldFuture::new(async move {
+            let cognito_sub = auth::require_auth(&ctx)?;
+            let dog_id_str = ctx.args.try_get("id")?.string()?;
+            let dog_id = Uuid::parse_str(dog_id_str)
+                .map_err(|_| async_graphql::Error::new("Invalid dog ID"))?;
+
+            let user = user_service::get_or_create_user(&state.db, &cognito_sub)
+                .await
+                .map_err(AppError::into_graphql_error)?;
+
+            let dog = dog_service::get_dog_by_id(&state.db, dog_id, user.id)
+                .await
+                .map_err(AppError::into_graphql_error)?;
+
+            Ok(dog.map(|d| FieldValue::owned_any(super::custom_mutations::DogOutput::from(d))))
+        })
+    })
+    .argument(InputValue::new("id", TypeRef::named_nn(TypeRef::ID)))
 }
 
 fn my_walks_field(state: Arc<AppState>) -> Field {

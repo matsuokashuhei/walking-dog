@@ -1,4 +1,4 @@
-import { defineConfig } from '@playwright/test';
+import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests',
@@ -9,7 +9,7 @@ export default defineConfig({
     trace: 'retain-on-failure',
   },
   projects: [
-    { name: 'chromium', use: { browserType: 'chromium' } },
+    { name: 'iPhone 14', use: { ...devices['iPhone 14'] } },
   ],
   reporter: [['html', { open: 'never' }]],
 });

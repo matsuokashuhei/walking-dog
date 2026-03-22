@@ -15,4 +15,4 @@ COPY . .
 EXPOSE 8081 19000 19001 19002
 
 # Start Expo on LAN mode for Docker network access
-CMD ["npx", "expo", "start", "--host", "lan"]
+CMD ["npm", "run", "start:lan"]

@@ -8,10 +8,8 @@ pub mod walk_dogs;
 pub mod walks;
 
 /// Register all entities for GraphQL queries (mutations are handled by custom resolvers).
-pub fn register_entity_modules(mut builder: seaography::Builder) -> seaography::Builder {
-    seaography::register_entity!(builder, dogs, mutation: false);
-    seaography::register_entity!(builder, users, mutation: false);
-    seaography::register_entity!(builder, walk_dogs, mutation: false);
-    seaography::register_entity!(builder, walks, mutation: false);
+pub fn register_entity_modules(builder: seaography::Builder) -> seaography::Builder {
+    // All queries are handled by custom resolvers with proper authorization checks.
+    // Seaography auto-generated queries are disabled to prevent data exposure.
     builder
 }

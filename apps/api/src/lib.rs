@@ -30,14 +30,7 @@ pub fn build_app(
     config: Config,
 ) -> Router {
     let state = Arc::new(AppState { db, dynamo, s3, config });
-
-    let schema = async_graphql::Schema::build(
-        graphql::QueryRoot::default(),
-        graphql::MutationRoot::default(),
-        async_graphql::EmptySubscription,
-    )
-    .data(state.clone())
-    .finish();
+    let schema = graphql::build_schema(state);
 
     Router::new()
         .route("/graphql", post(graphql_handler))

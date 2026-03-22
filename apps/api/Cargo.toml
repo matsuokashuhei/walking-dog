@@ -10,9 +10,10 @@ edition = "2021"
 [dependencies]
 axum = { version = "0.8", features = ["macros"] }
 tokio = { version = "1", features = ["full"] }
-async-graphql = { version = "7", features = ["chrono", "uuid"] }
+async-graphql = { version = "~7.0.17", features = ["chrono", "uuid", "dataloader", "dynamic-schema"] }
 async-graphql-axum = "7"
-sea-orm = { version = "1", features = ["sqlx-postgres", "runtime-tokio-rustls", "macros", "with-uuid", "with-chrono", "with-json"] }
+sea-orm = { version = "~2.0.0-rc", features = ["sqlx-postgres", "runtime-tokio-rustls", "macros", "with-uuid", "with-chrono", "with-json", "seaography"] }
+seaography = { version = "~2.0.0-rc", features = ["field-camel-case", "schema-meta", "macros"] }
 aws-config = { version = "1", features = ["behavior-version-latest"] }
 aws-sdk-dynamodb = "1"
 aws-sdk-s3 = { version = "1", features = ["behavior-version-latest"] }
@@ -31,7 +32,7 @@ base64 = "0.22"
 
 [dev-dependencies]
 migration = { path = "migration" }
-sea-orm-migration = { version = "1", features = ["sqlx-postgres", "runtime-tokio-rustls"] }
+sea-orm-migration = { version = "~2.0.0-rc", features = ["sqlx-postgres", "runtime-tokio-rustls"] }
 reqwest = { version = "0.12", features = ["json"] }
 tokio = { version = "1", features = ["full"] }
 serde_json = "1"

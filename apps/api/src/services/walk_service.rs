@@ -1,23 +1,25 @@
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect, Set,
+    ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QuerySelect, Set,
 };
 use uuid::Uuid;
 use chrono::Utc;
 use crate::entities::{
-    walks::{self, ActiveModel, Entity as WalkEntity},
+    walks::{self, ActiveModel, Entity as WalkEntity, Model as WalkModel},
     walk_dogs::{self, ActiveModel as WalkDogActiveModel, Entity as WalkDogEntity},
 };
 use crate::error::AppError;
-use crate::graphql::types::{
-    dog::{StatsPeriod, WalkStats},
-    walk::Walk,
-};
+
+pub struct WalkStats {
+    pub total_walks: i32,
+    pub total_distance_m: i32,
+    pub total_duration_sec: i32,
+}
 
 pub async fn start_walk(
     db: &sea_orm::DatabaseConnection,
     user_id: Uuid,
     dog_ids: Vec<Uuid>,
-) -> Result<Walk, AppError> {
+) -> Result<WalkModel, AppError> {
     if dog_ids.is_empty() {
         return Err(AppError::BadRequest("dogIds must not be empty".to_string()));
     }
@@ -41,14 +43,14 @@ pub async fn start_walk(
         .await?;
     }
 
-    Ok(walk.into())
+    Ok(walk)
 }
 
 pub async fn finish_walk(
     db: &sea_orm::DatabaseConnection,
     walk_id: Uuid,
     user_id: Uuid,
-) -> Result<Walk, AppError> {
+) -> Result<WalkModel, AppError> {
     let walk = WalkEntity::find_by_id(walk_id)
         .filter(walks::Column::UserId.eq(user_id))
         .one(db)
@@ -65,69 +67,20 @@ pub async fn finish_walk(
     active.duration_sec = Set(Some(duration_sec));
 
     let updated = active.update(db).await?;
-    Ok(updated.into())
-}
-
-pub async fn get_walk_by_id(
-    db: &sea_orm::DatabaseConnection,
-    walk_id: Uuid,
-) -> Result<Option<Walk>, AppError> {
-    let model = WalkEntity::find_by_id(walk_id).one(db).await?;
-    Ok(model.map(Walk::from))
-}
-
-pub async fn get_my_walks(
-    db: &sea_orm::DatabaseConnection,
-    user_id: Uuid,
-    limit: u64,
-    offset: u64,
-) -> Result<Vec<Walk>, AppError> {
-    let models = WalkEntity::find()
-        .filter(walks::Column::UserId.eq(user_id))
-        .order_by_desc(walks::Column::StartedAt)
-        .limit(limit)
-        .offset(offset)
-        .all(db)
-        .await?;
-    Ok(models.into_iter().map(Walk::from).collect())
-}
-
-pub async fn get_walks_by_dog_id(
-    db: &sea_orm::DatabaseConnection,
-    dog_id: Uuid,
-    limit: u64,
-    offset: u64,
-) -> Result<Vec<Walk>, AppError> {
-    let walk_ids: Vec<Uuid> = WalkDogEntity::find()
-        .filter(walk_dogs::Column::DogId.eq(dog_id))
-        .select_only()
-        .column(walk_dogs::Column::WalkId)
-        .into_tuple()
-        .all(db)
-        .await?;
-
-    let models = WalkEntity::find()
-        .filter(walks::Column::Id.is_in(walk_ids))
-        .order_by_desc(walks::Column::StartedAt)
-        .limit(limit)
-        .offset(offset)
-        .all(db)
-        .await?;
-
-    Ok(models.into_iter().map(Walk::from).collect())
+    Ok(updated)
 }
 
 pub async fn get_walk_stats(
     db: &sea_orm::DatabaseConnection,
     dog_id: Uuid,
-    period: StatsPeriod,
+    period: &str,
 ) -> Result<WalkStats, AppError> {
     let now = Utc::now();
     let since: Option<chrono::DateTime<chrono::Utc>> = match period {
-        StatsPeriod::Week => Some(now - chrono::Duration::weeks(1)),
-        StatsPeriod::Month => Some(now - chrono::Duration::days(30)),
-        StatsPeriod::Year => Some(now - chrono::Duration::days(365)),
-        StatsPeriod::All => None,
+        "Week" => Some(now - chrono::Duration::weeks(1)),
+        "Month" => Some(now - chrono::Duration::days(30)),
+        "Year" => Some(now - chrono::Duration::days(365)),
+        _ => None, // "All" or unknown
     };
 
     let walk_ids: Vec<Uuid> = WalkDogEntity::find()
@@ -153,4 +106,15 @@ pub async fn get_walk_stats(
     let total_duration_sec = walks.iter().filter_map(|w| w.duration_sec).sum();
 
     Ok(WalkStats { total_walks, total_distance_m, total_duration_sec })
+}
+
+pub async fn get_walks_by_user_id(
+    db: &sea_orm::DatabaseConnection,
+    user_id: Uuid,
+) -> Result<Vec<WalkModel>, AppError> {
+    let walks = WalkEntity::find()
+        .filter(walks::Column::UserId.eq(user_id))
+        .all(db)
+        .await?;
+    Ok(walks)
 }

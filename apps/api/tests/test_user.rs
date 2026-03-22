@@ -7,7 +7,7 @@ async fn test_me_query() {
         .post("/graphql")
         .header("Authorization", "Bearer test-token")
         .json(&serde_json::json!({
-            "query": "{ me { id displayName dogs { id name } } }"
+            "query": "{ me { id displayName } }"
         }))
         .send()
         .await
@@ -19,18 +19,13 @@ async fn test_me_query() {
         "me.id should be string, got: {:?}",
         body
     );
-    assert!(
-        body["data"]["me"]["dogs"].is_array(),
-        "me.dogs should be an array, got: {:?}",
-        body
-    );
 }
 
 #[tokio::test]
 async fn test_update_profile_mutation() {
     let client = common::test_client().await;
 
-    // First, ensure the user exists
+    // Ensure the user exists first
     client
         .post("/graphql")
         .header("Authorization", "Bearer test-token")

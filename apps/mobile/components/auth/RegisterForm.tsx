@@ -8,7 +8,7 @@ import { Colors } from '@/constants/theme';
 import { spacing, typography } from '@/theme/tokens';
 
 interface RegisterFormProps {
-  onSuccess: (email: string) => void;
+  onSuccess: (email: string, userConfirmed: boolean) => void;
   onLoginPress: () => void;
 }
 
@@ -30,8 +30,8 @@ export function RegisterForm({ onSuccess, onLoginPress }: RegisterFormProps) {
     setError('');
     setLoading(true);
     try {
-      await signUp(email, password, displayName);
-      onSuccess(email);
+      const result = await signUp(email, password, displayName);
+      onSuccess(email, result.userConfirmed);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : '登録に失敗しました';
       setError(message);

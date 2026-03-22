@@ -3,16 +3,16 @@ import { getToken, setToken, deleteToken } from '@/lib/auth/secure-storage';
 import { setAuthToken } from '@/lib/graphql/client';
 
 interface AuthState {
-  token: string | null;
+  accessToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   initialize: () => Promise<void>;
-  setAuth: (idToken: string, refreshToken: string) => Promise<void>;
+  setAuth: (accessToken: string, refreshToken: string) => Promise<void>;
   clearAuth: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
-  token: null,
+  accessToken: null,
   isAuthenticated: false,
   isLoading: true,
 
@@ -21,23 +21,23 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const stored = await getToken();
       if (stored) {
-        setAuthToken(stored.idToken);
-        set({ token: stored.idToken, isAuthenticated: true });
+        setAuthToken(stored.accessToken);
+        set({ accessToken: stored.accessToken, isAuthenticated: true });
       }
     } finally {
       set({ isLoading: false });
     }
   },
 
-  setAuth: async (idToken, refreshToken) => {
-    await setToken(idToken, refreshToken);
-    setAuthToken(idToken);
-    set({ token: idToken, isAuthenticated: true });
+  setAuth: async (accessToken, refreshToken) => {
+    await setToken(accessToken, refreshToken);
+    setAuthToken(accessToken);
+    set({ accessToken, isAuthenticated: true });
   },
 
   clearAuth: async () => {
     await deleteToken();
     setAuthToken(null);
-    set({ token: null, isAuthenticated: false });
+    set({ accessToken: null, isAuthenticated: false });
   },
 }));

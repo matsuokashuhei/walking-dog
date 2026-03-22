@@ -18,9 +18,13 @@ export default function RegisterScreen() {
   const [step, setStep] = useState<Step>('register');
   const [pendingEmail, setPendingEmail] = useState('');
 
-  function handleRegisterSuccess(email: string) {
-    setPendingEmail(email);
-    setStep('confirm');
+  function handleRegisterSuccess(email: string, userConfirmed: boolean) {
+    if (userConfirmed) {
+      router.replace('/(auth)/login' as never);
+    } else {
+      setPendingEmail(email);
+      setStep('confirm');
+    }
   }
 
   function handleConfirmSuccess() {

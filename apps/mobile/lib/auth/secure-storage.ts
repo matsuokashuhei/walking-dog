@@ -1,11 +1,11 @@
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
-const ID_TOKEN_KEY = 'auth_id_token';
+const ACCESS_TOKEN_KEY = 'auth_access_token';
 const REFRESH_TOKEN_KEY = 'auth_refresh_token';
 
 export interface StoredTokens {
-  idToken: string;
+  accessToken: string;
   refreshToken: string;
 }
 
@@ -33,19 +33,19 @@ const storage = {
   },
 };
 
-export async function setToken(idToken: string, refreshToken: string): Promise<void> {
-  await storage.setItem(ID_TOKEN_KEY, idToken);
+export async function setToken(accessToken: string, refreshToken: string): Promise<void> {
+  await storage.setItem(ACCESS_TOKEN_KEY, accessToken);
   await storage.setItem(REFRESH_TOKEN_KEY, refreshToken);
 }
 
 export async function getToken(): Promise<StoredTokens | null> {
-  const idToken = await storage.getItem(ID_TOKEN_KEY);
+  const accessToken = await storage.getItem(ACCESS_TOKEN_KEY);
   const refreshToken = await storage.getItem(REFRESH_TOKEN_KEY);
-  if (!idToken || !refreshToken) return null;
-  return { idToken, refreshToken };
+  if (!accessToken || !refreshToken) return null;
+  return { accessToken, refreshToken };
 }
 
 export async function deleteToken(): Promise<void> {
-  await storage.deleteItem(ID_TOKEN_KEY);
+  await storage.deleteItem(ACCESS_TOKEN_KEY);
   await storage.deleteItem(REFRESH_TOKEN_KEY);
 }

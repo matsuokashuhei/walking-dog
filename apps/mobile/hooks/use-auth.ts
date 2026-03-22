@@ -1,26 +1,33 @@
 import { useAuthStore } from '@/stores/auth-store';
-import * as cognito from '@/lib/auth/cognito';
+import * as authApi from '@/lib/auth/api';
+import type { SignUpResult } from '@/lib/auth/api';
 
 export function useAuth() {
-  const { isAuthenticated, isLoading, token, setAuth, clearAuth } = useAuthStore();
+  const { isAuthenticated, isLoading, accessToken, setAuth, clearAuth } = useAuthStore();
 
   async function signIn(email: string, password: string): Promise<void> {
-    const result = await cognito.signIn(email, password);
-    await setAuth(result.idToken, result.refreshToken);
+    const result = await authApi.signIn(email, password);
+    await setAuth(result.accessToken, result.refreshToken);
   }
 
-  async function signUp(email: string, password: string, displayName: string): Promise<void> {
-    await cognito.signUp(email, password, displayName);
+  async function signUp(
+    email: string,
+    password: string,
+    displayName: string
+  ): Promise<SignUpResult> {
+    return authApi.signUp(email, password, displayName);
   }
 
   async function confirmSignUp(email: string, code: string): Promise<void> {
-    await cognito.confirmSignUp(email, code);
+    await authApi.confirmSignUp(email, code);
   }
 
   async function signOut(): Promise<void> {
-    cognito.signOut();
+    if (accessToken) {
+      await authApi.signOut(accessToken);
+    }
     await clearAuth();
   }
 
-  return { isAuthenticated, isLoading, token, signIn, signUp, confirmSignUp, signOut };
+  return { isAuthenticated, isLoading, accessToken, signIn, signUp, confirmSignUp, signOut };
 }

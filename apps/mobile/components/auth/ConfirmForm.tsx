@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/Button';
 import { TextInput } from '@/components/ui/TextInput';
@@ -14,6 +15,7 @@ interface ConfirmFormProps {
 
 export function ConfirmForm({ email, onSuccess }: ConfirmFormProps) {
   const { confirmSignUp } = useAuth();
+  const { t } = useTranslation();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
 
@@ -28,8 +30,15 @@ export function ConfirmForm({ email, onSuccess }: ConfirmFormProps) {
     try {
       await confirmSignUp(email, code);
       onSuccess();
-    } catch {
-      setError('確認コードが正しくありません');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : '';
+      if (message.includes('INVALID_CODE')) {
+        setError(t('auth.confirm.error.invalidCode'));
+      } else if (message.includes('EXPIRED_CODE')) {
+        setError(t('auth.confirm.error.expiredCode'));
+      } else {
+        setError(t('auth.confirm.error.generic'));
+      }
     } finally {
       setLoading(false);
     }
@@ -38,10 +47,10 @@ export function ConfirmForm({ email, onSuccess }: ConfirmFormProps) {
   return (
     <View style={styles.container}>
       <Text style={[styles.description, { color: colors.textSecondary }]}>
-        {email} に確認コードを送りました
+        {t('auth.confirm.description', { email })}
       </Text>
       <TextInput
-        label="確認コード"
+        label={t('auth.confirm.code')}
         value={code}
         onChangeText={setCode}
         keyboardType="number-pad"
@@ -52,7 +61,7 @@ export function ConfirmForm({ email, onSuccess }: ConfirmFormProps) {
         <Text style={[styles.error, { color: colors.error }]}>{error}</Text>
       ) : null}
       <Button
-        label="確認"
+        label={t('auth.confirm.submit')}
         onPress={handleSubmit}
         loading={loading}
         disabled={code.length !== 6}

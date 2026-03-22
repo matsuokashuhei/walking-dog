@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/Button';
 import { TextInput } from '@/components/ui/TextInput';
@@ -14,6 +15,7 @@ interface RegisterFormProps {
 
 export function RegisterForm({ onSuccess, onLoginPress }: RegisterFormProps) {
   const { signUp } = useAuth();
+  const { t } = useTranslation();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
 
@@ -33,8 +35,14 @@ export function RegisterForm({ onSuccess, onLoginPress }: RegisterFormProps) {
       const result = await signUp(email, password, displayName);
       onSuccess(email, result.userConfirmed);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : '登録に失敗しました';
-      setError(message);
+      const message = err instanceof Error ? err.message : '';
+      if (message.includes('USER_EXISTS')) {
+        setError(t('auth.register.error.userExists'));
+      } else if (message.includes('INVALID_PASSWORD')) {
+        setError(t('auth.register.error.invalidPassword'));
+      } else {
+        setError(t('auth.register.error.generic'));
+      }
     } finally {
       setLoading(false);
     }
@@ -43,14 +51,14 @@ export function RegisterForm({ onSuccess, onLoginPress }: RegisterFormProps) {
   return (
     <View style={styles.container}>
       <TextInput
-        label="表示名"
+        label={t('auth.register.displayName')}
         value={displayName}
         onChangeText={setDisplayName}
         autoComplete="name"
         textContentType="name"
       />
       <TextInput
-        label="メールアドレス"
+        label={t('auth.register.email')}
         value={email}
         onChangeText={setEmail}
         keyboardType="email-address"
@@ -59,24 +67,24 @@ export function RegisterForm({ onSuccess, onLoginPress }: RegisterFormProps) {
         textContentType="emailAddress"
       />
       <TextInput
-        label="パスワード"
+        label={t('auth.register.password')}
         value={password}
         onChangeText={setPassword}
         secureTextEntry
         textContentType="newPassword"
-        error={password.length > 0 && password.length < 8 ? '8文字以上で入力してください' : undefined}
+        error={password.length > 0 && password.length < 8 ? t('auth.register.passwordError') : undefined}
       />
       {error ? (
         <Text style={[styles.error, { color: colors.error }]}>{error}</Text>
       ) : null}
       <Button
-        label="アカウントを作成"
+        label={t('auth.register.submit')}
         onPress={handleSubmit}
         loading={loading}
         disabled={!isValid}
       />
       <Button
-        label="ログインはこちら"
+        label={t('auth.register.loginLink')}
         variant="secondary"
         onPress={onLoginPress}
         style={styles.secondaryButton}

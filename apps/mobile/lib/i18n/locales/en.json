@@ -1,0 +1,41 @@
+{
+  "auth": {
+    "login": {
+      "title": "Walking Dog",
+      "subtitle": "Cherish your dog walks and friendships",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Login",
+      "register": "Create Account",
+      "error": {
+        "invalidCredentials": "Invalid email or password",
+        "generic": "Login failed"
+      }
+    },
+    "register": {
+      "title": "Create Account",
+      "displayName": "Display Name",
+      "email": "Email",
+      "password": "Password",
+      "passwordError": "Must be at least 8 characters",
+      "submit": "Create Account",
+      "loginLink": "Already have an account? Login",
+      "error": {
+        "userExists": "This email is already registered",
+        "invalidPassword": "Password does not meet requirements",
+        "generic": "Failed to create account"
+      }
+    },
+    "confirm": {
+      "title": "Email Verification",
+      "description": "We sent a confirmation code to {{email}}",
+      "code": "Confirmation Code",
+      "submit": "Confirm",
+      "error": {
+        "invalidCode": "Invalid confirmation code",
+        "expiredCode": "Confirmation code has expired",
+        "generic": "Verification failed"
+      }
+    }
+  }
+}

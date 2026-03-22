@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/Button';
 import { TextInput } from '@/components/ui/TextInput';
@@ -14,6 +15,7 @@ interface LoginFormProps {
 
 export function LoginForm({ onSuccess, onRegisterPress }: LoginFormProps) {
   const { signIn } = useAuth();
+  const { t } = useTranslation();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
 
@@ -31,8 +33,13 @@ export function LoginForm({ onSuccess, onRegisterPress }: LoginFormProps) {
     try {
       await signIn(email, password);
       onSuccess();
-    } catch {
-      setError('メールアドレスまたはパスワードが正しくありません');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : '';
+      if (message.includes('INVALID_CREDENTIALS') || message.includes('AUTH_ERROR')) {
+        setError(t('auth.login.error.invalidCredentials'));
+      } else {
+        setError(t('auth.login.error.generic'));
+      }
     } finally {
       setLoading(false);
     }
@@ -41,7 +48,7 @@ export function LoginForm({ onSuccess, onRegisterPress }: LoginFormProps) {
   return (
     <View style={styles.container}>
       <TextInput
-        label="メールアドレス"
+        label={t('auth.login.email')}
         value={email}
         onChangeText={setEmail}
         keyboardType="email-address"
@@ -50,7 +57,7 @@ export function LoginForm({ onSuccess, onRegisterPress }: LoginFormProps) {
         textContentType="emailAddress"
       />
       <TextInput
-        label="パスワード"
+        label={t('auth.login.password')}
         value={password}
         onChangeText={setPassword}
         secureTextEntry
@@ -60,13 +67,13 @@ export function LoginForm({ onSuccess, onRegisterPress }: LoginFormProps) {
         <Text style={[styles.error, { color: colors.error }]}>{error}</Text>
       ) : null}
       <Button
-        label="ログイン"
+        label={t('auth.login.submit')}
         onPress={handleSubmit}
         loading={loading}
         disabled={!isValid}
       />
       <Button
-        label="アカウントを作成"
+        label={t('auth.login.register')}
         variant="secondary"
         onPress={onRegisterPress}
         style={styles.secondaryButton}

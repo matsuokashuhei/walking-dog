@@ -1,4 +1,4 @@
-use async_graphql::dynamic::{Field, FieldFuture, FieldValue, InputObject, InputValue, Object, TypeRef};
+use async_graphql::dynamic::{Field, FieldFuture, FieldValue, InputValue, Object, TypeRef};
 use std::sync::Arc;
 use uuid::Uuid;
 use crate::AppState;
@@ -88,12 +88,6 @@ pub fn walk_stats_type() -> Object {
                 Ok(Some(FieldValue::value(s.total_duration_sec)))
             })
         }))
-}
-
-/// `UpdateProfileInput` input type (used by `updateProfile` mutation).
-pub fn update_profile_input_type() -> InputObject {
-    InputObject::new("UpdateProfileInput")
-        .field(InputValue::new("displayName", TypeRef::named(TypeRef::STRING)))
 }
 
 // ─── Query fields ─────────────────────────────────────────────────────────────

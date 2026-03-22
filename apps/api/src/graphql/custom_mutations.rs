@@ -17,11 +17,13 @@ pub struct BirthDate {
 
 impl BirthDate {
     pub fn from_json(v: &serde_json::Value) -> Option<Self> {
-        Some(Self {
-            year: v.get("year").and_then(|v| v.as_i64()).map(|v| v as i32),
-            month: v.get("month").and_then(|v| v.as_i64()).map(|v| v as i32),
-            day: v.get("day").and_then(|v| v.as_i64()).map(|v| v as i32),
-        })
+        let year = v.get("year").and_then(|v| v.as_i64()).map(|v| v as i32);
+        let month = v.get("month").and_then(|v| v.as_i64()).map(|v| v as i32);
+        let day = v.get("day").and_then(|v| v.as_i64()).map(|v| v as i32);
+        if year.is_none() && month.is_none() && day.is_none() {
+            return None;
+        }
+        Some(Self { year, month, day })
     }
 
     pub fn to_json(year: Option<i32>, month: Option<i32>, day: Option<i32>) -> serde_json::Value {
@@ -309,6 +311,11 @@ pub fn walk_point_input_type() -> InputObject {
         .field(InputValue::new("lat", TypeRef::named_nn(TypeRef::FLOAT)))
         .field(InputValue::new("lng", TypeRef::named_nn(TypeRef::FLOAT)))
         .field(InputValue::new("recordedAt", TypeRef::named_nn(TypeRef::STRING)))
+}
+
+pub fn update_profile_input_type() -> InputObject {
+    InputObject::new("UpdateProfileInput")
+        .field(InputValue::new("displayName", TypeRef::named(TypeRef::STRING)))
 }
 
 // ─── Mutation fields ──────────────────────────────────────────────────────────

@@ -12,12 +12,12 @@ const mockSetAuthToken = setAuthToken as jest.Mock;
 describe('auth-store', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    useAuthStore.setState({ token: null, isAuthenticated: false, isLoading: false });
+    useAuthStore.setState({ accessToken: null, isAuthenticated: false, isLoading: false });
   });
 
-  it('initialize: sets token from SecureStore and calls setAuthToken', async () => {
+  it('initialize: sets accessToken from SecureStore and calls setAuthToken', async () => {
     mockSecureStorage.getToken.mockResolvedValue({
-      idToken: 'test-id-token',
+      accessToken: 'test-access-token',
       refreshToken: 'test-refresh',
     });
 
@@ -26,8 +26,8 @@ describe('auth-store', () => {
       await result.current.initialize();
     });
 
-    expect(mockSetAuthToken).toHaveBeenCalledWith('test-id-token');
-    expect(result.current.token).toBe('test-id-token');
+    expect(mockSetAuthToken).toHaveBeenCalledWith('test-access-token');
+    expect(result.current.accessToken).toBe('test-access-token');
     expect(result.current.isAuthenticated).toBe(true);
   });
 
@@ -40,17 +40,17 @@ describe('auth-store', () => {
     });
 
     expect(result.current.isAuthenticated).toBe(false);
-    expect(result.current.token).toBeNull();
+    expect(result.current.accessToken).toBeNull();
   });
 
   it('setAuth: stores token and updates state', async () => {
     const { result } = renderHook(() => useAuthStore());
     await act(async () => {
-      await result.current.setAuth('id-token', 'refresh-token');
+      await result.current.setAuth('access-token', 'refresh-token');
     });
 
-    expect(mockSecureStorage.setToken).toHaveBeenCalledWith('id-token', 'refresh-token');
-    expect(mockSetAuthToken).toHaveBeenCalledWith('id-token');
+    expect(mockSecureStorage.setToken).toHaveBeenCalledWith('access-token', 'refresh-token');
+    expect(mockSetAuthToken).toHaveBeenCalledWith('access-token');
     expect(result.current.isAuthenticated).toBe(true);
   });
 

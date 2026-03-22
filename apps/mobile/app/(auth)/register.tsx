@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { RegisterForm } from '@/components/auth/RegisterForm';
 import { ConfirmForm } from '@/components/auth/ConfirmForm';
 import { ThemedText } from '@/components/themed-text';
@@ -15,12 +16,17 @@ export default function RegisterScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
 
+  const { t } = useTranslation();
   const [step, setStep] = useState<Step>('register');
   const [pendingEmail, setPendingEmail] = useState('');
 
-  function handleRegisterSuccess(email: string) {
-    setPendingEmail(email);
-    setStep('confirm');
+  function handleRegisterSuccess(email: string, userConfirmed: boolean) {
+    if (userConfirmed) {
+      router.replace('/(auth)/login' as never);
+    } else {
+      setPendingEmail(email);
+      setStep('confirm');
+    }
   }
 
   function handleConfirmSuccess() {
@@ -34,7 +40,7 @@ export default function RegisterScreen() {
     >
       <View style={styles.header}>
         <ThemedText type="title">
-          {step === 'register' ? 'アカウント作成' : 'メール確認'}
+          {step === 'register' ? t('auth.register.title') : t('auth.confirm.title')}
         </ThemedText>
       </View>
 

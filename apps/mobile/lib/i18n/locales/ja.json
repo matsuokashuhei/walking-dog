@@ -1,0 +1,41 @@
+{
+  "auth": {
+    "login": {
+      "title": "Walking Dog",
+      "subtitle": "散歩の記録と犬の友情を大切に",
+      "email": "メールアドレス",
+      "password": "パスワード",
+      "submit": "ログイン",
+      "register": "アカウントを作成",
+      "error": {
+        "invalidCredentials": "メールアドレスまたはパスワードが正しくありません",
+        "generic": "ログインに失敗しました"
+      }
+    },
+    "register": {
+      "title": "アカウント作成",
+      "displayName": "表示名",
+      "email": "メールアドレス",
+      "password": "パスワード",
+      "passwordError": "8文字以上で入力してください",
+      "submit": "アカウントを作成",
+      "loginLink": "ログインはこちら",
+      "error": {
+        "userExists": "このメールアドレスは既に登録されています",
+        "invalidPassword": "パスワードの要件を満たしていません",
+        "generic": "アカウント作成に失敗しました"
+      }
+    },
+    "confirm": {
+      "title": "メール確認",
+      "description": "{{email}} に確認コードを送りました",
+      "code": "確認コード",
+      "submit": "確認",
+      "error": {
+        "invalidCode": "確認コードが正しくありません",
+        "expiredCode": "確認コードの有効期限が切れています",
+        "generic": "確認に失敗しました"
+      }
+    }
+  }
+}

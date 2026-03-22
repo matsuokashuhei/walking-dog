@@ -3,6 +3,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
+import '@/lib/i18n';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AppProviders } from '@/lib/providers';

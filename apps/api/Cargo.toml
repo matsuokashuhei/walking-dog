@@ -9,6 +9,7 @@ edition = "2021"
 
 [dependencies]
 axum = { version = "0.8", features = ["macros"] }
+tower-http = { version = "0.6", features = ["cors"] }
 tokio = { version = "1", features = ["full"] }
 async-graphql = { version = "~7.0.17", features = ["chrono", "uuid", "dataloader", "dynamic-schema"] }
 async-graphql-axum = "7"
@@ -17,6 +18,7 @@ seaography = { version = "~2.0.0-rc", features = ["field-camel-case", "schema-me
 aws-config = { version = "1", features = ["behavior-version-latest"] }
 aws-sdk-dynamodb = "1"
 aws-sdk-s3 = { version = "1", features = ["behavior-version-latest"] }
+aws-sdk-cognitoidentityprovider = "1"
 aws-types = "1"
 jsonwebtoken = "9"
 serde = { version = "1", features = ["derive"] }

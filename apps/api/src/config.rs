@@ -11,6 +11,7 @@ pub struct Config {
     /// cognito-local のエンドポイント (例: http://localhost:9229)
     /// 本番環境では None にする
     pub cognito_endpoint_url: Option<String>,
+    pub cognito_client_id: String,
     pub port: u16,
     pub test_mode: bool,
 }
@@ -31,6 +32,7 @@ impl Config {
             cognito_region: std::env::var("COGNITO_REGION")
                 .unwrap_or_else(|_| "ap-northeast-1".to_string()),
             cognito_endpoint_url: std::env::var("COGNITO_ENDPOINT_URL").ok(),
+            cognito_client_id: std::env::var("COGNITO_CLIENT_ID").unwrap_or_default(),
             port: std::env::var("PORT")
                 .unwrap_or_else(|_| "3000".to_string())
                 .parse()

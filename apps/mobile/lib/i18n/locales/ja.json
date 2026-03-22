@@ -1,4 +1,7 @@
 {
+  "common": {
+    "error": "エラー"
+  },
   "auth": {
     "login": {
       "title": "Walking Dog",
@@ -37,5 +40,51 @@
         "generic": "確認に失敗しました"
       }
     }
+  },
+  "dogs": {
+    "list": {
+      "title": "愛犬",
+      "empty": "まだ犬が登録されていません",
+      "addDog": "犬を追加"
+    },
+    "new": {
+      "title": "新しい犬を登録",
+      "submit": "登録"
+    },
+    "detail": {
+      "edit": "編集",
+      "delete": "削除",
+      "deleteTitle": "犬を削除",
+      "deleteConfirm": "{{name}}を削除しますか？この操作は取り消せません。",
+      "deleteError": "犬の削除に失敗しました。もう一度お試しください。"
+    },
+    "edit": {
+      "title": "犬のプロフィールを編集",
+      "submit": "更新",
+      "photoUploadError": "写真のアップロードに失敗しました。もう一度お試しください。"
+    },
+    "form": {
+      "name": "名前",
+      "namePlaceholder": "例: ポチ",
+      "breed": "犬種",
+      "breedPlaceholder": "例: 柴犬",
+      "gender": "性別",
+      "genderPlaceholder": "例: オス"
+    },
+    "stats": {
+      "walks": "散歩",
+      "distance": "距離",
+      "duration": "時間",
+      "minutes": "{{count}}分",
+      "hours": "{{hours}}h {{minutes}}m"
+    },
+    "photo": {
+      "change": "写真を変更",
+      "add": "写真を追加"
+    }
+  },
+  "settings": {
+    "title": "設定",
+    "signOut": "サインアウト"
   }
 }

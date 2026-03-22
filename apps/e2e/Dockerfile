@@ -12,6 +12,10 @@ RUN apt-get update && apt-get install -y x11vnc && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
+# Install E2E test dependencies for npx playwright test
+COPY package.json package-lock.json ./
+RUN npm ci && npx playwright install --with-deps
+
 ENV DISPLAY=:99
 
 COPY start.sh /start.sh

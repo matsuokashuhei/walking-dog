@@ -1,4 +1,7 @@
 {
+  "common": {
+    "error": "Error"
+  },
   "auth": {
     "login": {
       "title": "Walking Dog",
@@ -37,5 +40,51 @@
         "generic": "Verification failed"
       }
     }
+  },
+  "dogs": {
+    "list": {
+      "title": "My Dogs",
+      "empty": "No dogs registered yet",
+      "addDog": "Add Dog"
+    },
+    "new": {
+      "title": "Register New Dog",
+      "submit": "Register"
+    },
+    "detail": {
+      "edit": "Edit",
+      "delete": "Delete",
+      "deleteTitle": "Delete Dog",
+      "deleteConfirm": "Delete {{name}}? This action cannot be undone.",
+      "deleteError": "Failed to delete dog. Please try again."
+    },
+    "edit": {
+      "title": "Edit Dog Profile",
+      "submit": "Update",
+      "photoUploadError": "Failed to upload photo. Please try again."
+    },
+    "form": {
+      "name": "Name",
+      "namePlaceholder": "e.g. Buddy",
+      "breed": "Breed",
+      "breedPlaceholder": "e.g. Golden Retriever",
+      "gender": "Gender",
+      "genderPlaceholder": "e.g. Male"
+    },
+    "stats": {
+      "walks": "Walks",
+      "distance": "Distance",
+      "duration": "Duration",
+      "minutes": "{{count}} min",
+      "hours": "{{hours}}h {{minutes}}m"
+    },
+    "photo": {
+      "change": "Change Photo",
+      "add": "Add Photo"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "signOut": "Sign Out"
   }
 }

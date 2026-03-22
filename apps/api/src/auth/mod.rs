@@ -98,10 +98,14 @@ async fn verify_cognito_jwt(token: &str) -> Result<String, String> {
     let decoding_key = DecodingKey::from_rsa_components(n, e).map_err(|e| e.to_string())?;
 
     let mut validation = Validation::new(Algorithm::RS256);
-    validation.set_issuer(&[format!(
-        "https://cognito-idp.{}.amazonaws.com/{}",
-        region, user_pool_id
-    )]);
+    // Skip issuer validation for local development (cognito-local uses 0.0.0.0 as issuer,
+    // which doesn't match the standard AWS Cognito issuer format)
+    if std::env::var("COGNITO_ENDPOINT_URL").is_err() {
+        validation.set_issuer(&[format!(
+            "https://cognito-idp.{}.amazonaws.com/{}",
+            region, user_pool_id
+        )]);
+    }
 
     let token_data = decode::<CognitoClaims>(token, &decoding_key, &validation)
         .map_err(|e| e.to_string())?;

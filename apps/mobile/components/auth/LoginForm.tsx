@@ -35,7 +35,8 @@ export function LoginForm({ onSuccess, onRegisterPress }: LoginFormProps) {
       onSuccess();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : '';
-      if (message.includes('INVALID_CREDENTIALS') || message.includes('AUTH_ERROR')) {
+      if (message.includes('INVALID_CREDENTIALS') || message.includes('AUTH_ERROR') ||
+          message.includes('UserNotFoundException') || message.includes('NotAuthorizedException')) {
         setError(t('auth.login.error.invalidCredentials'));
       } else {
         setError(t('auth.login.error.generic'));

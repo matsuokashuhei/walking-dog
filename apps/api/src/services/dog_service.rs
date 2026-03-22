@@ -63,6 +63,29 @@ pub async fn update_dog(
     Ok(updated)
 }
 
+pub async fn get_dogs_by_user_id(
+    db: &sea_orm::DatabaseConnection,
+    user_id: Uuid,
+) -> Result<Vec<DogModel>, AppError> {
+    DogEntity::find()
+        .filter(dogs::Column::UserId.eq(user_id))
+        .all(db)
+        .await
+        .map_err(AppError::Database)
+}
+
+pub async fn get_dog_by_id(
+    db: &sea_orm::DatabaseConnection,
+    dog_id: Uuid,
+    user_id: Uuid,
+) -> Result<Option<DogModel>, AppError> {
+    DogEntity::find_by_id(dog_id)
+        .filter(dogs::Column::UserId.eq(user_id))
+        .one(db)
+        .await
+        .map_err(AppError::Database)
+}
+
 /// Delete a dog owned by the given user.
 /// ON DELETE CASCADE on walk_dogs removes related walk_dogs rows automatically.
 /// Walks with no remaining dogs are also deleted inside the transaction.

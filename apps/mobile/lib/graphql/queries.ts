@@ -21,7 +21,7 @@ export const ME_QUERY = gql`
 `;
 
 export const DOG_QUERY = gql`
-  query Dog($id: ID!, $statsPeriod: StatsPeriod!) {
+  query Dog($id: ID!, $statsPeriod: String!) {
     dog(id: $id) {
       id
       name
@@ -34,15 +34,6 @@ export const DOG_QUERY = gql`
         totalWalks
         totalDistanceM
         totalDurationSec
-      }
-      walks(limit: 10) {
-        id
-        status
-        distanceM
-        durationSec
-        startedAt
-        endedAt
-        dogs { id name photoUrl }
       }
     }
   }

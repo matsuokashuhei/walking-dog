@@ -1,22 +1,89 @@
-import { StyleSheet } from 'react-native';
-
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useMe } from '@/hooks/use-me';
+import { DogListItem } from '@/components/dogs/DogListItem';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Colors } from '@/constants/theme';
+import { spacing } from '@/theme/tokens';
 
 export default function DogsScreen() {
+  const router = useRouter();
+  const colorScheme = useColorScheme();
+  const colors = Colors[colorScheme ?? 'light'];
+  const { data: me, isLoading, refetch } = useMe();
+
+  if (isLoading) return <LoadingScreen />;
+
   return (
-    <ThemedView style={styles.container}>
-      <ThemedText type="title">Dogs</ThemedText>
-      <ThemedText>Your dogs will appear here.</ThemedText>
-    </ThemedView>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={styles.header}>
+        <ThemedText type="title">愛犬</ThemedText>
+      </View>
+
+      <FlatList
+        data={me?.dogs ?? []}
+        keyExtractor={(dog) => dog.id}
+        renderItem={({ item }) => (
+          <DogListItem
+            dog={item}
+            onPress={(id) => router.push(`/dogs/${id}`)}
+          />
+        )}
+        contentContainerStyle={styles.list}
+        onRefresh={refetch}
+        refreshing={isLoading}
+        ListEmptyComponent={
+          <EmptyState
+            message="まだ犬が登録されていません"
+            ctaLabel="犬を追加"
+            onCta={() => router.push('/dogs/new')}
+          />
+        }
+      />
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="犬を追加"
+        style={[styles.fab, { backgroundColor: colors.primary }]}
+        onPress={() => router.push('/dogs/new')}
+      >
+        <Text style={styles.fabIcon}>+</Text>
+      </Pressable>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  container: { flex: 1 },
+  header: {
+    padding: spacing.lg,
+    paddingBottom: spacing.sm,
+  },
+  list: {
+    padding: spacing.md,
+    flexGrow: 1,
+  },
+  fab: {
+    position: 'absolute',
+    bottom: spacing.xl,
+    right: spacing.xl,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  fabIcon: {
+    color: '#FFFFFF',
+    fontSize: 28,
+    lineHeight: 32,
   },
 });

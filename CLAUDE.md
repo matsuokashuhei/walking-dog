@@ -3,6 +3,7 @@
 ## General Rules
 
 - **git コマンドを実行する前に必ず `pwd` で作業ディレクトリを確認する**
+- **JSON の解析には `jq` を使う** — `python3 -c "import json..."` などは使わない
 
 ## Development Rules
 

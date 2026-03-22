@@ -18,3 +18,15 @@
   docker compose -f apps/compose.yml exec e2e playwright-cli snapshot
   docker compose -f apps/compose.yml exec e2e playwright-cli screenshot --filename=/logs/result.png
   ```
+
+## スクリーンショットのファイル名
+
+- 形式: `YYYYmmddHHMMSS-{xxx}.png`
+- 例: `20260322143025-login.png`
+
+## ロケール
+
+2つのロケールでテストすること：
+
+- `ja-JP`
+- `en-US`

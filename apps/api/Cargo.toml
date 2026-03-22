@@ -9,6 +9,7 @@ edition = "2021"
 
 [dependencies]
 axum = { version = "0.8", features = ["macros"] }
+tower-http = { version = "0.6", features = ["cors"] }
 tokio = { version = "1", features = ["full"] }
 async-graphql = { version = "~7.0.17", features = ["chrono", "uuid", "dataloader", "dynamic-schema"] }
 async-graphql-axum = "7"

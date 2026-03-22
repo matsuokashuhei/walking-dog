@@ -13,6 +13,7 @@ use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
 use sea_orm::DatabaseConnection;
 use aws_sdk_dynamodb::Client as DynamoClient;
 use aws_sdk_s3::Client as S3Client;
+use tower_http::cors::CorsLayer;
 use crate::config::Config;
 use crate::graphql::AppSchema;
 
@@ -37,6 +38,7 @@ pub fn build_app(
     Router::new()
         .route("/graphql", post(graphql_handler))
         .layer(middleware::from_fn(auth::auth_middleware))
+        .layer(CorsLayer::permissive())
         .route("/health", get(|| async { "ok" }))
         .with_state(schema)
 }

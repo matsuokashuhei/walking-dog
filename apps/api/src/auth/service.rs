@@ -21,6 +21,9 @@ fn map_cognito_error(err: &str) -> String {
         "EXPIRED_CODE".to_string()
     } else if err.contains("InvalidPasswordException") {
         "INVALID_PASSWORD".to_string()
+    } else if err.contains("Unsupported") {
+        // cognito-local does not implement all operations; treat as success in dev.
+        "UNSUPPORTED".to_string()
     } else {
         "AUTH_ERROR".to_string()
     }
@@ -107,12 +110,17 @@ pub async fn sign_in(
 }
 
 pub async fn sign_out(client: &Client, access_token: &str) -> Result<(), String> {
-    client
+    let result = client
         .global_sign_out()
         .access_token(access_token)
         .send()
         .await
-        .map_err(|e| map_cognito_error(&format!("{:?}", e)))?;
+        .map_err(|e| map_cognito_error(&format!("{:?}", e)));
 
-    Ok(())
+    match result {
+        Ok(_) => Ok(()),
+        // cognito-local does not implement GlobalSignOut; treat as success.
+        Err(ref e) if e == "UNSUPPORTED" => Ok(()),
+        Err(e) => Err(e),
+    }
 }

@@ -1,4 +1,4 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text, type PressableProps } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
 import { spacing, radius, typography } from '@/theme/tokens';
@@ -9,7 +9,7 @@ interface ButtonProps extends Omit<PressableProps, 'style'> {
   label: string;
   variant?: ButtonVariant;
   loading?: boolean;
-  style?: object;
+  style?: StyleProp<ViewStyle>;
 }
 
 export function Button({

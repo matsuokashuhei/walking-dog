@@ -1,11 +1,12 @@
-import { StyleSheet, Text, TextInput as RNTextInput, View, type TextInputProps as RNTextInputProps } from 'react-native';
+import { StyleSheet, Text, TextInput as RNTextInput, View, type TextInputProps as RNTextInputProps, type StyleProp, type TextStyle } from 'react-native';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
 import { spacing, radius, typography } from '@/theme/tokens';
 
-interface TextInputProps extends RNTextInputProps {
+interface TextInputProps extends Omit<RNTextInputProps, 'style'> {
   label: string;
   error?: string;
+  style?: StyleProp<TextStyle>;
 }
 
 export function TextInput({ label, error, style, ...props }: TextInputProps) {

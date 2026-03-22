@@ -69,11 +69,11 @@ services:
 
   playwright:
     build:
-      context: ./mobile/e2e
+      context: ./playwright
       dockerfile: Dockerfile
     working_dir: /app
     volumes:
-      - ./mobile/e2e:/app
+      - ./playwright:/app
       - ../logs:/logs                   # スクリーンショット保存先
     environment:
       BASE_URL: http://mobile:8081

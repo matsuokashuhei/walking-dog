@@ -20,6 +20,7 @@ pub struct AppState {
     pub db: DatabaseConnection,
     pub dynamo: DynamoClient,
     pub s3: S3Client,
+    pub cognito: aws_sdk_cognitoidentityprovider::Client,
     pub config: Config,
 }
 
@@ -27,9 +28,10 @@ pub fn build_app(
     db: DatabaseConnection,
     dynamo: DynamoClient,
     s3: S3Client,
+    cognito: aws_sdk_cognitoidentityprovider::Client,
     config: Config,
 ) -> Router {
-    let state = Arc::new(AppState { db, dynamo, s3, config });
+    let state = Arc::new(AppState { db, dynamo, s3, cognito, config });
     let schema = graphql::build_schema(state);
 
     Router::new()
@@ -41,9 +43,10 @@ pub fn build_app(
 
 async fn graphql_handler(
     axum::extract::State(schema): axum::extract::State<AppSchema>,
-    axum::Extension(auth_user): axum::Extension<auth::AuthUser>,
+    auth_user: Option<axum::Extension<auth::AuthUser>>,
     req: GraphQLRequest,
 ) -> GraphQLResponse {
-    let request = req.into_inner().data(auth_user.cognito_sub);
+    let cognito_sub: Option<String> = auth_user.map(|u| u.cognito_sub.clone());
+    let request = req.into_inner().data(cognito_sub);
     schema.execute(request).await.into()
 }

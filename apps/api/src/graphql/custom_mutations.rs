@@ -2,6 +2,7 @@ use async_graphql::dynamic::{Field, FieldFuture, FieldValue, InputObject, InputV
 use std::sync::Arc;
 use uuid::Uuid;
 use crate::AppState;
+use crate::auth;
 use crate::error::AppError;
 use crate::services::{dog_service, s3_service, user_service, walk_points_service, walk_service};
 
@@ -214,6 +215,20 @@ pub struct PresignedUrlOutput {
     pub expires_at: String,
 }
 
+/// Returned by `signUp`.
+#[derive(Clone, Debug)]
+pub struct SignUpOutput {
+    pub success: bool,
+    pub user_confirmed: bool,
+}
+
+/// Returned by `signIn`.
+#[derive(Clone, Debug)]
+pub struct SignInOutput {
+    pub access_token: String,
+    pub refresh_token: String,
+}
+
 // ─── Dynamic Object type definitions ─────────────────────────────────────────
 
 pub fn walk_output_type() -> Object {
@@ -306,6 +321,38 @@ pub fn presigned_url_type() -> Object {
         }))
 }
 
+pub fn sign_up_output_type() -> Object {
+    Object::new("SignUpOutput")
+        .field(Field::new("success", TypeRef::named_nn(TypeRef::BOOLEAN), |ctx| {
+            FieldFuture::new(async move {
+                let s = ctx.parent_value.try_downcast_ref::<SignUpOutput>()?;
+                Ok(Some(FieldValue::value(s.success)))
+            })
+        }))
+        .field(Field::new("userConfirmed", TypeRef::named_nn(TypeRef::BOOLEAN), |ctx| {
+            FieldFuture::new(async move {
+                let s = ctx.parent_value.try_downcast_ref::<SignUpOutput>()?;
+                Ok(Some(FieldValue::value(s.user_confirmed)))
+            })
+        }))
+}
+
+pub fn sign_in_output_type() -> Object {
+    Object::new("SignInOutput")
+        .field(Field::new("accessToken", TypeRef::named_nn(TypeRef::STRING), |ctx| {
+            FieldFuture::new(async move {
+                let s = ctx.parent_value.try_downcast_ref::<SignInOutput>()?;
+                Ok(Some(FieldValue::value(s.access_token.clone())))
+            })
+        }))
+        .field(Field::new("refreshToken", TypeRef::named_nn(TypeRef::STRING), |ctx| {
+            FieldFuture::new(async move {
+                let s = ctx.parent_value.try_downcast_ref::<SignInOutput>()?;
+                Ok(Some(FieldValue::value(s.refresh_token.clone())))
+            })
+        }))
+}
+
 pub fn walk_point_input_type() -> InputObject {
     InputObject::new("WalkPointInput")
         .field(InputValue::new("lat", TypeRef::named_nn(TypeRef::FLOAT)))
@@ -318,10 +365,33 @@ pub fn update_profile_input_type() -> InputObject {
         .field(InputValue::new("displayName", TypeRef::named(TypeRef::STRING)))
 }
 
+pub fn sign_up_input_type() -> InputObject {
+    InputObject::new("SignUpInput")
+        .field(InputValue::new("email", TypeRef::named_nn(TypeRef::STRING)))
+        .field(InputValue::new("password", TypeRef::named_nn(TypeRef::STRING)))
+        .field(InputValue::new("displayName", TypeRef::named_nn(TypeRef::STRING)))
+}
+
+pub fn confirm_sign_up_input_type() -> InputObject {
+    InputObject::new("ConfirmSignUpInput")
+        .field(InputValue::new("email", TypeRef::named_nn(TypeRef::STRING)))
+        .field(InputValue::new("code", TypeRef::named_nn(TypeRef::STRING)))
+}
+
+pub fn sign_in_input_type() -> InputObject {
+    InputObject::new("SignInInput")
+        .field(InputValue::new("email", TypeRef::named_nn(TypeRef::STRING)))
+        .field(InputValue::new("password", TypeRef::named_nn(TypeRef::STRING)))
+}
+
 // ─── Mutation fields ──────────────────────────────────────────────────────────
 
 pub fn mutation_fields(state: Arc<AppState>) -> Vec<Field> {
     vec![
+        sign_up_field(state.clone()),
+        confirm_sign_up_field(state.clone()),
+        sign_in_field(state.clone()),
+        sign_out_field(state.clone()),
         create_dog_field(state.clone()),
         update_dog_field(state.clone()),
         delete_dog_field(state.clone()),
@@ -333,11 +403,104 @@ pub fn mutation_fields(state: Arc<AppState>) -> Vec<Field> {
     ]
 }
 
+fn sign_up_field(state: Arc<AppState>) -> Field {
+    Field::new("signUp", TypeRef::named_nn("SignUpOutput"), move |ctx| {
+        let state = state.clone();
+        FieldFuture::new(async move {
+            let input = ctx.args.try_get("input")?.object()?;
+            let email = input.try_get("email")?.string()?.to_string();
+            let password = input.try_get("password")?.string()?.to_string();
+            let display_name = input.try_get("displayName")?.string()?.to_string();
+
+            let result = auth::service::sign_up(
+                &state.cognito,
+                &state.config.cognito_client_id,
+                &email,
+                &password,
+                &display_name,
+            )
+            .await
+            .map_err(|e| async_graphql::Error::new(e))?;
+
+            Ok(Some(FieldValue::owned_any(SignUpOutput {
+                success: true,
+                user_confirmed: result.user_confirmed,
+            })))
+        })
+    })
+    .argument(InputValue::new("input", TypeRef::named_nn("SignUpInput")))
+}
+
+fn confirm_sign_up_field(state: Arc<AppState>) -> Field {
+    Field::new("confirmSignUp", TypeRef::named_nn(TypeRef::BOOLEAN), move |ctx| {
+        let state = state.clone();
+        FieldFuture::new(async move {
+            let input = ctx.args.try_get("input")?.object()?;
+            let email = input.try_get("email")?.string()?.to_string();
+            let code = input.try_get("code")?.string()?.to_string();
+
+            auth::service::confirm_sign_up(
+                &state.cognito,
+                &state.config.cognito_client_id,
+                &email,
+                &code,
+            )
+            .await
+            .map_err(|e| async_graphql::Error::new(e))?;
+
+            Ok(Some(FieldValue::value(true)))
+        })
+    })
+    .argument(InputValue::new("input", TypeRef::named_nn("ConfirmSignUpInput")))
+}
+
+fn sign_in_field(state: Arc<AppState>) -> Field {
+    Field::new("signIn", TypeRef::named_nn("SignInOutput"), move |ctx| {
+        let state = state.clone();
+        FieldFuture::new(async move {
+            let input = ctx.args.try_get("input")?.object()?;
+            let email = input.try_get("email")?.string()?.to_string();
+            let password = input.try_get("password")?.string()?.to_string();
+
+            let result = auth::service::sign_in(
+                &state.cognito,
+                &state.config.cognito_client_id,
+                &email,
+                &password,
+            )
+            .await
+            .map_err(|e| async_graphql::Error::new(e))?;
+
+            Ok(Some(FieldValue::owned_any(SignInOutput {
+                access_token: result.access_token,
+                refresh_token: result.refresh_token,
+            })))
+        })
+    })
+    .argument(InputValue::new("input", TypeRef::named_nn("SignInInput")))
+}
+
+fn sign_out_field(state: Arc<AppState>) -> Field {
+    Field::new("signOut", TypeRef::named_nn(TypeRef::BOOLEAN), move |ctx| {
+        let state = state.clone();
+        FieldFuture::new(async move {
+            let access_token = ctx.args.try_get("accessToken")?.string()?.to_string();
+
+            auth::service::sign_out(&state.cognito, &access_token)
+                .await
+                .map_err(|e| async_graphql::Error::new(e))?;
+
+            Ok(Some(FieldValue::value(true)))
+        })
+    })
+    .argument(InputValue::new("accessToken", TypeRef::named_nn(TypeRef::STRING)))
+}
+
 fn create_dog_field(state: Arc<AppState>) -> Field {
     Field::new("createDog", TypeRef::named_nn("DogOutput"), move |ctx| {
         let state = state.clone();
         FieldFuture::new(async move {
-            let cognito_sub = ctx.data::<String>()?;
+            let cognito_sub = auth::require_auth(&ctx)?;
             let input = ctx.args.try_get("input")?.object()?;
             let name = input.try_get("name")?.string()?.to_string();
             let breed = input.get("breed").map(|v| v.string().map(|s| s.to_string())).transpose()?;
@@ -350,7 +513,7 @@ fn create_dog_field(state: Arc<AppState>) -> Field {
                 Ok::<_, async_graphql::Error>(BirthDate::to_json(year, month, day))
             }).transpose()?;
 
-            let user = user_service::get_or_create_user(&state.db, cognito_sub)
+            let user = user_service::get_or_create_user(&state.db, &cognito_sub)
                 .await
                 .map_err(AppError::into_graphql_error)?;
             let dog = dog_service::create_dog(&state.db, user.id, name, breed, gender, birth_date)
@@ -366,7 +529,7 @@ fn update_dog_field(state: Arc<AppState>) -> Field {
     Field::new("updateDog", TypeRef::named_nn("DogOutput"), move |ctx| {
         let state = state.clone();
         FieldFuture::new(async move {
-            let cognito_sub = ctx.data::<String>()?;
+            let cognito_sub = auth::require_auth(&ctx)?;
             let id_str = ctx.args.try_get("id")?.string()?;
             let dog_id = Uuid::parse_str(id_str)
                 .map_err(|_| async_graphql::Error::new("Invalid dog ID"))?;
@@ -382,7 +545,7 @@ fn update_dog_field(state: Arc<AppState>) -> Field {
                 Ok::<_, async_graphql::Error>(BirthDate::to_json(year, month, day))
             }).transpose()?;
 
-            let user = user_service::get_or_create_user(&state.db, cognito_sub)
+            let user = user_service::get_or_create_user(&state.db, &cognito_sub)
                 .await
                 .map_err(AppError::into_graphql_error)?;
             let dog = dog_service::update_dog(&state.db, dog_id, user.id, name, breed, gender, birth_date)
@@ -399,7 +562,7 @@ fn start_walk_field(state: Arc<AppState>) -> Field {
     Field::new("startWalk", TypeRef::named_nn("WalkOutput"), move |ctx| {
         let state = state.clone();
         FieldFuture::new(async move {
-            let cognito_sub = ctx.data::<String>()?;
+            let cognito_sub = auth::require_auth(&ctx)?;
             let dog_ids_raw = ctx.args.try_get("dogIds")?;
             let dog_ids = dog_ids_raw
                 .list()?
@@ -410,7 +573,7 @@ fn start_walk_field(state: Arc<AppState>) -> Field {
                 })
                 .collect::<Result<Vec<Uuid>, _>>()?;
 
-            let user = user_service::get_or_create_user(&state.db, cognito_sub)
+            let user = user_service::get_or_create_user(&state.db, &cognito_sub)
                 .await
                 .map_err(AppError::into_graphql_error)?;
             let walk = walk_service::start_walk(&state.db, user.id, dog_ids)
@@ -426,12 +589,12 @@ fn finish_walk_field(state: Arc<AppState>) -> Field {
     Field::new("finishWalk", TypeRef::named_nn("WalkOutput"), move |ctx| {
         let state = state.clone();
         FieldFuture::new(async move {
-            let cognito_sub = ctx.data::<String>()?;
+            let cognito_sub = auth::require_auth(&ctx)?;
             let walk_id_str = ctx.args.try_get("walkId")?.string()?;
             let walk_id = Uuid::parse_str(walk_id_str)
                 .map_err(|_| async_graphql::Error::new("Invalid walk ID"))?;
 
-            let user = user_service::get_or_create_user(&state.db, cognito_sub)
+            let user = user_service::get_or_create_user(&state.db, &cognito_sub)
                 .await
                 .map_err(AppError::into_graphql_error)?;
             let walk = walk_service::finish_walk(&state.db, walk_id, user.id)
@@ -450,12 +613,12 @@ fn add_walk_points_field(state: Arc<AppState>) -> Field {
             use crate::entities::{walks, walks::Entity as WalkEntity};
             use sea_orm::{EntityTrait, ColumnTrait, QueryFilter};
 
-            let cognito_sub = ctx.data::<String>()?;
+            let cognito_sub = auth::require_auth(&ctx)?;
             let walk_id_str = ctx.args.try_get("walkId")?.string()?;
             let walk_id = Uuid::parse_str(walk_id_str)
                 .map_err(|_| async_graphql::Error::new("Invalid walk ID"))?;
 
-            let user = user_service::get_or_create_user(&state.db, cognito_sub)
+            let user = user_service::get_or_create_user(&state.db, &cognito_sub)
                 .await
                 .map_err(AppError::into_graphql_error)?;
             WalkEntity::find_by_id(walk_id)
@@ -496,14 +659,14 @@ fn update_profile_field(state: Arc<AppState>) -> Field {
     Field::new("updateProfile", TypeRef::named_nn("UserOutput"), move |ctx| {
         let state = state.clone();
         FieldFuture::new(async move {
-            let cognito_sub = ctx.data::<String>()?;
+            let cognito_sub = auth::require_auth(&ctx)?;
             let input = ctx.args.try_get("input")?.object()?;
             let display_name = input
                 .get("displayName")
                 .map(|v| v.string().map(|s| s.to_string()))
                 .transpose()?;
 
-            let user = user_service::update_profile(&state.db, cognito_sub, display_name)
+            let user = user_service::update_profile(&state.db, &cognito_sub, display_name)
                 .await
                 .map_err(AppError::into_graphql_error)?;
             Ok(Some(FieldValue::owned_any(UserOutput::from(user))))
@@ -516,12 +679,12 @@ fn delete_dog_field(state: Arc<AppState>) -> Field {
     Field::new("deleteDog", TypeRef::named_nn(TypeRef::BOOLEAN), move |ctx| {
         let state = state.clone();
         FieldFuture::new(async move {
-            let cognito_sub = ctx.data::<String>()?;
+            let cognito_sub = auth::require_auth(&ctx)?;
             let dog_id_str = ctx.args.try_get("id")?.string()?;
             let dog_id = Uuid::parse_str(dog_id_str)
                 .map_err(|_| async_graphql::Error::new("Invalid dog ID"))?;
 
-            let user = user_service::get_or_create_user(&state.db, cognito_sub)
+            let user = user_service::get_or_create_user(&state.db, &cognito_sub)
                 .await
                 .map_err(AppError::into_graphql_error)?;
             let result = dog_service::delete_dog(&state.db, dog_id, user.id)
@@ -543,12 +706,12 @@ fn generate_dog_photo_upload_url_field(state: Arc<AppState>) -> Field {
                 use crate::entities::{dogs, dogs::Entity as DogEntity};
                 use sea_orm::{EntityTrait, ColumnTrait, QueryFilter};
 
-                let cognito_sub = ctx.data::<String>()?;
+                let cognito_sub = auth::require_auth(&ctx)?;
                 let dog_id_str = ctx.args.try_get("dogId")?.string()?;
                 let dog_id = Uuid::parse_str(dog_id_str)
                     .map_err(|_| async_graphql::Error::new("Invalid dog ID"))?;
 
-                let user = user_service::get_or_create_user(&state.db, cognito_sub)
+                let user = user_service::get_or_create_user(&state.db, &cognito_sub)
                     .await
                     .map_err(AppError::into_graphql_error)?;
                 DogEntity::find_by_id(dog_id)

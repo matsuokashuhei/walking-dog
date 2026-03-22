@@ -43,6 +43,7 @@ services:
       DATABASE_URL: postgres://walking_dog:password@postgres:5432/walking_dog_dev
       AWS_ENDPOINT_URL: http://localstack:4566
       COGNITO_ENDPOINT_URL: http://cognito-local:9229
+      COGNITO_CLIENT_ID: "1okgxxqodf1ltzperxirf9bp6"
     depends_on:
       - postgres
       - localstack

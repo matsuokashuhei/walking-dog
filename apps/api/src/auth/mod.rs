@@ -1,3 +1,5 @@
+pub mod service;
+
 use axum::{
     extract::Request,
     http::StatusCode,
@@ -21,6 +23,7 @@ struct CognitoClaims {
 
 /// JWT検証ミドルウェア
 /// TEST_MODE=true のとき、JWT検証をスキップして固定のcognito_subを返す
+/// Authorization ヘッダーがない場合は AuthUser を挿入せずに続行する（オプショナル認証）
 pub async fn auth_middleware(
     mut request: Request,
     next: Next,
@@ -41,7 +44,7 @@ pub async fn auth_middleware(
 
     let token = match auth_header {
         Some(t) => t.to_string(),
-        None => return Err(StatusCode::UNAUTHORIZED),
+        None => return Ok(next.run(request).await),
     };
 
     let cognito_sub = match verify_cognito_jwt(&token).await {
@@ -51,6 +54,14 @@ pub async fn auth_middleware(
 
     request.extensions_mut().insert(AuthUser { cognito_sub });
     Ok(next.run(request).await)
+}
+
+/// GraphQL リゾルバ用: コンテキストから認証済みの cognito_sub を取得する。
+/// 未認証の場合は Unauthorized エラーを返す。
+pub fn require_auth(ctx: &async_graphql::dynamic::ResolverContext<'_>) -> async_graphql::Result<String> {
+    ctx.data::<Option<String>>()?
+        .clone()
+        .ok_or_else(|| async_graphql::Error::new("Unauthorized"))
 }
 
 async fn verify_cognito_jwt(token: &str) -> Result<String, String> {

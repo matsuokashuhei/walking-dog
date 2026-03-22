@@ -12,6 +12,21 @@
 // by accessing them once so their lazy values are replaced with real values.
 // This converts deferred require() calls into pre-cached module references.
 
+// Initialize i18next with Japanese translations so t() returns real strings in tests.
+import i18n from 'i18next';
+import { initReactI18next } from 'react-i18next';
+import ja from './lib/i18n/locales/ja.json';
+import en from './lib/i18n/locales/en.json';
+
+if (!i18n.isInitialized) {
+  i18n.use(initReactI18next).init({
+    resources: { en: { translation: en }, ja: { translation: ja } },
+    lng: 'ja',
+    fallbackLng: 'ja',
+    interpolation: { escapeValue: false },
+  });
+}
+
 // Eagerly trigger all lazy globals installed by expo/src/winter/runtime.native.ts
 // so their values are cached in the module registry before Jest 30 closes the scope.
 const globals = [

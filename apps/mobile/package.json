@@ -52,7 +52,6 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
-    "@testing-library/jest-native": "^5.4.3",
     "@testing-library/react-native": "^13.3.3",
     "@types/jest": "^30.0.0",
     "@types/react": "~19.1.0",
@@ -64,7 +63,6 @@
   },
   "jest": {
     "preset": "jest-expo",
-    "setupFilesAfterFramework": ["@testing-library/jest-native/extend-expect"],
     "moduleNameMapper": {
       "^@/(.*)$": "<rootDir>/$1"
     },

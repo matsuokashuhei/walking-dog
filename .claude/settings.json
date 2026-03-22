@@ -6,5 +6,30 @@
       "Bash(playwright test*)",
       "Bash(playwright-cli*)"
     ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/guard_commands.py"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "FILE_PATH=$(jq -r '.tool_input.file_path // empty') && echo \"$FILE_PATH\" | grep -q 'apps/api/' && docker compose -f apps/compose.yml run --rm api cargo clippy --fix --allow-dirty --allow-staged || true",
+            "timeout": 120
+          }
+        ]
+      }
+    ]
   }
 }

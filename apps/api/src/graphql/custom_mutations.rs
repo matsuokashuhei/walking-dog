@@ -440,9 +440,24 @@ fn add_walk_points_field(state: Arc<AppState>) -> Field {
     Field::new("addWalkPoints", TypeRef::named_nn(TypeRef::BOOLEAN), move |ctx| {
         let state = state.clone();
         FieldFuture::new(async move {
+            use crate::entities::{walks, walks::Entity as WalkEntity};
+            use sea_orm::{EntityTrait, ColumnTrait, QueryFilter};
+
+            let cognito_sub = ctx.data::<String>()?;
             let walk_id_str = ctx.args.try_get("walkId")?.string()?;
             let walk_id = Uuid::parse_str(walk_id_str)
                 .map_err(|_| async_graphql::Error::new("Invalid walk ID"))?;
+
+            let user = user_service::get_or_create_user(&state.db, cognito_sub)
+                .await
+                .map_err(AppError::into_graphql_error)?;
+            WalkEntity::find_by_id(walk_id)
+                .filter(walks::Column::UserId.eq(user.id))
+                .one(&state.db)
+                .await
+                .map_err(|e| AppError::Database(e).into_graphql_error())?
+                .ok_or_else(|| async_graphql::Error::new("Walk not found"))?;
+
             let points_raw = ctx.args.try_get("points")?.list()?;
             let points: Vec<walk_points_service::WalkPointInput> = points_raw
                 .iter()
@@ -518,9 +533,23 @@ fn generate_dog_photo_upload_url_field(state: Arc<AppState>) -> Field {
         move |ctx| {
             let state = state.clone();
             FieldFuture::new(async move {
+                use crate::entities::{dogs, dogs::Entity as DogEntity};
+                use sea_orm::{EntityTrait, ColumnTrait, QueryFilter};
+
+                let cognito_sub = ctx.data::<String>()?;
                 let dog_id_str = ctx.args.try_get("dogId")?.string()?;
                 let dog_id = Uuid::parse_str(dog_id_str)
                     .map_err(|_| async_graphql::Error::new("Invalid dog ID"))?;
+
+                let user = user_service::get_or_create_user(&state.db, cognito_sub)
+                    .await
+                    .map_err(AppError::into_graphql_error)?;
+                DogEntity::find_by_id(dog_id)
+                    .filter(dogs::Column::UserId.eq(user.id))
+                    .one(&state.db)
+                    .await
+                    .map_err(|e| AppError::Database(e).into_graphql_error())?
+                    .ok_or_else(|| async_graphql::Error::new("Dog not found"))?;
 
                 let presigned = s3_service::generate_dog_photo_upload_url(
                     &state.s3,

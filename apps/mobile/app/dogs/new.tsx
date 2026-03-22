@@ -1,5 +1,6 @@
 import { ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useCreateDog } from '@/hooks/use-dog-mutations';
 import { DogForm, type DogFormValues } from '@/components/dogs/DogForm';
 import { ThemedText } from '@/components/themed-text';
@@ -8,6 +9,7 @@ import { Colors } from '@/constants/theme';
 import { spacing } from '@/theme/tokens';
 
 export default function NewDogScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
@@ -27,8 +29,8 @@ export default function NewDogScreen() {
       contentContainerStyle={[styles.container, { backgroundColor: colors.background }]}
       keyboardShouldPersistTaps="handled"
     >
-      <ThemedText type="title" style={styles.title}>新しい犬を登録</ThemedText>
-      <DogForm onSubmit={handleSubmit} submitLabel="登録" />
+      <ThemedText type="title" style={styles.title}>{t('dogs.new.title')}</ThemedText>
+      <DogForm onSubmit={handleSubmit} submitLabel={t('dogs.new.submit')} />
     </ScrollView>
   );
 }

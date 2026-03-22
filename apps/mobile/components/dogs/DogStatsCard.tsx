@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
 import { spacing, radius, typography } from '@/theme/tokens';
@@ -14,36 +15,36 @@ function formatDistance(meters: number): string {
     : `${meters} m`;
 }
 
-function formatDuration(seconds: number): string {
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  if (hours > 0) return `${hours}h ${minutes % 60}m`;
-  return `${minutes}分`;
-}
-
 export function DogStatsCard({ stats }: DogStatsCardProps) {
+  const { t } = useTranslation();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
+
+  const minutes = Math.floor(stats.totalDurationSec / 60);
+  const hours = Math.floor(minutes / 60);
+  const durationText = hours > 0
+    ? t('dogs.stats.hours', { hours, minutes: minutes % 60 })
+    : t('dogs.stats.minutes', { count: minutes });
 
   return (
     <View style={[styles.card, { backgroundColor: colors.surface }]}>
       <View style={styles.stat}>
         <Text style={[styles.value, { color: colors.primary }]}>{stats.totalWalks}</Text>
-        <Text style={[styles.label, { color: colors.textSecondary }]}>散歩</Text>
+        <Text style={[styles.label, { color: colors.textSecondary }]}>{t('dogs.stats.walks')}</Text>
       </View>
       <View style={[styles.divider, { backgroundColor: colors.border }]} />
       <View style={styles.stat}>
         <Text style={[styles.value, { color: colors.primary }]}>
           {formatDistance(stats.totalDistanceM)}
         </Text>
-        <Text style={[styles.label, { color: colors.textSecondary }]}>距離</Text>
+        <Text style={[styles.label, { color: colors.textSecondary }]}>{t('dogs.stats.distance')}</Text>
       </View>
       <View style={[styles.divider, { backgroundColor: colors.border }]} />
       <View style={styles.stat}>
         <Text style={[styles.value, { color: colors.primary }]}>
-          {formatDuration(stats.totalDurationSec)}
+          {durationText}
         </Text>
-        <Text style={[styles.label, { color: colors.textSecondary }]}>時間</Text>
+        <Text style={[styles.label, { color: colors.textSecondary }]}>{t('dogs.stats.duration')}</Text>
       </View>
     </View>
   );

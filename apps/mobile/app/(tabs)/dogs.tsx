@@ -1,5 +1,6 @@
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useMe } from '@/hooks/use-me';
 import { DogListItem } from '@/components/dogs/DogListItem';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -10,6 +11,7 @@ import { Colors } from '@/constants/theme';
 import { spacing } from '@/theme/tokens';
 
 export default function DogsScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
@@ -20,7 +22,7 @@ export default function DogsScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
-        <ThemedText type="title">愛犬</ThemedText>
+        <ThemedText type="title">{t('dogs.list.title')}</ThemedText>
       </View>
 
       <FlatList
@@ -37,8 +39,8 @@ export default function DogsScreen() {
         refreshing={isLoading}
         ListEmptyComponent={
           <EmptyState
-            message="まだ犬が登録されていません"
-            ctaLabel="犬を追加"
+            message={t('dogs.list.empty')}
+            ctaLabel={t('dogs.list.addDog')}
             onCta={() => router.push('/dogs/new')}
           />
         }
@@ -46,7 +48,7 @@ export default function DogsScreen() {
 
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="犬を追加"
+        accessibilityLabel={t('dogs.list.addDog')}
         style={[styles.fab, { backgroundColor: colors.primary }]}
         onPress={() => router.push('/dogs/new')}
       >

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Image } from 'expo-image';
 import { useDog } from '@/hooks/use-dog';
 import { useDeleteDog } from '@/hooks/use-dog-mutations';
@@ -14,6 +15,7 @@ import { Colors } from '@/constants/theme';
 import { spacing, radius } from '@/theme/tokens';
 
 export default function DogDetailScreen() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const colorScheme = useColorScheme();
@@ -30,7 +32,7 @@ export default function DogDetailScreen() {
       await deleteDog(id);
       router.replace('/(tabs)/dogs');
     } catch {
-      Alert.alert('エラー', '犬の削除に失敗しました。もう一度お試しください。');
+      Alert.alert(t('common.error'), t('dogs.detail.deleteError'));
     }
   }
 
@@ -60,13 +62,13 @@ export default function DogDetailScreen() {
 
       <View style={styles.actions}>
         <Button
-          label="編集"
+          label={t('dogs.detail.edit')}
           variant="secondary"
           onPress={() => router.push(`/dogs/${id}/edit`)}
         />
         <View style={{ width: spacing.sm }} />
         <Button
-          label="削除"
+          label={t('dogs.detail.delete')}
           variant="destructive"
           onPress={() => setShowDeleteConfirm(true)}
         />
@@ -74,9 +76,9 @@ export default function DogDetailScreen() {
 
       <ConfirmDialog
         visible={showDeleteConfirm}
-        title="犬を削除"
-        message={`${dog.name}を削除しますか？この操作は取り消せません。`}
-        confirmLabel="削除"
+        title={t('dogs.detail.deleteTitle')}
+        message={t('dogs.detail.deleteConfirm', { name: dog.name })}
+        confirmLabel={t('dogs.detail.delete')}
         onConfirm={handleDelete}
         onCancel={() => setShowDeleteConfirm(false)}
         destructive

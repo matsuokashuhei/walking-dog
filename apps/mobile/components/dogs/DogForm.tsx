@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { TextInput } from '@/components/ui/TextInput';
 import { spacing } from '@/theme/tokens';
@@ -17,6 +18,7 @@ interface DogFormProps {
 }
 
 export function DogForm({ onSubmit, submitLabel, initialValues }: DogFormProps) {
+  const { t } = useTranslation();
   const [name, setName] = useState(initialValues?.name ?? '');
   const [breed, setBreed] = useState(initialValues?.breed ?? '');
   const [gender, setGender] = useState(initialValues?.gender ?? '');
@@ -41,22 +43,22 @@ export function DogForm({ onSubmit, submitLabel, initialValues }: DogFormProps) 
   return (
     <View style={styles.container}>
       <TextInput
-        label="名前"
+        label={t('dogs.form.name')}
         value={name}
         onChangeText={setName}
-        placeholder="例: ポチ"
+        placeholder={t('dogs.form.namePlaceholder')}
       />
       <TextInput
-        label="犬種"
+        label={t('dogs.form.breed')}
         value={breed}
         onChangeText={setBreed}
-        placeholder="例: 柴犬"
+        placeholder={t('dogs.form.breedPlaceholder')}
       />
       <TextInput
-        label="性別"
+        label={t('dogs.form.gender')}
         value={gender}
         onChangeText={setGender}
-        placeholder="例: オス"
+        placeholder={t('dogs.form.genderPlaceholder')}
       />
       <Button
         label={submitLabel}

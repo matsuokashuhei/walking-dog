@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Alert, ScrollView, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { useDog } from '@/hooks/use-dog';
 import { useUpdateDog, useGeneratePhotoUploadUrl } from '@/hooks/use-dog-mutations';
@@ -15,6 +16,7 @@ import { Colors } from '@/constants/theme';
 import { spacing } from '@/theme/tokens';
 
 export default function EditDogScreen() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const colorScheme = useColorScheme();
@@ -36,7 +38,7 @@ export default function EditDogScreen() {
       // Invalidate dog cache so the updated photoUrl is fetched from the server
       queryClient.invalidateQueries({ queryKey: dogKeys.all });
     } catch {
-      Alert.alert('エラー', '写真のアップロードに失敗しました。もう一度お試しください。');
+      Alert.alert(t('common.error'), t('dogs.edit.photoUploadError'));
     } finally {
       setPhotoLoading(false);
     }
@@ -59,7 +61,7 @@ export default function EditDogScreen() {
       contentContainerStyle={[styles.container, { backgroundColor: colors.background }]}
       keyboardShouldPersistTaps="handled"
     >
-      <ThemedText type="title" style={styles.title}>犬のプロフィールを編集</ThemedText>
+      <ThemedText type="title" style={styles.title}>{t('dogs.edit.title')}</ThemedText>
       <PhotoPicker
         currentPhotoUrl={dog.photoUrl}
         onPick={handlePhotoChange}
@@ -67,7 +69,7 @@ export default function EditDogScreen() {
       />
       <DogForm
         onSubmit={handleSubmit}
-        submitLabel="更新"
+        submitLabel={t('dogs.edit.submit')}
         initialValues={{
           name: dog.name,
           breed: dog.breed ?? '',

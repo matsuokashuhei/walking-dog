@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -12,6 +13,7 @@ interface PhotoPickerProps {
 }
 
 export function PhotoPicker({ currentPhotoUrl, onPick, loading = false }: PhotoPickerProps) {
+  const { t } = useTranslation();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
 
@@ -36,7 +38,7 @@ export function PhotoPicker({ currentPhotoUrl, onPick, loading = false }: PhotoP
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="写真を変更"
+      accessibilityLabel={t('dogs.photo.change')}
       onPress={handlePress}
       disabled={loading}
       style={[styles.container, { borderColor: colors.border }]}
@@ -50,7 +52,7 @@ export function PhotoPicker({ currentPhotoUrl, onPick, loading = false }: PhotoP
         />
       ) : (
         <Text style={[styles.placeholder, { color: colors.textSecondary }]}>
-          写真を追加
+          {t('dogs.photo.add')}
         </Text>
       )}
     </Pressable>

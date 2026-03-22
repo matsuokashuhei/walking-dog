@@ -3,8 +3,14 @@ use aws_sdk_dynamodb::{
     types::{AttributeValue, WriteRequest, PutRequest},
 };
 use uuid::Uuid;
-use crate::graphql::types::walk::WalkPoint;
 use crate::error::AppError;
+
+#[derive(Clone, Debug)]
+pub struct WalkPoint {
+    pub lat: f64,
+    pub lng: f64,
+    pub recorded_at: String,
+}
 
 pub struct WalkPointInput {
     pub lat: f64,
@@ -30,11 +36,10 @@ pub async fn add_walk_points(
     let pk = format!("WALK#{}", walk_id);
     let all_requests: Vec<WriteRequest> = points
         .iter()
-        .enumerate()
-        .map(|(seq, point)| {
+        .map(|point| {
             let item = std::collections::HashMap::from([
                 ("pk".to_string(), AttributeValue::S(pk.clone())),
-                ("sk".to_string(), AttributeValue::S(format!("PT#{:06}", seq))),
+                ("sk".to_string(), AttributeValue::S(format!("PT#{}", point.recorded_at))),
                 ("lat".to_string(), AttributeValue::N(point.lat.to_string())),
                 ("lng".to_string(), AttributeValue::N(point.lng.to_string())),
                 ("recorded_at".to_string(), AttributeValue::S(point.recorded_at.clone())),
@@ -63,7 +68,7 @@ pub async fn get_walk_points(
     client: &DynamoClient,
     table_name: &str,
     walk_id: Uuid,
-) -> Result<Vec<WalkPoint>, async_graphql::Error> {
+) -> Result<Vec<WalkPoint>, AppError> {
     let pk = format!("WALK#{}", walk_id);
     let result = client
         .query()
@@ -72,7 +77,7 @@ pub async fn get_walk_points(
         .expression_attribute_values(":pk", AttributeValue::S(pk))
         .send()
         .await
-        .map_err(|e| async_graphql::Error::new(e.to_string()))?;
+        .map_err(|e| AppError::Internal(e.to_string()))?;
 
     let mut points: Vec<WalkPoint> = result
         .items()

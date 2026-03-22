@@ -1,16 +1,55 @@
-use async_graphql::{EmptySubscription, MergedObject, Schema};
-use query::{user::UserQuery, dog::DogQuery, walk::WalkQuery};
-use mutation::{user::UserMutation, dog::DogMutation, walk::WalkMutation};
+use std::sync::Arc;
+use seaography::BuilderContext;
+use crate::AppState;
 
-pub mod context;
-pub mod mutation;
-pub mod query;
-pub mod types;
+pub mod custom_mutations;
+pub mod custom_queries;
 
-#[derive(MergedObject, Default)]
-pub struct QueryRoot(UserQuery, DogQuery, WalkQuery);
+/// Dynamic schema produced by Seaography.
+pub type AppSchema = async_graphql::dynamic::Schema;
 
-#[derive(MergedObject, Default)]
-pub struct MutationRoot(UserMutation, DogMutation, WalkMutation);
+static CONTEXT: std::sync::OnceLock<BuilderContext> = std::sync::OnceLock::new();
 
-pub type AppSchema = Schema<QueryRoot, MutationRoot, EmptySubscription>;
+/// Build the Seaography-based GraphQL schema.
+///
+/// * Auto-generated CRUD queries for all entities (mutation auto-gen is disabled).
+/// * Custom top-level queries: `me`, `dogWalkStats`, `walkPoints`.
+/// * Custom mutations: `startWalk`, `finishWalk`, `addWalkPoints`,
+///   `updateProfile`, `deleteDog`, `generateDogPhotoUploadUrl`.
+pub fn build_schema(state: Arc<AppState>) -> AppSchema {
+    let context = CONTEXT.get_or_init(BuilderContext::default);
+    let mut builder = seaography::Builder::new(context, state.db.clone());
+    builder = crate::entities::register_entity_modules(builder);
+
+    // Add custom query fields to the root query object.
+    for field in custom_queries::query_fields(state.clone()) {
+        builder.query = builder.query.field(field);
+    }
+
+    // Add custom mutation fields to the root mutation object.
+    for field in custom_mutations::mutation_fields(state.clone()) {
+        builder.mutation = builder.mutation.field(field);
+    }
+
+    // Register custom types then finalise.
+    builder
+        .schema
+        // Query output types
+        .register(custom_queries::walk_point_type())
+        .register(custom_queries::walk_stats_type())
+        // Mutation output types
+        .register(custom_mutations::birth_date_type())
+        .register(custom_mutations::dog_output_type())
+        .register(custom_mutations::walk_output_type())
+        .register(custom_mutations::user_output_type())
+        .register(custom_mutations::presigned_url_type())
+        // Mutation input types
+        .register(custom_mutations::birth_date_input_type())
+        .register(custom_mutations::create_dog_input_type())
+        .register(custom_mutations::update_dog_input_type())
+        .register(custom_mutations::walk_point_input_type())
+        .register(custom_mutations::update_profile_input_type())
+        .data(state)
+        .finish()
+        .expect("Failed to build GraphQL schema")
+}

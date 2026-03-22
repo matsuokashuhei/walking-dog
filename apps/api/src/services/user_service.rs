@@ -1,19 +1,18 @@
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 use uuid::Uuid;
-use crate::entities::users::{self, ActiveModel, Entity as UserEntity};
+use crate::entities::users::{self, ActiveModel, Entity as UserEntity, Model as UserModel};
 use crate::error::AppError;
-use crate::graphql::types::user::User;
 
 pub async fn get_or_create_user(
     db: &sea_orm::DatabaseConnection,
     cognito_sub: &str,
-) -> Result<User, AppError> {
+) -> Result<UserModel, AppError> {
     if let Some(model) = UserEntity::find()
         .filter(users::Column::CognitoSub.eq(cognito_sub))
         .one(db)
         .await?
     {
-        return Ok(model.into());
+        return Ok(model);
     }
 
     // Try to insert; if unique constraint violation, re-fetch
@@ -26,7 +25,7 @@ pub async fn get_or_create_user(
     .await;
 
     match result {
-        Ok(model) => Ok(model.into()),
+        Ok(model) => Ok(model),
         Err(sea_orm::DbErr::Query(ref err))
             if err.to_string().contains("duplicate key") =>
         {
@@ -35,7 +34,7 @@ pub async fn get_or_create_user(
                 .one(db)
                 .await?
                 .ok_or_else(|| AppError::Internal("User disappeared after insert conflict".to_string()))?;
-            Ok(model.into())
+            Ok(model)
         }
         Err(e) => Err(AppError::Database(e)),
     }
@@ -45,17 +44,21 @@ pub async fn update_profile(
     db: &sea_orm::DatabaseConnection,
     cognito_sub: &str,
     display_name: Option<String>,
-) -> Result<User, AppError> {
+) -> Result<UserModel, AppError> {
     let model = UserEntity::find()
         .filter(users::Column::CognitoSub.eq(cognito_sub))
         .one(db)
         .await?
         .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
 
-    let mut active: ActiveModel = model.into();
+    if display_name.is_none() {
+        return Ok(model);
+    }
+
+    let mut active: users::ActiveModel = model.into();
     if let Some(name) = display_name {
         active.display_name = Set(Some(name));
     }
     let updated = active.update(db).await?;
-    Ok(updated.into())
+    Ok(updated)
 }

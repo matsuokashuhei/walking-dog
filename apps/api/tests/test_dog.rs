@@ -124,15 +124,15 @@ async fn test_walk_stats() {
     let create_body: serde_json::Value = create_res.json().await.unwrap();
     let dog_id = create_body["data"]["createDog"]["id"].as_str().unwrap();
 
-    // walkStats はゼロ件で正常に返る
+    // dogWalkStats はゼロ件で正常に返る (top-level query)
     let res = client
         .post("/graphql")
         .header("Authorization", "Bearer test-token")
         .json(&serde_json::json!({
-            "query": format!(r#"{{ dog(id: "{}") {{ walkStats(period: ALL) {{ totalWalks totalDistanceM totalDurationSec }} }} }}"#, dog_id)
+            "query": format!(r#"{{ dogWalkStats(dogId: "{}", period: "All") {{ totalWalks totalDistanceM totalDurationSec }} }}"#, dog_id)
         }))
         .send().await.unwrap();
     let body: serde_json::Value = res.json().await.unwrap();
-    assert_eq!(body["data"]["dog"]["walkStats"]["totalWalks"], 0, "got: {:?}", body);
-    assert_eq!(body["data"]["dog"]["walkStats"]["totalDistanceM"], 0);
+    assert_eq!(body["data"]["dogWalkStats"]["totalWalks"], 0, "got: {:?}", body);
+    assert_eq!(body["data"]["dogWalkStats"]["totalDistanceM"], 0);
 }

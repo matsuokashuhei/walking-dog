@@ -97,6 +97,7 @@ pub fn query_fields(state: Arc<AppState>) -> Vec<Field> {
     vec![
         me_field(state.clone()),
         my_walks_field(state.clone()),
+        walk_field(state.clone()),
         dog_field(state.clone()),
         dog_walk_stats_field(state.clone()),
         walk_points_field(state),
@@ -126,6 +127,34 @@ fn dog_field(state: Arc<AppState>) -> Field {
     .argument(InputValue::new("id", TypeRef::named_nn(TypeRef::ID)))
 }
 
+fn walk_field(state: Arc<AppState>) -> Field {
+    Field::new("walk", TypeRef::named("WalkOutput"), move |ctx| {
+        let state = state.clone();
+        FieldFuture::new(async move {
+            use crate::entities::{walks, walks::Entity as WalkEntity};
+            use sea_orm::{EntityTrait, ColumnTrait, QueryFilter};
+
+            let cognito_sub = auth::require_auth(&ctx)?;
+            let walk_id_str = ctx.args.try_get("id")?.string()?;
+            let walk_id = Uuid::parse_str(walk_id_str)
+                .map_err(|_| async_graphql::Error::new("Invalid walk ID"))?;
+
+            let user = user_service::get_or_create_user(&state.db, &cognito_sub)
+                .await
+                .map_err(AppError::into_graphql_error)?;
+
+            let walk = WalkEntity::find_by_id(walk_id)
+                .filter(walks::Column::UserId.eq(user.id))
+                .one(&state.db)
+                .await
+                .map_err(|e| AppError::Database(e).into_graphql_error())?;
+
+            Ok(walk.map(|w| FieldValue::owned_any(WalkOutput::from(w))))
+        })
+    })
+    .argument(InputValue::new("id", TypeRef::named_nn(TypeRef::ID)))
+}
+
 fn my_walks_field(state: Arc<AppState>) -> Field {
     Field::new("myWalks", TypeRef::named_nn_list_nn("WalkOutput"), move |ctx| {
         let state = state.clone();
@@ -134,7 +163,11 @@ fn my_walks_field(state: Arc<AppState>) -> Field {
             let user = user_service::get_or_create_user(&state.db, &cognito_sub)
                 .await
                 .map_err(AppError::into_graphql_error)?;
-            let walks = walk_service::get_walks_by_user_id(&state.db, user.id)
+
+            let limit = ctx.args.get("limit").and_then(|v| v.i64().ok()).map(|v| v as u64);
+            let offset = ctx.args.get("offset").and_then(|v| v.i64().ok()).map(|v| v as u64);
+
+            let walks = walk_service::get_walks_by_user_id(&state.db, user.id, limit, offset)
                 .await
                 .map_err(AppError::into_graphql_error)?;
             let values: Vec<FieldValue> = walks
@@ -144,6 +177,8 @@ fn my_walks_field(state: Arc<AppState>) -> Field {
             Ok(Some(FieldValue::list(values)))
         })
     })
+    .argument(InputValue::new("limit", TypeRef::named(TypeRef::INT)))
+    .argument(InputValue::new("offset", TypeRef::named(TypeRef::INT)))
 }
 
 fn me_field(state: Arc<AppState>) -> Field {

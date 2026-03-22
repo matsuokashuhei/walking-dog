@@ -117,11 +117,18 @@ pub async fn get_walk_stats(
 pub async fn get_walks_by_user_id(
     db: &sea_orm::DatabaseConnection,
     user_id: Uuid,
+    limit: Option<u64>,
+    offset: Option<u64>,
 ) -> Result<Vec<WalkModel>, AppError> {
-    let walks = WalkEntity::find()
+    let mut query = WalkEntity::find()
         .filter(walks::Column::UserId.eq(user_id))
-        .order_by_desc(walks::Column::StartedAt)
-        .all(db)
-        .await?;
+        .order_by_desc(walks::Column::StartedAt);
+    if let Some(l) = limit {
+        query = query.limit(l);
+    }
+    if let Some(o) = offset {
+        query = query.offset(o);
+    }
+    let walks = query.all(db).await?;
     Ok(walks)
 }

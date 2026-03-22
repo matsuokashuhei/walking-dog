@@ -83,6 +83,32 @@
       "add": "Add Photo"
     }
   },
+  "walk": {
+    "title": "Walk",
+    "selectDogs": "Select dogs to walk with",
+    "noDogs": "No dogs registered",
+    "addDogFirst": "Please register a dog first",
+    "startWalk": "Start Walk",
+    "finishWalk": "Finish Walk",
+    "finishConfirm": "Finish the walk?",
+    "elapsed": "Elapsed",
+    "distance": "Distance",
+    "recording": "Recording...",
+    "meters": "{{count}}m",
+    "kilometers": "{{count}}km",
+    "summary": {
+      "title": "Walk Summary",
+      "dogs": "Dogs",
+      "duration": "Duration",
+      "distance": "Distance",
+      "points": "Points Recorded"
+    },
+    "error": {
+      "locationPermission": "Location permission is required",
+      "startFailed": "Failed to start walk",
+      "finishFailed": "Failed to finish walk"
+    }
+  },
   "settings": {
     "title": "Settings",
     "signOut": "Sign Out"

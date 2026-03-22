@@ -83,6 +83,32 @@
       "add": "写真を追加"
     }
   },
+  "walk": {
+    "title": "散歩",
+    "selectDogs": "一緒に散歩する犬を選んでください",
+    "noDogs": "犬が登録されていません",
+    "addDogFirst": "まず犬を登録してください",
+    "startWalk": "散歩を始める",
+    "finishWalk": "散歩を終了",
+    "finishConfirm": "散歩を終了しますか？",
+    "elapsed": "経過時間",
+    "distance": "距離",
+    "recording": "記録中...",
+    "meters": "{{count}}m",
+    "kilometers": "{{count}}km",
+    "summary": {
+      "title": "散歩の記録",
+      "dogs": "一緒に歩いた犬",
+      "duration": "時間",
+      "distance": "距離",
+      "points": "記録ポイント"
+    },
+    "error": {
+      "locationPermission": "位置情報の許可が必要です",
+      "startFailed": "散歩の開始に失敗しました",
+      "finishFailed": "散歩の終了に失敗しました"
+    }
+  },
   "settings": {
     "title": "設定",
     "signOut": "サインアウト"

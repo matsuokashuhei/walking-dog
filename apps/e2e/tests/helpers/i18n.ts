@@ -29,6 +29,14 @@ export interface Labels {
     distance: string;
     duration: string;
   };
+  walk: {
+    selectDogs: string;
+    startWalk: string;
+    finishWalk: string;
+    elapsed: string;
+    distance: string;
+    noDogs: string;
+  };
   signOut: RegExp;
 }
 
@@ -63,6 +71,14 @@ const ja: Labels = {
     distance: '距離',
     duration: '時間',
   },
+  walk: {
+    selectDogs: '一緒に散歩する犬を選んでください',
+    startWalk: '散歩を始める',
+    finishWalk: '散歩を終了',
+    elapsed: '経過時間',
+    distance: '距離',
+    noDogs: '犬が登録されていません',
+  },
   signOut: /サインアウト|ログアウト|Sign Out|Logout/i,
 };
 
@@ -96,6 +112,14 @@ const en: Labels = {
     walks: 'Walks',
     distance: 'Distance',
     duration: 'Duration',
+  },
+  walk: {
+    selectDogs: 'Select dogs to walk with',
+    startWalk: 'Start Walk',
+    finishWalk: 'Finish Walk',
+    elapsed: 'Elapsed',
+    distance: 'Distance',
+    noDogs: 'No dogs registered',
   },
   signOut: /サインアウト|ログアウト|Sign Out|Logout/i,
 };

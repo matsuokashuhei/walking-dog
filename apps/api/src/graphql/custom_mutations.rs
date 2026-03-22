@@ -291,6 +291,61 @@ pub fn walk_output_type() -> Object {
                 Ok(w.ended_at.clone().map(FieldValue::value))
             })
         }))
+        .field(Field::new("dogs", TypeRef::named_nn_list_nn("DogOutput"), |ctx| {
+            FieldFuture::new(async move {
+                let w = ctx.parent_value.try_downcast_ref::<WalkOutput>()?;
+                let state = ctx.data::<Arc<AppState>>()
+                    .map_err(|_| async_graphql::Error::new("Missing AppState"))?;
+
+                use crate::entities::{walk_dogs, walk_dogs::Entity as WalkDogEntity, dogs::Entity as DogEntity};
+                use sea_orm::{EntityTrait, ColumnTrait, QueryFilter};
+
+                let walk_dog_records = WalkDogEntity::find()
+                    .filter(walk_dogs::Column::WalkId.eq(w.id))
+                    .all(&state.db)
+                    .await
+                    .map_err(|e| async_graphql::Error::new(format!("DB error: {}", e)))?;
+
+                let dog_ids: Vec<Uuid> = walk_dog_records.iter().map(|wd| wd.dog_id).collect();
+
+                if dog_ids.is_empty() {
+                    return Ok(Some(FieldValue::list(Vec::<FieldValue>::new())));
+                }
+
+                let dogs = DogEntity::find()
+                    .filter(crate::entities::dogs::Column::Id.is_in(dog_ids))
+                    .all(&state.db)
+                    .await
+                    .map_err(|e| async_graphql::Error::new(format!("DB error: {}", e)))?;
+
+                let values: Vec<FieldValue> = dogs
+                    .into_iter()
+                    .map(|d| FieldValue::owned_any(DogOutput::from(d)))
+                    .collect();
+                Ok(Some(FieldValue::list(values)))
+            })
+        }))
+        .field(Field::new("points", TypeRef::named_nn_list_nn("WalkPoint"), |ctx| {
+            FieldFuture::new(async move {
+                let w = ctx.parent_value.try_downcast_ref::<WalkOutput>()?;
+                let state = ctx.data::<Arc<AppState>>()
+                    .map_err(|_| async_graphql::Error::new("Missing AppState"))?;
+
+                let points = walk_points_service::get_walk_points(
+                    &state.dynamo,
+                    &state.config.dynamodb_table_walk_points,
+                    w.id,
+                )
+                .await
+                .map_err(|e| async_graphql::Error::new(format!("DynamoDB error: {}", e)))?;
+
+                let values: Vec<FieldValue> = points
+                    .into_iter()
+                    .map(|p| FieldValue::owned_any(super::custom_queries::WalkPointOutput::from(p)))
+                    .collect();
+                Ok(Some(FieldValue::list(values)))
+            })
+        }))
 }
 
 pub fn user_output_type() -> Object {

@@ -6,12 +6,12 @@ describe('haversineDistance', () => {
     expect(haversineDistance(p, p)).toBe(0);
   });
 
-  it('calculates Tokyo Station to Shibuya Station (~3.3km)', () => {
+  it('calculates Tokyo Station to Shibuya Station (~6.5km)', () => {
     const tokyo = { lat: 35.6812, lng: 139.7671 };
     const shibuya = { lat: 35.658, lng: 139.7016 };
     const distance = haversineDistance(tokyo, shibuya);
-    expect(distance).toBeGreaterThan(3200);
-    expect(distance).toBeLessThan(3500);
+    expect(distance).toBeGreaterThan(6000);
+    expect(distance).toBeLessThan(7000);
   });
 
   it('returns distance in meters', () => {

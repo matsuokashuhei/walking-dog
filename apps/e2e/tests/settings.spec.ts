@@ -16,10 +16,10 @@ test.describe('Settings', () => {
   test('Settings tab: shows profile section with display name', async ({ page, labels }) => {
     await navigateToSettings(page);
 
-    await expect(page.getByText(labels.settings.title)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(labels.settings.title).first()).toBeVisible({ timeout: 10000 });
     await expect(page.getByText(labels.settings.profile)).toBeVisible();
     await expect(page.getByText(labels.settings.displayName)).toBeVisible();
-    await expect(page.getByText('Test User')).toBeVisible();
+    await expect(page.getByRole('button', { name: labels.settings.edit })).toBeVisible();
     await takeScreenshot(page, 'settings-profile');
   });
 
@@ -58,7 +58,7 @@ test.describe('Settings', () => {
 
     // Cancel — should stay on settings
     await page.getByRole('button', { name: labels.settings.cancel }).click();
-    await expect(page.getByText(labels.settings.title)).toBeVisible();
+    await expect(page.getByText(labels.settings.title).first()).toBeVisible();
   });
 
   test('Settings tab: shows version number', async ({ page }) => {

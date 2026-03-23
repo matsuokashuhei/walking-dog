@@ -1,40 +1,28 @@
-import { expect, type Page, request as apiRequest } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 import type { Labels } from './i18n';
+import * as fs from 'fs';
 
-const COGNITO_ENDPOINT = process.env.COGNITO_ENDPOINT ?? 'http://cognito-local:9229';
-const COGNITO_USER_POOL_ID = process.env.COGNITO_USER_POOL_ID ?? 'local_2yovNmW0';
+const COGNITO_DB_PATH = process.env.COGNITO_DB_PATH ?? '/cognito-db/local_2yovNmW0.json';
 
 export function uniqueEmail(): string {
   return `test-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`;
 }
 
-async function adminConfirmSignUp(email: string): Promise<void> {
-  const context = await apiRequest.newContext();
+async function getConfirmationCode(email: string): Promise<string> {
   const maxRetries = 5;
   for (let i = 0; i < maxRetries; i++) {
-    const response = await context.post(COGNITO_ENDPOINT, {
-      headers: {
-        'Content-Type': 'application/x-amz-json-1.1',
-        'X-Amz-Target': 'AWSCognitoIdentityProviderService.AdminConfirmSignUp',
-      },
-      data: {
-        UserPoolId: COGNITO_USER_POOL_ID,
-        Username: email,
-      },
-    });
-    if (response.ok()) {
-      await context.dispose();
-      return;
+    const data = JSON.parse(fs.readFileSync(COGNITO_DB_PATH, 'utf-8'));
+    for (const user of Object.values(data.Users) as any[]) {
+      const userEmail = user.Attributes?.find((a: any) => a.Name === 'email')?.Value;
+      if (userEmail === email && user.ConfirmationCode) {
+        return user.ConfirmationCode;
+      }
     }
-    const body = await response.text();
-    if (i < maxRetries - 1 && body.includes('NotAuthorizedException')) {
-      await new Promise((r) => setTimeout(r, 1000));
-      continue;
+    if (i < maxRetries - 1) {
+      await new Promise((r) => setTimeout(r, 500));
     }
-    await context.dispose();
-    throw new Error(`AdminConfirmSignUp failed: ${response.status()} ${body}`);
   }
-  await context.dispose();
+  throw new Error(`Confirmation code not found for ${email}`);
 }
 
 export async function registerUser(
@@ -52,12 +40,12 @@ export async function registerUser(
   await page.getByLabel(labels.auth.password).fill(password);
   await page.getByRole('button', { name: labels.auth.registerSubmit }).click();
 
-  // cognito-local generates random confirmation codes, so we bypass via AdminConfirmSignUp API
-  await adminConfirmSignUp(email);
+  // Wait for confirmation code screen, then read the code from cognito-local DB
+  await expect(page.getByLabel(labels.auth.confirmCode)).toBeVisible({ timeout: 10000 });
+  const code = await getConfirmationCode(email);
+  await page.getByLabel(labels.auth.confirmCode).fill(code);
+  await page.getByRole('button', { name: labels.auth.confirmSubmit }).click();
 
-  // Wait briefly then navigate to login page
-  await page.waitForTimeout(1000);
-  await page.goto('/');
   await expect(page.getByRole('button', { name: labels.auth.loginSubmit })).toBeVisible({ timeout: 15000 });
 }
 

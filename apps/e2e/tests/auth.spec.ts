@@ -51,7 +51,7 @@ test.describe('Auth Flow', () => {
     await takeScreenshot(page, 'signup-duplicate-email');
   });
 
-  test('Confirm Sign Up: accepts code 999999 and redirects to login', async ({ page, labels }) => {
+  test('Confirm Sign Up: enters real confirmation code and redirects to login', async ({ page, labels }) => {
     test.setTimeout(60000);
 
     const email = uniqueEmail();

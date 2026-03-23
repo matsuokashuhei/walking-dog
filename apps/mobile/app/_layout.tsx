@@ -8,6 +8,7 @@ import '@/lib/i18n';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AppProviders } from '@/lib/providers';
 import { useAuthStore } from '@/stores/auth-store';
+import { useSettingsStore } from '@/stores/settings-store';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 
 function NavigationGuard() {
@@ -38,10 +39,12 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
   const isLoading = useAuthStore((s) => s.isLoading);
   const initialize = useAuthStore((s) => s.initialize);
+  const initializeSettings = useSettingsStore((s) => s.initialize);
 
   useEffect(() => {
     initialize();
-  }, [initialize]);
+    initializeSettings();
+  }, [initialize, initializeSettings]);
 
   if (isLoading) {
     return <LoadingScreen />;

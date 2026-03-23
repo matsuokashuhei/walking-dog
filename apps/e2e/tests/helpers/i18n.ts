@@ -29,6 +29,19 @@ export interface Labels {
     distance: string;
     duration: string;
   };
+  settings: {
+    title: string;
+    profile: string;
+    displayName: string;
+    edit: string;
+    save: string;
+    cancel: string;
+    dogs: string;
+    noDogs: string;
+    appearance: string;
+    signOut: string;
+    signOutConfirm: string;
+  };
   signOut: RegExp;
 }
 
@@ -63,6 +76,19 @@ const ja: Labels = {
     distance: '距離',
     duration: '時間',
   },
+  settings: {
+    title: '設定',
+    profile: 'プロフィール',
+    displayName: '表示名',
+    edit: '編集',
+    save: '保存',
+    cancel: 'キャンセル',
+    dogs: '愛犬',
+    noDogs: '犬が登録されていません',
+    appearance: '外観',
+    signOut: 'サインアウト',
+    signOutConfirm: 'サインアウトしますか？',
+  },
   signOut: /サインアウト|ログアウト|Sign Out|Logout/i,
 };
 
@@ -96,6 +122,19 @@ const en: Labels = {
     walks: 'Walks',
     distance: 'Distance',
     duration: 'Duration',
+  },
+  settings: {
+    title: 'Settings',
+    profile: 'Profile',
+    displayName: 'Display Name',
+    edit: 'Edit',
+    save: 'Save',
+    cancel: 'Cancel',
+    dogs: 'My Dogs',
+    noDogs: 'No dogs registered',
+    appearance: 'Appearance',
+    signOut: 'Sign Out',
+    signOutConfirm: 'Are you sure you want to sign out?',
   },
   signOut: /サインアウト|ログアウト|Sign Out|Logout/i,
 };

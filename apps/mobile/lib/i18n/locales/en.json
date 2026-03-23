@@ -85,6 +85,22 @@
   },
   "settings": {
     "title": "Settings",
-    "signOut": "Sign Out"
+    "profile": "Profile",
+    "displayName": "Display Name",
+    "edit": "Edit",
+    "save": "Save",
+    "cancel": "Cancel",
+    "updateError": "Failed to update",
+    "dogs": "My Dogs",
+    "noDogs": "No dogs registered",
+    "appearance": "Appearance",
+    "theme": "Theme",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeAuto": "Auto",
+    "language": "Language",
+    "signOut": "Sign Out",
+    "signOutConfirm": "Are you sure you want to sign out?",
+    "version": "Version {{version}}"
   }
 }

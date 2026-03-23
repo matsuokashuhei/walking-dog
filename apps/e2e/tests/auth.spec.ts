@@ -139,6 +139,11 @@ test.describe('Auth Flow', () => {
     await expect(signOutButton).toBeVisible({ timeout: 10000 });
     await signOutButton.click();
 
+    // Confirm sign-out in the confirmation dialog
+    await page.waitForTimeout(500);
+    const confirmButtons = page.getByRole('button', { name: labels.signOut });
+    await confirmButtons.last().click();
+
     await expect(page.getByRole('button', { name: labels.auth.loginSubmit })).toBeVisible({ timeout: 15000 });
     await takeScreenshot(page, 'signout-success');
   });
@@ -168,6 +173,11 @@ test.describe('Auth Flow', () => {
     const signOutButton = page.getByRole('button', { name: labels.signOut });
     await expect(signOutButton).toBeVisible({ timeout: 10000 });
     await signOutButton.click();
+
+    // Confirm sign-out in the confirmation dialog
+    await page.waitForTimeout(500);
+    const confirmButtons = page.getByRole('button', { name: labels.signOut });
+    await confirmButtons.last().click();
 
     await expect(page.getByRole('button', { name: labels.auth.loginSubmit })).toBeVisible({ timeout: 15000 });
     await takeScreenshot(page, 'fullflow-auth-loggedout');

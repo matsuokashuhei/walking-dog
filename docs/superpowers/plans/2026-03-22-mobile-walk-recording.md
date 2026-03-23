@@ -10,6 +10,8 @@
 
 **Prerequisite:** Increments 0–2 must be complete.
 
+> **⚠️ WIP Status (2026-03-23):** Draft PR #23 (`feat/walk-recording`) として実装中。API 修正 + モバイルコード完成済み。E2E テストが `expo-sqlite` / `react-native-maps` の Web バンドル互換性問題でブロック中。worktree: `.worktrees/feat-walk-recording`
+
 **⚠️ Important:** `react-native-maps` does NOT work in Expo Go. Requires a development build:
 ```bash
 docker compose -f apps/compose.yml run --rm mobile npx eas build --profile development --platform ios

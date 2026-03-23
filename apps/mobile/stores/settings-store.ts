@@ -26,8 +26,10 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       AsyncStorage.getItem(THEME_KEY),
       AsyncStorage.getItem(LANGUAGE_KEY),
     ]);
-    const lang = language ?? 'ja';
-    await i18n.changeLanguage(lang);
+    const lang = language ?? i18n.language;
+    if (language) {
+      await i18n.changeLanguage(lang);
+    }
     set({
       theme: (theme as ThemeMode) ?? 'auto',
       language: lang,

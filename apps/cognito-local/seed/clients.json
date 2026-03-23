@@ -1,0 +1,21 @@
+{
+  "Clients": {
+    "418806fx3afm9cp1mdhxwpxw3": {
+      "ClientId": "418806fx3afm9cp1mdhxwpxw3",
+      "ClientName": "walking-dog-app",
+      "CreationDate": "2026-01-01T00:00:00.000Z",
+      "ExplicitAuthFlows": [
+        "ALLOW_USER_PASSWORD_AUTH",
+        "ALLOW_REFRESH_TOKEN_AUTH",
+        "ALLOW_USER_SRP_AUTH"
+      ],
+      "LastModifiedDate": "2026-01-01T00:00:00.000Z",
+      "TokenValidityUnits": {
+        "AccessToken": "hours",
+        "IdToken": "minutes",
+        "RefreshToken": "days"
+      },
+      "UserPoolId": "local_2yovNmW0"
+    }
+  }
+}

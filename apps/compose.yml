@@ -25,7 +25,7 @@ services:
     ports:
       - "9229:9229"
     volumes:
-      - cognito_data:/app/.cognito
+      - ./cognito-local/db:/app/.cognito/db
 
   api:
     build:
@@ -94,7 +94,6 @@ services:
 volumes:
   postgres_data:
   localstack_data:
-  cognito_data:
   cargo_cache:
   target_cache:
   mobile_node_modules:

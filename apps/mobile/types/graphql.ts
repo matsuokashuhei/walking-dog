@@ -41,7 +41,7 @@ export interface Walk {
   durationSec: number | null;
   startedAt: string;
   endedAt: string | null;
-  points: WalkPoint[];
+  points?: WalkPoint[];
 }
 
 export interface User {

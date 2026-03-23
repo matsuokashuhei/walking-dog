@@ -3,6 +3,7 @@
 ## General Rules
 
 - **git コマンドを実行する前に必ず `pwd` で作業ディレクトリを確認する**
+- **git worktree を使わない** — Docker Compose が `./apps/mobile:/app` のようにメインリポジトリのパスをマウントしているため、worktree 側の変更が Docker に反映されない。通常のブランチ切り替えで作業すること。
 
 ## Development Rules
 
@@ -41,7 +42,6 @@ This project uses the obra/superpowers plugin. Always check for relevant skills 
 - **writing-plans** — 実装計画の作成
 
 ### 実装フェーズ
-- **using-git-worktrees** — フィーチャーブランチの作業環境を分離
 - **subagent-driven-development** — subagent に実装を委譲
 - **executing-plans** — 作成した計画を実行
 - **dispatching-parallel-agents** — 独立したタスクを並列実行

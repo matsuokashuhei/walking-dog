@@ -83,6 +83,47 @@
       "add": "Add Photo"
     }
   },
+  "walk": {
+    "ready": {
+      "title": "Let's go for a walk!",
+      "subtitle": "Select dogs to walk with",
+      "start": "Start Walk",
+      "noDogs": "Register a dog first"
+    },
+    "recording": {
+      "time": "Time",
+      "distance": "Distance",
+      "stop": "Stop",
+      "recording": "Recording"
+    },
+    "finished": {
+      "title": "Walk Complete!",
+      "details": "View Details",
+      "walkAgain": "Walk Again",
+      "saving": "Saving walk data..."
+    },
+    "history": {
+      "title": "Recent Walks",
+      "empty": "No walks yet. Start your first walk!",
+      "minutes": "{{count}} min",
+      "km": "{{value}} km"
+    },
+    "detail": {
+      "title": "Walk Detail",
+      "route": "Route",
+      "dogs": "Dogs"
+    },
+    "permission": {
+      "title": "Location Permission Required",
+      "message": "We need access to your location to track your walk route.",
+      "openSettings": "Open Settings"
+    },
+    "error": {
+      "startFailed": "Failed to start walk",
+      "finishFailed": "Failed to save walk. Please try again.",
+      "retry": "Retry"
+    }
+  },
   "settings": {
     "title": "Settings",
     "profile": "Profile",

@@ -83,6 +83,47 @@
       "add": "写真を追加"
     }
   },
+  "walk": {
+    "ready": {
+      "title": "散歩に行こう！",
+      "subtitle": "一緒に行く犬を選んでください",
+      "start": "散歩を始める",
+      "noDogs": "先に犬を登録してください"
+    },
+    "recording": {
+      "time": "時間",
+      "distance": "距離",
+      "stop": "停止",
+      "recording": "記録中"
+    },
+    "finished": {
+      "title": "散歩完了！",
+      "details": "詳細を見る",
+      "walkAgain": "もう一度散歩",
+      "saving": "散歩データを保存中..."
+    },
+    "history": {
+      "title": "最近の散歩",
+      "empty": "まだ散歩がありません。最初の散歩を始めましょう！",
+      "minutes": "{{count}}分",
+      "km": "{{value}} km"
+    },
+    "detail": {
+      "title": "散歩詳細",
+      "route": "ルート",
+      "dogs": "犬"
+    },
+    "permission": {
+      "title": "位置情報の許可が必要です",
+      "message": "散歩のルートを記録するために、位置情報へのアクセスが必要です。",
+      "openSettings": "設定を開く"
+    },
+    "error": {
+      "startFailed": "散歩の開始に失敗しました",
+      "finishFailed": "散歩の保存に失敗しました。もう一度お試しください。",
+      "retry": "再試行"
+    }
+  },
   "settings": {
     "title": "設定",
     "profile": "プロフィール",

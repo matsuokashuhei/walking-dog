@@ -78,6 +78,7 @@ services:
       - ./e2e:/app
       - e2e_node_modules:/app/node_modules  # bind mount による上書きを防止
       - ./e2e/logs:/logs                 # スクリーンショット保存先
+      - ./cognito-local/db:/cognito-db:ro  # 確認コード取得用
     environment:
       BASE_URL: http://mobile:8081
       DISPLAY: ":99"

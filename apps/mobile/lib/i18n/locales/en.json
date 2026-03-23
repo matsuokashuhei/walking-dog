@@ -52,6 +52,7 @@
       "submit": "Register"
     },
     "detail": {
+      "title": "Dog Profile",
       "edit": "Edit",
       "delete": "Delete",
       "deleteTitle": "Delete Dog",

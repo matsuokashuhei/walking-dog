@@ -59,11 +59,13 @@ export function AppearanceSection() {
         <Text style={[styles.rowLabel, { color: colors.text }]}>
           {t('settings.theme')}
         </Text>
-        <SegmentedControl
-          options={themeOptions}
-          selected={theme}
-          onChange={(v) => setTheme(v as 'light' | 'dark' | 'auto')}
-        />
+        <View style={styles.segmentWrapper}>
+          <SegmentedControl
+            options={themeOptions}
+            selected={theme}
+            onChange={(v) => setTheme(v as 'light' | 'dark' | 'auto')}
+          />
+        </View>
       </View>
 
       <View style={[styles.row, { marginTop: spacing.md }]}>
@@ -106,6 +108,11 @@ const styles = StyleSheet.create({
   rowLabel: {
     ...typography.body,
     marginRight: spacing.md,
+    flexShrink: 0,
+  },
+  segmentWrapper: {
+    flex: 1,
+    flexShrink: 1,
   },
   dropdown: {
     flexDirection: 'row',

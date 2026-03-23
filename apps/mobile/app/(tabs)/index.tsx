@@ -1,4 +1,5 @@
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { FlatList, StyleSheet, Text } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
@@ -14,7 +15,7 @@ export default function HomeScreen() {
   const { data: walks, isLoading } = useMyWalks();
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: colors.background }]}>
       <Text style={[styles.title, { color: colors.text }]}>{t('walk.history.title')}</Text>
       {!isLoading && (!walks || walks.length === 0) ? (
         <Text style={[styles.empty, { color: colors.textSecondary }]}>
@@ -28,7 +29,7 @@ export default function HomeScreen() {
           contentContainerStyle={styles.list}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 

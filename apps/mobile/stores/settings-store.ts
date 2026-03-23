@@ -22,29 +22,41 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   isLoaded: false,
 
   initialize: async () => {
-    const [theme, language] = await Promise.all([
-      AsyncStorage.getItem(THEME_KEY),
-      AsyncStorage.getItem(LANGUAGE_KEY),
-    ]);
-    const lang = language ?? i18n.language;
-    if (language) {
-      await i18n.changeLanguage(lang);
+    try {
+      const [theme, language] = await Promise.all([
+        AsyncStorage.getItem(THEME_KEY),
+        AsyncStorage.getItem(LANGUAGE_KEY),
+      ]);
+      const lang = language ?? i18n.language;
+      if (language) {
+        await i18n.changeLanguage(lang);
+      }
+      set({
+        theme: (theme as ThemeMode) ?? 'auto',
+        language: lang,
+        isLoaded: true,
+      });
+    } catch {
+      set({ isLoaded: true });
     }
-    set({
-      theme: (theme as ThemeMode) ?? 'auto',
-      language: lang,
-      isLoaded: true,
-    });
   },
 
   setTheme: async (theme) => {
-    await AsyncStorage.setItem(THEME_KEY, theme);
     set({ theme });
+    try {
+      await AsyncStorage.setItem(THEME_KEY, theme);
+    } catch {
+      // Storage unavailable
+    }
   },
 
   setLanguage: async (language) => {
-    await AsyncStorage.setItem(LANGUAGE_KEY, language);
     await i18n.changeLanguage(language);
     set({ language });
+    try {
+      await AsyncStorage.setItem(LANGUAGE_KEY, language);
+    } catch {
+      // Storage unavailable
+    }
   },
 }));

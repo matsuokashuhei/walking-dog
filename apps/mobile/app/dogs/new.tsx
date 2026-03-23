@@ -3,7 +3,6 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useCreateDog } from '@/hooks/use-dog-mutations';
 import { DogForm, type DogFormValues } from '@/components/dogs/DogForm';
-import { ThemedText } from '@/components/themed-text';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
 import { spacing } from '@/theme/tokens';
@@ -21,7 +20,8 @@ export default function NewDogScreen() {
       breed: values.breed || undefined,
       gender: values.gender || undefined,
     });
-    router.replace(`/dogs/${dog.id}`);
+    router.dismiss();
+    router.push(`/dogs/${dog.id}`);
   }
 
   return (
@@ -29,7 +29,6 @@ export default function NewDogScreen() {
       contentContainerStyle={[styles.container, { backgroundColor: colors.background }]}
       keyboardShouldPersistTaps="handled"
     >
-      <ThemedText type="title" style={styles.title}>{t('dogs.new.title')}</ThemedText>
       <DogForm onSubmit={handleSubmit} submitLabel={t('dogs.new.submit')} />
     </ScrollView>
   );
@@ -37,5 +36,4 @@ export default function NewDogScreen() {
 
 const styles = StyleSheet.create({
   container: { flexGrow: 1, padding: spacing.lg },
-  title: { marginBottom: spacing.xl },
 });

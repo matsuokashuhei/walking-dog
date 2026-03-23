@@ -1,4 +1,5 @@
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useMe } from '@/hooks/use-me';
@@ -20,7 +21,7 @@ export default function DogsScreen() {
   if (isLoading) return <LoadingScreen />;
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <ThemedText type="title">{t('dogs.list.title')}</ThemedText>
       </View>
@@ -54,7 +55,7 @@ export default function DogsScreen() {
       >
         <Text style={styles.fabIcon}>+</Text>
       </Pressable>
-    </View>
+    </SafeAreaView>
   );
 }
 

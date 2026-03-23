@@ -52,6 +52,7 @@
       "submit": "登録"
     },
     "detail": {
+      "title": "犬のプロフィール",
       "edit": "編集",
       "delete": "削除",
       "deleteTitle": "犬を削除",

@@ -1,4 +1,5 @@
 import { ScrollView, StyleSheet, Text } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
@@ -23,28 +24,31 @@ export default function SettingsScreen() {
   const appVersion = Constants.expoConfig?.version ?? '1.0.0';
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={styles.content}
-    >
-      <ThemedText type="title" style={styles.title}>
-        {t('settings.title')}
-      </ThemedText>
+    <SafeAreaView edges={['top']} style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+      >
+        <ThemedText type="title" style={styles.title}>
+          {t('settings.title')}
+        </ThemedText>
 
-      <ProfileSection displayName={me.displayName} />
-      <DogListSection dogs={me.dogs} />
-      <AppearanceSection />
+        <ProfileSection displayName={me.displayName} />
+        <DogListSection dogs={me.dogs} />
+        <AppearanceSection />
 
-      <LogoutButton />
+        <LogoutButton />
 
-      <Text style={[styles.version, { color: colors.textSecondary }]}>
-        {t('settings.version', { version: appVersion })}
-      </Text>
-    </ScrollView>
+        <Text style={[styles.version, { color: colors.textSecondary }]}>
+          {t('settings.version', { version: appVersion })}
+        </Text>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: { flex: 1 },
   container: { flex: 1 },
   content: {
     padding: spacing.lg,

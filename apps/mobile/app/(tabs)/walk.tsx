@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { Alert, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
@@ -78,7 +79,7 @@ export default function WalkScreen() {
   }, [walkId, addWalkPoints, finishWalk, finish, t]);
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: colors.background }]}>
       {phase === 'ready' && (
         <DogSelector onStart={handleStart} isStarting={startWalk.isPending} />
       )}
@@ -89,7 +90,7 @@ export default function WalkScreen() {
         </>
       )}
       {phase === 'finished' && <WalkSummaryCard />}
-    </View>
+    </SafeAreaView>
   );
 }
 

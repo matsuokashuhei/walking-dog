@@ -9,7 +9,6 @@ import { dogKeys } from '@/lib/graphql/keys';
 import { DogForm, type DogFormValues } from '@/components/dogs/DogForm';
 import { PhotoPicker } from '@/components/dogs/PhotoPicker';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
-import { ThemedText } from '@/components/themed-text';
 import { uploadToPresignedUrl } from '@/lib/upload';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
@@ -61,7 +60,6 @@ export default function EditDogScreen() {
       contentContainerStyle={[styles.container, { backgroundColor: colors.background }]}
       keyboardShouldPersistTaps="handled"
     >
-      <ThemedText type="title" style={styles.title}>{t('dogs.edit.title')}</ThemedText>
       <PhotoPicker
         currentPhotoUrl={dog.photoUrl}
         onPick={handlePhotoChange}
@@ -82,5 +80,4 @@ export default function EditDogScreen() {
 
 const styles = StyleSheet.create({
   container: { flexGrow: 1, padding: spacing.lg },
-  title: { marginBottom: spacing.lg },
 });

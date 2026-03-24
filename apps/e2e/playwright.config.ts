@@ -11,11 +11,20 @@ export default defineConfig({
   projects: [
     {
       name: 'iPhone 14 - ja-JP',
+      testDir: './tests/mobile',
       use: { ...devices['iPhone 14'], locale: 'ja-JP' },
     },
     {
       name: 'iPhone 14 - en-US',
+      testDir: './tests/mobile',
       use: { ...devices['iPhone 14'], locale: 'en-US' },
+    },
+    {
+      name: 'API',
+      testDir: './tests/api',
+      use: {
+        baseURL: process.env.API_BASE_URL ?? 'http://api:3000',
+      },
     },
   ],
   reporter: [['html', { open: 'never' }]],

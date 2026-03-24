@@ -69,7 +69,11 @@ export default function WalkScreen() {
         await addWalkPoints.mutateAsync({ walkId, points: batch });
       }
 
-      await finishWalk.mutateAsync(walkId);
+      const totalDistanceM = useWalkStore.getState().totalDistanceM;
+      await finishWalk.mutateAsync({
+        walkId,
+        distanceM: Math.round(totalDistanceM),
+      });
       finish();
     } catch {
       Alert.alert(t('common.error'), t('walk.error.finishFailed'));

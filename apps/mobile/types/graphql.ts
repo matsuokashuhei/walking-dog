@@ -74,6 +74,7 @@ export interface UpdateDogInput {
   breed?: string;
   gender?: string;
   birthDate?: BirthDateInput;
+  photoUrl?: string;
 }
 
 export interface BirthDateInput {

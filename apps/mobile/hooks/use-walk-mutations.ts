@@ -28,11 +28,11 @@ export function useStartWalk() {
 
 export function useFinishWalk() {
   const queryClient = useQueryClient();
-  return useMutation<Walk, Error, string>({
-    mutationFn: async (walkId) => {
+  return useMutation<Walk, Error, { walkId: string; distanceM?: number }>({
+    mutationFn: async ({ walkId, distanceM }) => {
       const data = await graphqlClient.request<FinishWalkResponse>(
         FINISH_WALK_MUTATION,
-        { walkId },
+        { walkId, distanceM },
       );
       return data.finishWalk;
     },

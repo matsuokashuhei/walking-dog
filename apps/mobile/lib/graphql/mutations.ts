@@ -101,8 +101,8 @@ export const ADD_WALK_POINTS_MUTATION = gql`
 `;
 
 export const FINISH_WALK_MUTATION = gql`
-  mutation FinishWalk($walkId: ID!) {
-    finishWalk(walkId: $walkId) {
+  mutation FinishWalk($walkId: ID!, $distanceM: Int) {
+    finishWalk(walkId: $walkId, distanceM: $distanceM) {
       id
       status
       distanceM

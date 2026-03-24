@@ -20,7 +20,10 @@ pub async fn build_s3_client(region: &str, endpoint_url: Option<&str>) -> S3Clie
         builder = builder.endpoint_url(url);
     }
     let config = builder.load().await;
-    S3Client::new(&config)
+    let s3_config = aws_sdk_s3::config::Builder::from(&config)
+        .force_path_style(true)
+        .build();
+    S3Client::from_conf(s3_config)
 }
 
 pub async fn build_cognito_client(region: &str, endpoint_url: Option<&str>) -> CognitoClient {

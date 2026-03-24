@@ -39,6 +39,7 @@ pub async fn update_dog(
     breed: Option<String>,
     gender: Option<String>,
     birth_date: Option<serde_json::Value>,
+    photo_url: Option<String>,
 ) -> Result<DogModel, AppError> {
     let model = DogEntity::find_by_id(dog_id)
         .filter(dogs::Column::UserId.eq(user_id))
@@ -58,6 +59,9 @@ pub async fn update_dog(
     }
     if let Some(bd) = birth_date {
         active.birth_date = Set(Some(bd));
+    }
+    if let Some(p) = photo_url {
+        active.photo_url = Set(Some(p));
     }
     let updated = active.update(db).await?;
     Ok(updated)

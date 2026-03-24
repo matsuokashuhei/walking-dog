@@ -3,6 +3,7 @@ import { Image } from 'expo-image';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
 import { spacing, radius, typography } from '@/theme/tokens';
+import { getPhotoUrl } from '@/lib/photo-url';
 import type { Dog } from '@/types/graphql';
 
 interface DogListItemProps {
@@ -25,7 +26,7 @@ export function DogListItem({ dog, onPress }: DogListItemProps) {
       ]}
     >
       <Image
-        source={dog.photoUrl ?? require('@/assets/images/icon.png')}
+        source={getPhotoUrl(dog.photoUrl) ?? require('@/assets/images/icon.png')}
         style={styles.photo}
         contentFit="cover"
         cachePolicy="memory-disk"

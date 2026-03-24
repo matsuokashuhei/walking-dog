@@ -41,7 +41,7 @@ export interface Walk {
   durationSec: number | null;
   startedAt: string;
   endedAt: string | null;
-  points: WalkPoint[];
+  points?: WalkPoint[];
 }
 
 export interface User {
@@ -74,6 +74,7 @@ export interface UpdateDogInput {
   breed?: string;
   gender?: string;
   birthDate?: BirthDateInput;
+  photoUrl?: string;
 }
 
 export interface BirthDateInput {

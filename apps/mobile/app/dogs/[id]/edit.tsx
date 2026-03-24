@@ -2,18 +2,16 @@ import { useState } from 'react';
 import { Alert, ScrollView, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { useQueryClient } from '@tanstack/react-query';
 import { useDog } from '@/hooks/use-dog';
 import { useUpdateDog, useGeneratePhotoUploadUrl } from '@/hooks/use-dog-mutations';
-import { dogKeys } from '@/lib/graphql/keys';
 import { DogForm, type DogFormValues } from '@/components/dogs/DogForm';
 import { PhotoPicker } from '@/components/dogs/PhotoPicker';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
-import { ThemedText } from '@/components/themed-text';
 import { uploadToPresignedUrl } from '@/lib/upload';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
 import { spacing } from '@/theme/tokens';
+import { getPhotoUrl } from '@/lib/photo-url';
 
 export default function EditDogScreen() {
   const { t } = useTranslation();
@@ -25,7 +23,6 @@ export default function EditDogScreen() {
   const { data: dog, isLoading } = useDog(id, 'ALL');
   const { mutateAsync: updateDog } = useUpdateDog();
   const { mutateAsync: generateUploadUrl } = useGeneratePhotoUploadUrl();
-  const queryClient = useQueryClient();
   const [photoLoading, setPhotoLoading] = useState(false);
 
   if (isLoading || !dog) return <LoadingScreen />;
@@ -33,10 +30,9 @@ export default function EditDogScreen() {
   async function handlePhotoChange(uri: string, contentType: string) {
     setPhotoLoading(true);
     try {
-      const { url } = await generateUploadUrl(id);
+      const { url, key } = await generateUploadUrl(id);
       await uploadToPresignedUrl(url, uri, contentType);
-      // Invalidate dog cache so the updated photoUrl is fetched from the server
-      queryClient.invalidateQueries({ queryKey: dogKeys.all });
+      await updateDog({ id, input: { photoUrl: key } });
     } catch {
       Alert.alert(t('common.error'), t('dogs.edit.photoUploadError'));
     } finally {
@@ -61,9 +57,8 @@ export default function EditDogScreen() {
       contentContainerStyle={[styles.container, { backgroundColor: colors.background }]}
       keyboardShouldPersistTaps="handled"
     >
-      <ThemedText type="title" style={styles.title}>{t('dogs.edit.title')}</ThemedText>
       <PhotoPicker
-        currentPhotoUrl={dog.photoUrl}
+        currentPhotoUrl={getPhotoUrl(dog.photoUrl)}
         onPick={handlePhotoChange}
         loading={photoLoading}
       />
@@ -82,5 +77,4 @@ export default function EditDogScreen() {
 
 const styles = StyleSheet.create({
   container: { flexGrow: 1, padding: spacing.lg },
-  title: { marginBottom: spacing.lg },
 });

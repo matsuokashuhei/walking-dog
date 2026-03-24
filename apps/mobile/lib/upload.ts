@@ -12,7 +12,10 @@ export async function uploadToPresignedUrl(
 ): Promise<void> {
   const blob = await uriToBlob(fileUri);
 
-  const response = await fetch(presignedUrl, {
+  // Local dev: Docker internal hostname is unreachable from iOS Simulator
+  const url = presignedUrl.replace('://localstack:', '://localhost:');
+
+  const response = await fetch(url, {
     method: 'PUT',
     headers: { 'Content-Type': contentType },
     body: blob,

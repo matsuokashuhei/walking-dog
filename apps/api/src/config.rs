@@ -4,6 +4,7 @@ pub struct Config {
     pub database_url: String,
     pub aws_region: String,
     pub aws_endpoint_url: Option<String>,
+    pub dynamodb_endpoint_url: Option<String>,
     pub dynamodb_table_walk_points: String,
     pub s3_bucket_dog_photos: String,
     pub cognito_user_pool_id: String,
@@ -23,6 +24,7 @@ impl Config {
             database_url: std::env::var("DATABASE_URL").expect("DATABASE_URL must be set"),
             aws_region: std::env::var("AWS_REGION").unwrap_or_else(|_| "ap-northeast-1".to_string()),
             aws_endpoint_url: std::env::var("AWS_ENDPOINT_URL").ok(),
+            dynamodb_endpoint_url: std::env::var("DYNAMODB_ENDPOINT_URL").ok(),
             dynamodb_table_walk_points: std::env::var("DYNAMODB_TABLE_WALK_POINTS")
                 .unwrap_or_else(|_| "WalkPoints".to_string()),
             s3_bucket_dog_photos: std::env::var("S3_BUCKET_DOG_PHOTOS")

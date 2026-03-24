@@ -7,6 +7,7 @@ import { spacing, radius, typography } from '@/theme/tokens';
 import { useMe } from '@/hooks/use-me';
 import { useWalkStore } from '@/stores/walk-store';
 import type { Dog } from '@/types/graphql';
+import { getPhotoUrl } from '@/lib/photo-url';
 
 interface DogSelectorProps {
   onStart: () => void;
@@ -39,7 +40,7 @@ export function DogSelector({ onStart, isStarting }: DogSelectorProps) {
         ]}
       >
         <Image
-          source={item.photoUrl ?? require('@/assets/images/icon.png')}
+          source={getPhotoUrl(item.photoUrl) ?? require('@/assets/images/icon.png')}
           style={styles.dogPhoto}
           contentFit="cover"
         />

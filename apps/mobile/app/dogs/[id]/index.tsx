@@ -13,6 +13,7 @@ import { ThemedText } from '@/components/themed-text';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
 import { spacing, radius } from '@/theme/tokens';
+import { getPhotoUrl } from '@/lib/photo-url';
 
 export default function DogDetailScreen() {
   const { t } = useTranslation();
@@ -40,7 +41,7 @@ export default function DogDetailScreen() {
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.photoSection}>
         <Image
-          source={dog.photoUrl ?? require('@/assets/images/icon.png')}
+          source={getPhotoUrl(dog.photoUrl) ?? require('@/assets/images/icon.png')}
           style={styles.photo}
           contentFit="cover"
           cachePolicy="memory-disk"

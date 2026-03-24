@@ -13,6 +13,14 @@
   docker compose -f apps/compose.yml --profile e2e run --rm e2e npx playwright test --project "iPhone 14 - ja-JP"
   docker compose -f apps/compose.yml --profile e2e run --rm e2e npx playwright test --project "iPhone 14 - en-US"
   ```
+- API テストのみ実行:
+  ```bash
+  docker compose -f apps/compose.yml --profile e2e run --rm e2e npx playwright test --project API
+  ```
+- 特定の API テストファイル実行:
+  ```bash
+  docker compose -f apps/compose.yml --profile e2e run --rm e2e npx playwright test --project API tests/api/auth.spec.ts
+  ```
 
 ### インタラクティブ操作（`playwright-cli`）
 
@@ -49,13 +57,25 @@
 
 ```
 tests/
-├── helpers/
-│   ├── i18n.ts          # ロケール別ラベルマップ
-│   ├── fixtures.ts      # カスタム test fixture (labels)
-│   ├── auth.ts          # 認証ヘルパー (registerUser, loginUser, etc.)
-│   ├── navigation.ts    # ナビゲーションヘルパー
-│   └── screenshot.ts    # スクリーンショットヘルパー (YYYYmmddHHMMSS-{xxx}.png)
-├── smoke.spec.ts        # スモークテスト
-├── auth.spec.ts         # 認証テスト
-└── dogs.spec.ts         # 犬プロフィール CRUD テスト
+├── mobile/                          # UI テスト (Playwright ブラウザ経由)
+│   ├── helpers/
+│   │   ├── i18n.ts                  # ロケール別ラベルマップ
+│   │   ├── fixtures.ts              # カスタム test fixture (labels)
+│   │   ├── auth.ts                  # 認証ヘルパー (registerUser, loginUser, etc.)
+│   │   ├── navigation.ts            # ナビゲーションヘルパー
+│   │   └── screenshot.ts            # スクリーンショットヘルパー (YYYYmmddHHMMSS-{xxx}.png)
+│   ├── smoke.spec.ts                # スモークテスト
+│   ├── auth.spec.ts                 # 認証テスト
+│   ├── dogs.spec.ts                 # 犬プロフィール CRUD テスト
+│   └── settings.spec.ts             # 設定テスト
+└── api/                             # GraphQL API テスト (HTTP 直接)
+    ├── helpers/
+    │   ├── graphql-client.ts        # GraphQL HTTP クライアント
+    │   ├── auth.ts                  # API 認証ヘルパー (registerAndSignIn)
+    │   └── fixtures.ts              # API テスト fixture (graphql, authedGraphql)
+    ├── auth.spec.ts                 # 認証 API テスト
+    ├── dogs.spec.ts                 # 犬 CRUD API テスト
+    ├── walks.spec.ts                # 散歩ライフサイクル API テスト
+    ├── queries.spec.ts              # クエリー API テスト
+    └── photo.spec.ts                # 写真URL生成 API テスト
 ```

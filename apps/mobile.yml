@@ -30,6 +30,7 @@ services:
       - ./cognito-local/db:/cognito-db:ro  # 確認コード取得用
     environment:
       BASE_URL: http://mobile:8081
+      API_BASE_URL: http://api:3000
       DISPLAY: ":99"
       COGNITO_ENDPOINT: http://cognito-local:9229
       COGNITO_USER_POOL_ID: "local_2yovNmW0"
@@ -37,6 +38,7 @@ services:
       - "5900:5900"                     # VNC (headed モードの視覚確認用)
     depends_on:
       - mobile
+      - api
     profiles:
       - e2e
 

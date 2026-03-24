@@ -1,6 +1,7 @@
 {
   "common": {
-    "error": "エラー"
+    "error": "エラー",
+    "retry": "再試行"
   },
   "auth": {
     "login": {
@@ -143,6 +144,7 @@
     "language": "言語",
     "signOut": "サインアウト",
     "signOutConfirm": "サインアウトしますか？",
-    "version": "バージョン {{version}}"
+    "version": "バージョン {{version}}",
+    "loadError": "データの読み込みに失敗しました"
   }
 }

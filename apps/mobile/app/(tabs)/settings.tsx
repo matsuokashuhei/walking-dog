@@ -6,6 +6,7 @@ import { Colors } from '@/constants/theme';
 import { spacing, typography } from '@/theme/tokens';
 import { useMe } from '@/hooks/use-me';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
+import { ErrorScreen } from '@/components/ui/ErrorScreen';
 import { ThemedText } from '@/components/themed-text';
 import { ProfileSection } from '@/components/settings/ProfileSection';
 import { DogListSection } from '@/components/settings/DogListSection';
@@ -17,9 +18,10 @@ export default function SettingsScreen() {
   const { t } = useTranslation();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
-  const { data: me, isLoading } = useMe();
+  const { data: me, isLoading, error, refetch } = useMe();
 
-  if (isLoading || !me) return <LoadingScreen />;
+  if (isLoading) return <LoadingScreen />;
+  if (error || !me) return <ErrorScreen message={t('settings.loadError')} onRetry={refetch} />;
 
   const appVersion = Constants.expoConfig?.version ?? '1.0.0';
 

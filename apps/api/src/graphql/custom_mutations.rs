@@ -176,6 +176,7 @@ pub fn update_dog_input_type() -> InputObject {
         .field(InputValue::new("breed", TypeRef::named(TypeRef::STRING)))
         .field(InputValue::new("gender", TypeRef::named(TypeRef::STRING)))
         .field(InputValue::new("birthDate", TypeRef::named("BirthDateInput")))
+        .field(InputValue::new("photoUrl", TypeRef::named(TypeRef::STRING)))
 }
 
 // ─── Custom output types ──────────────────────────────────────────────────────
@@ -204,6 +205,14 @@ impl From<crate::entities::walks::Model> for WalkOutput {
             ended_at: ended.map(|t| t.to_rfc3339()),
         }
     }
+}
+
+/// GPS point returned as part of `WalkOutput.points`.
+#[derive(Clone, Debug)]
+pub struct WalkPointOutput {
+    pub lat: f64,
+    pub lng: f64,
+    pub recorded_at: String,
 }
 
 /// Returned by `me` query and `updateProfile` mutation.
@@ -289,6 +298,85 @@ pub fn walk_output_type() -> Object {
             FieldFuture::new(async move {
                 let w = ctx.parent_value.try_downcast_ref::<WalkOutput>()?;
                 Ok(w.ended_at.clone().map(FieldValue::value))
+            })
+        }))
+        .field(Field::new("dogs", TypeRef::named_nn_list_nn("DogOutput"), |ctx| {
+            FieldFuture::new(async move {
+                use crate::entities::{
+                    dogs::{self, Entity as DogEntity},
+                    walk_dogs::{self, Entity as WalkDogEntity},
+                };
+                use sea_orm::{EntityTrait, ColumnTrait, QueryFilter};
+
+                let w = ctx.parent_value.try_downcast_ref::<WalkOutput>()?;
+                let walk_id = w.id;
+                let state = ctx.data::<Arc<crate::AppState>>()?;
+
+                let walk_dog_rows = WalkDogEntity::find()
+                    .filter(walk_dogs::Column::WalkId.eq(walk_id))
+                    .all(&state.db)
+                    .await
+                    .map_err(|e| AppError::Database(e).into_graphql_error())?;
+                let dog_ids: Vec<Uuid> = walk_dog_rows.iter().map(|wd| wd.dog_id).collect();
+
+                let dogs = DogEntity::find()
+                    .filter(dogs::Column::Id.is_in(dog_ids))
+                    .all(&state.db)
+                    .await
+                    .map_err(|e| AppError::Database(e).into_graphql_error())?;
+
+                let values: Vec<FieldValue> = dogs
+                    .into_iter()
+                    .map(|d| FieldValue::owned_any(DogOutput::from(d)))
+                    .collect();
+                Ok(Some(FieldValue::list(values)))
+            })
+        }))
+        .field(Field::new("points", TypeRef::named_nn_list_nn("WalkPointOutput"), |ctx| {
+            FieldFuture::new(async move {
+                let w = ctx.parent_value.try_downcast_ref::<WalkOutput>()?;
+                let walk_id = w.id;
+                let state = ctx.data::<Arc<crate::AppState>>()?;
+
+                let points = walk_points_service::get_walk_points(
+                    &state.dynamo,
+                    &state.config.dynamodb_table_walk_points,
+                    walk_id,
+                )
+                .await
+                .map_err(AppError::into_graphql_error)?;
+
+                let values: Vec<FieldValue> = points
+                    .into_iter()
+                    .map(|p| FieldValue::owned_any(WalkPointOutput {
+                        lat: p.lat,
+                        lng: p.lng,
+                        recorded_at: p.recorded_at,
+                    }))
+                    .collect();
+                Ok(Some(FieldValue::list(values)))
+            })
+        }))
+}
+
+pub fn walk_point_output_type() -> Object {
+    Object::new("WalkPointOutput")
+        .field(Field::new("lat", TypeRef::named_nn(TypeRef::FLOAT), |ctx| {
+            FieldFuture::new(async move {
+                let p = ctx.parent_value.try_downcast_ref::<WalkPointOutput>()?;
+                Ok(Some(FieldValue::value(p.lat)))
+            })
+        }))
+        .field(Field::new("lng", TypeRef::named_nn(TypeRef::FLOAT), |ctx| {
+            FieldFuture::new(async move {
+                let p = ctx.parent_value.try_downcast_ref::<WalkPointOutput>()?;
+                Ok(Some(FieldValue::value(p.lng)))
+            })
+        }))
+        .field(Field::new("recordedAt", TypeRef::named_nn(TypeRef::STRING), |ctx| {
+            FieldFuture::new(async move {
+                let p = ctx.parent_value.try_downcast_ref::<WalkPointOutput>()?;
+                Ok(Some(FieldValue::value(p.recorded_at.clone())))
             })
         }))
 }
@@ -587,11 +675,12 @@ fn update_dog_field(state: Arc<AppState>) -> Field {
                 let day = obj.get("day").map(|v| v.i64().map(|n| n as i32)).transpose()?;
                 Ok::<_, async_graphql::Error>(BirthDate::to_json(year, month, day))
             }).transpose()?;
+            let photo_url = input.get("photoUrl").map(|v| v.string().map(|s| s.to_string())).transpose()?;
 
             let user = user_service::get_or_create_user(&state.db, &cognito_sub)
                 .await
                 .map_err(AppError::into_graphql_error)?;
-            let dog = dog_service::update_dog(&state.db, dog_id, user.id, name, breed, gender, birth_date)
+            let dog = dog_service::update_dog(&state.db, dog_id, user.id, name, breed, gender, birth_date, photo_url)
                 .await
                 .map_err(AppError::into_graphql_error)?;
             Ok(Some(FieldValue::owned_any(DogOutput::from(dog))))
@@ -636,17 +725,21 @@ fn finish_walk_field(state: Arc<AppState>) -> Field {
             let walk_id_str = ctx.args.try_get("walkId")?.string()?;
             let walk_id = Uuid::parse_str(walk_id_str)
                 .map_err(|_| async_graphql::Error::new("Invalid walk ID"))?;
+            let distance_m = ctx.args.get("distanceM")
+                .and_then(|v| v.i64().ok())
+                .map(|v| v as i32);
 
             let user = user_service::get_or_create_user(&state.db, &cognito_sub)
                 .await
                 .map_err(AppError::into_graphql_error)?;
-            let walk = walk_service::finish_walk(&state.db, walk_id, user.id)
+            let walk = walk_service::finish_walk(&state.db, walk_id, user.id, distance_m)
                 .await
                 .map_err(AppError::into_graphql_error)?;
             Ok(Some(FieldValue::owned_any(WalkOutput::from(walk))))
         })
     })
     .argument(InputValue::new("walkId", TypeRef::named_nn(TypeRef::ID)))
+    .argument(InputValue::new("distanceM", TypeRef::named(TypeRef::INT)))
 }
 
 fn add_walk_points_field(state: Arc<AppState>) -> Field {

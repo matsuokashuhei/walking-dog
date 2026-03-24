@@ -50,6 +50,7 @@ pub async fn finish_walk(
     db: &sea_orm::DatabaseConnection,
     walk_id: Uuid,
     user_id: Uuid,
+    distance_m: Option<i32>,
 ) -> Result<WalkModel, AppError> {
     let walk = WalkEntity::find_by_id(walk_id)
         .filter(walks::Column::UserId.eq(user_id))
@@ -71,6 +72,7 @@ pub async fn finish_walk(
     active.status = Set("finished".to_string());
     active.ended_at = Set(Some(ended_at.into()));
     active.duration_sec = Set(Some(duration_sec));
+    active.distance_m = Set(distance_m);
 
     let updated = active.update(db).await?;
     Ok(updated)
@@ -117,11 +119,20 @@ pub async fn get_walk_stats(
 pub async fn get_walks_by_user_id(
     db: &sea_orm::DatabaseConnection,
     user_id: Uuid,
+    limit: Option<u64>,
+    offset: Option<u64>,
 ) -> Result<Vec<WalkModel>, AppError> {
-    let walks = WalkEntity::find()
+    let mut query = WalkEntity::find()
         .filter(walks::Column::UserId.eq(user_id))
-        .order_by_desc(walks::Column::StartedAt)
-        .all(db)
-        .await?;
+        .order_by_desc(walks::Column::StartedAt);
+
+    if let Some(o) = offset {
+        query = query.offset(o);
+    }
+    if let Some(l) = limit {
+        query = query.limit(l);
+    }
+
+    let walks = query.all(db).await?;
     Ok(walks)
 }

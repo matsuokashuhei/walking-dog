@@ -51,6 +51,12 @@ resource "aws_cognito_user_pool" "main" {
 
   mfa_configuration = "OFF"
 
+  sms_configuration {
+    external_id    = "${var.project_name}-${var.environment}-cognito"
+    sns_caller_arn = aws_iam_role.cognito_sns.arn
+    sns_region     = var.aws_region
+  }
+
   email_configuration {
     email_sending_account = "COGNITO_DEFAULT"
   }

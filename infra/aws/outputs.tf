@@ -73,3 +73,13 @@ output "alb_security_group_id" {
 output "github_actions_role_arn" {
   value = aws_iam_role.github_actions.arn
 }
+
+# --- Route53 ---
+
+output "route53_zone_id" {
+  value = aws_route53_zone.main.zone_id
+}
+
+output "route53_nameservers" {
+  value = aws_route53_zone.main.name_servers
+}

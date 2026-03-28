@@ -77,11 +77,11 @@ jobs:
         env:
           RENDERED_TASK_DEF: ${{ steps.render-task-def.outputs.task-definition }}
         run: |
-          NEW_TASK_DEF=$(jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)' \
-            "$RENDERED_TASK_DEF")
+          jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)' \
+            "$RENDERED_TASK_DEF" > new-task-definition.json
 
-          REVISION_ARN=$(echo "$NEW_TASK_DEF" | aws ecs register-task-definition \
-            --cli-input-json file:///dev/stdin \
+          REVISION_ARN=$(aws ecs register-task-definition \
+            --cli-input-json file://new-task-definition.json \
             --query 'taskDefinition.taskDefinitionArn' \
             --output text)
 

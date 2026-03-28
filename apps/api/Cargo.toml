@@ -1,6 +1,7 @@
 [workspace]
 members = [".", "migration"]
 resolver = "2"
+# CI trigger test
 
 [package]
 name = "walking-dog-api"

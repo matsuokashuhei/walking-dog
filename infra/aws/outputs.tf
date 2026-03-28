@@ -83,3 +83,9 @@ output "route53_zone_id" {
 output "route53_nameservers" {
   value = aws_route53_zone.main.name_servers
 }
+
+# --- ACM ---
+
+output "acm_certificate_arn" {
+  value = aws_acm_certificate.main.arn
+}

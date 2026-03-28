@@ -24,8 +24,11 @@ resource "aws_lambda_function" "scheduler" {
       ALB_SG_ID        = aws_security_group.alb.id
       ECS_SG_ID        = aws_security_group.ecs.id
       VPC_ID           = aws_vpc.main.id
-      PROJECT_NAME     = var.project_name
-      ENVIRONMENT      = var.environment
+      PROJECT_NAME        = var.project_name
+      ENVIRONMENT         = var.environment
+      ACM_CERTIFICATE_ARN = aws_acm_certificate_validation.main.certificate_arn
+      ROUTE53_ZONE_ID     = aws_route53_zone.main.zone_id
+      DOMAIN_NAME         = "walkingdogdev.dpdns.org"
     }
   }
 

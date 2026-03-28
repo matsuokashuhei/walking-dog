@@ -214,6 +214,14 @@ resource "aws_iam_role_policy" "scheduler_lambda" {
         ]
         Resource = "*"
       },
+      {
+        Effect = "Allow"
+        Action = [
+          "route53:ChangeResourceRecordSets",
+          "route53:ListResourceRecordSets",
+        ]
+        Resource = aws_route53_zone.main.arn
+      },
     ]
   })
 }

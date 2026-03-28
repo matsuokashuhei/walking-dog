@@ -1,6 +1,12 @@
 terraform {
   required_version = ">= 1.5"
 
+  backend "s3" {
+    bucket = "walking-dog-tfstate-967026628831"
+    key    = "aws/dev/terraform.tfstate"
+    region = "ap-northeast-1"
+  }
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"

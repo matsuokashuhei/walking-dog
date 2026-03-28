@@ -59,6 +59,19 @@ docker run --rm -v "$(pwd)/infra/aws:/workspace" -v "$HOME/.aws:/root/.aws:ro" -
 docker run --rm -v "$(pwd)/infra/aws:/workspace" -v "$HOME/.aws:/root/.aws:ro" -e AWS_PROFILE=personal -w /workspace hashicorp/terraform:1.14 output -raw <output_name>
 ```
 
+## State Backend (Bootstrap)
+
+State は S3 に保存される。初回セットアップ時のみ bootstrap が必要：
+
+```bash
+# 1. bootstrap で S3 バケットを作成（ローカル state）
+docker run --rm -v "$(pwd)/infra/aws/bootstrap:/workspace" -v "$HOME/.aws:/root/.aws:ro" -e AWS_PROFILE=personal -w /workspace hashicorp/terraform:1.14 init
+docker run --rm -v "$(pwd)/infra/aws/bootstrap:/workspace" -v "$HOME/.aws:/root/.aws:ro" -e AWS_PROFILE=personal -w /workspace hashicorp/terraform:1.14 apply
+
+# 2. メインの init で S3 backend に接続
+docker run --rm -v "$(pwd)/infra/aws:/workspace" -v "$HOME/.aws:/root/.aws:ro" -e AWS_PROFILE=personal -w /workspace hashicorp/terraform:1.14 init
+```
+
 ## Prerequisites
 
 AWS SSO login must be active before running any command that accesses AWS:

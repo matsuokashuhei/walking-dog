@@ -2,7 +2,7 @@ name: Deploy API
 
 on:
   push:
-    branches: [feat/deploy-api-ci]
+    branches: [main]
     paths:
       - "apps/api/**"
   workflow_dispatch:
@@ -54,6 +54,7 @@ jobs:
           tags: |
             ${{ steps.ecr-login.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
             ${{ steps.ecr-login.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
+          provenance: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

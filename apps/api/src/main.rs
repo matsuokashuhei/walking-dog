@@ -17,11 +17,11 @@ async fn main() {
     .await;
     let s3 = walking_dog_api::aws::client::build_s3_client(
         &config.aws_region,
-        config.aws_endpoint_url.as_deref(),
+        config.s3_endpoint_url.as_deref(),
     )
     .await;
     let cognito = walking_dog_api::aws::client::build_cognito_client(
-        &config.cognito_region,
+        &config.aws_region,
         config.cognito_endpoint_url.as_deref(),
     )
     .await;

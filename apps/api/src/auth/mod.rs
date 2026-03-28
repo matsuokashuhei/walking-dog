@@ -69,7 +69,7 @@ async fn verify_cognito_jwt(token: &str) -> Result<String, String> {
     let kid = header.kid.ok_or("missing kid")?;
 
     let user_pool_id = std::env::var("COGNITO_USER_POOL_ID").map_err(|e| e.to_string())?;
-    let region = std::env::var("COGNITO_REGION").unwrap_or_else(|_| "ap-northeast-1".to_string());
+    let region = std::env::var("AWS_REGION").unwrap_or_else(|_| "ap-northeast-1".to_string());
 
     // COGNITO_ENDPOINT_URL が設定されている場合は cognito-local を使う
     let jwks_url = if let Ok(endpoint) = std::env::var("COGNITO_ENDPOINT_URL") {

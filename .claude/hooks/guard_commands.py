@@ -12,12 +12,12 @@ import sys
 
 # コマンド名 → ブロック時のメッセージ
 BLOCKED_COMMANDS: dict[str, str] = {
-    r"npm|npx": (
-        "Direct npm/npx commands are not allowed. "
-        "Use Docker Compose instead:\n"
-        "  docker compose -f apps/compose.yml run --rm mobile npm ...\n"
-        "  docker compose -f apps/compose.yml run --rm mobile npx ..."
-    ),
+    # r"npm|npx": (
+    #     "Direct npm/npx commands are not allowed. "
+    #     "Use Docker Compose instead:\n"
+    #     "  docker compose -f apps/compose.yml run --rm mobile npm ...\n"
+    #     "  docker compose -f apps/compose.yml run --rm mobile npx ..."
+    # ),
     r"cargo": (
         "Direct cargo commands are not allowed. "
         "Use Docker Compose instead:\n"

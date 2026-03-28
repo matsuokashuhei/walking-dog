@@ -164,6 +164,7 @@ resource "aws_iam_role_policy" "scheduler_lambda" {
           "elasticloadbalancing:DescribeTargetGroups",
           "elasticloadbalancing:CreateListener",
           "elasticloadbalancing:DeleteListener",
+          "elasticloadbalancing:DescribeListeners",
           "elasticloadbalancing:AddTags",
         ]
         Resource = "*"

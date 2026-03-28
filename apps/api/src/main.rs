@@ -1,3 +1,4 @@
+use migration::{Migrator, MigratorTrait};
 use walking_dog_api::config::Config;
 
 #[tokio::main]
@@ -9,6 +10,11 @@ async fn main() {
     let db = walking_dog_api::db::connect(&config.database_url)
         .await
         .expect("Failed to connect to database");
+
+    Migrator::up(&db, None)
+        .await
+        .expect("Failed to run database migrations");
+    tracing::info!("Database migrations completed");
 
     let dynamo = walking_dog_api::aws::client::build_dynamo_client(
         &config.aws_region,

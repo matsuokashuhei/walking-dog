@@ -19,7 +19,7 @@ resource "aws_lambda_function" "scheduler" {
       DB_INSTANCE_ID   = aws_db_instance.main.identifier
       ECS_CLUSTER      = aws_ecs_cluster.main.name
       ECS_SERVICE_NAME = "${var.project_name}-${var.environment}-api"
-      TASK_DEFINITION  = aws_ecs_task_definition.api.arn
+      TASK_DEFINITION  = aws_ecs_task_definition.api.family
       SUBNET_IDS       = jsonencode([aws_subnet.public_a.id, aws_subnet.public_c.id])
       ALB_SG_ID        = aws_security_group.alb.id
       ECS_SG_ID        = aws_security_group.ecs.id

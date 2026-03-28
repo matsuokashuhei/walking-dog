@@ -2,8 +2,8 @@
 Weekend scheduler Lambda for walking-dog dev environment.
 
 Actions:
-  - start: Start RDS, create ALB + TG + Listener, create ECS Service
-  - stop:  Delete ECS Service, delete ALB + TG + Listener, stop RDS
+  - start: Start RDS, create ALB + TG + HTTPS Listener, create ECS Service, update Route53
+  - stop:  Delete ECS Service, delete ALB + TG + Listener, delete Route53 record, stop RDS
 """
 
 import json
@@ -15,6 +15,7 @@ import boto3
 rds = boto3.client("rds")
 ecs = boto3.client("ecs")
 elbv2 = boto3.client("elbv2")
+route53 = boto3.client("route53")
 
 # Environment variables (set by Terraform)
 DB_INSTANCE_ID = os.environ["DB_INSTANCE_ID"]
@@ -27,6 +28,9 @@ ECS_SG_ID = os.environ["ECS_SG_ID"]
 VPC_ID = os.environ["VPC_ID"]
 PROJECT_NAME = os.environ["PROJECT_NAME"]
 ENVIRONMENT = os.environ["ENVIRONMENT"]
+ACM_CERTIFICATE_ARN = os.environ["ACM_CERTIFICATE_ARN"]
+ROUTE53_ZONE_ID = os.environ["ROUTE53_ZONE_ID"]
+DOMAIN_NAME = os.environ["DOMAIN_NAME"]
 
 
 def handler(event, context):
@@ -77,6 +81,8 @@ def start_environment():
         ],
     )
     alb_arn = alb_response["LoadBalancers"][0]["LoadBalancerArn"]
+    alb_dns_name = alb_response["LoadBalancers"][0]["DNSName"]
+    alb_hosted_zone_id = alb_response["LoadBalancers"][0]["CanonicalHostedZoneId"]
     print(f"ALB created: {alb_arn}")
 
     # 4. Create Target Group
@@ -105,17 +111,38 @@ def start_environment():
     waiter = elbv2.get_waiter("load_balancer_available")
     waiter.wait(LoadBalancerArns=[alb_arn])
 
-    # 6. Create Listener
-    print("Creating Listener...")
+    # 6. Create HTTPS Listener (port 443)
+    print("Creating HTTPS Listener...")
+    elbv2.create_listener(
+        LoadBalancerArn=alb_arn,
+        Protocol="HTTPS",
+        Port=443,
+        SslPolicy="ELBSecurityPolicy-TLS13-1-2-2021-06",
+        Certificates=[{"CertificateArn": ACM_CERTIFICATE_ARN}],
+        DefaultActions=[{"Type": "forward", "TargetGroupArn": tg_arn}],
+    )
+    print("HTTPS Listener created")
+
+    # 7. Create HTTP Listener (port 80) — redirect to HTTPS
+    print("Creating HTTP Listener (redirect to HTTPS)...")
     elbv2.create_listener(
         LoadBalancerArn=alb_arn,
         Protocol="HTTP",
         Port=80,
-        DefaultActions=[{"Type": "forward", "TargetGroupArn": tg_arn}],
+        DefaultActions=[
+            {
+                "Type": "redirect",
+                "RedirectConfig": {
+                    "Protocol": "HTTPS",
+                    "Port": "443",
+                    "StatusCode": "HTTP_301",
+                },
+            }
+        ],
     )
-    print("Listener created")
+    print("HTTP Listener created")
 
-    # 7. Create ECS Service
+    # 8. Create ECS Service
     print("Creating ECS Service...")
     try:
         ecs.create_service(
@@ -150,6 +177,29 @@ def start_environment():
             )
         else:
             raise
+
+    # 9. Update Route53 A record
+    print("Updating Route53 A record...")
+    route53.change_resource_record_sets(
+        HostedZoneId=ROUTE53_ZONE_ID,
+        ChangeBatch={
+            "Changes": [
+                {
+                    "Action": "UPSERT",
+                    "ResourceRecordSet": {
+                        "Name": DOMAIN_NAME,
+                        "Type": "A",
+                        "AliasTarget": {
+                            "DNSName": alb_dns_name,
+                            "HostedZoneId": alb_hosted_zone_id,
+                            "EvaluateTargetHealth": True,
+                        },
+                    },
+                }
+            ]
+        },
+    )
+    print(f"Route53 A record updated: {DOMAIN_NAME} -> {alb_dns_name}")
 
     print("Environment started successfully")
 
@@ -212,7 +262,36 @@ def stop_environment():
     except elbv2.exceptions.TargetGroupNotFoundException:
         print("Target Group not found, skipping")
 
-    # 3. Stop RDS
+    # 3. Delete Route53 A record
+    print("Deleting Route53 A record...")
+    try:
+        response = route53.list_resource_record_sets(
+            HostedZoneId=ROUTE53_ZONE_ID,
+            StartRecordName=DOMAIN_NAME,
+            StartRecordType="A",
+            MaxItems="1",
+        )
+        for record_set in response["ResourceRecordSets"]:
+            if record_set["Name"].rstrip(".") == DOMAIN_NAME and record_set["Type"] == "A":
+                route53.change_resource_record_sets(
+                    HostedZoneId=ROUTE53_ZONE_ID,
+                    ChangeBatch={
+                        "Changes": [
+                            {
+                                "Action": "DELETE",
+                                "ResourceRecordSet": record_set,
+                            }
+                        ]
+                    },
+                )
+                print(f"Route53 A record deleted: {DOMAIN_NAME}")
+                break
+        else:
+            print("Route53 A record not found, skipping")
+    except Exception as e:
+        print(f"Failed to delete Route53 A record: {e}")
+
+    # 4. Stop RDS
     print("Stopping RDS instance...")
     try:
         rds.stop_db_instance(DBInstanceIdentifier=DB_INSTANCE_ID)

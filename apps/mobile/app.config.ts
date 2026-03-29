@@ -1,11 +1,15 @@
 // apps/mobile/app.config.ts
+import dotenv from 'dotenv';
 import { ExpoConfig, ConfigContext } from 'expo/config';
 
-const IS_DEV = process.env.APP_ENV !== 'production';
+const APP_ENV = process.env.APP_ENV ?? 'local';
+dotenv.config({ path: `.env.${APP_ENV}` });
+
+const IS_DEV = APP_ENV !== 'production';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: IS_DEV ? 'Walking Dog (Dev)' : 'Walking Dog',
+  name: IS_DEV ? `Walking Dog (${APP_ENV})` : 'Walking Dog',
   slug: 'walking-dog',
   version: '1.0.0',
   orientation: 'portrait',
@@ -69,5 +73,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   extra: {
     apiUrl: process.env.API_URL ?? 'http://localhost:3000',
+    appEnv: APP_ENV,
   },
 });

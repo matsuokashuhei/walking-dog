@@ -19,8 +19,6 @@ impl TestClient {
 
 pub async fn test_client() -> TestClient {
     std::env::set_var("TEST_MODE", "true");
-    dotenvy::dotenv().ok();
-
     let config = walking_dog_api::config::Config::from_env();
 
     let db = walking_dog_api::db::connect(&config.database_url)

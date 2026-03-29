@@ -18,7 +18,9 @@ pub struct Config {
 
 impl Config {
     pub fn from_env() -> Self {
-        dotenvy::dotenv().ok();
+        let app_env = std::env::var("APP_ENV").unwrap_or_else(|_| "local".to_string());
+        let env_file = format!(".env.{}", app_env);
+        dotenvy::from_filename(&env_file).ok();
         Self {
             database_url: std::env::var("DATABASE_URL").expect("DATABASE_URL must be set"),
             aws_region: std::env::var("AWS_REGION").unwrap_or_else(|_| "ap-northeast-1".to_string()),

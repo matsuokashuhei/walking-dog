@@ -2,6 +2,12 @@
 .worktrees/
 .superpowers/brainstorm/
 
+# Environment files
+apps/api/.env
+apps/api/.env.local
+apps/api/.env.development
+apps/api/.env.production
+
 # Terraform
 **/.terraform/
 *.tfstate

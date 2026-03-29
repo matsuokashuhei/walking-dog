@@ -47,14 +47,7 @@ services:
       - cargo_cache:/usr/local/cargo    # cargoキャッシュを永続化
       - target_cache:/app/target        # ビルドキャッシュを永続化
     env_file:
-      - ./api/.env
-    environment:
-      DATABASE_URL: postgres://walking_dog:password@postgres:5432/walking_dog_dev
-      DYNAMODB_ENDPOINT_URL: http://dynamodb-local:8000
-      S3_ENDPOINT_URL: http://localstack:4566
-      COGNITO_ENDPOINT_URL: http://cognito-local:9229
-      COGNITO_USER_POOL_ID: "local_2yovNmW0"
-      COGNITO_CLIENT_ID: "418806fx3afm9cp1mdhxwpxw3"
+      - ./api/.env.local
     depends_on:
       - postgres
       - dynamodb-local

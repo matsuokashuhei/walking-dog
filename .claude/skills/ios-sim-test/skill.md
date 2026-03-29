@@ -211,6 +211,8 @@ xcrun simctl uninstall $UDID com.walkingdog.dev
 ## 注意事項
 
 - **ラベルはシミュレータのロケールに依存**: 英語ロケールなら英語ラベル、日本語ロケールなら日本語ラベルで検索する
+- **日本語 IME が有効だと英語入力が変換される**: シミュレータの Settings > General > Keyboard > Keyboards で日本語キーボードを削除し、English のみにすること
+- **自動修正で文字が変わる場合**: `keyboard.py --type` の代わりに `idb ui text "テキスト" --udid $UDID` を使う。idb はキーボードの自動修正を回避できる
 - **shell 環境は引き継がれない**: 各 Bash 呼び出しで `export PATH="/tmp/idb-venv/bin:$PATH"` が必要
 - **idb venv は一時ディレクトリ**: `/tmp/idb-venv` はリブート時に消えるため、再作成が必要
 - **Expo Go でのテスト**: `react-native-maps` 等のネイティブモジュールでエラーオーバーレイが出る場合は `navigator.py --find-text "Dismiss" --tap` で閉じる

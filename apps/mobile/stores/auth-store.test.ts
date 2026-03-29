@@ -121,7 +121,7 @@ describe('auth-store', () => {
       expect(mockAuthApi.refreshToken).toHaveBeenCalledTimes(2);
     });
 
-    it('gives up after MAX_RETRIES network errors', async () => {
+    it('gives up after MAX_ATTEMPTS network errors', async () => {
       mockAuthApi.refreshToken.mockRejectedValue(new TypeError('Failed to fetch'));
 
       const promise = useAuthStore.getState().refreshAuth();

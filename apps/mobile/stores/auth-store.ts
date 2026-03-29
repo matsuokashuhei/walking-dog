@@ -48,8 +48,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     const stored = await getToken();
     if (!stored?.refreshToken) return false;
 
-    const MAX_RETRIES = 3;
-    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const MAX_ATTEMPTS = 4;
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
       try {
         const result = await refreshToken(stored.refreshToken);
         await setToken(result.accessToken, result.refreshToken);
@@ -57,8 +57,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         set({ accessToken: result.accessToken, isAuthenticated: true });
         return true;
       } catch (error) {
-        if (!isNetworkError(error) || attempt === MAX_RETRIES) {
-          console.warn('Token refresh failed:', error);
+        if (!isNetworkError(error) || attempt === MAX_ATTEMPTS - 1) {
           return false;
         }
         await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt));

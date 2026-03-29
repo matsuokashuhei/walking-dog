@@ -12,7 +12,7 @@
 // by accessing them once so their lazy values are replaced with real values.
 // This converts deferred require() calls into pre-cached module references.
 
-// Initialize i18next with Japanese translations so t() returns real strings in tests.
+// Initialize i18next with English translations so t() returns real strings in tests.
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import ja from './lib/i18n/locales/ja.json';
@@ -21,8 +21,8 @@ import en from './lib/i18n/locales/en.json';
 if (!i18n.isInitialized) {
   i18n.use(initReactI18next).init({
     resources: { en: { translation: en }, ja: { translation: ja } },
-    lng: 'ja',
-    fallbackLng: 'ja',
+    lng: 'en',
+    fallbackLng: 'en',
     interpolation: { escapeValue: false },
     initImmediate: false,
   });

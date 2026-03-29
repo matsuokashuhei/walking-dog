@@ -9,6 +9,7 @@ interface AuthState {
   initialize: () => Promise<void>;
   setAuth: (accessToken: string, refreshToken: string) => Promise<void>;
   clearAuth: () => Promise<void>;
+  refreshAuth: () => Promise<boolean>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -39,5 +40,20 @@ export const useAuthStore = create<AuthState>((set) => ({
     await deleteToken();
     setAuthToken(null);
     set({ accessToken: null, isAuthenticated: false });
+  },
+
+  refreshAuth: async () => {
+    const { refreshToken } = await import('@/lib/auth/api');
+    const stored = await getToken();
+    if (!stored?.refreshToken) return false;
+    try {
+      const result = await refreshToken(stored.refreshToken);
+      await setToken(result.accessToken, result.refreshToken);
+      setAuthToken(result.accessToken);
+      set({ accessToken: result.accessToken, isAuthenticated: true });
+      return true;
+    } catch {
+      return false;
+    }
   },
 }));

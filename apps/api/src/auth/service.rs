@@ -109,6 +109,40 @@ pub async fn sign_in(
     })
 }
 
+pub async fn refresh_token(
+    client: &Client,
+    client_id: &str,
+    refresh_token: &str,
+) -> Result<SignInResult, String> {
+    let result = client
+        .initiate_auth()
+        .client_id(client_id)
+        .auth_flow(aws_sdk_cognitoidentityprovider::types::AuthFlowType::RefreshTokenAuth)
+        .auth_parameters("REFRESH_TOKEN", refresh_token)
+        .send()
+        .await
+        .map_err(|e| map_cognito_error(&format!("{:?}", e)))?;
+
+    let auth_result = result
+        .authentication_result
+        .ok_or_else(|| "AUTH_ERROR".to_string())?;
+
+    let access_token = auth_result
+        .access_token
+        .ok_or_else(|| "AUTH_ERROR".to_string())?;
+
+    // Cognito の RefreshTokenAuth は新しい refresh token を返さないことがある。
+    // その場合は入力の refresh token をそのまま返す。
+    let new_refresh_token = auth_result
+        .refresh_token
+        .unwrap_or_else(|| refresh_token.to_string());
+
+    Ok(SignInResult {
+        access_token,
+        refresh_token: new_refresh_token,
+    })
+}
+
 pub async fn sign_out(client: &Client, access_token: &str) -> Result<(), String> {
     let result = client
         .global_sign_out()

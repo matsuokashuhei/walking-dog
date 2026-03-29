@@ -161,6 +161,16 @@ resource "aws_cognito_user_pool_client" "app" {
     "ALLOW_USER_SRP_AUTH",
   ]
 
+  access_token_validity  = 1
+  id_token_validity      = 1
+  refresh_token_validity = 3650
+
+  token_validity_units {
+    access_token  = "days"
+    id_token      = "days"
+    refresh_token = "days"
+  }
+
   supported_identity_providers = local.supported_identity_providers
 
   allowed_oauth_flows                  = ["code"]

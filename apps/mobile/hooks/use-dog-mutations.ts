@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { graphqlClient } from '@/lib/graphql/client';
+import { authenticatedRequest } from '@/lib/graphql/client';
 import {
   CREATE_DOG_MUTATION,
   UPDATE_DOG_MUTATION,
@@ -22,7 +22,7 @@ export function useCreateDog() {
   const queryClient = useQueryClient();
   return useMutation<Dog, Error, CreateDogInput>({
     mutationFn: async (input) => {
-      const data = await graphqlClient.request<CreateDogResponse>(CREATE_DOG_MUTATION, { input });
+      const data = await authenticatedRequest<CreateDogResponse>(CREATE_DOG_MUTATION, { input });
       return data.createDog;
     },
     onSuccess: () => {
@@ -35,7 +35,7 @@ export function useUpdateDog() {
   const queryClient = useQueryClient();
   return useMutation<Dog, Error, { id: string; input: UpdateDogInput }>({
     mutationFn: async ({ id, input }) => {
-      const data = await graphqlClient.request<UpdateDogResponse>(UPDATE_DOG_MUTATION, {
+      const data = await authenticatedRequest<UpdateDogResponse>(UPDATE_DOG_MUTATION, {
         id,
         input,
       });
@@ -52,7 +52,7 @@ export function useDeleteDog() {
   const queryClient = useQueryClient();
   return useMutation<boolean, Error, string>({
     mutationFn: async (id) => {
-      const data = await graphqlClient.request<DeleteDogResponse>(DELETE_DOG_MUTATION, { id });
+      const data = await authenticatedRequest<DeleteDogResponse>(DELETE_DOG_MUTATION, { id });
       return data.deleteDog;
     },
     onSuccess: () => {
@@ -65,7 +65,7 @@ export function useDeleteDog() {
 export function useGeneratePhotoUploadUrl() {
   return useMutation<PresignedUrl, Error, string>({
     mutationFn: async (dogId) => {
-      const data = await graphqlClient.request<GenerateDogPhotoUploadUrlResponse>(
+      const data = await authenticatedRequest<GenerateDogPhotoUploadUrlResponse>(
         GENERATE_DOG_PHOTO_UPLOAD_URL_MUTATION,
         { dogId },
       );

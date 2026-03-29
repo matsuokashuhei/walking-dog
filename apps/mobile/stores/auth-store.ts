@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { getToken, setToken, deleteToken } from '@/lib/auth/secure-storage';
+import { refreshToken } from '@/lib/auth/api';
 import { setAuthToken } from '@/lib/graphql/client';
+import { isNetworkError } from '@/lib/graphql/errors';
 
 interface AuthState {
   accessToken: string | null;
@@ -43,17 +45,25 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   refreshAuth: async () => {
-    const { refreshToken } = await import('@/lib/auth/api');
     const stored = await getToken();
     if (!stored?.refreshToken) return false;
-    try {
-      const result = await refreshToken(stored.refreshToken);
-      await setToken(result.accessToken, result.refreshToken);
-      setAuthToken(result.accessToken);
-      set({ accessToken: result.accessToken, isAuthenticated: true });
-      return true;
-    } catch {
-      return false;
+
+    const MAX_RETRIES = 3;
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        const result = await refreshToken(stored.refreshToken);
+        await setToken(result.accessToken, result.refreshToken);
+        setAuthToken(result.accessToken);
+        set({ accessToken: result.accessToken, isAuthenticated: true });
+        return true;
+      } catch (error) {
+        if (!isNetworkError(error) || attempt === MAX_RETRIES) {
+          console.warn('Token refresh failed:', error);
+          return false;
+        }
+        await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt));
+      }
     }
+    return false;
   },
 }));

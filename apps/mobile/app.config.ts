@@ -1,9 +1,7 @@
 // apps/mobile/app.config.ts
-import dotenv from 'dotenv';
 import { ExpoConfig, ConfigContext } from 'expo/config';
 
-const APP_ENV = process.env.APP_ENV ?? 'local';
-dotenv.config({ path: `.env.${APP_ENV}` });
+const APP_ENV = process.env.APP_ENV ?? (process.env.NODE_ENV === 'production' ? 'production' : 'local');
 
 const IS_DEV = APP_ENV !== 'production';
 

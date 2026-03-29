@@ -53,7 +53,8 @@ pub fn build_schema(state: Arc<AppState>) -> AppSchema {
         .register(custom_mutations::update_profile_input_type())
         .register(custom_mutations::sign_up_input_type())
         .register(custom_mutations::confirm_sign_up_input_type())
-        .register(custom_mutations::sign_in_input_type());
+        .register(custom_mutations::sign_in_input_type())
+        .register(custom_mutations::refresh_token_input_type());
 
     // schema_builder() registers builder.query and builder.mutation as root
     // Query/Mutation types, then returns the completed SchemaBuilder.

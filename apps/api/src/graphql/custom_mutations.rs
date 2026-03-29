@@ -515,6 +515,11 @@ pub fn sign_in_input_type() -> InputObject {
         .field(InputValue::new("password", TypeRef::named_nn(TypeRef::STRING)))
 }
 
+pub fn refresh_token_input_type() -> InputObject {
+    InputObject::new("RefreshTokenInput")
+        .field(InputValue::new("refreshToken", TypeRef::named_nn(TypeRef::STRING)))
+}
+
 // ─── Mutation fields ──────────────────────────────────────────────────────────
 
 pub fn mutation_fields(state: Arc<AppState>) -> Vec<Field> {
@@ -523,6 +528,7 @@ pub fn mutation_fields(state: Arc<AppState>) -> Vec<Field> {
         confirm_sign_up_field(state.clone()),
         sign_in_field(state.clone()),
         sign_out_field(state.clone()),
+        refresh_token_field(state.clone()),
         create_dog_field(state.clone()),
         update_dog_field(state.clone()),
         delete_dog_field(state.clone()),
@@ -625,6 +631,30 @@ fn sign_out_field(state: Arc<AppState>) -> Field {
         })
     })
     .argument(InputValue::new("accessToken", TypeRef::named_nn(TypeRef::STRING)))
+}
+
+fn refresh_token_field(state: Arc<AppState>) -> Field {
+    Field::new("refreshToken", TypeRef::named_nn("SignInOutput"), move |ctx| {
+        let state = state.clone();
+        FieldFuture::new(async move {
+            let input = ctx.args.try_get("input")?.object()?;
+            let refresh_token = input.try_get("refreshToken")?.string()?.to_string();
+
+            let result = auth::service::refresh_token(
+                &state.cognito,
+                &state.config.cognito_client_id,
+                &refresh_token,
+            )
+            .await
+            .map_err(|e| async_graphql::Error::new(e))?;
+
+            Ok(Some(FieldValue::owned_any(SignInOutput {
+                access_token: result.access_token,
+                refresh_token: result.refresh_token,
+            })))
+        })
+    })
+    .argument(InputValue::new("input", TypeRef::named_nn("RefreshTokenInput")))
 }
 
 fn create_dog_field(state: Arc<AppState>) -> Field {

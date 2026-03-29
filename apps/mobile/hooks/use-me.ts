@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { graphqlClient } from '@/lib/graphql/client';
+import { authenticatedRequest } from '@/lib/graphql/client';
 import { ME_QUERY } from '@/lib/graphql/queries';
 import { meKeys } from '@/lib/graphql/keys';
 import { useAuthStore } from '@/stores/auth-store';
@@ -10,7 +10,7 @@ export function useMe() {
   return useQuery<User>({
     queryKey: meKeys.all,
     queryFn: async () => {
-      const data = await graphqlClient.request<MeResponse>(ME_QUERY);
+      const data = await authenticatedRequest<MeResponse>(ME_QUERY);
       return data.me;
     },
     enabled: isAuthenticated,

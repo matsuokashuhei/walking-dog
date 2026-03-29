@@ -26,6 +26,12 @@ const SIGN_OUT = `
   }
 `;
 
+const REFRESH_TOKEN = `
+  mutation RefreshToken($input: RefreshTokenInput!) {
+    refreshToken(input: $input) { accessToken refreshToken }
+  }
+`;
+
 const ME = `
   query Me {
     me { id cognitoSub displayName avatarUrl createdAt dogs { id name } }
@@ -113,6 +119,38 @@ test.describe('signIn', () => {
   test('rejects non-existent user', async ({ graphql }) => {
     const res = await graphql.execute(SIGN_IN, {
       input: { email: 'nobody@example.com', password: 'TestPass123!' },
+    });
+
+    expect(res.errors).toBeDefined();
+  });
+});
+
+test.describe('refreshToken', () => {
+  test('returns new access token with valid refresh token', async ({ graphql }) => {
+    const email = uniqueEmail();
+    const password = 'TestPass123!';
+    await graphql.execute(SIGN_UP, {
+      input: { email, password, displayName: 'Refresh Test' },
+    });
+    const code = await getConfirmationCode(email);
+    await graphql.execute(CONFIRM_SIGN_UP, { input: { email, code } });
+    const signInRes = await graphql.execute(SIGN_IN, {
+      input: { email, password },
+    });
+    const refreshTokenValue = signInRes.data!.signIn.refreshToken;
+
+    const res = await graphql.execute(REFRESH_TOKEN, {
+      input: { refreshToken: refreshTokenValue },
+    });
+
+    expect(res.errors).toBeUndefined();
+    expect(res.data!.refreshToken.accessToken).toBeTruthy();
+    expect(res.data!.refreshToken.refreshToken).toBeTruthy();
+  });
+
+  test('rejects invalid refresh token', async ({ graphql }) => {
+    const res = await graphql.execute(REFRESH_TOKEN, {
+      input: { refreshToken: 'invalid-token' },
     });
 
     expect(res.errors).toBeDefined();

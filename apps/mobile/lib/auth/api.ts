@@ -4,6 +4,7 @@ import {
   CONFIRM_SIGN_UP_MUTATION,
   SIGN_IN_MUTATION,
   SIGN_OUT_MUTATION,
+  REFRESH_TOKEN_MUTATION,
 } from '../graphql/mutations';
 
 export interface SignUpResult {
@@ -62,4 +63,17 @@ export async function signOut(accessToken: string): Promise<boolean> {
     accessToken,
   });
   return data.signOut;
+}
+
+interface RefreshTokenResponse {
+  refreshToken: SignInResult;
+}
+
+// graphqlClient.request を直接使用する（authenticatedRequest ではなく）。
+// authenticatedRequest は 401 時にこの関数を呼ぶため、使うと無限再帰になる。
+export async function refreshToken(refreshTokenValue: string): Promise<SignInResult> {
+  const data = await graphqlClient.request<RefreshTokenResponse>(REFRESH_TOKEN_MUTATION, {
+    input: { refreshToken: refreshTokenValue },
+  });
+  return data.refreshToken;
 }

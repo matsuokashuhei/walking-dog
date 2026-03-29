@@ -15,13 +15,13 @@ describe('LoginForm', () => {
 
   it('renders email and password inputs', () => {
     render(<LoginForm onSuccess={jest.fn()} onRegisterPress={jest.fn()} />);
-    expect(screen.getByLabelText('メールアドレス')).toBeTruthy();
-    expect(screen.getByLabelText('パスワード')).toBeTruthy();
+    expect(screen.getByLabelText('Email')).toBeTruthy();
+    expect(screen.getByLabelText('Password')).toBeTruthy();
   });
 
   it('disables submit button when fields are empty', () => {
     render(<LoginForm onSuccess={jest.fn()} onRegisterPress={jest.fn()} />);
-    const button = screen.getByRole('button', { name: 'ログイン' });
+    const button = screen.getByRole('button', { name: 'Login' });
     expect(button).toBeDisabled();
   });
 
@@ -29,9 +29,9 @@ describe('LoginForm', () => {
     mockSignIn.mockResolvedValue(undefined);
     render(<LoginForm onSuccess={jest.fn()} onRegisterPress={jest.fn()} />);
 
-    fireEvent.changeText(screen.getByLabelText('メールアドレス'), 'test@example.com');
-    fireEvent.changeText(screen.getByLabelText('パスワード'), 'password123');
-    fireEvent.press(screen.getByRole('button', { name: 'ログイン' }));
+    fireEvent.changeText(screen.getByLabelText('Email'), 'test@example.com');
+    fireEvent.changeText(screen.getByLabelText('Password'), 'password123');
+    fireEvent.press(screen.getByRole('button', { name: 'Login' }));
 
     await waitFor(() => {
       expect(mockSignIn).toHaveBeenCalledWith('test@example.com', 'password123');
@@ -42,12 +42,12 @@ describe('LoginForm', () => {
     mockSignIn.mockRejectedValue(new Error('UserNotFoundException'));
     render(<LoginForm onSuccess={jest.fn()} onRegisterPress={jest.fn()} />);
 
-    fireEvent.changeText(screen.getByLabelText('メールアドレス'), 'wrong@example.com');
-    fireEvent.changeText(screen.getByLabelText('パスワード'), 'wrongpass');
-    fireEvent.press(screen.getByRole('button', { name: 'ログイン' }));
+    fireEvent.changeText(screen.getByLabelText('Email'), 'wrong@example.com');
+    fireEvent.changeText(screen.getByLabelText('Password'), 'wrongpass');
+    fireEvent.press(screen.getByRole('button', { name: 'Login' }));
 
     await waitFor(() => {
-      expect(screen.getByText('メールアドレスまたはパスワードが正しくありません')).toBeTruthy();
+      expect(screen.getByText('Invalid email or password')).toBeTruthy();
     });
   });
 });

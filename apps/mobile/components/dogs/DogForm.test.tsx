@@ -3,22 +3,22 @@ import { DogForm } from './DogForm';
 
 describe('DogForm', () => {
   it('renders name field', () => {
-    render(<DogForm onSubmit={jest.fn()} submitLabel="登録" />);
-    expect(screen.getByLabelText('名前')).toBeTruthy();
+    render(<DogForm onSubmit={jest.fn()} submitLabel="Register" />);
+    expect(screen.getByLabelText('Name')).toBeTruthy();
   });
 
   it('disables submit when name is empty', () => {
-    render(<DogForm onSubmit={jest.fn()} submitLabel="登録" />);
-    expect(screen.getByRole('button', { name: '登録' })).toBeDisabled();
+    render(<DogForm onSubmit={jest.fn()} submitLabel="Register" />);
+    expect(screen.getByRole('button', { name: 'Register' })).toBeDisabled();
   });
 
   it('calls onSubmit with form values', async () => {
     const onSubmit = jest.fn().mockResolvedValue(undefined);
-    render(<DogForm onSubmit={onSubmit} submitLabel="登録" />);
+    render(<DogForm onSubmit={onSubmit} submitLabel="Register" />);
 
-    fireEvent.changeText(screen.getByLabelText('名前'), 'Hana');
-    fireEvent.changeText(screen.getByLabelText('犬種'), 'Poodle');
-    fireEvent.press(screen.getByRole('button', { name: '登録' }));
+    fireEvent.changeText(screen.getByLabelText('Name'), 'Hana');
+    fireEvent.changeText(screen.getByLabelText('Breed'), 'Poodle');
+    fireEvent.press(screen.getByRole('button', { name: 'Register' }));
 
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalledWith(
@@ -31,7 +31,7 @@ describe('DogForm', () => {
     render(
       <DogForm
         onSubmit={jest.fn()}
-        submitLabel="更新"
+        submitLabel="Update"
         initialValues={{ name: 'Kuro', breed: 'Labrador' }}
       />
     );

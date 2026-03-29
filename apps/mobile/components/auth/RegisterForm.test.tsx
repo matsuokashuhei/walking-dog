@@ -12,19 +12,19 @@ describe('RegisterForm', () => {
 
   it('renders required fields', () => {
     render(<RegisterForm onSuccess={jest.fn()} onLoginPress={jest.fn()} />);
-    expect(screen.getByLabelText('メールアドレス')).toBeTruthy();
-    expect(screen.getByLabelText('パスワード')).toBeTruthy();
-    expect(screen.getByLabelText('表示名')).toBeTruthy();
+    expect(screen.getByLabelText('Email')).toBeTruthy();
+    expect(screen.getByLabelText('Password')).toBeTruthy();
+    expect(screen.getByLabelText('Display Name')).toBeTruthy();
   });
 
   it('calls signUp with form values', async () => {
     mockSignUp.mockResolvedValue(undefined);
     render(<RegisterForm onSuccess={jest.fn()} onLoginPress={jest.fn()} />);
 
-    fireEvent.changeText(screen.getByLabelText('メールアドレス'), 'new@example.com');
-    fireEvent.changeText(screen.getByLabelText('パスワード'), 'password123');
-    fireEvent.changeText(screen.getByLabelText('表示名'), 'Taro');
-    fireEvent.press(screen.getByRole('button', { name: 'アカウントを作成' }));
+    fireEvent.changeText(screen.getByLabelText('Email'), 'new@example.com');
+    fireEvent.changeText(screen.getByLabelText('Password'), 'password123');
+    fireEvent.changeText(screen.getByLabelText('Display Name'), 'Taro');
+    fireEvent.press(screen.getByRole('button', { name: 'Create Account' }));
 
     await waitFor(() => {
       expect(mockSignUp).toHaveBeenCalledWith('new@example.com', 'password123', 'Taro');

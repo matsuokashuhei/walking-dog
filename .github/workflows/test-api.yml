@@ -1,0 +1,28 @@
+name: Test API
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/api/**"
+  pull_request:
+    paths:
+      - "apps/api/**"
+
+concurrency:
+  group: test-api-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Cargo Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create .env for Docker Compose
+        run: touch apps/api/.env
+
+      - name: Run tests
+        run: docker compose -f apps/compose.yml run --rm api cargo test

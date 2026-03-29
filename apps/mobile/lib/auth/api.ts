@@ -69,6 +69,8 @@ interface RefreshTokenResponse {
   refreshToken: SignInResult;
 }
 
+// graphqlClient.request を直接使用する（authenticatedRequest ではなく）。
+// authenticatedRequest は 401 時にこの関数を呼ぶため、使うと無限再帰になる。
 export async function refreshToken(refreshTokenValue: string): Promise<SignInResult> {
   const data = await graphqlClient.request<RefreshTokenResponse>(REFRESH_TOKEN_MUTATION, {
     input: { refreshToken: refreshTokenValue },

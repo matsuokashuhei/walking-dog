@@ -24,6 +24,8 @@ export default function SettingsScreen() {
   if (error || !me) return <ErrorScreen message={t('settings.loadError')} onRetry={refetch} />;
 
   const appVersion = Constants.expoConfig?.version ?? '1.0.0';
+  const appEnv = Constants.expoConfig?.extra?.appEnv as string | undefined;
+  const apiUrl = Constants.expoConfig?.extra?.apiUrl as string | undefined;
 
   return (
     <SafeAreaView edges={['top']} style={[styles.safeArea, { backgroundColor: colors.background }]}>
@@ -44,6 +46,11 @@ export default function SettingsScreen() {
         <Text style={[styles.version, { color: colors.textSecondary }]}>
           {t('settings.version', { version: appVersion })}
         </Text>
+        {appEnv && appEnv !== 'production' && (
+          <Text style={[styles.version, { color: colors.textSecondary }]}>
+            {appEnv} — {apiUrl}
+          </Text>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

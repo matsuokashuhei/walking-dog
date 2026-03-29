@@ -55,6 +55,84 @@ export SCRIPTS=/Users/matsuokashuhei/Development/walking-dog/.claude/skills/ios-
 export UDID=$(xcrun simctl list devices booted -j | jq -r '.devices[][] | select(.state == "Booted") | .udid' | head -1)
 ```
 
+## テスト手順（毎回この順番で実行する）
+
+再現性を上げるため、**毎回クリーンな状態から**テストを開始する。
+
+### Step 0: 環境がクリーンであることを確認
+
+すべて停止していることを確認してからテストを始める。
+
+```bash
+# 1. iOS Simulator が停止していることを確認
+xcrun simctl list devices booted -j | jq -r '.devices[][] | select(.state == "Booted") | .name'
+# → 出力がなければ OK。起動中なら停止する：
+# xcrun simctl shutdown all
+
+# 2. Metro バンドラーが停止していることを確認
+lsof -i :8081 2>/dev/null | grep LISTEN
+# → 出力がなければ OK。起動中なら停止する：
+# kill $(lsof -t -i :8081)
+
+# 3. Docker Compose が停止していることを確認
+docker compose -f apps/compose.yml ps --format json 2>/dev/null | jq -r '.Name' 2>/dev/null
+# → 出力がなければ OK。起動中なら停止する：
+# docker compose -f apps/compose.yml down
+```
+
+### Step 1: Docker Compose を起動
+
+バックエンド（API, DB, LocalStack, Cognito）を起動する。
+
+```bash
+cd /Users/matsuokashuhei/Development/walking-dog
+docker compose -f apps/compose.yml up -d
+# 全サービスが healthy になるまで待つ
+sleep 10
+docker compose -f apps/compose.yml ps
+```
+
+### Step 2: iOS Simulator を起動してアプリを開始
+
+```bash
+# シミュレータを起動
+xcrun simctl boot "iPhone 16 Pro" 2>/dev/null || true
+open -a Simulator
+
+# Metro バンドラーを起動（apps/mobile ディレクトリで）
+cd /Users/matsuokashuhei/Development/walking-dog/apps/mobile
+npx expo start --port 8081 &
+sleep 8
+
+# アプリをシミュレータで起動
+export PATH="/tmp/idb-venv/bin:$PATH"
+export PY=/opt/homebrew/bin/python3.13
+export SCRIPTS=/Users/matsuokashuhei/Development/walking-dog/.claude/skills/ios-simulator-skill/scripts
+export UDID=$(xcrun simctl list devices booted -j | jq -r '.devices[][] | select(.state == "Booted") | .udid' | head -1)
+$PY $SCRIPTS/app_launcher.py --launch com.walkingdog.dev
+sleep 5
+```
+
+### Step 3: テストを実行
+
+ios-sim-test のスクリプトを使ってテスト（後述の「スクリプト実行パターン」を参照）。
+
+### Step 4: クリーンアップ（テスト終了後）
+
+```bash
+# Metro を停止
+kill $(lsof -t -i :8081) 2>/dev/null
+
+# シミュレータを停止
+xcrun simctl shutdown all
+
+# Docker Compose を停止
+cd /Users/matsuokashuhei/Development/walking-dog
+docker compose -f apps/compose.yml down
+```
+
+---
+
 ## スクリプト実行パターン
 
 ### 環境確認

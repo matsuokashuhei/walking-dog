@@ -5,7 +5,8 @@
   "scripts": {
     "start": "expo start",
     "start:lan": "expo start --host lan",
-    "start:dev": "API_URL=https://walkingdogdev.dpdns.org expo start --host lan",
+    "start:dev": "APP_ENV=dev NODE_ENV=development expo start --host lan",
+    "start:prod": "APP_ENV=production NODE_ENV=production expo start --host lan",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
     "ios": "expo run:ios",

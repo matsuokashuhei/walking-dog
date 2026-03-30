@@ -13,7 +13,6 @@ pub struct Config {
     pub cognito_endpoint_url: Option<String>,
     pub cognito_client_id: String,
     pub port: u16,
-    pub test_mode: bool,
 }
 
 impl Config {
@@ -44,9 +43,6 @@ impl Config {
                 .unwrap_or_else(|_| "3000".to_string())
                 .parse()
                 .expect("PORT must be a number"),
-            test_mode: std::env::var("TEST_MODE")
-                .map(|v| v == "true" || v == "1")
-                .unwrap_or(false),
         }
     }
 }

@@ -7,6 +7,7 @@ pub struct TestClient {
 }
 
 impl TestClient {
+    #[allow(dead_code)]
     pub fn post(&self, path: &str) -> reqwest::RequestBuilder {
         self.client.post(format!("{}{}", self.base_url, path))
     }

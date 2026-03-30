@@ -18,7 +18,6 @@ pub struct AuthUser {
 #[derive(Debug, Deserialize)]
 struct CognitoClaims {
     sub: String,
-    exp: usize,
 }
 
 /// JWT検証ミドルウェア

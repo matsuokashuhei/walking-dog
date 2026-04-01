@@ -6,7 +6,9 @@
   "auth": {
     "login": {
       "title": "Walking Dog",
+      "heading": "Log in",
       "subtitle": "Cherish your dog walks and friendships",
+      "welcomeBack": "Welcome back to Walking Dog",
       "email": "Email",
       "password": "Password",
       "submit": "Login",
@@ -18,6 +20,7 @@
     },
     "register": {
       "title": "Create Account",
+      "heading": "Create account",
       "displayName": "Display Name",
       "email": "Email",
       "password": "Password",
@@ -32,6 +35,7 @@
     },
     "confirm": {
       "title": "Email Verification",
+      "heading": "Verify email",
       "description": "We sent a confirmation code to {{email}}",
       "code": "Confirmation Code",
       "submit": "Confirm",

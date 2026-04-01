@@ -6,7 +6,9 @@
   "auth": {
     "login": {
       "title": "Walking Dog",
+      "heading": "ログイン",
       "subtitle": "散歩の記録と犬の友情を大切に",
+      "welcomeBack": "Walking Dog へおかえりなさい",
       "email": "メールアドレス",
       "password": "パスワード",
       "submit": "ログイン",
@@ -18,6 +20,7 @@
     },
     "register": {
       "title": "アカウント作成",
+      "heading": "アカウント作成",
       "displayName": "表示名",
       "email": "メールアドレス",
       "password": "パスワード",
@@ -32,6 +35,7 @@
     },
     "confirm": {
       "title": "メール確認",
+      "heading": "メール確認",
       "description": "{{email}} に確認コードを送りました",
       "code": "確認コード",
       "submit": "確認",

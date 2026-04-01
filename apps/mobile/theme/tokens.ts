@@ -1,3 +1,10 @@
+export const fontFamily = {
+  regular: 'PlusJakartaSans_400Regular',
+  medium: 'PlusJakartaSans_500Medium',
+  semiBold: 'PlusJakartaSans_600SemiBold',
+  bold: 'PlusJakartaSans_700Bold',
+} as const;
+
 export const spacing = {
   xs: 4,
   sm: 8,
@@ -22,4 +29,5 @@ export const typography = {
   bodyMedium: { fontSize: 16, fontWeight: '500' as const, lineHeight: 24 },
   caption: { fontSize: 12, fontWeight: '400' as const, lineHeight: 16 },
   button: { fontSize: 16, fontWeight: '600' as const, lineHeight: 24 },
+  label: { fontSize: 11, fontWeight: '600' as const, lineHeight: 16, letterSpacing: 1.1 },
 } as const;

@@ -1,7 +1,15 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  type PressableProps,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
-import { spacing, radius, typography } from '@/theme/tokens';
+import { spacing, radius, typography, fontFamily } from '@/theme/tokens';
 
 type ButtonVariant = 'primary' | 'secondary' | 'destructive';
 
@@ -31,7 +39,6 @@ export function Button({
   }[variant];
 
   const textColor = variant === 'secondary' ? colors.primary : '#FFFFFF';
-  const borderColor = variant === 'secondary' ? colors.primary : 'transparent';
 
   return (
     <Pressable
@@ -39,9 +46,15 @@ export function Button({
       accessibilityLabel={label}
       accessibilityState={{ disabled: isDisabled }}
       disabled={isDisabled}
-      style={[
+      style={({ pressed }) => [
         styles.base,
-        { backgroundColor: bgColor, borderColor, opacity: isDisabled ? 0.5 : 1 },
+        variant === 'primary' && styles.primaryShadow,
+        variant === 'secondary' && styles.secondary,
+        {
+          backgroundColor: bgColor,
+          opacity: isDisabled ? 0.5 : 1,
+          transform: [{ scale: pressed && !isDisabled ? 0.95 : 1 }],
+        },
         style,
       ]}
       {...props}
@@ -49,7 +62,14 @@ export function Button({
       {loading ? (
         <ActivityIndicator color={textColor} size="small" />
       ) : (
-        <Text style={[styles.label, { color: textColor }]}>{label}</Text>
+        <Text
+          style={[
+            styles.label,
+            { color: textColor },
+          ]}
+        >
+          {label}
+        </Text>
       )}
     </Pressable>
   );
@@ -58,13 +78,24 @@ export function Button({
 const styles = StyleSheet.create({
   base: {
     height: 52,
-    borderRadius: radius.md,
-    borderWidth: 1.5,
+    borderRadius: radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.lg,
   },
+  primaryShadow: {
+    shadowColor: '#2d3432',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 20,
+    elevation: 2,
+  },
+  secondary: {
+    height: 'auto' as unknown as number,
+    paddingVertical: spacing.sm,
+  },
   label: {
     ...typography.button,
+    fontFamily: fontFamily.semiBold,
   },
 });

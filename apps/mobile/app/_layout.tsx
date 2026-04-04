@@ -10,6 +10,10 @@ import { AppProviders } from '@/lib/providers';
 import { useAuthStore } from '@/stores/auth-store';
 import { useSettingsStore } from '@/stores/settings-store';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
+import {
+  getPendingInviteToken,
+  deletePendingInviteToken,
+} from '@/app/invite/[token]';
 
 function NavigationGuard() {
   const { isAuthenticated, isLoading } = useAuthStore();
@@ -24,7 +28,15 @@ function NavigationGuard() {
     if (!isAuthenticated && !inAuthGroup) {
       router.replace('/(auth)/login' as never);
     } else if (isAuthenticated && inAuthGroup) {
-      router.replace('/(tabs)' as never);
+      // Check for pending invite token from deep link before auth
+      getPendingInviteToken().then((token) => {
+        if (token) {
+          deletePendingInviteToken();
+          router.replace(`/invite/${token}` as never);
+        } else {
+          router.replace('/(tabs)' as never);
+        }
+      });
     }
   }, [isAuthenticated, isLoading, segments, router]);
 
@@ -59,6 +71,7 @@ export default function RootLayout() {
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           <Stack.Screen name="dogs" options={{ headerShown: false }} />
           <Stack.Screen name="walks" options={{ headerShown: false }} />
+          <Stack.Screen name="invite" options={{ headerShown: false }} />
         </Stack>
         <StatusBar style="auto" />
       </ThemeProvider>

@@ -1,4 +1,5 @@
 mod common;
+use common::{graphql_as, USER_A, USER_B};
 
 /// Helper: create a dog and return its ID.
 async fn create_dog(client: &common::TestClient) -> String {
@@ -148,5 +149,114 @@ async fn test_accept_invitation_already_member() {
         err_msg.contains("already a member"),
         "Expected 'already a member' error, got: {}",
         err_msg
+    );
+}
+
+#[tokio::test]
+async fn test_accept_invitation_invalid_token() {
+    let client = common::test_client().await;
+
+    // Try to accept with a non-existent token
+    let body = graphql_as(
+        &client,
+        &USER_A,
+        r#"mutation { acceptDogInvitation(token: "nonexistent-token-abc123") { id name } }"#,
+    )
+    .await;
+    assert!(
+        body["errors"].is_array(),
+        "Expected error for invalid token, got: {:?}",
+        body
+    );
+    let err_msg = body["errors"][0]["message"].as_str().unwrap();
+    assert!(
+        err_msg.contains("not found"),
+        "Expected 'not found' error, got: {}",
+        err_msg
+    );
+}
+
+#[tokio::test]
+async fn test_non_owner_cannot_generate_invitation() {
+    let client = common::test_client().await;
+
+    // User A creates a dog
+    let body = graphql_as(
+        &client,
+        &USER_A,
+        r#"mutation { createDog(input: { name: "NonOwnerInvDog" }) { id } }"#,
+    )
+    .await;
+    let dog_id = body["data"]["createDog"]["id"].as_str().unwrap();
+
+    // Invite User B
+    let body = graphql_as(
+        &client,
+        &USER_A,
+        &format!(
+            r#"mutation {{ generateDogInvitation(dogId: "{}") {{ token }} }}"#,
+            dog_id
+        ),
+    )
+    .await;
+    let token = body["data"]["generateDogInvitation"]["token"]
+        .as_str()
+        .unwrap();
+
+    // User B accepts (becomes member)
+    graphql_as(
+        &client,
+        &USER_B,
+        &format!(
+            r#"mutation {{ acceptDogInvitation(token: "{}") {{ id }} }}"#,
+            token
+        ),
+    )
+    .await;
+
+    // User B (member, not owner) tries to generate invitation
+    let body = graphql_as(
+        &client,
+        &USER_B,
+        &format!(
+            r#"mutation {{ generateDogInvitation(dogId: "{}") {{ token }} }}"#,
+            dog_id
+        ),
+    )
+    .await;
+    assert!(
+        body["errors"].is_array(),
+        "Non-owner should not be able to generate invitation, got: {:?}",
+        body
+    );
+}
+
+#[tokio::test]
+async fn test_non_member_cannot_generate_invitation() {
+    let client = common::test_client().await;
+
+    // User A creates a dog
+    let body = graphql_as(
+        &client,
+        &USER_A,
+        r#"mutation { createDog(input: { name: "StrangerInvDog" }) { id } }"#,
+    )
+    .await;
+    let dog_id = body["data"]["createDog"]["id"].as_str().unwrap();
+
+    // User B (not a member at all) tries to generate invitation
+    let body = graphql_as(
+        &client,
+        &USER_B,
+        &format!(
+            r#"mutation {{ generateDogInvitation(dogId: "{}") {{ token }} }}"#,
+            dog_id
+        ),
+    )
+    .await;
+    assert!(
+        body["errors"].is_array(),
+        "Non-member should not be able to generate invitation, got: {:?}",
+        body
     );
 }

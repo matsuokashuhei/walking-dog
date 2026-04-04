@@ -78,4 +78,53 @@ describe('DogMembersList', () => {
     );
     expect(screen.getByText('B')).toBeTruthy();
   });
+
+  it('renders empty list when members array is empty', () => {
+    const { toJSON } = render(
+      <DogMembersList
+        members={[]}
+        currentUserId="user-1"
+        isOwner
+        onRemove={jest.fn()}
+      />,
+    );
+    expect(screen.queryByText('Owner')).toBeNull();
+    expect(screen.queryByText('Member')).toBeNull();
+    expect(toJSON()).toBeTruthy();
+  });
+
+  it('does not show remove button for self even when owner', () => {
+    render(
+      <DogMembersList
+        members={members}
+        currentUserId="user-1"
+        isOwner
+        onRemove={jest.fn()}
+      />,
+    );
+    // Only 1 remove button (for Bob, not for self)
+    const removeButtons = screen.getAllByText('Remove');
+    expect(removeButtons).toHaveLength(1);
+  });
+
+  it('renders ? initial when displayName is null', () => {
+    const membersWithNull: DogMember[] = [
+      {
+        id: 'member-3',
+        userId: 'user-3',
+        role: 'member',
+        user: { displayName: null as unknown as string, avatarUrl: null },
+        createdAt: '2026-03-01T00:00:00Z',
+      },
+    ];
+    render(
+      <DogMembersList
+        members={membersWithNull}
+        currentUserId="user-1"
+        isOwner
+        onRemove={jest.fn()}
+      />,
+    );
+    expect(screen.getByText('?')).toBeTruthy();
+  });
 });

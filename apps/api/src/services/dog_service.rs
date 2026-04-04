@@ -32,7 +32,6 @@ pub async fn create_dog(
     .insert(&txn)
     .await?;
 
-    // Auto-create owner membership
     dog_member_service::add_member(&txn, dog.id, user_id, "owner").await?;
 
     txn.commit().await?;

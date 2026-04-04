@@ -43,4 +43,39 @@ describe('WalkHistoryItem', () => {
     render(<WalkHistoryItem walk={walk} />);
     expect(screen.getByText('A')).toBeTruthy();
   });
+
+  it('renders walker avatar image when avatarUrl is provided', () => {
+    const walk: Walk = {
+      ...baseWalk,
+      walker: { id: 'user-1', displayName: 'Alice', avatarUrl: 'https://example.com/alice.jpg' },
+    };
+    render(<WalkHistoryItem walk={walk} />);
+    expect(screen.getByText('Alice')).toBeTruthy();
+    // Avatar image element should exist (no initials fallback)
+    expect(screen.queryByText('A')).toBeNull();
+  });
+
+  it('renders multiple dog names joined by comma', () => {
+    const walk: Walk = {
+      ...baseWalk,
+      dogs: [
+        { id: 'dog-1', name: 'Buddy', breed: null, gender: null, birthDate: null, photoUrl: null, createdAt: '2026-01-01' },
+        { id: 'dog-2', name: 'Max', breed: null, gender: null, birthDate: null, photoUrl: null, createdAt: '2026-01-01' },
+      ],
+    };
+    render(<WalkHistoryItem walk={walk} />);
+    expect(screen.getByText('Buddy, Max')).toBeTruthy();
+  });
+
+  it('renders 0 distance and duration when values are null', () => {
+    const walk: Walk = {
+      ...baseWalk,
+      distanceM: null as unknown as number,
+      durationSec: null as unknown as number,
+    };
+    render(<WalkHistoryItem walk={walk} />);
+    // Should not crash and should render both zero values
+    const zeros = screen.getAllByText(/0/);
+    expect(zeros.length).toBeGreaterThanOrEqual(2);
+  });
 });

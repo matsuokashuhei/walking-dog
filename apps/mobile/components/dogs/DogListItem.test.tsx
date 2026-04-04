@@ -46,4 +46,11 @@ describe('DogListItem', () => {
     render(<DogListItem dog={mockDog} onPress={jest.fn()} />);
     expect(screen.queryByText('Shared')).toBeNull();
   });
+
+  it('renders without breed when breed is null', () => {
+    const dogNullBreed: Dog = { ...mockDog, breed: null };
+    render(<DogListItem dog={dogNullBreed} onPress={jest.fn()} />);
+    expect(screen.getByText('Pochi')).toBeTruthy();
+    expect(screen.queryByText('Shiba Inu')).toBeNull();
+  });
 });

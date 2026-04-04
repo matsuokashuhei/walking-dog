@@ -38,6 +38,20 @@ describe('useGenerateInvitation', () => {
       expect(data).toEqual(invitation);
     });
   });
+
+  it('throws when API returns error', async () => {
+    mockAuthenticatedRequest.mockRejectedValue(new Error('Not owner'));
+
+    const { result } = renderHook(() => useGenerateInvitation(), {
+      wrapper: createWrapper(),
+    });
+
+    await expect(
+      act(async () => {
+        await result.current.mutateAsync('dog-1');
+      }),
+    ).rejects.toThrow('Not owner');
+  });
 });
 
 describe('useRemoveMember', () => {
@@ -59,6 +73,20 @@ describe('useRemoveMember', () => {
       { dogId: 'dog-1', userId: 'user-2' },
     );
   });
+
+  it('throws when API returns error', async () => {
+    mockAuthenticatedRequest.mockRejectedValue(new Error('Not owner'));
+
+    const { result } = renderHook(() => useRemoveMember(), {
+      wrapper: createWrapper(),
+    });
+
+    await expect(
+      act(async () => {
+        await result.current.mutateAsync({ dogId: 'dog-1', userId: 'user-2' });
+      }),
+    ).rejects.toThrow('Not owner');
+  });
 });
 
 describe('useLeaveDog', () => {
@@ -79,5 +107,21 @@ describe('useLeaveDog', () => {
       expect.any(String),
       { dogId: 'dog-1' },
     );
+  });
+
+  it('throws when owner tries to leave', async () => {
+    mockAuthenticatedRequest.mockRejectedValue(
+      new Error('Owners cannot leave their dog'),
+    );
+
+    const { result } = renderHook(() => useLeaveDog(), {
+      wrapper: createWrapper(),
+    });
+
+    await expect(
+      act(async () => {
+        await result.current.mutateAsync('dog-1');
+      }),
+    ).rejects.toThrow('Owners cannot leave their dog');
   });
 });

@@ -1,6 +1,9 @@
 use chrono::{Duration, Utc};
 use rand::Rng;
-use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set, TransactionTrait};
+use sea_orm::{
+    sea_query::LockType, ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QuerySelect, Set,
+    TransactionTrait,
+};
 use uuid::Uuid;
 
 use crate::entities::dog_invitations::{
@@ -41,6 +44,7 @@ pub async fn accept_invitation(
 
     let invitation = DogInvitationEntity::find()
         .filter(dog_invitations::Column::Token.eq(token))
+        .lock(LockType::Update)
         .one(&txn)
         .await?
         .ok_or_else(|| AppError::NotFound("Invitation not found".to_string()))?;

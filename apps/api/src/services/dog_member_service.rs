@@ -1,6 +1,6 @@
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, ConnectionTrait, EntityTrait, JoinType, QueryFilter,
-    QuerySelect, RelationTrait, Set,
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, EntityTrait, JoinType, PaginatorTrait,
+    QueryFilter, QuerySelect, RelationTrait, Set,
 };
 use uuid::Uuid;
 
@@ -11,7 +11,6 @@ use crate::entities::{
 };
 use crate::error::AppError;
 
-/// Verify the user is a member (any role) of the dog. Returns the membership record.
 pub async fn require_dog_member<C: ConnectionTrait>(
     db: &C,
     dog_id: Uuid,
@@ -22,15 +21,9 @@ pub async fn require_dog_member<C: ConnectionTrait>(
         .filter(dog_members::Column::UserId.eq(user_id))
         .one(db)
         .await?
-        .ok_or_else(|| {
-            AppError::NotFound(format!(
-                "Dog {} not found or access denied",
-                dog_id
-            ))
-        })
+        .ok_or_else(|| AppError::NotFound(format!("Dog {} not found or access denied", dog_id)))
 }
 
-/// Verify the user is the owner of the dog. Returns the membership record.
 pub async fn require_dog_owner<C: ConnectionTrait>(
     db: &C,
     dog_id: Uuid,
@@ -42,15 +35,9 @@ pub async fn require_dog_owner<C: ConnectionTrait>(
         .filter(dog_members::Column::Role.eq("owner"))
         .one(db)
         .await?
-        .ok_or_else(|| {
-            AppError::NotFound(format!(
-                "Dog {} not found or not owner",
-                dog_id
-            ))
-        })
+        .ok_or_else(|| AppError::NotFound(format!("Dog {} not found or not owner", dog_id)))
 }
 
-/// Get all dogs that the user is a member of.
 pub async fn get_dogs_by_member(
     db: &sea_orm::DatabaseConnection,
     user_id: Uuid,
@@ -63,7 +50,6 @@ pub async fn get_dogs_by_member(
         .map_err(AppError::Database)
 }
 
-/// Get all members of a dog with their user info.
 pub async fn get_members_by_dog(
     db: &sea_orm::DatabaseConnection,
     dog_id: Uuid,
@@ -90,12 +76,34 @@ pub async fn get_members_by_dog(
     Ok(results)
 }
 
-/// Remove a member from a dog.
 pub async fn remove_member(
     db: &sea_orm::DatabaseConnection,
     dog_id: Uuid,
     user_id: Uuid,
 ) -> Result<bool, AppError> {
+    // Check if the target user is an owner
+    let target_member = DogMemberEntity::find()
+        .filter(dog_members::Column::DogId.eq(dog_id))
+        .filter(dog_members::Column::UserId.eq(user_id))
+        .one(db)
+        .await?
+        .ok_or_else(|| AppError::NotFound(format!("Member not found for dog {}", dog_id)))?;
+
+    if target_member.role == "owner" {
+        // Count how many owners this dog has
+        let owner_count = DogMemberEntity::find()
+            .filter(dog_members::Column::DogId.eq(dog_id))
+            .filter(dog_members::Column::Role.eq("owner"))
+            .count(db)
+            .await?;
+
+        if owner_count <= 1 {
+            return Err(AppError::BadRequest(
+                "Cannot remove the last owner. Transfer ownership first.".to_string(),
+            ));
+        }
+    }
+
     let result = DogMemberEntity::delete_many()
         .filter(dog_members::Column::DogId.eq(dog_id))
         .filter(dog_members::Column::UserId.eq(user_id))
@@ -104,7 +112,6 @@ pub async fn remove_member(
     Ok(result.rows_affected > 0)
 }
 
-/// Add a member to a dog.
 pub async fn add_member<C: ConnectionTrait>(
     db: &C,
     dog_id: Uuid,

@@ -141,7 +141,7 @@ fn walk_by_id_field(state: Arc<AppState>) -> Field {
                 }
             }
             if !authorized {
-                return Ok(None);
+                return Err(async_graphql::Error::new("Walk not found"));
             }
 
             let walk = WalkEntity::find_by_id(walk_id)
@@ -196,7 +196,7 @@ fn my_walks_field(state: Arc<AppState>) -> Field {
             let user = user_service::get_or_create_user(&state.db, &cognito_sub)
                 .await
                 .map_err(AppError::into_graphql_error)?;
-            let walks = walk_service::get_walks_by_user_id(&state.db, user.id, limit, offset)
+            let walks = walk_service::get_walks_for_user(&state.db, user.id, limit, offset)
                 .await
                 .map_err(AppError::into_graphql_error)?;
             let values: Vec<FieldValue> = walks

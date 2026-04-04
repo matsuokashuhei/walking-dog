@@ -1,5 +1,6 @@
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect, Set,
+    TransactionTrait,
 };
 use uuid::Uuid;
 use chrono::Utc;
@@ -24,6 +25,8 @@ pub async fn start_walk(
         return Err(AppError::BadRequest("dogIds must not be empty".to_string()));
     }
 
+    let txn = db.begin().await?;
+
     let walk = ActiveModel {
         id: Set(Uuid::new_v4()),
         user_id: Set(user_id),
@@ -31,7 +34,7 @@ pub async fn start_walk(
         started_at: Set(Utc::now().into()),
         ..Default::default()
     }
-    .insert(db)
+    .insert(&txn)
     .await?;
 
     for dog_id in dog_ids {
@@ -39,10 +42,11 @@ pub async fn start_walk(
             walk_id: Set(walk.id),
             dog_id: Set(dog_id),
         }
-        .insert(db)
+        .insert(&txn)
         .await?;
     }
 
+    txn.commit().await?;
     Ok(walk)
 }
 
@@ -159,12 +163,3 @@ pub async fn get_walks_for_user(
     Ok(walks)
 }
 
-/// Legacy compatibility: get walks by user_id directly.
-pub async fn get_walks_by_user_id(
-    db: &sea_orm::DatabaseConnection,
-    user_id: Uuid,
-    limit: Option<u64>,
-    offset: Option<u64>,
-) -> Result<Vec<WalkModel>, AppError> {
-    get_walks_for_user(db, user_id, limit, offset).await
-}

@@ -28,10 +28,23 @@ pub async fn auth_middleware(
     next: Next,
 ) -> Result<Response, StatusCode> {
     // TEST_MODE: JWT検証をスキップ
+    // Use the Bearer token value as cognito_sub to allow multi-user testing.
+    // Default: "test-user-cognito-sub" for backwards compatibility.
     if std::env::var("TEST_MODE").map(|v| v == "true" || v == "1").unwrap_or(false) {
-        request.extensions_mut().insert(AuthUser {
-            cognito_sub: "test-user-cognito-sub".to_string(),
-        });
+        let cognito_sub = request
+            .headers()
+            .get("Authorization")
+            .and_then(|v| v.to_str().ok())
+            .and_then(|v| v.strip_prefix("Bearer "))
+            .map(|token| {
+                if token == "test-token" {
+                    "test-user-cognito-sub".to_string()
+                } else {
+                    token.to_string()
+                }
+            })
+            .unwrap_or_else(|| "test-user-cognito-sub".to_string());
+        request.extensions_mut().insert(AuthUser { cognito_sub });
         return Ok(next.run(request).await);
     }
 

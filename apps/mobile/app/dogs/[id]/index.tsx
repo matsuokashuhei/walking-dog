@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Image } from 'expo-image';
@@ -55,6 +55,23 @@ export default function DogDetailScreen() {
         ) : null}
       </View>
 
+      {dog.members && dog.members.length > 0 ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('dogs.detail.manageMembers')}
+          style={[styles.membersRow, { borderColor: colors.border }]}
+          onPress={() => router.push(`/dogs/${id}/members`)}
+        >
+          <View>
+            <ThemedText type="defaultSemiBold">{t('dogs.detail.members')}</ThemedText>
+            <Text style={{ color: colors.textSecondary }}>
+              {t('dogs.detail.membersCount', { count: dog.members.length })}
+            </Text>
+          </View>
+          <Text style={{ color: colors.tint, fontSize: 20 }}>{'>'}</Text>
+        </Pressable>
+      ) : null}
+
       {dog.walkStats ? (
         <View style={styles.statsSection}>
           <DogStatsCard stats={dog.walkStats} />
@@ -99,6 +116,16 @@ const styles = StyleSheet.create({
   infoSection: {
     padding: spacing.lg,
     alignItems: 'center',
+  },
+  membersRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    borderWidth: 1,
+    borderRadius: radius.md,
   },
   statsSection: { padding: spacing.md },
   actions: {

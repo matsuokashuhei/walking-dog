@@ -7,7 +7,6 @@ use sea_orm::entity::prelude::*;
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
-    pub user_id: Uuid,
     pub name: String,
     pub breed: Option<String>,
     pub gender: Option<String>,
@@ -19,27 +18,21 @@ pub struct Model {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(
-        belongs_to = "super::users::Entity",
-        from = "Column::UserId",
-        to = "super::users::Column::Id",
-        on_update = "NoAction",
-        on_delete = "Cascade"
-    )]
-    Users,
     #[sea_orm(has_many = "super::walk_dogs::Entity")]
     WalkDogs,
-}
-
-impl Related<super::users::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::Users.def()
-    }
+    #[sea_orm(has_many = "super::dog_members::Entity")]
+    DogMembers,
 }
 
 impl Related<super::walk_dogs::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::WalkDogs.def()
+    }
+}
+
+impl Related<super::dog_members::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::DogMembers.def()
     }
 }
 
@@ -56,10 +49,10 @@ impl ActiveModelBehavior for ActiveModel {}
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelatedEntity)]
 pub enum RelatedEntity {
-    #[sea_orm(entity = "super::users::Entity")]
-    Users,
     #[sea_orm(entity = "super::walk_dogs::Entity")]
     WalkDogs,
+    #[sea_orm(entity = "super::dog_members::Entity")]
+    DogMembers,
     #[sea_orm(entity = "super::walks::Entity")]
     Walks,
 }

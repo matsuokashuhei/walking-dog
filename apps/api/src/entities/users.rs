@@ -16,16 +16,10 @@ pub struct Model {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(has_many = "super::dogs::Entity")]
-    Dogs,
     #[sea_orm(has_many = "super::walks::Entity")]
     Walks,
-}
-
-impl Related<super::dogs::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::Dogs.def()
-    }
+    #[sea_orm(has_many = "super::dog_members::Entity")]
+    DogMembers,
 }
 
 impl Related<super::walks::Entity> for Entity {
@@ -34,12 +28,29 @@ impl Related<super::walks::Entity> for Entity {
     }
 }
 
+impl Related<super::dog_members::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::DogMembers.def()
+    }
+}
+
+impl Related<super::dogs::Entity> for Entity {
+    fn to() -> RelationDef {
+        super::dog_members::Relation::Dogs.def()
+    }
+    fn via() -> Option<RelationDef> {
+        Some(super::dog_members::Relation::Users.def().rev())
+    }
+}
+
 impl ActiveModelBehavior for ActiveModel {}
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelatedEntity)]
 pub enum RelatedEntity {
-    #[sea_orm(entity = "super::dogs::Entity")]
-    Dogs,
     #[sea_orm(entity = "super::walks::Entity")]
     Walks,
+    #[sea_orm(entity = "super::dog_members::Entity")]
+    DogMembers,
+    #[sea_orm(entity = "super::dogs::Entity")]
+    Dogs,
 }

@@ -4,7 +4,7 @@ use uuid::Uuid;
 use crate::AppState;
 use crate::auth;
 use crate::error::AppError;
-use crate::services::{dog_service, user_service, walk_service, walk_points_service};
+use crate::services::{dog_member_service, dog_service, user_service, walk_service, walk_points_service};
 use super::custom_mutations::{UserOutput, WalkOutput};
 
 // ─── Custom output types ──────────────────────────────────────────────────────
@@ -108,7 +108,10 @@ fn walk_by_id_field(state: Arc<AppState>) -> Field {
     Field::new("walk", TypeRef::named("WalkOutput"), move |ctx| {
         let state = state.clone();
         FieldFuture::new(async move {
-            use crate::entities::{walks, walks::Entity as WalkEntity};
+            use crate::entities::{
+                walks::Entity as WalkEntity,
+                walk_dogs::{self, Entity as WalkDogEntity},
+            };
             use sea_orm::{EntityTrait, ColumnTrait, QueryFilter};
 
             let cognito_sub = auth::require_auth(&ctx)?;
@@ -120,8 +123,28 @@ fn walk_by_id_field(state: Arc<AppState>) -> Field {
                 .await
                 .map_err(AppError::into_graphql_error)?;
 
+            // Check authorization via walk_dogs -> dog_members
+            let walk_dog_rows = WalkDogEntity::find()
+                .filter(walk_dogs::Column::WalkId.eq(walk_id))
+                .all(&state.db)
+                .await
+                .map_err(|e| AppError::Database(e).into_graphql_error())?;
+
+            let mut authorized = false;
+            for wd in &walk_dog_rows {
+                if dog_member_service::require_dog_member(&state.db, wd.dog_id, user.id)
+                    .await
+                    .is_ok()
+                {
+                    authorized = true;
+                    break;
+                }
+            }
+            if !authorized {
+                return Ok(None);
+            }
+
             let walk = WalkEntity::find_by_id(walk_id)
-                .filter(walks::Column::UserId.eq(user.id))
                 .one(&state.db)
                 .await
                 .map_err(|e| AppError::Database(e).into_graphql_error())?;
@@ -145,7 +168,11 @@ fn dog_field(state: Arc<AppState>) -> Field {
                 .await
                 .map_err(AppError::into_graphql_error)?;
 
-            let dog = dog_service::get_dog_by_id(&state.db, dog_id, user.id)
+            dog_member_service::require_dog_member(&state.db, dog_id, user.id)
+                .await
+                .map_err(AppError::into_graphql_error)?;
+
+            let dog = dog_service::get_dog_by_id(&state.db, dog_id)
                 .await
                 .map_err(AppError::into_graphql_error)?;
 
@@ -200,9 +227,6 @@ fn dog_walk_stats_field(state: Arc<AppState>) -> Field {
     Field::new("dogWalkStats", TypeRef::named_nn("WalkStats"), move |ctx| {
         let state = state.clone();
         FieldFuture::new(async move {
-            use crate::entities::{dogs, dogs::Entity as DogEntity};
-            use sea_orm::{EntityTrait, ColumnTrait, QueryFilter};
-
             let cognito_sub = auth::require_auth(&ctx)?;
             let dog_id_str = ctx.args.try_get("dogId")?.string()?;
             let dog_id = Uuid::parse_str(dog_id_str)
@@ -211,12 +235,9 @@ fn dog_walk_stats_field(state: Arc<AppState>) -> Field {
             let user = user_service::get_or_create_user(&state.db, &cognito_sub)
                 .await
                 .map_err(AppError::into_graphql_error)?;
-            DogEntity::find_by_id(dog_id)
-                .filter(dogs::Column::UserId.eq(user.id))
-                .one(&state.db)
+            dog_member_service::require_dog_member(&state.db, dog_id, user.id)
                 .await
-                .map_err(|e| AppError::Database(e).into_graphql_error())?
-                .ok_or_else(|| async_graphql::Error::new("Dog not found"))?;
+                .map_err(AppError::into_graphql_error)?;
 
             let period = ctx.args.try_get("period")?.string()?;
             let stats = walk_service::get_walk_stats(&state.db, dog_id, period)
@@ -233,7 +254,7 @@ fn walk_points_field(state: Arc<AppState>) -> Field {
     Field::new("walkPoints", TypeRef::named_nn_list_nn("WalkPoint"), move |ctx| {
         let state = state.clone();
         FieldFuture::new(async move {
-            use crate::entities::{walks, walks::Entity as WalkEntity};
+            use crate::entities::walk_dogs::{self, Entity as WalkDogEntity};
             use sea_orm::{EntityTrait, ColumnTrait, QueryFilter};
 
             let cognito_sub = auth::require_auth(&ctx)?;
@@ -244,12 +265,27 @@ fn walk_points_field(state: Arc<AppState>) -> Field {
             let user = user_service::get_or_create_user(&state.db, &cognito_sub)
                 .await
                 .map_err(AppError::into_graphql_error)?;
-            WalkEntity::find_by_id(walk_id)
-                .filter(walks::Column::UserId.eq(user.id))
-                .one(&state.db)
+
+            // Check authorization via walk_dogs -> dog_members
+            let walk_dog_rows = WalkDogEntity::find()
+                .filter(walk_dogs::Column::WalkId.eq(walk_id))
+                .all(&state.db)
                 .await
-                .map_err(|e| AppError::Database(e).into_graphql_error())?
-                .ok_or_else(|| async_graphql::Error::new("Walk not found"))?;
+                .map_err(|e| AppError::Database(e).into_graphql_error())?;
+
+            let mut authorized = false;
+            for wd in &walk_dog_rows {
+                if dog_member_service::require_dog_member(&state.db, wd.dog_id, user.id)
+                    .await
+                    .is_ok()
+                {
+                    authorized = true;
+                    break;
+                }
+            }
+            if !authorized {
+                return Err(async_graphql::Error::new("Walk not found"));
+            }
 
             let points = walk_points_service::get_walk_points(
                 &state.dynamo,

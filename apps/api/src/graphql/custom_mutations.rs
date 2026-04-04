@@ -4,7 +4,7 @@ use uuid::Uuid;
 use crate::AppState;
 use crate::auth;
 use crate::error::AppError;
-use crate::services::{dog_service, s3_service, user_service, walk_points_service, walk_service};
+use crate::services::{dog_member_service, dog_service, s3_service, user_service, walk_points_service, walk_service};
 
 // ─── BirthDate types ─────────────────────────────────────────────────────────
 
@@ -70,7 +70,6 @@ pub fn birth_date_input_type() -> InputObject {
 #[derive(Clone, Debug)]
 pub struct DogOutput {
     pub id: Uuid,
-    pub user_id: Uuid,
     pub name: String,
     pub breed: Option<String>,
     pub gender: Option<String>,
@@ -85,7 +84,6 @@ impl From<crate::entities::dogs::Model> for DogOutput {
         let created: chrono::DateTime<chrono::Utc> = m.created_at.into();
         Self {
             id: m.id,
-            user_id: m.user_id,
             name: m.name,
             breed: m.breed,
             gender: m.gender,
@@ -710,7 +708,10 @@ fn update_dog_field(state: Arc<AppState>) -> Field {
             let user = user_service::get_or_create_user(&state.db, &cognito_sub)
                 .await
                 .map_err(AppError::into_graphql_error)?;
-            let dog = dog_service::update_dog(&state.db, dog_id, user.id, name, breed, gender, birth_date, photo_url)
+            dog_member_service::require_dog_member(&state.db, dog_id, user.id)
+                .await
+                .map_err(AppError::into_graphql_error)?;
+            let dog = dog_service::update_dog(&state.db, dog_id, name, breed, gender, birth_date, photo_url)
                 .await
                 .map_err(AppError::into_graphql_error)?;
             Ok(Some(FieldValue::owned_any(DogOutput::from(dog))))
@@ -738,6 +739,12 @@ fn start_walk_field(state: Arc<AppState>) -> Field {
             let user = user_service::get_or_create_user(&state.db, &cognito_sub)
                 .await
                 .map_err(AppError::into_graphql_error)?;
+            // Verify membership for each dog
+            for dog_id in &dog_ids {
+                dog_member_service::require_dog_member(&state.db, *dog_id, user.id)
+                    .await
+                    .map_err(AppError::into_graphql_error)?;
+            }
             let walk = walk_service::start_walk(&state.db, user.id, dog_ids)
                 .await
                 .map_err(AppError::into_graphql_error)?;
@@ -787,6 +794,7 @@ fn add_walk_points_field(state: Arc<AppState>) -> Field {
             let user = user_service::get_or_create_user(&state.db, &cognito_sub)
                 .await
                 .map_err(AppError::into_graphql_error)?;
+            // Only the walk owner can add points (walks.user_id check)
             WalkEntity::find_by_id(walk_id)
                 .filter(walks::Column::UserId.eq(user.id))
                 .one(&state.db)
@@ -853,7 +861,10 @@ fn delete_dog_field(state: Arc<AppState>) -> Field {
             let user = user_service::get_or_create_user(&state.db, &cognito_sub)
                 .await
                 .map_err(AppError::into_graphql_error)?;
-            let result = dog_service::delete_dog(&state.db, dog_id, user.id)
+            dog_member_service::require_dog_owner(&state.db, dog_id, user.id)
+                .await
+                .map_err(AppError::into_graphql_error)?;
+            let result = dog_service::delete_dog(&state.db, dog_id)
                 .await
                 .map_err(AppError::into_graphql_error)?;
             Ok(Some(FieldValue::value(result)))
@@ -869,9 +880,6 @@ fn generate_dog_photo_upload_url_field(state: Arc<AppState>) -> Field {
         move |ctx| {
             let state = state.clone();
             FieldFuture::new(async move {
-                use crate::entities::{dogs, dogs::Entity as DogEntity};
-                use sea_orm::{EntityTrait, ColumnTrait, QueryFilter};
-
                 let cognito_sub = auth::require_auth(&ctx)?;
                 let dog_id_str = ctx.args.try_get("dogId")?.string()?;
                 let dog_id = Uuid::parse_str(dog_id_str)
@@ -880,12 +888,9 @@ fn generate_dog_photo_upload_url_field(state: Arc<AppState>) -> Field {
                 let user = user_service::get_or_create_user(&state.db, &cognito_sub)
                     .await
                     .map_err(AppError::into_graphql_error)?;
-                DogEntity::find_by_id(dog_id)
-                    .filter(dogs::Column::UserId.eq(user.id))
-                    .one(&state.db)
+                dog_member_service::require_dog_member(&state.db, dog_id, user.id)
                     .await
-                    .map_err(|e| AppError::Database(e).into_graphql_error())?
-                    .ok_or_else(|| async_graphql::Error::new("Dog not found"))?;
+                    .map_err(AppError::into_graphql_error)?;
 
                 let presigned = s3_service::generate_dog_photo_upload_url(
                     &state.s3,

@@ -30,8 +30,9 @@ export default function WalkDetailScreen() {
   const dogNames = walk.dogs.map((d) => d.name).join(', ');
   const startTime = formatClockTime(walk.startedAt);
   const endTime = walk.endedAt ? formatClockTime(walk.endedAt) : null;
+  const separator = t('walk.detail.timeSeparator');
   const timeLabel = endTime
-    ? `${t('walk.detail.startTime')} ${startTime}${t('walk.detail.timeSeparator')}${t('walk.detail.endTime')} ${endTime}`
+    ? `${t('walk.detail.startTime')} ${startTime}${separator}${t('walk.detail.endTime')} ${endTime}`
     : `${t('walk.detail.startTime')} ${startTime}`;
 
   const midpoint = coordinates.length > 0
@@ -63,7 +64,7 @@ export default function WalkDetailScreen() {
           accessibilityLabel={timeLabel}
         >
           {startTime}
-          {endTime ? `${t('walk.detail.timeSeparator')}${endTime}` : null}
+          {endTime ? `${separator}${endTime}` : null}
         </Text>
 
         <View style={styles.stats}>

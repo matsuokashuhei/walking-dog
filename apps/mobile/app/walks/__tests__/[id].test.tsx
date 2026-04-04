@@ -52,9 +52,8 @@ describe('WalkDetailScreen', () => {
     render(<WalkDetailScreen />);
 
     const timeText = screen.getByTestId('walk-time');
-    expect(timeText).toBeTruthy();
-    // Should contain the separator when both times exist
-    expect(timeText.props.children).toBeTruthy();
+    const children = timeText.props.children;
+    expect(Array.isArray(children) ? children.filter(Boolean) : [children]).toHaveLength(2);
   });
 
   it('displays only start time when endedAt is null', () => {
@@ -65,15 +64,9 @@ describe('WalkDetailScreen', () => {
     render(<WalkDetailScreen />);
 
     const timeText = screen.getByTestId('walk-time');
-    expect(timeText).toBeTruthy();
-    // Should not contain the separator
-    const textContent = timeText.props.children;
-    // When endedAt is null, children should not include separator
-    if (Array.isArray(textContent)) {
-      // Filter out falsy values (conditional rendering)
-      const visibleParts = textContent.filter(Boolean);
-      expect(visibleParts.length).toBeLessThan(3);
-    }
+    const children = timeText.props.children;
+    const visibleParts = Array.isArray(children) ? children.filter(Boolean) : [children];
+    expect(visibleParts).toHaveLength(1);
   });
 
   it('has accessibilityLabel on time element', () => {
@@ -82,6 +75,33 @@ describe('WalkDetailScreen', () => {
 
     const timeText = screen.getByTestId('walk-time');
     expect(timeText.props.accessibilityLabel).toBeTruthy();
-    expect(timeText.props.accessibilityLabel.length).toBeGreaterThan(0);
+  });
+
+  it('does not render walk content when isLoading is true', () => {
+    mockUseWalk.mockReturnValue({ data: undefined, isLoading: true });
+    render(<WalkDetailScreen />);
+
+    expect(screen.queryByTestId('walk-time')).toBeNull();
+  });
+
+  it('does not render walk content when data is undefined', () => {
+    mockUseWalk.mockReturnValue({ data: undefined, isLoading: false });
+    render(<WalkDetailScreen />);
+
+    expect(screen.queryByTestId('walk-time')).toBeNull();
+  });
+
+  it('displays walk-time element in dark mode', () => {
+    mockUseWalk.mockReturnValue({ data: baseWalk, isLoading: false });
+
+    jest.resetModules();
+    jest.doMock('@/hooks/use-color-scheme', () => ({
+      useColorScheme: () => 'dark',
+    }));
+
+    render(<WalkDetailScreen />);
+
+    const timeText = screen.getByTestId('walk-time');
+    expect(timeText).toBeTruthy();
   });
 });

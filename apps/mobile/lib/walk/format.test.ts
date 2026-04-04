@@ -42,4 +42,23 @@ describe('formatClockTime', () => {
   it('returns fallback for empty string', () => {
     expect(formatClockTime('')).toBe('--:--');
   });
+
+  it('accepts a locale argument and returns a non-empty string', () => {
+    const result = formatClockTime('2026-04-04T14:30:00Z', 'en-US');
+    expect(result.length).toBeGreaterThan(0);
+    expect(result).not.toBe('--:--');
+  });
+
+  it('falls back to HH:MM format when toLocaleTimeString throws', () => {
+    const original = Date.prototype.toLocaleTimeString;
+    Date.prototype.toLocaleTimeString = () => {
+      throw new RangeError('invalid locale');
+    };
+    try {
+      const result = formatClockTime('2026-04-04T14:30:00Z');
+      expect(result).toMatch(/^\d{2}:\d{2}$/);
+    } finally {
+      Date.prototype.toLocaleTimeString = original;
+    }
+  });
 });

@@ -13,5 +13,16 @@ export function formatDistance(meters: number): string {
 
 export function formatClockTime(isoString: string, locale?: string): string {
   const date = new Date(isoString);
-  return date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+  if (isNaN(date.getTime())) {
+    console.warn(`[formatClockTime] Invalid ISO string received: "${isoString}"`);
+    return '--:--';
+  }
+  try {
+    return date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+  } catch (e) {
+    console.warn('[formatClockTime] toLocaleTimeString failed, falling back', e);
+    const h = String(date.getHours()).padStart(2, '0');
+    const m = String(date.getMinutes()).padStart(2, '0');
+    return `${h}:${m}`;
+  }
 }

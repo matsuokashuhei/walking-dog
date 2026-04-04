@@ -34,4 +34,12 @@ describe('formatClockTime', () => {
     const result = formatClockTime('2026-04-04T09:00:00Z');
     expect(result.length).toBeGreaterThan(0);
   });
+
+  it('returns fallback for invalid ISO string', () => {
+    expect(formatClockTime('not-a-date')).toBe('--:--');
+  });
+
+  it('returns fallback for empty string', () => {
+    expect(formatClockTime('')).toBe('--:--');
+  });
 });

@@ -40,6 +40,7 @@ pub fn build_schema(state: Arc<AppState>) -> AppSchema {
         .register(custom_mutations::birth_date_type())
         .register(custom_mutations::dog_output_type())
         .register(custom_mutations::walk_output_type())
+        .register(custom_mutations::walker_output_type())
         .register(custom_mutations::walk_point_output_type())
         .register(custom_mutations::user_output_type())
         .register(custom_mutations::presigned_url_type())

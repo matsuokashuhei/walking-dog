@@ -183,6 +183,7 @@ pub fn update_dog_input_type() -> InputObject {
 #[derive(Clone, Debug)]
 pub struct WalkOutput {
     pub id: Uuid,
+    pub user_id: Uuid,
     pub status: String,
     pub distance_m: Option<i32>,
     pub duration_sec: Option<i32>,
@@ -196,11 +197,30 @@ impl From<crate::entities::walks::Model> for WalkOutput {
         let ended: Option<chrono::DateTime<chrono::Utc>> = m.ended_at.map(|t| t.into());
         Self {
             id: m.id,
+            user_id: m.user_id,
             status: m.status,
             distance_m: m.distance_m,
             duration_sec: m.duration_sec,
             started_at: started.to_rfc3339(),
             ended_at: ended.map(|t| t.to_rfc3339()),
+        }
+    }
+}
+
+/// Walker info resolved from WalkOutput.user_id.
+#[derive(Clone, Debug)]
+pub struct WalkerOutput {
+    pub id: Uuid,
+    pub display_name: Option<String>,
+    pub avatar_url: Option<String>,
+}
+
+impl From<crate::entities::users::Model> for WalkerOutput {
+    fn from(m: crate::entities::users::Model) -> Self {
+        Self {
+            id: m.id,
+            display_name: m.display_name,
+            avatar_url: m.avatar_url,
         }
     }
 }
@@ -317,6 +337,23 @@ pub fn walk_output_type() -> Object {
             FieldFuture::new(async move {
                 let w = ctx.parent_value.try_downcast_ref::<WalkOutput>()?;
                 Ok(w.ended_at.clone().map(FieldValue::value))
+            })
+        }))
+        .field(Field::new("walker", TypeRef::named("WalkerOutput"), |ctx| {
+            FieldFuture::new(async move {
+                use crate::entities::users::Entity as UserEntity;
+                use sea_orm::EntityTrait;
+
+                let w = ctx.parent_value.try_downcast_ref::<WalkOutput>()?;
+                let user_id = w.user_id;
+                let state = ctx.data::<Arc<crate::AppState>>()?;
+
+                let user = UserEntity::find_by_id(user_id)
+                    .one(&state.db)
+                    .await
+                    .map_err(|e| AppError::Database(e).into_graphql_error())?;
+
+                Ok(user.map(|u| FieldValue::owned_any(WalkerOutput::from(u))))
             })
         }))
         .field(Field::new("dogs", TypeRef::named_nn_list_nn("DogOutput"), |ctx| {
@@ -467,6 +504,28 @@ pub fn presigned_url_type() -> Object {
             FieldFuture::new(async move {
                 let p = ctx.parent_value.try_downcast_ref::<PresignedUrlOutput>()?;
                 Ok(Some(FieldValue::value(p.expires_at.clone())))
+            })
+        }))
+}
+
+pub fn walker_output_type() -> Object {
+    Object::new("WalkerOutput")
+        .field(Field::new("id", TypeRef::named_nn(TypeRef::STRING), |ctx| {
+            FieldFuture::new(async move {
+                let w = ctx.parent_value.try_downcast_ref::<WalkerOutput>()?;
+                Ok(Some(FieldValue::value(w.id.to_string())))
+            })
+        }))
+        .field(Field::new("displayName", TypeRef::named(TypeRef::STRING), |ctx| {
+            FieldFuture::new(async move {
+                let w = ctx.parent_value.try_downcast_ref::<WalkerOutput>()?;
+                Ok(w.display_name.clone().map(FieldValue::value))
+            })
+        }))
+        .field(Field::new("avatarUrl", TypeRef::named(TypeRef::STRING), |ctx| {
+            FieldFuture::new(async move {
+                let w = ctx.parent_value.try_downcast_ref::<WalkerOutput>()?;
+                Ok(w.avatar_url.clone().map(FieldValue::value))
             })
         }))
 }

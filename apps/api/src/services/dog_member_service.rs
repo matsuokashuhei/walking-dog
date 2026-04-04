@@ -12,8 +12,8 @@ use crate::entities::{
 use crate::error::AppError;
 
 /// Verify the user is a member (any role) of the dog. Returns the membership record.
-pub async fn require_dog_member(
-    db: &sea_orm::DatabaseConnection,
+pub async fn require_dog_member<C: ConnectionTrait>(
+    db: &C,
     dog_id: Uuid,
     user_id: Uuid,
 ) -> Result<DogMemberModel, AppError> {
@@ -31,8 +31,8 @@ pub async fn require_dog_member(
 }
 
 /// Verify the user is the owner of the dog. Returns the membership record.
-pub async fn require_dog_owner(
-    db: &sea_orm::DatabaseConnection,
+pub async fn require_dog_owner<C: ConnectionTrait>(
+    db: &C,
     dog_id: Uuid,
     user_id: Uuid,
 ) -> Result<DogMemberModel, AppError> {

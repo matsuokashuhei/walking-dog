@@ -1,3 +1,4 @@
+pub mod dog_invitation_service;
 pub mod dog_member_service;
 pub mod dog_service;
 pub mod s3_service;

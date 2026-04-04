@@ -4,7 +4,7 @@ use uuid::Uuid;
 use crate::AppState;
 use crate::auth;
 use crate::error::AppError;
-use crate::services::{dog_member_service, dog_service, s3_service, user_service, walk_points_service, walk_service};
+use crate::services::{dog_invitation_service, dog_member_service, dog_service, s3_service, user_service, walk_points_service, walk_service};
 
 // ─── BirthDate types ─────────────────────────────────────────────────────────
 
@@ -244,6 +244,27 @@ pub struct PresignedUrlOutput {
     pub expires_at: String,
 }
 
+/// Returned by `generateDogInvitation`.
+#[derive(Clone, Debug)]
+pub struct DogInvitationOutput {
+    pub id: Uuid,
+    pub dog_id: Uuid,
+    pub token: String,
+    pub expires_at: String,
+}
+
+impl From<crate::entities::dog_invitations::Model> for DogInvitationOutput {
+    fn from(m: crate::entities::dog_invitations::Model) -> Self {
+        let expires: chrono::DateTime<chrono::Utc> = m.expires_at.into();
+        Self {
+            id: m.id,
+            dog_id: m.dog_id,
+            token: m.token,
+            expires_at: expires.to_rfc3339(),
+        }
+    }
+}
+
 /// Returned by `signUp`.
 #[derive(Clone, Debug)]
 pub struct SignUpOutput {
@@ -450,6 +471,34 @@ pub fn presigned_url_type() -> Object {
         }))
 }
 
+pub fn dog_invitation_output_type() -> Object {
+    Object::new("DogInvitationOutput")
+        .field(Field::new("id", TypeRef::named_nn(TypeRef::STRING), |ctx| {
+            FieldFuture::new(async move {
+                let inv = ctx.parent_value.try_downcast_ref::<DogInvitationOutput>()?;
+                Ok(Some(FieldValue::value(inv.id.to_string())))
+            })
+        }))
+        .field(Field::new("dogId", TypeRef::named_nn(TypeRef::STRING), |ctx| {
+            FieldFuture::new(async move {
+                let inv = ctx.parent_value.try_downcast_ref::<DogInvitationOutput>()?;
+                Ok(Some(FieldValue::value(inv.dog_id.to_string())))
+            })
+        }))
+        .field(Field::new("token", TypeRef::named_nn(TypeRef::STRING), |ctx| {
+            FieldFuture::new(async move {
+                let inv = ctx.parent_value.try_downcast_ref::<DogInvitationOutput>()?;
+                Ok(Some(FieldValue::value(inv.token.clone())))
+            })
+        }))
+        .field(Field::new("expiresAt", TypeRef::named_nn(TypeRef::STRING), |ctx| {
+            FieldFuture::new(async move {
+                let inv = ctx.parent_value.try_downcast_ref::<DogInvitationOutput>()?;
+                Ok(Some(FieldValue::value(inv.expires_at.clone())))
+            })
+        }))
+}
+
 pub fn sign_up_output_type() -> Object {
     Object::new("SignUpOutput")
         .field(Field::new("success", TypeRef::named_nn(TypeRef::BOOLEAN), |ctx| {
@@ -534,7 +583,11 @@ pub fn mutation_fields(state: Arc<AppState>) -> Vec<Field> {
         start_walk_field(state.clone()),
         finish_walk_field(state.clone()),
         add_walk_points_field(state.clone()),
-        update_profile_field(state),
+        update_profile_field(state.clone()),
+        generate_dog_invitation_field(state.clone()),
+        accept_dog_invitation_field(state.clone()),
+        remove_dog_member_field(state.clone()),
+        leave_dog_field(state),
     ]
 }
 
@@ -908,5 +961,147 @@ fn generate_dog_photo_upload_url_field(state: Arc<AppState>) -> Field {
             })
         },
     )
+    .argument(InputValue::new("dogId", TypeRef::named_nn(TypeRef::ID)))
+}
+
+fn generate_dog_invitation_field(state: Arc<AppState>) -> Field {
+    Field::new(
+        "generateDogInvitation",
+        TypeRef::named_nn("DogInvitationOutput"),
+        move |ctx| {
+            let state = state.clone();
+            FieldFuture::new(async move {
+                let cognito_sub = auth::require_auth(&ctx)?;
+                let dog_id_str = ctx.args.try_get("dogId")?.string()?;
+                let dog_id = Uuid::parse_str(dog_id_str)
+                    .map_err(|_| async_graphql::Error::new("Invalid dog ID"))?;
+
+                let user = user_service::get_or_create_user(&state.db, &cognito_sub)
+                    .await
+                    .map_err(AppError::into_graphql_error)?;
+                dog_member_service::require_dog_owner(&state.db, dog_id, user.id)
+                    .await
+                    .map_err(AppError::into_graphql_error)?;
+
+                let invitation =
+                    dog_invitation_service::create_invitation(&state.db, dog_id, user.id)
+                        .await
+                        .map_err(AppError::into_graphql_error)?;
+
+                Ok(Some(FieldValue::owned_any(DogInvitationOutput::from(
+                    invitation,
+                ))))
+            })
+        },
+    )
+    .argument(InputValue::new("dogId", TypeRef::named_nn(TypeRef::ID)))
+}
+
+fn accept_dog_invitation_field(state: Arc<AppState>) -> Field {
+    Field::new(
+        "acceptDogInvitation",
+        TypeRef::named_nn("DogOutput"),
+        move |ctx| {
+            let state = state.clone();
+            FieldFuture::new(async move {
+                let cognito_sub = auth::require_auth(&ctx)?;
+                let token = ctx.args.try_get("token")?.string()?.to_string();
+
+                let user = user_service::get_or_create_user(&state.db, &cognito_sub)
+                    .await
+                    .map_err(AppError::into_graphql_error)?;
+
+                let member =
+                    dog_invitation_service::accept_invitation(&state.db, &token, user.id)
+                        .await
+                        .map_err(AppError::into_graphql_error)?;
+
+                let dog = dog_service::get_dog_by_id(&state.db, member.dog_id)
+                    .await
+                    .map_err(AppError::into_graphql_error)?
+                    .ok_or_else(|| async_graphql::Error::new("Dog not found"))?;
+
+                Ok(Some(FieldValue::owned_any(DogOutput::from(dog))))
+            })
+        },
+    )
+    .argument(InputValue::new("token", TypeRef::named_nn(TypeRef::STRING)))
+}
+
+fn remove_dog_member_field(state: Arc<AppState>) -> Field {
+    Field::new(
+        "removeDogMember",
+        TypeRef::named_nn(TypeRef::BOOLEAN),
+        move |ctx| {
+            let state = state.clone();
+            FieldFuture::new(async move {
+                let cognito_sub = auth::require_auth(&ctx)?;
+                let dog_id_str = ctx.args.try_get("dogId")?.string()?;
+                let dog_id = Uuid::parse_str(dog_id_str)
+                    .map_err(|_| async_graphql::Error::new("Invalid dog ID"))?;
+                let target_user_id_str = ctx.args.try_get("userId")?.string()?;
+                let target_user_id = Uuid::parse_str(target_user_id_str)
+                    .map_err(|_| async_graphql::Error::new("Invalid user ID"))?;
+
+                let user = user_service::get_or_create_user(&state.db, &cognito_sub)
+                    .await
+                    .map_err(AppError::into_graphql_error)?;
+
+                // Only the owner can remove members
+                dog_member_service::require_dog_owner(&state.db, dog_id, user.id)
+                    .await
+                    .map_err(AppError::into_graphql_error)?;
+
+                // Cannot remove yourself (owner) via this mutation
+                if target_user_id == user.id {
+                    return Err(async_graphql::Error::new(
+                        "Cannot remove yourself. Use leaveDog instead.",
+                    ));
+                }
+
+                let result =
+                    dog_member_service::remove_member(&state.db, dog_id, target_user_id)
+                        .await
+                        .map_err(AppError::into_graphql_error)?;
+
+                Ok(Some(FieldValue::value(result)))
+            })
+        },
+    )
+    .argument(InputValue::new("dogId", TypeRef::named_nn(TypeRef::ID)))
+    .argument(InputValue::new("userId", TypeRef::named_nn(TypeRef::ID)))
+}
+
+fn leave_dog_field(state: Arc<AppState>) -> Field {
+    Field::new("leaveDog", TypeRef::named_nn(TypeRef::BOOLEAN), move |ctx| {
+        let state = state.clone();
+        FieldFuture::new(async move {
+            let cognito_sub = auth::require_auth(&ctx)?;
+            let dog_id_str = ctx.args.try_get("dogId")?.string()?;
+            let dog_id = Uuid::parse_str(dog_id_str)
+                .map_err(|_| async_graphql::Error::new("Invalid dog ID"))?;
+
+            let user = user_service::get_or_create_user(&state.db, &cognito_sub)
+                .await
+                .map_err(AppError::into_graphql_error)?;
+
+            let membership = dog_member_service::require_dog_member(&state.db, dog_id, user.id)
+                .await
+                .map_err(AppError::into_graphql_error)?;
+
+            // Owners cannot leave their own dog
+            if membership.role == "owner" {
+                return Err(async_graphql::Error::new(
+                    "Owners cannot leave their dog. Transfer ownership or delete the dog.",
+                ));
+            }
+
+            let result = dog_member_service::remove_member(&state.db, dog_id, user.id)
+                .await
+                .map_err(AppError::into_graphql_error)?;
+
+            Ok(Some(FieldValue::value(result)))
+        })
+    })
     .argument(InputValue::new("dogId", TypeRef::named_nn(TypeRef::ID)))
 }

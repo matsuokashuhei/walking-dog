@@ -69,6 +69,39 @@ async fn test_invitation_token_length() {
 }
 
 #[tokio::test]
+async fn test_invitation_expires_within_24_hours() {
+    let client = common::test_client().await;
+    let dog_id = create_dog(&client).await;
+
+    let res = client
+        .post("/graphql")
+        .header("Authorization", "Bearer test-token")
+        .json(&serde_json::json!({
+            "query": format!(
+                r#"mutation {{ generateDogInvitation(dogId: "{}") {{ expiresAt }} }}"#,
+                dog_id
+            )
+        }))
+        .send()
+        .await
+        .unwrap();
+    let body: serde_json::Value = res.json().await.unwrap();
+    let expires_at_str = body["data"]["generateDogInvitation"]["expiresAt"]
+        .as_str()
+        .unwrap();
+    let expires_at = chrono::DateTime::parse_from_rfc3339(expires_at_str).unwrap();
+    let now = chrono::Utc::now();
+    let diff = expires_at.signed_duration_since(now);
+
+    // Should be approximately 24 hours (allow 5 minutes tolerance)
+    assert!(
+        diff.num_hours() <= 24 && diff.num_hours() >= 23,
+        "Expected expiry within ~24 hours, got {} hours",
+        diff.num_hours()
+    );
+}
+
+#[tokio::test]
 async fn test_accept_invitation_already_member() {
     let client = common::test_client().await;
     let dog_id = create_dog(&client).await;

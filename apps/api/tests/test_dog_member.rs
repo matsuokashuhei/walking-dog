@@ -125,3 +125,62 @@ async fn test_delete_dog_owner_only() {
         body
     );
 }
+
+#[tokio::test]
+async fn test_dog_output_has_members_field() {
+    let client = common::test_client().await;
+
+    // Create a dog (owner is auto-created)
+    let res = client
+        .post("/graphql")
+        .header("Authorization", "Bearer test-token")
+        .json(&serde_json::json!({
+            "query": r#"mutation { createDog(input: { name: "MembersDog" }) { id members { id userId role user { displayName avatarUrl } createdAt } } }"#
+        }))
+        .send()
+        .await
+        .unwrap();
+    let body: serde_json::Value = res.json().await.unwrap();
+    let members = body["data"]["createDog"]["members"].as_array();
+    assert!(
+        members.is_some(),
+        "Expected members array, got: {:?}",
+        body
+    );
+    let members = members.unwrap();
+    assert_eq!(members.len(), 1, "Expected 1 member (owner), got: {:?}", members);
+    assert_eq!(members[0]["role"], "owner");
+    assert!(members[0]["userId"].is_string());
+    assert!(members[0]["user"].is_object());
+    assert!(members[0]["createdAt"].is_string());
+}
+
+#[tokio::test]
+async fn test_dog_output_has_role_field_in_me_query() {
+    let client = common::test_client().await;
+
+    // Create a dog
+    let _dog_id = create_dog(&client).await;
+
+    // Query me.dogs and check role field
+    let res = client
+        .post("/graphql")
+        .header("Authorization", "Bearer test-token")
+        .json(&serde_json::json!({
+            "query": r#"{ me { dogs { id name role } } }"#
+        }))
+        .send()
+        .await
+        .unwrap();
+    let body: serde_json::Value = res.json().await.unwrap();
+    let dogs = body["data"]["me"]["dogs"].as_array().unwrap();
+    assert!(!dogs.is_empty(), "Expected at least one dog, got: {:?}", body);
+
+    // Find the dog we created and verify it has role = "owner"
+    let has_owner_role = dogs.iter().any(|d| d["role"] == "owner");
+    assert!(
+        has_owner_role,
+        "Expected at least one dog with role 'owner', got: {:?}",
+        dogs
+    );
+}

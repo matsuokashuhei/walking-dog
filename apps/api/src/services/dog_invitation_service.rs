@@ -1,4 +1,5 @@
 use chrono::{Duration, Utc};
+use rand::Rng;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set, TransactionTrait};
 use uuid::Uuid;
 
@@ -9,14 +10,13 @@ use crate::entities::dog_members::Model as DogMemberModel;
 use crate::error::AppError;
 use crate::services::dog_member_service;
 
-/// Create an invitation token for a dog. The token expires in 7 days.
 pub async fn create_invitation(
     db: &sea_orm::DatabaseConnection,
     dog_id: Uuid,
     invited_by: Uuid,
 ) -> Result<DogInvitationModel, AppError> {
     let token = generate_token();
-    let expires_at = Utc::now() + Duration::days(7);
+    let expires_at = Utc::now() + Duration::hours(24);
 
     let model = ActiveModel {
         id: Set(Uuid::new_v4()),
@@ -32,7 +32,6 @@ pub async fn create_invitation(
     Ok(model)
 }
 
-/// Accept an invitation token and become a member of the dog.
 pub async fn accept_invitation(
     db: &sea_orm::DatabaseConnection,
     token: &str,
@@ -84,9 +83,7 @@ pub async fn accept_invitation(
     Ok(member)
 }
 
-/// Generate a 32-character hex token (16 random bytes).
 fn generate_token() -> String {
-    use rand::Rng;
     let bytes: [u8; 16] = rand::thread_rng().gen();
     hex::encode(bytes)
 }

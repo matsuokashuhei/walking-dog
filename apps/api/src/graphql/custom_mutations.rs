@@ -4,6 +4,7 @@ use uuid::Uuid;
 use crate::AppState;
 use crate::auth;
 use crate::error::AppError;
+use crate::graphql::custom_queries::WalkPointOutput;
 use crate::services::{dog_invitation_service, dog_member_service, dog_service, s3_service, user_service, walk_points_service, walk_service};
 
 // ─── BirthDate types ─────────────────────────────────────────────────────────
@@ -75,6 +76,7 @@ pub struct DogOutput {
     pub gender: Option<String>,
     pub birth_date: Option<BirthDate>,
     pub photo_url: Option<String>,
+    pub role: Option<String>,
     pub created_at: String,
 }
 
@@ -89,6 +91,7 @@ impl From<crate::entities::dogs::Model> for DogOutput {
             gender: m.gender,
             birth_date,
             photo_url: m.photo_url,
+            role: None,
             created_at: created.to_rfc3339(),
         }
     }
@@ -138,6 +141,12 @@ pub fn dog_output_type() -> Object {
                 Ok(Some(FieldValue::value(d.created_at.clone())))
             })
         }))
+        .field(Field::new("role", TypeRef::named(TypeRef::STRING), |ctx| {
+            FieldFuture::new(async move {
+                let d = ctx.parent_value.try_downcast_ref::<DogOutput>()?;
+                Ok(d.role.clone().map(FieldValue::value))
+            })
+        }))
         .field(
             Field::new("walkStats", TypeRef::named("WalkStats"), |ctx| {
                 FieldFuture::new(async move {
@@ -158,6 +167,23 @@ pub fn dog_output_type() -> Object {
             })
             .argument(InputValue::new("period", TypeRef::named(TypeRef::STRING)))
         )
+        .field(Field::new("members", TypeRef::named_nn_list_nn("DogMemberOutput"), |ctx| {
+            FieldFuture::new(async move {
+                let d = ctx.parent_value.try_downcast_ref::<DogOutput>()?;
+                let dog_id = d.id;
+                let state = ctx.data::<Arc<crate::AppState>>()?;
+                let members = dog_member_service::get_members_by_dog(&state.db, dog_id)
+                    .await
+                    .map_err(AppError::into_graphql_error)?;
+                let values: Vec<FieldValue> = members
+                    .into_iter()
+                    .map(|(member, user)| {
+                        FieldValue::owned_any(DogMemberOutput::from((member, user)))
+                    })
+                    .collect();
+                Ok(Some(FieldValue::list(values)))
+            })
+        }))
 }
 
 pub fn create_dog_input_type() -> InputObject {
@@ -225,14 +251,6 @@ impl From<crate::entities::users::Model> for WalkerOutput {
     }
 }
 
-/// GPS point returned as part of `WalkOutput.points`.
-#[derive(Clone, Debug)]
-pub struct WalkPointOutput {
-    pub lat: f64,
-    pub lng: f64,
-    pub recorded_at: String,
-}
-
 /// Returned by `me` query and `updateProfile` mutation.
 #[derive(Clone, Debug)]
 pub struct UserOutput {
@@ -281,6 +299,31 @@ impl From<crate::entities::dog_invitations::Model> for DogInvitationOutput {
             dog_id: m.dog_id,
             token: m.token,
             expires_at: expires.to_rfc3339(),
+        }
+    }
+}
+
+/// Dog member with user info, used in DogOutput.members.
+#[derive(Clone, Debug)]
+pub struct DogMemberOutput {
+    pub id: Uuid,
+    pub user_id: Uuid,
+    pub role: String,
+    pub display_name: Option<String>,
+    pub avatar_url: Option<String>,
+    pub created_at: String,
+}
+
+impl From<(crate::entities::dog_members::Model, crate::entities::users::Model)> for DogMemberOutput {
+    fn from((member, user): (crate::entities::dog_members::Model, crate::entities::users::Model)) -> Self {
+        let created: chrono::DateTime<chrono::Utc> = member.created_at.into();
+        Self {
+            id: member.id,
+            user_id: member.user_id,
+            role: member.role,
+            display_name: user.display_name,
+            avatar_url: user.avatar_url,
+            created_at: created.to_rfc3339(),
         }
     }
 }
@@ -404,11 +447,7 @@ pub fn walk_output_type() -> Object {
 
                 let values: Vec<FieldValue> = points
                     .into_iter()
-                    .map(|p| FieldValue::owned_any(WalkPointOutput {
-                        lat: p.lat,
-                        lng: p.lng,
-                        recorded_at: p.recorded_at,
-                    }))
+                    .map(|p| FieldValue::owned_any(WalkPointOutput::from(p)))
                     .collect();
                 Ok(Some(FieldValue::list(values)))
             })
@@ -465,15 +504,35 @@ pub fn user_output_type() -> Object {
         }))
         .field(Field::new("dogs", TypeRef::named_nn_list_nn("DogOutput"), |ctx| {
             FieldFuture::new(async move {
+                use crate::entities::dog_members::{self, Entity as DogMemberEntity};
+                use sea_orm::{EntityTrait, ColumnTrait, QueryFilter};
+
                 let u = ctx.parent_value.try_downcast_ref::<UserOutput>()?;
                 let user_id = u.id;
                 let state = ctx.data::<Arc<crate::AppState>>()?;
                 let dogs = crate::services::dog_service::get_dogs_by_user_id(&state.db, user_id)
                     .await
                     .map_err(crate::error::AppError::into_graphql_error)?;
+
+                // Fetch memberships to get role for each dog
+                let dog_ids: Vec<Uuid> = dogs.iter().map(|d| d.id).collect();
+                let memberships = DogMemberEntity::find()
+                    .filter(dog_members::Column::UserId.eq(user_id))
+                    .filter(dog_members::Column::DogId.is_in(dog_ids))
+                    .all(&state.db)
+                    .await
+                    .map_err(|e| AppError::Database(e).into_graphql_error())?;
+
                 let values: Vec<FieldValue> = dogs
                     .into_iter()
-                    .map(|d| FieldValue::owned_any(DogOutput::from(d)))
+                    .map(|d| {
+                        let role = memberships.iter()
+                            .find(|m| m.dog_id == d.id)
+                            .map(|m| m.role.clone());
+                        let mut output = DogOutput::from(d);
+                        output.role = role;
+                        FieldValue::owned_any(output)
+                    })
                     .collect();
                 Ok(Some(FieldValue::list(values)))
             })
@@ -554,6 +613,44 @@ pub fn dog_invitation_output_type() -> Object {
             FieldFuture::new(async move {
                 let inv = ctx.parent_value.try_downcast_ref::<DogInvitationOutput>()?;
                 Ok(Some(FieldValue::value(inv.expires_at.clone())))
+            })
+        }))
+}
+
+pub fn dog_member_output_type() -> Object {
+    Object::new("DogMemberOutput")
+        .field(Field::new("id", TypeRef::named_nn(TypeRef::STRING), |ctx| {
+            FieldFuture::new(async move {
+                let m = ctx.parent_value.try_downcast_ref::<DogMemberOutput>()?;
+                Ok(Some(FieldValue::value(m.id.to_string())))
+            })
+        }))
+        .field(Field::new("userId", TypeRef::named_nn(TypeRef::STRING), |ctx| {
+            FieldFuture::new(async move {
+                let m = ctx.parent_value.try_downcast_ref::<DogMemberOutput>()?;
+                Ok(Some(FieldValue::value(m.user_id.to_string())))
+            })
+        }))
+        .field(Field::new("role", TypeRef::named_nn(TypeRef::STRING), |ctx| {
+            FieldFuture::new(async move {
+                let m = ctx.parent_value.try_downcast_ref::<DogMemberOutput>()?;
+                Ok(Some(FieldValue::value(m.role.clone())))
+            })
+        }))
+        .field(Field::new("user", TypeRef::named("WalkerOutput"), |ctx| {
+            FieldFuture::new(async move {
+                let m = ctx.parent_value.try_downcast_ref::<DogMemberOutput>()?;
+                Ok(Some(FieldValue::owned_any(WalkerOutput {
+                    id: m.user_id,
+                    display_name: m.display_name.clone(),
+                    avatar_url: m.avatar_url.clone(),
+                })))
+            })
+        }))
+        .field(Field::new("createdAt", TypeRef::named_nn(TypeRef::STRING), |ctx| {
+            FieldFuture::new(async move {
+                let m = ctx.parent_value.try_downcast_ref::<DogMemberOutput>()?;
+                Ok(Some(FieldValue::value(m.created_at.clone())))
             })
         }))
 }

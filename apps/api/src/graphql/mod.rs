@@ -45,6 +45,7 @@ pub fn build_schema(state: Arc<AppState>) -> AppSchema {
         .register(custom_mutations::user_output_type())
         .register(custom_mutations::presigned_url_type())
         .register(custom_mutations::dog_invitation_output_type())
+        .register(custom_mutations::dog_member_output_type())
         .register(custom_mutations::sign_up_output_type())
         .register(custom_mutations::sign_in_output_type())
         // Mutation input types

@@ -113,7 +113,10 @@
     "detail": {
       "title": "散歩詳細",
       "route": "ルート",
-      "dogs": "犬"
+      "dogs": "犬",
+      "startTime": "開始",
+      "endTime": "終了",
+      "timeSeparator": " - "
     },
     "permission": {
       "title": "位置情報の許可が必要です",

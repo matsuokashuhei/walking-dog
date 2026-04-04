@@ -7,6 +7,7 @@ export const meKeys = {
 export const dogKeys = {
   all: ['dogs'] as const,
   detail: (id: string, period: StatsPeriod) => ['dogs', id, period] as const,
+  members: (id: string) => ['dogs', id, 'members'] as const,
 };
 
 export const walkKeys = {

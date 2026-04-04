@@ -92,6 +92,37 @@ export const GENERATE_DOG_PHOTO_UPLOAD_URL_MUTATION = gql`
   }
 `;
 
+export const GENERATE_DOG_INVITATION_MUTATION = gql`
+  mutation GenerateDogInvitation($dogId: ID!) {
+    generateDogInvitation(dogId: $dogId) {
+      id
+      token
+      expiresAt
+    }
+  }
+`;
+
+export const ACCEPT_DOG_INVITATION_MUTATION = gql`
+  mutation AcceptDogInvitation($token: String!) {
+    acceptDogInvitation(token: $token) {
+      id
+      name
+    }
+  }
+`;
+
+export const REMOVE_DOG_MEMBER_MUTATION = gql`
+  mutation RemoveDogMember($dogId: ID!, $userId: ID!) {
+    removeDogMember(dogId: $dogId, userId: $userId)
+  }
+`;
+
+export const LEAVE_DOG_MUTATION = gql`
+  mutation LeaveDog($dogId: ID!) {
+    leaveDog(dogId: $dogId)
+  }
+`;
+
 export const START_WALK_MUTATION = gql`
   mutation StartWalk($dogIds: [ID!]!) {
     startWalk(dogIds: $dogIds) {

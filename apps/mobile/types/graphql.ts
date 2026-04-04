@@ -1,5 +1,6 @@
 export type WalkStatus = 'ACTIVE' | 'FINISHED';
 export type StatsPeriod = 'WEEK' | 'MONTH' | 'YEAR' | 'ALL';
+export type DogMemberRole = 'owner' | 'member';
 
 export interface BirthDate {
   year: number | null;
@@ -29,13 +30,40 @@ export interface Dog {
   createdAt: string;
 }
 
+export interface DogMemberUser {
+  displayName: string | null;
+  avatarUrl: string | null;
+}
+
+export interface DogMember {
+  id: string;
+  userId: string;
+  role: DogMemberRole;
+  user: DogMemberUser;
+  createdAt: string;
+}
+
+export interface DogInvitation {
+  id: string;
+  token: string;
+  expiresAt: string;
+}
+
+export interface Walker {
+  id: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+}
+
 export interface DogWithStats extends Dog {
   walkStats: WalkStats | null;
+  members?: DogMember[];
 }
 
 export interface Walk {
   id: string;
   dogs: Dog[];
+  walker?: Walker;
   status: WalkStatus;
   distanceM: number | null;
   durationSec: number | null;
@@ -98,6 +126,10 @@ export interface CreateDogResponse { createDog: Dog; }
 export interface UpdateDogResponse { updateDog: Dog; }
 export interface DeleteDogResponse { deleteDog: boolean; }
 export interface GenerateDogPhotoUploadUrlResponse { generateDogPhotoUploadUrl: PresignedUrl; }
+export interface GenerateDogInvitationResponse { generateDogInvitation: DogInvitation; }
+export interface AcceptDogInvitationResponse { acceptDogInvitation: Dog; }
+export interface RemoveDogMemberResponse { removeDogMember: boolean; }
+export interface LeaveDogResponse { leaveDog: boolean; }
 export interface StartWalkResponse { startWalk: Walk; }
 export interface AddWalkPointsResponse { addWalkPoints: boolean; }
 export interface FinishWalkResponse { finishWalk: Walk; }

@@ -27,6 +27,7 @@ export interface Dog {
   gender: string | null;
   birthDate: BirthDate | null;
   photoUrl: string | null;
+  role?: DogMemberRole;
   createdAt: string;
 }
 

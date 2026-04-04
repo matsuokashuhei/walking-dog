@@ -13,6 +13,7 @@ export const ME_QUERY = gql`
         gender
         birthDate { year month day }
         photoUrl
+        role
         createdAt
       }
       createdAt

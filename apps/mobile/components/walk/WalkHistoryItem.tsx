@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
@@ -22,6 +23,9 @@ export function WalkHistoryItem({ walk }: WalkHistoryItemProps) {
   const distanceKm = walk.distanceM ? (walk.distanceM / 1000).toFixed(1) : '0';
   const dogNames = walk.dogs.map((d) => d.name).join(', ');
 
+  const walker = walk.walker;
+  const walkerInitial = walker?.displayName?.charAt(0)?.toUpperCase() ?? '?';
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -30,8 +34,35 @@ export function WalkHistoryItem({ walk }: WalkHistoryItemProps) {
       style={[styles.container, { backgroundColor: colors.card }]}
     >
       <View style={styles.header}>
-        <Text style={[styles.date, { color: colors.text }]}>{dateStr}</Text>
-        <Text style={[styles.dogs, { color: colors.textSecondary }]}>{dogNames}</Text>
+        <View style={styles.headerLeft}>
+          <Text style={[styles.date, { color: colors.text }]}>{dateStr}</Text>
+          <Text style={[styles.dogs, { color: colors.textSecondary }]}>{dogNames}</Text>
+        </View>
+        {walker ? (
+          <View style={styles.walkerRow}>
+            {walker.avatarUrl ? (
+              <Image
+                source={{ uri: walker.avatarUrl }}
+                style={styles.walkerAvatar}
+                contentFit="cover"
+                cachePolicy="memory-disk"
+                accessibilityLabel={walker.displayName ?? ''}
+              />
+            ) : (
+              <View
+                style={[styles.walkerAvatar, styles.walkerInitialBg, { backgroundColor: colors.primary }]}
+              >
+                <Text style={styles.walkerInitialText}>{walkerInitial}</Text>
+              </View>
+            )}
+            <Text
+              testID="walker-name"
+              style={[styles.walkerName, { color: colors.textSecondary }]}
+            >
+              {walker.displayName}
+            </Text>
+          </View>
+        ) : null}
       </View>
       <View style={styles.stats}>
         <Text style={[styles.stat, { color: colors.text }]}>
@@ -52,8 +83,14 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  headerLeft: { flex: 1 },
   date: { ...typography.bodyMedium },
   dogs: { ...typography.caption },
+  walkerRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  walkerAvatar: { width: 24, height: 24, borderRadius: radius.full },
+  walkerInitialBg: { alignItems: 'center', justifyContent: 'center' },
+  walkerInitialText: { color: '#FFFFFF', fontSize: 12, fontWeight: '600' as const },
+  walkerName: { ...typography.caption },
   stats: { flexDirection: 'row', gap: spacing.lg, marginTop: spacing.sm },
   stat: { ...typography.body },
 });

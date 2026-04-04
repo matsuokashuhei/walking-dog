@@ -58,7 +58,27 @@
       "delete": "削除",
       "deleteTitle": "犬を削除",
       "deleteConfirm": "{{name}}を削除しますか？この操作は取り消せません。",
-      "deleteError": "犬の削除に失敗しました。もう一度お試しください。"
+      "deleteError": "犬の削除に失敗しました。もう一度お試しください。",
+      "members": "メンバー",
+      "membersCount": "{{count}}人のメンバー",
+      "manageMembers": "メンバー管理"
+    },
+    "members": {
+      "title": "メンバー",
+      "role": {
+        "owner": "オーナー",
+        "member": "メンバー"
+      },
+      "invite": "招待",
+      "inviteError": "招待の生成に失敗しました",
+      "remove": "除外",
+      "removeTitle": "メンバーを除外",
+      "removeConfirm": "{{name}}をこのグループから除外しますか？",
+      "removeError": "メンバーの除外に失敗しました",
+      "leave": "グループを離れる",
+      "leaveTitle": "グループを離れる",
+      "leaveConfirm": "{{name}}のグループを離れますか？この犬は表示されなくなります。",
+      "leaveError": "グループの離脱に失敗しました"
     },
     "edit": {
       "title": "犬のプロフィールを編集",
@@ -114,6 +134,7 @@
       "title": "散歩詳細",
       "route": "ルート",
       "dogs": "犬",
+      "walker": "散歩した人",
       "startTime": "開始",
       "endTime": "終了",
       "timeSeparator": " - "
@@ -128,6 +149,20 @@
       "finishFailed": "散歩の保存に失敗しました。もう一度お試しください。",
       "retry": "再試行"
     }
+  },
+  "invite": {
+    "accepting": "招待を承諾中...",
+    "success": "{{name}}に参加しました！",
+    "goToDog": "犬を見る",
+    "error": {
+      "expired": "この招待は期限切れです",
+      "used": "この招待は既に使用されています",
+      "generic": "招待の承諾に失敗しました"
+    },
+    "loginRequired": "招待を承諾するにはログインしてください"
+  },
+  "shared": {
+    "badge": "共有"
   },
   "settings": {
     "title": "設定",

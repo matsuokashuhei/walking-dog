@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import * as SecureStore from 'expo-secure-store';
 import AcceptInviteScreen from '../[token]';
 
 const mockReplace = jest.fn();
@@ -24,9 +25,10 @@ jest.mock('@/hooks/use-accept-invitation', () => ({
   }),
 }));
 
+let mockIsAuthenticated = true;
 jest.mock('@/stores/auth-store', () => ({
   useAuthStore: (selector: (s: { isAuthenticated: boolean }) => unknown) =>
-    selector({ isAuthenticated: true }),
+    selector({ isAuthenticated: mockIsAuthenticated }),
 }));
 
 function renderWithProviders(ui: React.ReactElement) {
@@ -99,6 +101,32 @@ describe('AcceptInviteScreen', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Failed to accept invitation')).toBeTruthy();
+    });
+  });
+
+  describe('when user is not authenticated', () => {
+    beforeEach(() => {
+      mockIsAuthenticated = false;
+      (SecureStore.setItemAsync as jest.Mock).mockResolvedValue(undefined);
+    });
+
+    afterEach(() => {
+      mockIsAuthenticated = true;
+    });
+
+    it('saves the pending invite token and redirects to login', async () => {
+      renderWithProviders(<AcceptInviteScreen />);
+
+      await waitFor(() => {
+        expect(SecureStore.setItemAsync).toHaveBeenCalledWith(
+          'pending_invite_token',
+          'test-token',
+        );
+      });
+
+      await waitFor(() => {
+        expect(mockReplace).toHaveBeenCalledWith('/(auth)/login');
+      });
     });
   });
 });

@@ -55,9 +55,21 @@ services:
       - cognito-local
 
 
+  mobile:
+    build:
+      context: ./mobile
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./mobile:/app
+      - mobile_node_modules:/app/node_modules
+    working_dir: /app
+    stdin_open: true
+    tty: true
+
 volumes:
   postgres_data:
   dynamodb_data:
   localstack_data:
   cargo_cache:
   target_cache:
+  mobile_node_modules:

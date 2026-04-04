@@ -6,6 +6,7 @@ jest.mock('expo-router', () => ({
 }));
 
 jest.mock('react-native-maps', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { View } = require('react-native');
   const MockMapView = (props: Record<string, unknown>) => <View {...props} />;
   const MockPolyline = (props: Record<string, unknown>) => <View {...props} />;
@@ -27,6 +28,7 @@ jest.mock('@/hooks/use-walks', () => ({
   useWalk: (...args: unknown[]) => mockUseWalk(...args),
 }));
 
+// eslint-disable-next-line import/first
 import WalkDetailScreen from '../[id]';
 
 const baseWalk = {

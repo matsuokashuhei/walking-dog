@@ -4,7 +4,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
-import { spacing, radius, typography } from '@/theme/tokens';
+import { spacing, typography } from '@/theme/tokens';
 import { useWalk } from '@/hooks/use-walks';
 import { formatClockTime } from '@/lib/walk/format';
 

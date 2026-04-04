@@ -113,7 +113,10 @@
     "detail": {
       "title": "Walk Detail",
       "route": "Route",
-      "dogs": "Dogs"
+      "dogs": "Dogs",
+      "startTime": "Start",
+      "endTime": "End",
+      "timeSeparator": " - "
     },
     "permission": {
       "title": "Location Permission Required",

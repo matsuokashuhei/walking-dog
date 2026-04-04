@@ -4,8 +4,9 @@ import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
-import { spacing, radius, typography } from '@/theme/tokens';
+import { spacing, typography } from '@/theme/tokens';
 import { useWalk } from '@/hooks/use-walks';
+import { formatClockTime } from '@/lib/walk/format';
 
 export default function WalkDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -27,6 +28,12 @@ export default function WalkDetailScreen() {
   const distanceKm = walk.distanceM ? (walk.distanceM / 1000).toFixed(2) : '0';
   const date = new Date(walk.startedAt).toLocaleDateString();
   const dogNames = walk.dogs.map((d) => d.name).join(', ');
+  const startTime = formatClockTime(walk.startedAt);
+  const endTime = walk.endedAt ? formatClockTime(walk.endedAt) : null;
+  const separator = t('walk.detail.timeSeparator');
+  const timeLabel = endTime
+    ? `${t('walk.detail.startTime')} ${startTime}${separator}${t('walk.detail.endTime')} ${endTime}`
+    : `${t('walk.detail.startTime')} ${startTime}`;
 
   const midpoint = coordinates.length > 0
     ? coordinates[Math.floor(coordinates.length / 2)]
@@ -51,6 +58,14 @@ export default function WalkDetailScreen() {
       <View style={styles.info}>
         <Text style={[styles.date, { color: colors.text }]}>{date}</Text>
         <Text style={[styles.dogs, { color: colors.textSecondary }]}>{dogNames}</Text>
+        <Text
+          testID="walk-time"
+          style={[styles.time, { color: colors.textSecondary }]}
+          accessibilityLabel={timeLabel}
+        >
+          {startTime}
+          {endTime ? `${separator}${endTime}` : null}
+        </Text>
 
         <View style={styles.stats}>
           <View style={styles.stat}>
@@ -82,6 +97,7 @@ const styles = StyleSheet.create({
   info: { padding: spacing.lg },
   date: { ...typography.h3 },
   dogs: { ...typography.body, marginTop: spacing.xs },
+  time: { ...typography.body, marginTop: spacing.xs },
   stats: { flexDirection: 'row', gap: spacing.xl, marginTop: spacing.lg },
   stat: { alignItems: 'center' },
   statValue: { ...typography.h3 },

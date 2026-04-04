@@ -1,9 +1,9 @@
 ---
-name: dev-env
+name: aws-dev-env
 description: Start or stop the AWS dev environment (RDS, ECS, ALB, Route53). Use when the user says "start", "stop", "起動", "停止", or asks about the dev server status.
 ---
 
-# Dev Environment Control
+# AWS Dev Environment Control
 
 AWS dev 環境（RDS, ALB, ECS Service, Route53）を起動・停止する。
 Lambda `walking-dog-dev-scheduler` を呼び出して制御する。

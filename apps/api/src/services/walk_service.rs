@@ -116,14 +116,36 @@ pub async fn get_walk_stats(
     Ok(WalkStats { total_walks, total_distance_m, total_duration_sec })
 }
 
-pub async fn get_walks_by_user_id(
+/// Get walks for a user. Returns walks the user recorded (walks.user_id)
+/// plus walks by other members of the user's shared dogs.
+pub async fn get_walks_for_user(
     db: &sea_orm::DatabaseConnection,
     user_id: Uuid,
     limit: Option<u64>,
     offset: Option<u64>,
 ) -> Result<Vec<WalkModel>, AppError> {
+    use crate::entities::dog_members::{self, Entity as DogMemberEntity};
+
+    // Find all dog IDs the user is a member of
+    let dog_ids: Vec<Uuid> = DogMemberEntity::find()
+        .filter(dog_members::Column::UserId.eq(user_id))
+        .select_only()
+        .column(dog_members::Column::DogId)
+        .into_tuple()
+        .all(db)
+        .await?;
+
+    // Find all walk IDs for those dogs
+    let walk_ids: Vec<Uuid> = WalkDogEntity::find()
+        .filter(walk_dogs::Column::DogId.is_in(dog_ids))
+        .select_only()
+        .column(walk_dogs::Column::WalkId)
+        .into_tuple()
+        .all(db)
+        .await?;
+
     let mut query = WalkEntity::find()
-        .filter(walks::Column::UserId.eq(user_id))
+        .filter(walks::Column::Id.is_in(walk_ids))
         .order_by_desc(walks::Column::StartedAt);
 
     if let Some(o) = offset {
@@ -135,4 +157,14 @@ pub async fn get_walks_by_user_id(
 
     let walks = query.all(db).await?;
     Ok(walks)
+}
+
+/// Legacy compatibility: get walks by user_id directly.
+pub async fn get_walks_by_user_id(
+    db: &sea_orm::DatabaseConnection,
+    user_id: Uuid,
+    limit: Option<u64>,
+    offset: Option<u64>,
+) -> Result<Vec<WalkModel>, AppError> {
+    get_walks_for_user(db, user_id, limit, offset).await
 }

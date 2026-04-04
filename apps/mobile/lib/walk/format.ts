@@ -10,3 +10,8 @@ export function formatDistance(meters: number): string {
   if (meters < 1000) return `${Math.round(meters)} m`;
   return `${(meters / 1000).toFixed(2)} km`;
 }
+
+export function formatClockTime(isoString: string, locale?: string): string {
+  const date = new Date(isoString);
+  return date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+}

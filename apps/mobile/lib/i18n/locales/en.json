@@ -157,7 +157,10 @@
     "error": {
       "expired": "This invitation has expired",
       "used": "This invitation has already been used",
-      "generic": "Failed to accept invitation"
+      "alreadyUsed": "This invitation has already been used",
+      "alreadyMember": "You are already a member of this group",
+      "generic": "Failed to accept invitation",
+      "saveFailed": "Failed to save invitation. Please try again."
     },
     "loginRequired": "Please log in to accept this invitation"
   },

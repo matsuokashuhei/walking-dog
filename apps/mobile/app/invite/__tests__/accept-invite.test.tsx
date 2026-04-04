@@ -58,8 +58,43 @@ describe('AcceptInviteScreen', () => {
     });
   });
 
-  it('shows error state on failure', async () => {
-    mockMutateAsync.mockRejectedValue(new Error('expired'));
+  it('shows expired error when API returns expired message', async () => {
+    mockMutateAsync.mockRejectedValue(new Error('Invitation has expired'));
+    renderWithProviders(<AcceptInviteScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByText('This invitation has expired')).toBeTruthy();
+    });
+  });
+
+  it('shows already used error when API returns already used message', async () => {
+    mockMutateAsync.mockRejectedValue(
+      new Error('Invitation has already been used'),
+    );
+    renderWithProviders(<AcceptInviteScreen />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('This invitation has already been used'),
+      ).toBeTruthy();
+    });
+  });
+
+  it('shows already member error when API returns member message', async () => {
+    mockMutateAsync.mockRejectedValue(
+      new Error('User is already a member'),
+    );
+    renderWithProviders(<AcceptInviteScreen />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('You are already a member of this group'),
+      ).toBeTruthy();
+    });
+  });
+
+  it('shows generic error on unknown failure', async () => {
+    mockMutateAsync.mockRejectedValue(new Error('unknown error'));
     renderWithProviders(<AcceptInviteScreen />);
 
     await waitFor(() => {

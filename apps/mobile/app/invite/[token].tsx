@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
-import { Platform } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
 import { spacing, typography } from '@/theme/tokens';
 import { useAuthStore } from '@/stores/auth-store';
 import { useAcceptInvitation } from '@/hooks/use-accept-invitation';
+import { extractGraphQLErrorMessage } from '@/lib/graphql/errors';
 import { Button } from '@/components/ui/Button';
 
 const PENDING_INVITE_KEY = 'pending_invite_token';
@@ -38,6 +38,19 @@ export async function deletePendingInviteToken(): Promise<void> {
   await SecureStore.deleteItemAsync(PENDING_INVITE_KEY);
 }
 
+function mapInviteErrorMessage(
+  errorMsg: string | null,
+  t: (key: string) => string,
+): string {
+  if (errorMsg) {
+    const lower = errorMsg.toLowerCase();
+    if (lower.includes('expired')) return t('invite.error.expired');
+    if (lower.includes('already been used')) return t('invite.error.alreadyUsed');
+    if (lower.includes('already a member')) return t('invite.error.alreadyMember');
+  }
+  return t('invite.error.generic');
+}
+
 export default function AcceptInviteScreen() {
   const { token } = useLocalSearchParams<{ token: string }>();
   const { t } = useTranslation();
@@ -55,9 +68,14 @@ export default function AcceptInviteScreen() {
     if (!token) return;
 
     if (!isAuthenticated) {
-      savePendingInviteToken(token).then(() => {
-        router.replace('/(auth)/login' as never);
-      });
+      savePendingInviteToken(token)
+        .then(() => {
+          router.replace('/(auth)/login' as never);
+        })
+        .catch(() => {
+          setErrorMessage(t('invite.error.saveFailed'));
+          setStatus('error');
+        });
       return;
     }
 
@@ -67,8 +85,9 @@ export default function AcceptInviteScreen() {
         setDogName(dog.name);
         setStatus('success');
       })
-      .catch(() => {
-        setErrorMessage(t('invite.error.generic'));
+      .catch((error: unknown) => {
+        const msg = extractGraphQLErrorMessage(error);
+        setErrorMessage(mapInviteErrorMessage(msg, t));
         setStatus('error');
       });
   }, [token, isAuthenticated]);

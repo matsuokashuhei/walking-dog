@@ -35,6 +35,7 @@
       "description": "{{email}} に確認コードを送りました",
       "code": "確認コード",
       "submit": "確認",
+      "resend": "コードを再送する",
       "error": {
         "invalidCode": "確認コードが正しくありません",
         "expiredCode": "確認コードの有効期限が切れています",

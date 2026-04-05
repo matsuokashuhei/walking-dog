@@ -35,6 +35,7 @@
       "description": "We sent a confirmation code to {{email}}",
       "code": "Confirmation Code",
       "submit": "Confirm",
+      "resend": "Resend Code",
       "error": {
         "invalidCode": "Invalid confirmation code",
         "expiredCode": "Confirmation code has expired",

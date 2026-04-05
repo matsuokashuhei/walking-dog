@@ -1,13 +1,15 @@
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, Set, TransactionTrait,
+    ActiveModelTrait, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, Set,
+    TransactionTrait,
 };
 use uuid::Uuid;
 use crate::entities::{
-    dogs::{self, ActiveModel, Entity as DogEntity, Model as DogModel},
+    dogs::{ActiveModel, Entity as DogEntity, Model as DogModel},
     walk_dogs::{self, Entity as WalkDogEntity},
     walks::Entity as WalkEntity,
 };
 use crate::error::AppError;
+use crate::services::dog_member_service;
 
 pub async fn create_dog(
     db: &sea_orm::DatabaseConnection,
@@ -17,24 +19,28 @@ pub async fn create_dog(
     gender: Option<String>,
     birth_date: Option<serde_json::Value>,
 ) -> Result<DogModel, AppError> {
-    let model = ActiveModel {
+    let txn = db.begin().await?;
+
+    let dog = ActiveModel {
         id: Set(Uuid::new_v4()),
-        user_id: Set(user_id),
         name: Set(name),
         breed: Set(breed),
         gender: Set(gender),
         birth_date: Set(birth_date),
         ..Default::default()
     }
-    .insert(db)
+    .insert(&txn)
     .await?;
-    Ok(model)
+
+    dog_member_service::add_member(&txn, dog.id, user_id, "owner").await?;
+
+    txn.commit().await?;
+    Ok(dog)
 }
 
 pub async fn update_dog(
     db: &sea_orm::DatabaseConnection,
     dog_id: Uuid,
-    user_id: Uuid,
     name: Option<String>,
     breed: Option<String>,
     gender: Option<String>,
@@ -42,7 +48,6 @@ pub async fn update_dog(
     photo_url: Option<String>,
 ) -> Result<DogModel, AppError> {
     let model = DogEntity::find_by_id(dog_id)
-        .filter(dogs::Column::UserId.eq(user_id))
         .one(db)
         .await?
         .ok_or_else(|| AppError::NotFound(format!("Dog {} not found", dog_id)))?;
@@ -71,37 +76,29 @@ pub async fn get_dogs_by_user_id(
     db: &sea_orm::DatabaseConnection,
     user_id: Uuid,
 ) -> Result<Vec<DogModel>, AppError> {
-    DogEntity::find()
-        .filter(dogs::Column::UserId.eq(user_id))
-        .all(db)
-        .await
-        .map_err(AppError::Database)
+    dog_member_service::get_dogs_by_member(db, user_id).await
 }
 
 pub async fn get_dog_by_id(
     db: &sea_orm::DatabaseConnection,
     dog_id: Uuid,
-    user_id: Uuid,
 ) -> Result<Option<DogModel>, AppError> {
     DogEntity::find_by_id(dog_id)
-        .filter(dogs::Column::UserId.eq(user_id))
         .one(db)
         .await
         .map_err(AppError::Database)
 }
 
-/// Delete a dog owned by the given user.
+/// Delete a dog. Only the owner should call this (authorization checked at GraphQL layer).
 /// ON DELETE CASCADE on walk_dogs removes related walk_dogs rows automatically.
 /// Walks with no remaining dogs are also deleted inside the transaction.
 pub async fn delete_dog(
     db: &sea_orm::DatabaseConnection,
     dog_id: Uuid,
-    user_id: Uuid,
 ) -> Result<bool, AppError> {
     let txn = db.begin().await?;
 
     let dog = DogEntity::find_by_id(dog_id)
-        .filter(dogs::Column::UserId.eq(user_id))
         .one(&txn)
         .await?
         .ok_or_else(|| AppError::NotFound(format!("Dog {} not found", dog_id)))?;
@@ -114,7 +111,7 @@ pub async fn delete_dog(
 
     let walk_ids: Vec<Uuid> = walk_dog_records.iter().map(|wd| wd.walk_id).collect();
 
-    // Delete the dog (ON DELETE CASCADE removes walk_dogs rows too)
+    // Delete the dog (ON DELETE CASCADE removes walk_dogs and dog_members rows too)
     DogEntity::delete_by_id(dog.id).exec(&txn).await?;
 
     // Delete walks that now have no participating dogs

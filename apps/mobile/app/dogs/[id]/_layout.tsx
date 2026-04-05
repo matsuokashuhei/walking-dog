@@ -30,6 +30,7 @@ export default function DogDetailLayout() {
         }}
       />
       <Stack.Screen name="edit" options={{ title: t('dogs.edit.title') }} />
+      <Stack.Screen name="members" options={{ title: t('dogs.members.title') }} />
     </Stack>
   );
 }

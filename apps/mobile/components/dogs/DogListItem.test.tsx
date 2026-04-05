@@ -29,4 +29,28 @@ describe('DogListItem', () => {
     fireEvent.press(screen.getByRole('button', { name: 'Pochi' }));
     expect(onPress).toHaveBeenCalledWith('dog-1');
   });
+
+  it('shows shared badge when role is member', () => {
+    const sharedDog: Dog = { ...mockDog, role: 'member' };
+    render(<DogListItem dog={sharedDog} onPress={jest.fn()} />);
+    expect(screen.getByText('Shared')).toBeTruthy();
+  });
+
+  it('does not show shared badge when role is owner', () => {
+    const ownedDog: Dog = { ...mockDog, role: 'owner' };
+    render(<DogListItem dog={ownedDog} onPress={jest.fn()} />);
+    expect(screen.queryByText('Shared')).toBeNull();
+  });
+
+  it('does not show shared badge when role is undefined', () => {
+    render(<DogListItem dog={mockDog} onPress={jest.fn()} />);
+    expect(screen.queryByText('Shared')).toBeNull();
+  });
+
+  it('renders without breed when breed is null', () => {
+    const dogNullBreed: Dog = { ...mockDog, breed: null };
+    render(<DogListItem dog={dogNullBreed} onPress={jest.fn()} />);
+    expect(screen.getByText('Pochi')).toBeTruthy();
+    expect(screen.queryByText('Shiba Inu')).toBeNull();
+  });
 });

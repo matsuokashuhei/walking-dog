@@ -1,9 +1,16 @@
 import { ClientError } from 'graphql-request';
-import { isNetworkError } from './errors';
+import { isNetworkError, extractGraphQLErrorMessage } from './errors';
 
 function makeClientError(status: number): ClientError {
   return new ClientError(
     { status, headers: new Headers(), errors: [] },
+    { query: '' },
+  );
+}
+
+function makeClientErrorWithMessage(message: string): ClientError {
+  return new ClientError(
+    { status: 200, headers: new Headers(), errors: [{ message }] },
     { query: '' },
   );
 }
@@ -37,5 +44,28 @@ describe('isNetworkError', () => {
     expect(isNetworkError('string')).toBe(false);
     expect(isNetworkError(null)).toBe(false);
     expect(isNetworkError(undefined)).toBe(false);
+  });
+});
+
+describe('extractGraphQLErrorMessage', () => {
+  it('extracts message from ClientError with GraphQL errors', () => {
+    const error = makeClientErrorWithMessage('Invitation has expired');
+    expect(extractGraphQLErrorMessage(error)).toBe('Invitation has expired');
+  });
+
+  it('returns error.message from ClientError without GraphQL errors', () => {
+    const error = makeClientError(500);
+    expect(extractGraphQLErrorMessage(error)).toBeTruthy();
+  });
+
+  it('returns message from standard Error', () => {
+    const error = new Error('Something went wrong');
+    expect(extractGraphQLErrorMessage(error)).toBe('Something went wrong');
+  });
+
+  it('returns null for non-error values', () => {
+    expect(extractGraphQLErrorMessage('string')).toBeNull();
+    expect(extractGraphQLErrorMessage(null)).toBeNull();
+    expect(extractGraphQLErrorMessage(undefined)).toBeNull();
   });
 });

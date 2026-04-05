@@ -1,10 +1,11 @@
 import { StyleSheet, Text, View, ActivityIndicator } from 'react-native';
 import MapView, { Polyline } from 'react-native-maps';
+import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
-import { spacing, typography } from '@/theme/tokens';
+import { spacing, radius, typography } from '@/theme/tokens';
 import { useWalk } from '@/hooks/use-walks';
 import { formatClockTime } from '@/lib/walk/format';
 
@@ -67,6 +68,40 @@ export default function WalkDetailScreen() {
           {endTime ? `${separator}${endTime}` : null}
         </Text>
 
+        {walk.walker ? (
+          <View style={styles.walkerSection}>
+            <Text style={[styles.walkerLabel, { color: colors.textSecondary }]}>
+              {t('walk.detail.walker')}
+            </Text>
+            <View style={styles.walkerRow}>
+              {walk.walker.avatarUrl ? (
+                <Image
+                  source={{ uri: walk.walker.avatarUrl }}
+                  style={styles.walkerAvatar}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                  accessibilityLabel={walk.walker.displayName ?? ''}
+                />
+              ) : (
+                <View
+                  style={[
+                    styles.walkerAvatar,
+                    styles.walkerInitialBg,
+                    { backgroundColor: colors.primary },
+                  ]}
+                >
+                  <Text style={styles.walkerInitialText}>
+                    {walk.walker.displayName?.charAt(0)?.toUpperCase() ?? '?'}
+                  </Text>
+                </View>
+              )}
+              <Text style={[styles.walkerName, { color: colors.text }]}>
+                {walk.walker.displayName}
+              </Text>
+            </View>
+          </View>
+        ) : null}
+
         <View style={styles.stats}>
           <View style={styles.stat}>
             <Text style={[styles.statValue, { color: colors.text }]}>
@@ -98,6 +133,13 @@ const styles = StyleSheet.create({
   date: { ...typography.h3 },
   dogs: { ...typography.body, marginTop: spacing.xs },
   time: { ...typography.body, marginTop: spacing.xs },
+  walkerSection: { marginTop: spacing.md },
+  walkerLabel: { ...typography.caption, marginBottom: spacing.xs },
+  walkerRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  walkerAvatar: { width: 32, height: 32, borderRadius: radius.full },
+  walkerInitialBg: { alignItems: 'center', justifyContent: 'center' },
+  walkerInitialText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' as const },
+  walkerName: { ...typography.bodyMedium },
   stats: { flexDirection: 'row', gap: spacing.xl, marginTop: spacing.lg },
   stat: { alignItems: 'center' },
   statValue: { ...typography.h3 },

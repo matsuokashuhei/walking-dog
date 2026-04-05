@@ -58,7 +58,27 @@
       "delete": "Delete",
       "deleteTitle": "Delete Dog",
       "deleteConfirm": "Delete {{name}}? This action cannot be undone.",
-      "deleteError": "Failed to delete dog. Please try again."
+      "deleteError": "Failed to delete dog. Please try again.",
+      "members": "Members",
+      "membersCount": "{{count}} members",
+      "manageMembers": "Manage Members"
+    },
+    "members": {
+      "title": "Members",
+      "role": {
+        "owner": "Owner",
+        "member": "Member"
+      },
+      "invite": "Invite",
+      "inviteError": "Failed to generate invitation",
+      "remove": "Remove",
+      "removeTitle": "Remove Member",
+      "removeConfirm": "Remove {{name}} from this dog group?",
+      "removeError": "Failed to remove member",
+      "leave": "Leave Group",
+      "leaveTitle": "Leave Group",
+      "leaveConfirm": "Leave {{name}} group? You will no longer see this dog.",
+      "leaveError": "Failed to leave group"
     },
     "edit": {
       "title": "Edit Dog Profile",
@@ -114,6 +134,7 @@
       "title": "Walk Detail",
       "route": "Route",
       "dogs": "Dogs",
+      "walker": "Walker",
       "startTime": "Start",
       "endTime": "End",
       "timeSeparator": " - "
@@ -128,6 +149,23 @@
       "finishFailed": "Failed to save walk. Please try again.",
       "retry": "Retry"
     }
+  },
+  "invite": {
+    "accepting": "Accepting invitation...",
+    "success": "You have joined {{name}}!",
+    "goToDog": "View Dog",
+    "error": {
+      "expired": "This invitation has expired",
+      "used": "This invitation has already been used",
+      "alreadyUsed": "This invitation has already been used",
+      "alreadyMember": "You are already a member of this group",
+      "generic": "Failed to accept invitation",
+      "saveFailed": "Failed to save invitation. Please try again."
+    },
+    "loginRequired": "Please log in to accept this invitation"
+  },
+  "shared": {
+    "badge": "Shared"
   },
   "settings": {
     "title": "Settings",

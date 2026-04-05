@@ -16,6 +16,12 @@ impl TestClient {
     pub fn get(&self, path: &str) -> reqwest::RequestBuilder {
         self.client.get(format!("{}{}", self.base_url, path))
     }
+
+    /// Get the base URL for this test client.
+    #[allow(dead_code)]
+    pub fn base_url(&self) -> &str {
+        &self.base_url
+    }
 }
 
 pub async fn test_client() -> TestClient {
@@ -61,4 +67,32 @@ pub async fn test_client() -> TestClient {
         client: reqwest::Client::new(),
         base_url: format!("http://{}", addr),
     }
+}
+
+/// Helper to make GraphQL requests as a specific user.
+/// In TEST_MODE, the Bearer token value is used as the cognito_sub.
+/// "test-token" maps to the default "test-user-cognito-sub" user.
+#[allow(dead_code)]
+pub struct UserToken(pub &'static str);
+
+#[allow(dead_code)]
+pub const USER_A: UserToken = UserToken("test-token");
+#[allow(dead_code)]
+pub const USER_B: UserToken = UserToken("test-user-b-cognito-sub");
+
+/// Helper to send a GraphQL request as a specific user.
+#[allow(dead_code)]
+pub async fn graphql_as(
+    client: &TestClient,
+    user: &UserToken,
+    query: &str,
+) -> serde_json::Value {
+    let res = client
+        .post("/graphql")
+        .header("Authorization", format!("Bearer {}", user.0))
+        .json(&serde_json::json!({ "query": query }))
+        .send()
+        .await
+        .unwrap();
+    res.json().await.unwrap()
 }

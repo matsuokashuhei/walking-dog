@@ -13,6 +13,7 @@ export const ME_QUERY = gql`
         gender
         birthDate { year month day }
         photoUrl
+        role
         createdAt
       }
       createdAt
@@ -35,6 +36,16 @@ export const DOG_QUERY = gql`
         totalDistanceM
         totalDurationSec
       }
+      members {
+        id
+        userId
+        role
+        user {
+          displayName
+          avatarUrl
+        }
+        createdAt
+      }
     }
   }
 `;
@@ -44,6 +55,7 @@ export const WALK_QUERY = gql`
     walk(id: $id) {
       id
       dogs { id name photoUrl }
+      walker { id displayName avatarUrl }
       status
       distanceM
       durationSec
@@ -59,6 +71,7 @@ export const MY_WALKS_QUERY = gql`
     myWalks(limit: $limit, offset: $offset) {
       id
       dogs { id name photoUrl }
+      walker { id displayName avatarUrl }
       status
       distanceM
       durationSec

@@ -181,11 +181,6 @@ export default function AcceptInviteScreen() {
         </Text>
       </Pressable>
 
-      {token ? (
-        <Text style={[styles.codeFooter, { color: theme.textDisabled }]}>
-          {`INVITATION CODE: ${token}`}
-        </Text>
-      ) : null}
     </View>
   );
 }
@@ -227,11 +222,6 @@ const styles = StyleSheet.create({
   },
   declineText: {
     ...typography.body,
-  },
-  codeFooter: {
-    ...typography.label,
-    textAlign: 'center',
-    marginTop: spacing.lg,
   },
   message: { ...typography.body, marginTop: spacing.lg },
   successText: { ...typography.h2, textAlign: 'center' },

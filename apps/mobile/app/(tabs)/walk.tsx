@@ -2,8 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { Alert, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
+import { useColors } from '@/hooks/use-colors';
 import { useWalkStore } from '@/stores/walk-store';
 import { useStartWalk, useFinishWalk, useAddWalkPoints } from '@/hooks/use-walk-mutations';
 import { requestPermission, startTracking } from '@/lib/walk/gps-tracker';
@@ -17,8 +16,7 @@ const MAX_POINTS_PER_BATCH = 200;
 
 export default function WalkScreen() {
   const { t } = useTranslation();
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const theme = useColors();
   const phase = useWalkStore((s) => s.phase);
   const walkId = useWalkStore((s) => s.walkId);
   const selectedDogIds = useWalkStore((s) => s.selectedDogIds);
@@ -83,7 +81,7 @@ export default function WalkScreen() {
   }, [walkId, addWalkPoints, finishWalk, finish, t]);
 
   return (
-    <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: theme.background }]}>
       {phase === 'ready' && (
         <DogSelector onStart={handleStart} isStarting={startWalk.isPending} />
       )}

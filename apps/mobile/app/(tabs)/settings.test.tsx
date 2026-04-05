@@ -28,12 +28,12 @@ jest.mock('@/components/ui/ErrorScreen', () => ({
   ErrorScreen: () => null,
 }));
 
-jest.mock('@/components/themed-text', () => ({
-  ThemedText: ({ children }: { children: React.ReactNode }) => {
-    const { Text } = require('react-native');
-    return <Text>{children}</Text>;
-  },
-}));
+jest.mock('@/components/themed-text', () => {
+  const { Text } = jest.requireActual('react-native');
+  return {
+    ThemedText: ({ children }: { children: React.ReactNode }) => <Text>{children}</Text>,
+  };
+});
 
 jest.mock('@/components/settings/ProfileSection', () => ({
   ProfileSection: () => null,

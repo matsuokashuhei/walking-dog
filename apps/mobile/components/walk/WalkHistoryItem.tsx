@@ -2,8 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
+import { useColors } from '@/hooks/use-colors';
 import { spacing, radius, typography } from '@/theme/tokens';
 import type { Walk } from '@/types/graphql';
 
@@ -14,8 +13,7 @@ interface WalkHistoryItemProps {
 export function WalkHistoryItem({ walk }: WalkHistoryItemProps) {
   const { t } = useTranslation();
   const router = useRouter();
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const theme = useColors();
 
   const date = new Date(walk.startedAt);
   const dateStr = date.toLocaleDateString();
@@ -31,12 +29,18 @@ export function WalkHistoryItem({ walk }: WalkHistoryItemProps) {
       accessibilityRole="button"
       accessibilityLabel={`${dateStr} ${dogNames}`}
       onPress={() => router.push(`/walks/${walk.id}`)}
-      style={[styles.container, { backgroundColor: colors.card }]}
+      style={[
+        styles.container,
+        {
+          backgroundColor: theme.surfaceContainerLowest,
+          borderColor: theme.border + '33',
+        },
+      ]}
     >
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={[styles.date, { color: colors.text }]}>{dateStr}</Text>
-          <Text style={[styles.dogs, { color: colors.textSecondary }]}>{dogNames}</Text>
+          <Text style={[styles.date, { color: theme.onSurfaceVariant }]}>{dateStr}</Text>
+          <Text style={[styles.dogs, { color: theme.onSurfaceVariant }]}>{dogNames}</Text>
         </View>
         {walker ? (
           <View style={styles.walkerRow}>
@@ -50,14 +54,16 @@ export function WalkHistoryItem({ walk }: WalkHistoryItemProps) {
               />
             ) : (
               <View
-                style={[styles.walkerAvatar, styles.walkerInitialBg, { backgroundColor: colors.primary }]}
+                style={[styles.walkerAvatar, styles.walkerInitialBg, { backgroundColor: theme.interactive }]}
               >
-                <Text style={styles.walkerInitialText}>{walkerInitial}</Text>
+                <Text style={[styles.walkerInitialText, { color: theme.onInteractive }]}>
+                  {walkerInitial}
+                </Text>
               </View>
             )}
             <Text
               testID="walker-name"
-              style={[styles.walkerName, { color: colors.textSecondary }]}
+              style={[styles.walkerName, { color: theme.onSurfaceVariant }]}
             >
               {walker.displayName}
             </Text>
@@ -65,10 +71,10 @@ export function WalkHistoryItem({ walk }: WalkHistoryItemProps) {
         ) : null}
       </View>
       <View style={styles.stats}>
-        <Text style={[styles.stat, { color: colors.text }]}>
+        <Text style={[styles.stat, { color: theme.onSurface }]}>
           {t('walk.history.minutes', { count: durationMin })}
         </Text>
-        <Text style={[styles.stat, { color: colors.text }]}>
+        <Text style={[styles.distanceStat, { color: theme.onSurface }]}>
           {t('walk.history.km', { value: distanceKm })}
         </Text>
       </View>
@@ -79,18 +85,20 @@ export function WalkHistoryItem({ walk }: WalkHistoryItemProps) {
 const styles = StyleSheet.create({
   container: {
     padding: spacing.md,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
+    borderWidth: 1,
     marginBottom: spacing.sm,
   },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   headerLeft: { flex: 1 },
-  date: { ...typography.bodyMedium },
-  dogs: { ...typography.caption },
+  date: { ...typography.label },
+  dogs: { ...typography.caption, marginTop: spacing.xs },
   walkerRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   walkerAvatar: { width: 24, height: 24, borderRadius: radius.full },
   walkerInitialBg: { alignItems: 'center', justifyContent: 'center' },
-  walkerInitialText: { color: '#FFFFFF', fontSize: 12, fontWeight: '600' as const },
+  walkerInitialText: { fontSize: 12, fontWeight: '600' as const },
   walkerName: { ...typography.caption },
   stats: { flexDirection: 'row', gap: spacing.lg, marginTop: spacing.sm },
   stat: { ...typography.body },
+  distanceStat: { ...typography.h3 },
 });

@@ -46,6 +46,7 @@
   "dogs": {
     "list": {
       "title": "My Dogs",
+      "sectionLabel": "YOUR PACK",
       "empty": "No dogs registered yet",
       "addDog": "Add Dog"
     },
@@ -125,6 +126,10 @@
       "walkAgain": "Walk Again",
       "saving": "Saving walk data..."
     },
+    "home": {
+      "hero": "Ready for the morning run?",
+      "startWalk": "Start Walk →"
+    },
     "history": {
       "title": "Recent Walks",
       "empty": "No walks yet. Start your first walk!",
@@ -170,6 +175,7 @@
   },
   "settings": {
     "title": "Settings",
+    "sectionLabel": "PREFERENCES",
     "profile": "Profile",
     "displayName": "Display Name",
     "edit": "Edit",

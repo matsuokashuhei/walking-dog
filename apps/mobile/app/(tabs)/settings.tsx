@@ -1,13 +1,11 @@
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
+import { useColors } from '@/hooks/use-colors';
 import { spacing, typography } from '@/theme/tokens';
 import { useMe } from '@/hooks/use-me';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { ErrorScreen } from '@/components/ui/ErrorScreen';
-import { ThemedText } from '@/components/themed-text';
 import { ProfileSection } from '@/components/settings/ProfileSection';
 import { DogListSection } from '@/components/settings/DogListSection';
 import { AppearanceSection } from '@/components/settings/AppearanceSection';
@@ -16,8 +14,7 @@ import Constants from 'expo-constants';
 
 export default function SettingsScreen() {
   const { t } = useTranslation();
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const theme = useColors();
   const { data: me, isLoading, error, refetch } = useMe();
 
   if (isLoading) return <LoadingScreen />;
@@ -28,14 +25,17 @@ export default function SettingsScreen() {
   const apiUrl = Constants.expoConfig?.extra?.apiUrl as string | undefined;
 
   return (
-    <SafeAreaView edges={['top']} style={[styles.safeArea, { backgroundColor: colors.background }]}>
+    <SafeAreaView edges={['top']} style={[styles.safeArea, { backgroundColor: theme.background }]}>
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.content}
       >
-        <ThemedText variant="h1" style={styles.title}>
+        <Text style={[styles.sectionLabel, { color: theme.onSurfaceVariant }]}>
+          {t('settings.sectionLabel')}
+        </Text>
+        <Text style={[styles.heroTitle, { color: theme.onSurface }]}>
           {t('settings.title')}
-        </ThemedText>
+        </Text>
 
         <ProfileSection displayName={me.displayName} />
         <DogListSection dogs={me.dogs} />
@@ -43,11 +43,11 @@ export default function SettingsScreen() {
 
         <LogoutButton />
 
-        <Text style={[styles.version, { color: colors.textSecondary }]}>
+        <Text style={[styles.version, { color: theme.onSurfaceVariant }]}>
           {t('settings.version', { version: appVersion })}
         </Text>
         {appEnv && appEnv !== 'production' && (
-          <Text style={[styles.version, { color: colors.textSecondary }]}>
+          <Text style={[styles.version, { color: theme.onSurfaceVariant }]}>
             {appEnv} — {apiUrl}
           </Text>
         )}
@@ -63,7 +63,15 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     paddingBottom: spacing.xxl,
   },
-  title: {
+  sectionLabel: {
+    ...typography.label,
+    marginBottom: spacing.xs,
+  },
+  heroTitle: {
+    fontSize: 40,
+    fontWeight: '900',
+    letterSpacing: -0.8,
+    lineHeight: 44,
     marginBottom: spacing.lg,
   },
   version: {

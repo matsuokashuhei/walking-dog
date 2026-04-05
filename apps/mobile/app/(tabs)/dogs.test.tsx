@@ -22,12 +22,12 @@ jest.mock('@/hooks/use-me', () => ({
   }),
 }));
 
-jest.mock('@/components/dogs/DogListItem', () => ({
-  DogListItem: ({ dog }: { dog: { name: string } }) => {
-    const { Text } = require('react-native');
-    return <Text>{dog.name}</Text>;
-  },
-}));
+jest.mock('@/components/dogs/DogListItem', () => {
+  const { Text } = jest.requireActual('react-native');
+  return {
+    DogListItem: ({ dog }: { dog: { name: string } }) => <Text>{dog.name}</Text>,
+  };
+});
 
 jest.mock('@/components/ui/EmptyState', () => ({
   EmptyState: () => null,
@@ -37,12 +37,12 @@ jest.mock('@/components/ui/LoadingScreen', () => ({
   LoadingScreen: () => null,
 }));
 
-jest.mock('@/components/themed-text', () => ({
-  ThemedText: ({ children }: { children: React.ReactNode }) => {
-    const { Text } = require('react-native');
-    return <Text>{children}</Text>;
-  },
-}));
+jest.mock('@/components/themed-text', () => {
+  const { Text } = jest.requireActual('react-native');
+  return {
+    ThemedText: ({ children }: { children: React.ReactNode }) => <Text>{children}</Text>,
+  };
+});
 
 describe('DogsScreen', () => {
   it('renders YOUR PACK section label', () => {

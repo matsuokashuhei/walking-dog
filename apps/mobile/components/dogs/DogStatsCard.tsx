@@ -1,7 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
+import { useColors } from '@/hooks/use-colors';
 import { spacing, radius, typography } from '@/theme/tokens';
 import type { WalkStats } from '@/types/graphql';
 
@@ -17,8 +16,7 @@ function formatDistance(meters: number): string {
 
 export function DogStatsCard({ stats }: DogStatsCardProps) {
   const { t } = useTranslation();
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const theme = useColors();
 
   const minutes = Math.floor(stats.totalDurationSec / 60);
   const hours = Math.floor(minutes / 60);
@@ -27,24 +25,30 @@ export function DogStatsCard({ stats }: DogStatsCardProps) {
     : t('dogs.stats.minutes', { count: minutes });
 
   return (
-    <View style={[styles.card, { backgroundColor: colors.surface }]}>
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: theme.surfaceContainerLowest,
+          borderColor: theme.border + '33',
+        },
+      ]}
+    >
       <View style={styles.stat}>
-        <Text style={[styles.value, { color: colors.primary }]}>{stats.totalWalks}</Text>
-        <Text style={[styles.label, { color: colors.textSecondary }]}>{t('dogs.stats.walks')}</Text>
+        <Text style={[styles.value, { color: theme.onSurface }]}>{stats.totalWalks}</Text>
+        <Text style={[styles.label, { color: theme.onSurfaceVariant }]}>{t('dogs.stats.walks')}</Text>
       </View>
-      <View style={[styles.divider, { backgroundColor: colors.border }]} />
       <View style={styles.stat}>
-        <Text style={[styles.value, { color: colors.primary }]}>
+        <Text style={[styles.value, { color: theme.onSurface }]}>
           {formatDistance(stats.totalDistanceM)}
         </Text>
-        <Text style={[styles.label, { color: colors.textSecondary }]}>{t('dogs.stats.distance')}</Text>
+        <Text style={[styles.label, { color: theme.onSurfaceVariant }]}>{t('dogs.stats.distance')}</Text>
       </View>
-      <View style={[styles.divider, { backgroundColor: colors.border }]} />
       <View style={styles.stat}>
-        <Text style={[styles.value, { color: colors.primary }]}>
+        <Text style={[styles.value, { color: theme.onSurface }]}>
           {durationText}
         </Text>
-        <Text style={[styles.label, { color: colors.textSecondary }]}>{t('dogs.stats.duration')}</Text>
+        <Text style={[styles.label, { color: theme.onSurfaceVariant }]}>{t('dogs.stats.duration')}</Text>
       </View>
     </View>
   );
@@ -53,7 +57,8 @@ export function DogStatsCard({ stats }: DogStatsCardProps) {
 const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
+    borderWidth: 1,
     padding: spacing.md,
     marginBottom: spacing.md,
   },
@@ -65,11 +70,7 @@ const styles = StyleSheet.create({
     ...typography.h3,
   },
   label: {
-    ...typography.caption,
+    ...typography.label,
     marginTop: spacing.xs,
-  },
-  divider: {
-    width: 1,
-    marginHorizontal: spacing.sm,
   },
 });

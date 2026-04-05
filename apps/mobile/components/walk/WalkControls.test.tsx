@@ -26,14 +26,14 @@ describe('WalkControls', () => {
     expect(screen.getByText('Distance')).toBeTruthy();
   });
 
-  it('renders stop/finish button', () => {
+  it('renders finish button', () => {
     render(<WalkControls onStop={jest.fn()} isStopping={false} />);
-    expect(screen.getByRole('button', { name: 'Stop' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Finish' })).toBeTruthy();
   });
 
-  it('disables stop button when isStopping', () => {
+  it('disables finish button when isStopping', () => {
     render(<WalkControls onStop={jest.fn()} isStopping={true} />);
-    const button = screen.getByRole('button', { name: 'Stop' });
+    const button = screen.getByRole('button', { name: 'Finish' });
     expect(button.props.accessibilityState?.disabled).toBe(true);
   });
 });

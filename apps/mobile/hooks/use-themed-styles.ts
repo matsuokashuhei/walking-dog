@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { StyleSheet, useColorScheme } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { colors, type ColorTokens } from '@/theme/tokens';
 
 type StyleFactory<T extends StyleSheet.NamedStyles<T>> = (theme: ColorTokens) => T;
@@ -7,5 +8,5 @@ type StyleFactory<T extends StyleSheet.NamedStyles<T>> = (theme: ColorTokens) =>
 export function useThemedStyles<T extends StyleSheet.NamedStyles<T>>(factory: StyleFactory<T>): T {
   const colorScheme = useColorScheme();
   const theme = colors[colorScheme ?? 'light'];
-  return useMemo(() => StyleSheet.create(factory(theme)), [theme, factory]);
+  return useMemo(() => StyleSheet.create(factory(theme)), [theme]);
 }

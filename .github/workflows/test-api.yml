@@ -22,7 +22,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Create .env for Docker Compose
-        run: cp apps/api/.env.example apps/api/.env.local
+        run: touch apps/api/.env.local
 
       - name: Run tests
-        run: docker compose -f apps/compose.yml run --rm api cargo test -- --test-threads=1
+        run: docker compose -f apps/compose.yml run --rm api cargo test

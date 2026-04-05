@@ -54,7 +54,7 @@ export default function DogDetailScreen() {
       </View>
 
       <View style={styles.infoSection}>
-        <ThemedText type="title">{dog.name}</ThemedText>
+        <ThemedText variant="h1">{dog.name}</ThemedText>
         {dog.breed ? (
           <ThemedText style={{ color: colors.textSecondary }}>{dog.breed}</ThemedText>
         ) : null}
@@ -68,7 +68,7 @@ export default function DogDetailScreen() {
           onPress={() => router.push(`/dogs/${id}/members`)}
         >
           <View>
-            <ThemedText type="defaultSemiBold">{t('dogs.detail.members')}</ThemedText>
+            <ThemedText variant="bodyMedium">{t('dogs.detail.members')}</ThemedText>
             <Text style={{ color: colors.textSecondary }}>
               {t('dogs.detail.membersCount', { count: dog.members.length })}
             </Text>

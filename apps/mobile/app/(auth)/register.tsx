@@ -39,7 +39,7 @@ export default function RegisterScreen() {
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.header}>
-        <ThemedText type="title">
+        <ThemedText variant="h1">
           {step === 'register' ? t('auth.register.title') : t('auth.confirm.title')}
         </ThemedText>
       </View>

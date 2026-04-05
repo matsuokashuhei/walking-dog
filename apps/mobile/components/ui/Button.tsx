@@ -1,9 +1,16 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
-import { spacing, radius, typography } from '@/theme/tokens';
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  useColorScheme,
+  type PressableProps,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
+import { colors, spacing, radius, typography } from '@/theme/tokens';
 
-type ButtonVariant = 'primary' | 'secondary' | 'destructive';
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'destructive';
 
 interface ButtonProps extends Omit<PressableProps, 'style'> {
   label: string;
@@ -21,17 +28,31 @@ export function Button({
   ...props
 }: ButtonProps) {
   const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const theme = colors[colorScheme ?? 'light'];
   const isDisabled = disabled || loading;
 
-  const bgColor = {
-    primary: colors.primary,
-    secondary: 'transparent',
-    destructive: colors.error,
+  const variantStyles = {
+    primary: {
+      backgroundColor: theme.interactive,
+      borderColor: 'transparent',
+      textColor: theme.onInteractive,
+    },
+    secondary: {
+      backgroundColor: 'transparent',
+      borderColor: theme.interactive,
+      textColor: theme.interactive,
+    },
+    ghost: {
+      backgroundColor: 'transparent',
+      borderColor: 'transparent',
+      textColor: theme.onSurfaceVariant,
+    },
+    destructive: {
+      backgroundColor: theme.error,
+      borderColor: 'transparent',
+      textColor: theme.onInteractive,
+    },
   }[variant];
-
-  const textColor = variant === 'secondary' ? colors.primary : '#FFFFFF';
-  const borderColor = variant === 'secondary' ? colors.primary : 'transparent';
 
   return (
     <Pressable
@@ -41,15 +62,19 @@ export function Button({
       disabled={isDisabled}
       style={[
         styles.base,
-        { backgroundColor: bgColor, borderColor, opacity: isDisabled ? 0.5 : 1 },
+        {
+          backgroundColor: variantStyles.backgroundColor,
+          borderColor: variantStyles.borderColor,
+          opacity: isDisabled ? 0.4 : 1,
+        },
         style,
       ]}
       {...props}
     >
       {loading ? (
-        <ActivityIndicator color={textColor} size="small" />
+        <ActivityIndicator color={variantStyles.textColor} size="small" />
       ) : (
-        <Text style={[styles.label, { color: textColor }]}>{label}</Text>
+        <Text style={[styles.label, { color: variantStyles.textColor }]}>{label}</Text>
       )}
     </Pressable>
   );

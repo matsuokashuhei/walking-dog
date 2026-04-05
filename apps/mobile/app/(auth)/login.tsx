@@ -16,7 +16,7 @@ export default function LoginScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
-        <ThemedText type="title">Walking Dog</ThemedText>
+        <ThemedText variant="h1">Walking Dog</ThemedText>
         <ThemedText style={styles.subtitle}>
           {t('auth.login.subtitle')}
         </ThemedText>

@@ -69,6 +69,7 @@ variable "app_logout_urls" {
   default     = ["walkingdog://logout"]
 }
 
+/*
 # --- RDS ---
 
 variable "db_name" {
@@ -80,3 +81,4 @@ variable "db_username" {
   type    = string
   default = "walking_dog"
 }
+*/

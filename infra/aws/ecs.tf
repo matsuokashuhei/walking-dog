@@ -1,3 +1,4 @@
+/*
 resource "aws_ecr_repository" "api" {
   name                 = "${var.project_name}-api"
   image_tag_mutability = "MUTABLE"
@@ -81,3 +82,4 @@ resource "aws_ecs_task_definition" "api" {
     Project     = var.project_name
   }
 }
+*/

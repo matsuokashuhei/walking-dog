@@ -1,3 +1,4 @@
+/*
 resource "aws_security_group" "alb" {
   name_prefix = "${var.project_name}-${var.environment}-alb-"
   vpc_id      = aws_vpc.main.id
@@ -88,3 +89,4 @@ resource "aws_security_group" "rds" {
     create_before_destroy = true
   }
 }
+*/

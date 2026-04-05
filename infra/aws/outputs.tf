@@ -32,6 +32,7 @@ output "s3_bucket_dog_photos" {
   value = aws_s3_bucket.dog_photos.bucket
 }
 
+/*
 # --- RDS ---
 
 output "rds_endpoint" {
@@ -57,6 +58,7 @@ output "ecr_repository_url" {
 output "ecs_cluster_name" {
   value = aws_ecs_cluster.main.name
 }
+*/
 
 # --- Networking ---
 
@@ -64,9 +66,11 @@ output "vpc_id" {
   value = aws_vpc.main.id
 }
 
+/*
 output "alb_security_group_id" {
   value = aws_security_group.alb.id
 }
+*/
 
 # --- GitHub Actions ---
 

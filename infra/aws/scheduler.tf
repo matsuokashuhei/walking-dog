@@ -1,3 +1,4 @@
+/*
 data "archive_file" "scheduler" {
   type        = "zip"
   source_file = "${path.module}/lambda/scheduler.py"
@@ -93,3 +94,4 @@ resource "aws_lambda_permission" "stop_weekend" {
   principal     = "events.amazonaws.com"
   source_arn    = aws_cloudwatch_event_rule.stop_weekend.arn
 }
+*/

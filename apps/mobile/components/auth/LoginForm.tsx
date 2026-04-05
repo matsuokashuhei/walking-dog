@@ -4,8 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/Button';
 import { TextInput } from '@/components/ui/TextInput';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
+import { useColors } from '@/hooks/use-colors';
 import { spacing, typography } from '@/theme/tokens';
 
 interface LoginFormProps {
@@ -16,8 +15,7 @@ interface LoginFormProps {
 export function LoginForm({ onSuccess, onRegisterPress }: LoginFormProps) {
   const { signIn } = useAuth();
   const { t } = useTranslation();
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const theme = useColors();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -65,7 +63,7 @@ export function LoginForm({ onSuccess, onRegisterPress }: LoginFormProps) {
         textContentType="password"
       />
       {error ? (
-        <Text style={[styles.error, { color: colors.error }]}>{error}</Text>
+        <Text style={[styles.error, { color: theme.error }]}>{error}</Text>
       ) : null}
       <Button
         label={t('auth.login.submit')}

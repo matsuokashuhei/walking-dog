@@ -10,18 +10,15 @@ import { DogStatsCard } from '@/components/dogs/DogStatsCard';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { ThemedText } from '@/components/themed-text';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
-import { spacing, radius } from '@/theme/tokens';
+import { useColors } from '@/hooks/use-colors';
+import { spacing, radius, typography } from '@/theme/tokens';
 import { getPhotoUrl } from '@/lib/photo-url';
 
 export default function DogDetailScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const theme = useColors();
 
   const { data: dog, isLoading } = useDog(id, 'ALL');
   const { data: me } = useMe();
@@ -43,7 +40,7 @@ export default function DogDetailScreen() {
   }
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={styles.photoSection}>
         <Image
           source={getPhotoUrl(dog.photoUrl) ?? require('@/assets/images/icon.png')}
@@ -53,10 +50,26 @@ export default function DogDetailScreen() {
         />
       </View>
 
-      <View style={styles.infoSection}>
-        <ThemedText variant="h1">{dog.name}</ThemedText>
+      <View style={styles.heroSection}>
+        <Text style={[styles.dogName, { color: theme.onSurface }]}>{dog.name}</Text>
+      </View>
+
+      <View style={[styles.dataTable, { borderTopColor: theme.border + '33' }]}>
         {dog.breed ? (
-          <ThemedText style={{ color: colors.textSecondary }}>{dog.breed}</ThemedText>
+          <View style={[styles.dataRow, { borderBottomColor: theme.border + '33' }]}>
+            <Text style={[styles.dataLabel, { color: theme.onSurfaceVariant }]}>
+              {t('dogs.detail.breed')}
+            </Text>
+            <Text style={[styles.dataValue, { color: theme.onSurface }]}>{dog.breed}</Text>
+          </View>
+        ) : null}
+        {dog.gender ? (
+          <View style={[styles.dataRow, { borderBottomColor: theme.border + '33' }]}>
+            <Text style={[styles.dataLabel, { color: theme.onSurfaceVariant }]}>
+              {t('dogs.detail.gender')}
+            </Text>
+            <Text style={[styles.dataValue, { color: theme.onSurface }]}>{dog.gender}</Text>
+          </View>
         ) : null}
       </View>
 
@@ -64,16 +77,18 @@ export default function DogDetailScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t('dogs.detail.manageMembers')}
-          style={[styles.membersRow, { borderColor: colors.border }]}
+          style={[styles.membersRow, { borderColor: theme.border + '33' }]}
           onPress={() => router.push(`/dogs/${id}/members`)}
         >
           <View>
-            <ThemedText variant="bodyMedium">{t('dogs.detail.members')}</ThemedText>
-            <Text style={{ color: colors.textSecondary }}>
+            <Text style={[styles.membersLabel, { color: theme.onSurface }]}>
+              {t('dogs.detail.members')}
+            </Text>
+            <Text style={[styles.membersCount, { color: theme.onSurfaceVariant }]}>
               {t('dogs.detail.membersCount', { count: dog.members.length })}
             </Text>
           </View>
-          <Text style={{ color: colors.tint, fontSize: 20 }}>{'>'}</Text>
+          <Text style={{ color: theme.onSurfaceVariant, fontSize: 20 }}>{'>'}</Text>
         </Pressable>
       ) : null}
 
@@ -124,9 +139,34 @@ const styles = StyleSheet.create({
     height: 160,
     borderRadius: radius.full,
   },
-  infoSection: {
-    padding: spacing.lg,
+  heroSection: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.lg,
     alignItems: 'center',
+  },
+  dogName: {
+    fontSize: 48,
+    fontWeight: '900',
+    letterSpacing: -0.96,
+    textAlign: 'center',
+  },
+  dataTable: {
+    marginHorizontal: spacing.lg,
+    borderTopWidth: 1,
+    marginBottom: spacing.md,
+  },
+  dataRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+  },
+  dataLabel: {
+    ...typography.label,
+  },
+  dataValue: {
+    ...typography.body,
   },
   membersRow: {
     flexDirection: 'row',
@@ -137,6 +177,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     borderWidth: 1,
     borderRadius: radius.md,
+    marginBottom: spacing.md,
+  },
+  membersLabel: {
+    ...typography.bodyMedium,
+  },
+  membersCount: {
+    ...typography.caption,
+    marginTop: 2,
   },
   statsSection: { padding: spacing.md },
   actions: {

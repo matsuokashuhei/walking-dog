@@ -1,14 +1,12 @@
 import { Stack, useRouter } from 'expo-router';
 import { Pressable, Text, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
+import { useColors } from '@/hooks/use-colors';
 
 export default function WalksLayout() {
   const { t } = useTranslation();
   const router = useRouter();
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const theme = useColors();
 
   return (
     <Stack>
@@ -16,9 +14,15 @@ export default function WalksLayout() {
         name="[id]"
         options={{
           title: t('walk.detail.title'),
+          headerStyle: { backgroundColor: theme.background },
           headerLeft: () => (
-            <Pressable onPress={() => router.back()} hitSlop={12}>
-              <Text style={[styles.backButton, { color: colors.primary }]}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('common.back')}
+              onPress={() => router.back()}
+              hitSlop={12}
+            >
+              <Text style={[styles.backButton, { color: theme.onSurface }]}>
                 {'‹'}
               </Text>
             </Pressable>

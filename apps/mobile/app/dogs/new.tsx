@@ -3,15 +3,13 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useCreateDog } from '@/hooks/use-dog-mutations';
 import { DogForm, type DogFormValues } from '@/components/dogs/DogForm';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
+import { useColors } from '@/hooks/use-colors';
 import { spacing } from '@/theme/tokens';
 
 export default function NewDogScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const theme = useColors();
   const { mutateAsync: createDog } = useCreateDog();
 
   async function handleSubmit(values: DogFormValues) {
@@ -26,7 +24,7 @@ export default function NewDogScreen() {
 
   return (
     <ScrollView
-      contentContainerStyle={[styles.container, { backgroundColor: colors.background }]}
+      contentContainerStyle={[styles.container, { backgroundColor: theme.background }]}
       keyboardShouldPersistTaps="handled"
     >
       <DogForm onSubmit={handleSubmit} submitLabel={t('dogs.new.submit')} />

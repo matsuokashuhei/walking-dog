@@ -21,5 +21,28 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Create DynamoDB table and S3 bucket
+        run: |
+          docker compose -f apps/compose.yml up -d dynamodb-local localstack
+          sleep 3
+          curl -s -X POST http://localhost:8000 \
+            -H 'Content-Type: application/x-amz-json-1.0' \
+            -H 'X-Amz-Target: DynamoDB_20120810.CreateTable' \
+            -H 'X-Amz-Date: 20260101T000000Z' \
+            -H 'Authorization: AWS4-HMAC-SHA256 Credential=test/20260101/ap-northeast-1/dynamodb/aws4_request, SignedHeaders=content-type;host;x-amz-date;x-amz-target, Signature=dummy' \
+            -d '{
+              "TableName": "WalkPoints",
+              "AttributeDefinitions": [
+                {"AttributeName": "pk", "AttributeType": "S"},
+                {"AttributeName": "sk", "AttributeType": "S"}
+              ],
+              "KeySchema": [
+                {"AttributeName": "pk", "KeyType": "HASH"},
+                {"AttributeName": "sk", "KeyType": "RANGE"}
+              ],
+              "BillingMode": "PAY_PER_REQUEST"
+            }'
+          docker compose -f apps/compose.yml exec -T localstack awslocal s3 mb s3://dog-photos || true
+
       - name: Run tests
         run: docker compose -f apps/compose.yml run --rm api cargo test -- --test-threads=1

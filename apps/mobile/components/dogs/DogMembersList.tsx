@@ -1,8 +1,7 @@
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
+import { useColors } from '@/hooks/use-colors';
 import { spacing, radius, typography } from '@/theme/tokens';
 import type { DogMember } from '@/types/graphql';
 
@@ -15,8 +14,7 @@ interface DogMembersListProps {
 
 export function DogMembersList({ members, currentUserId, isOwner, onRemove }: DogMembersListProps) {
   const { t } = useTranslation();
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const theme = useColors();
 
   return (
     <FlatList
@@ -29,7 +27,15 @@ export function DogMembersList({ members, currentUserId, isOwner, onRemove }: Do
         const canRemove = isOwner && item.userId !== currentUserId;
 
         return (
-          <View style={[styles.row, { borderBottomColor: colors.border }]}>
+          <View
+            style={[
+              styles.row,
+              {
+                backgroundColor: theme.surfaceContainerLowest,
+                borderColor: theme.border + '33',
+              },
+            ]}
+          >
             {item.user.avatarUrl ? (
               <Image
                 source={{ uri: item.user.avatarUrl }}
@@ -39,15 +45,17 @@ export function DogMembersList({ members, currentUserId, isOwner, onRemove }: Do
                 accessibilityLabel={item.user.displayName ?? ''}
               />
             ) : (
-              <View style={[styles.avatar, styles.initialBg, { backgroundColor: colors.primary }]}>
-                <Text style={styles.initialText}>{initial}</Text>
+              <View
+                style={[styles.avatar, styles.initialBg, { backgroundColor: theme.primaryContainer }]}
+              >
+                <Text style={[styles.initialText, { color: theme.onInteractive }]}>{initial}</Text>
               </View>
             )}
             <View style={styles.info}>
-              <Text style={[styles.name, { color: colors.text }]}>
+              <Text style={[styles.name, { color: theme.onSurface }]}>
                 {item.user.displayName}
               </Text>
-              <Text style={[styles.role, { color: colors.textSecondary }]}>
+              <Text style={[styles.role, { color: theme.onSurfaceVariant }]}>
                 {roleLabel}
               </Text>
             </View>
@@ -58,7 +66,7 @@ export function DogMembersList({ members, currentUserId, isOwner, onRemove }: Do
                 hitSlop={12}
                 onPress={() => onRemove(item.userId, item.user.displayName ?? '')}
               >
-                <Text style={[styles.removeText, { color: colors.error }]}>
+                <Text style={[styles.removeText, { color: theme.error }]}>
                   {t('dogs.members.remove')}
                 </Text>
               </Pressable>
@@ -66,6 +74,7 @@ export function DogMembersList({ members, currentUserId, isOwner, onRemove }: Do
           </View>
         );
       }}
+      ItemSeparatorComponent={() => <View style={styles.separator} />}
     />
   );
 }
@@ -75,13 +84,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: spacing.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: spacing.md,
+    borderWidth: 1,
+    borderRadius: radius.lg,
   },
+  separator: { height: spacing.sm },
   avatar: { width: 40, height: 40, borderRadius: radius.full },
   initialBg: { alignItems: 'center', justifyContent: 'center' },
-  initialText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' as const },
+  initialText: { fontSize: 16, fontWeight: '600' as const },
   info: { flex: 1, marginLeft: spacing.md },
   name: { ...typography.bodyMedium },
-  role: { ...typography.caption, marginTop: 2 },
+  role: { ...typography.label, marginTop: 2 },
   removeText: { ...typography.body, fontWeight: '500' as const },
 });

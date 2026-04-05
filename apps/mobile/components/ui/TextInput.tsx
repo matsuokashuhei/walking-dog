@@ -1,6 +1,5 @@
 import { StyleSheet, Text, TextInput as RNTextInput, View, type TextInputProps as RNTextInputProps, type StyleProp, type TextStyle } from 'react-native';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
+import { useColors } from '@/hooks/use-colors';
 import { spacing, radius, typography } from '@/theme/tokens';
 
 interface TextInputProps extends Omit<RNTextInputProps, 'style'> {
@@ -10,13 +9,12 @@ interface TextInputProps extends Omit<RNTextInputProps, 'style'> {
 }
 
 export function TextInput({ label, error, style, ...props }: TextInputProps) {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const theme = useColors();
 
   return (
     <View style={styles.container}>
       <Text
-        style={[styles.label, { color: colors.text }]}
+        style={[styles.label, { color: theme.onSurface }]}
         accessibilityRole="none"
       >
         {label}
@@ -25,18 +23,18 @@ export function TextInput({ label, error, style, ...props }: TextInputProps) {
         style={[
           styles.input,
           {
-            backgroundColor: colors.surface,
-            color: colors.text,
-            borderColor: error ? colors.error : colors.border,
+            backgroundColor: theme.surfaceContainerLowest,
+            color: theme.onSurface,
+            borderColor: error ? theme.error : theme.border,
           },
           style,
         ]}
-        placeholderTextColor={colors.textSecondary}
+        placeholderTextColor={theme.onSurfaceVariant}
         accessibilityLabel={label}
         {...props}
       />
       {error ? (
-        <Text style={[styles.error, { color: colors.error }]}>{error}</Text>
+        <Text style={[styles.error, { color: theme.error }]}>{error}</Text>
       ) : null}
     </View>
   );
@@ -47,13 +45,13 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   label: {
-    ...typography.bodyMedium,
-    marginBottom: spacing.xs,
+    ...typography.label,
+    marginBottom: spacing.sm,
   },
   input: {
     height: 52,
     borderWidth: 1,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     paddingHorizontal: spacing.md,
     ...typography.body,
   },

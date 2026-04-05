@@ -1,8 +1,7 @@
 import { FlatList, Pressable, StyleSheet, Text, View, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
+import { useColors } from '@/hooks/use-colors';
 import { spacing, radius, typography } from '@/theme/tokens';
 import { useMe } from '@/hooks/use-me';
 import { useWalkStore } from '@/stores/walk-store';
@@ -16,8 +15,7 @@ interface DogSelectorProps {
 
 export function DogSelector({ onStart, isStarting }: DogSelectorProps) {
   const { t } = useTranslation();
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const theme = useColors();
   const { data: me } = useMe();
   const selectedDogIds = useWalkStore((s) => s.selectedDogIds);
   const selectDog = useWalkStore((s) => s.selectDog);
@@ -34,8 +32,8 @@ export function DogSelector({ onStart, isStarting }: DogSelectorProps) {
         style={[
           styles.dogItem,
           {
-            backgroundColor: colors.card,
-            borderColor: isSelected ? colors.primary : colors.border,
+            backgroundColor: theme.surfaceContainerLowest,
+            borderColor: isSelected ? theme.interactive : theme.border + '33',
           },
         ]}
       >
@@ -45,27 +43,27 @@ export function DogSelector({ onStart, isStarting }: DogSelectorProps) {
           contentFit="cover"
         />
         <View style={styles.dogInfo}>
-          <Text style={[styles.dogName, { color: colors.text }]}>{item.name}</Text>
+          <Text style={[styles.dogName, { color: theme.onSurface }]}>{item.name}</Text>
           {item.breed ? (
-            <Text style={[styles.dogBreed, { color: colors.textSecondary }]}>{item.breed}</Text>
+            <Text style={[styles.dogBreed, { color: theme.onSurfaceVariant }]}>{item.breed}</Text>
           ) : null}
         </View>
         {isSelected ? (
-          <Text style={{ color: colors.primary, fontSize: 20 }}>✓</Text>
+          <Text style={{ color: theme.interactive, fontSize: 20 }}>&#10003;</Text>
         ) : null}
       </Pressable>
     );
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Text style={[styles.title, { color: colors.text }]}>{t('walk.ready.title')}</Text>
-      <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <Text style={[styles.title, { color: theme.onSurface }]}>{t('walk.ready.title')}</Text>
+      <Text style={[styles.subtitle, { color: theme.onSurfaceVariant }]}>
         {t('walk.ready.subtitle')}
       </Text>
 
       {dogs.length === 0 ? (
-        <Text style={[styles.empty, { color: colors.textSecondary }]}>
+        <Text style={[styles.empty, { color: theme.onSurfaceVariant }]}>
           {t('walk.ready.noDogs')}
         </Text>
       ) : (
@@ -85,15 +83,17 @@ export function DogSelector({ onStart, isStarting }: DogSelectorProps) {
         style={[
           styles.startButton,
           {
-            backgroundColor: selectedDogIds.length > 0 ? colors.primary : colors.border,
+            backgroundColor: selectedDogIds.length > 0 ? theme.interactive : theme.border,
             opacity: isStarting ? 0.7 : 1,
           },
         ]}
       >
         {isStarting ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={theme.onInteractive} />
         ) : (
-          <Text style={styles.startButtonText}>{t('walk.ready.start')}</Text>
+          <Text style={[styles.startButtonText, { color: theme.onInteractive }]}>
+            {t('walk.ready.start')}
+          </Text>
         )}
       </Pressable>
     </View>
@@ -110,8 +110,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: spacing.md,
-    borderRadius: radius.md,
-    borderWidth: 2,
+    borderRadius: radius.lg,
+    borderWidth: 1,
     marginBottom: spacing.sm,
   },
   dogPhoto: { width: 48, height: 48, borderRadius: radius.full },
@@ -124,5 +124,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: spacing.lg,
   },
-  startButtonText: { ...typography.button, color: '#fff' },
+  startButtonText: { ...typography.button },
 });

@@ -1,6 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
+import { useColors } from '@/hooks/use-colors';
 import { spacing, typography } from '@/theme/tokens';
 import { Button } from './Button';
 
@@ -11,12 +10,11 @@ interface EmptyStateProps {
 }
 
 export function EmptyState({ message, ctaLabel, onCta }: EmptyStateProps) {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const theme = useColors();
 
   return (
     <View style={styles.container}>
-      <Text style={[styles.message, { color: colors.textSecondary }]}>{message}</Text>
+      <Text style={[styles.message, { color: theme.onSurfaceVariant }]}>{message}</Text>
       {ctaLabel && onCta ? (
         <Button label={ctaLabel} onPress={onCta} />
       ) : null}

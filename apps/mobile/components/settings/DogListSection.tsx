@@ -1,8 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
+import { useColors } from '@/hooks/use-colors';
 import { spacing, radius, typography } from '@/theme/tokens';
 import type { Dog } from '@/types/graphql';
 
@@ -13,16 +12,23 @@ interface DogListSectionProps {
 export function DogListSection({ dogs }: DogListSectionProps) {
   const { t } = useTranslation();
   const router = useRouter();
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const theme = useColors();
 
   return (
-    <View style={[styles.card, { backgroundColor: colors.card }]}>
-      <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-        {t('settings.dogs')}
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: theme.surfaceContainerLowest,
+          borderColor: theme.border + '33',
+        },
+      ]}
+    >
+      <Text style={[styles.sectionTitle, { color: theme.onSurfaceVariant }]}>
+        {t('settings.dogs').toUpperCase()}
       </Text>
       {dogs.length === 0 ? (
-        <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+        <Text style={[styles.emptyText, { color: theme.onSurfaceVariant }]}>
           {t('settings.noDogs')}
         </Text>
       ) : (
@@ -36,22 +42,22 @@ export function DogListSection({ dogs }: DogListSectionProps) {
               styles.dogRow,
               index < dogs.length - 1 && {
                 borderBottomWidth: 1,
-                borderBottomColor: colors.border,
+                borderBottomColor: theme.border + '33',
               },
             ]}
           >
-            <View style={[styles.dogIcon, { backgroundColor: colors.primaryLight }]}>
-              <Text style={styles.dogEmoji}>🐕</Text>
+            <View style={[styles.dogIcon, { backgroundColor: theme.surfaceContainer }]}>
+              <Text style={styles.dogEmoji}>&#128021;</Text>
             </View>
             <View style={styles.dogInfo}>
-              <Text style={[styles.dogName, { color: colors.text }]}>{dog.name}</Text>
+              <Text style={[styles.dogName, { color: theme.onSurface }]}>{dog.name}</Text>
               {dog.breed && (
-                <Text style={[styles.dogBreed, { color: colors.textSecondary }]}>
+                <Text style={[styles.dogBreed, { color: theme.onSurfaceVariant }]}>
                   {dog.breed}
                 </Text>
               )}
             </View>
-            <Text style={[styles.chevron, { color: colors.textSecondary }]}>›</Text>
+            <Text style={[styles.chevron, { color: theme.onSurfaceVariant }]}>&#8250;</Text>
           </Pressable>
         ))
       )}
@@ -61,15 +67,14 @@ export function DogListSection({ dogs }: DogListSectionProps) {
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
+    borderWidth: 1,
     padding: spacing.md,
     marginBottom: spacing.md,
   },
   sectionTitle: {
-    ...typography.caption,
+    ...typography.label,
     marginBottom: spacing.md,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
   emptyText: {
     ...typography.body,

@@ -2,8 +2,7 @@ import { Pressable, StyleSheet, Text } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
+import { useColors } from '@/hooks/use-colors';
 import { spacing, radius, typography } from '@/theme/tokens';
 
 interface PhotoPickerProps {
@@ -14,8 +13,7 @@ interface PhotoPickerProps {
 
 export function PhotoPicker({ currentPhotoUrl, onPick, loading = false }: PhotoPickerProps) {
   const { t } = useTranslation();
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const theme = useColors();
 
   async function handlePress() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -41,7 +39,7 @@ export function PhotoPicker({ currentPhotoUrl, onPick, loading = false }: PhotoP
       accessibilityLabel={t('dogs.photo.change')}
       onPress={handlePress}
       disabled={loading}
-      style={[styles.container, { borderColor: colors.border }]}
+      style={[styles.container, { borderColor: theme.border }]}
     >
       {currentPhotoUrl ? (
         <Image
@@ -51,7 +49,7 @@ export function PhotoPicker({ currentPhotoUrl, onPick, loading = false }: PhotoP
           cachePolicy="memory-disk"
         />
       ) : (
-        <Text style={[styles.placeholder, { color: colors.textSecondary }]}>
+        <Text style={[styles.placeholder, { color: theme.onSurfaceVariant }]}>
           {t('dogs.photo.add')}
         </Text>
       )}

@@ -1,25 +1,24 @@
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { LoginForm } from '@/components/auth/LoginForm';
-import { ThemedText } from '@/components/themed-text';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
-import { spacing } from '@/theme/tokens';
+import { useColors } from '@/hooks/use-colors';
+import { spacing, typography } from '@/theme/tokens';
 
 export default function LoginScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const theme = useColors();
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={styles.header}>
-        <ThemedText variant="h1">Walking Dog</ThemedText>
-        <ThemedText style={styles.subtitle}>
-          {t('auth.login.subtitle')}
-        </ThemedText>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={styles.hero}>
+        <Text style={[styles.heroText, { color: theme.onSurface }]}>
+          Welcome back
+        </Text>
+        <Text style={[styles.subText, { color: theme.onSurfaceVariant }]}>
+          {t('auth.login.subtitle', { defaultValue: 'Sign in to access your companions\' archive.' })}
+        </Text>
       </View>
       <LoginForm
         onSuccess={() => {
@@ -34,15 +33,21 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xxl,
     justifyContent: 'center',
   },
-  header: {
-    alignItems: 'center',
-    marginBottom: spacing.xxl,
+  hero: {
+    marginBottom: spacing.xl,
   },
-  subtitle: {
+  heroText: {
+    fontSize: 40,
+    fontWeight: '900',
+    letterSpacing: -0.8,
+    lineHeight: 44,
+  },
+  subText: {
+    ...typography.body,
     marginTop: spacing.sm,
-    textAlign: 'center',
   },
 });

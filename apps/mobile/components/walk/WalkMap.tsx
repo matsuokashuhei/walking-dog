@@ -1,8 +1,7 @@
 import { StyleSheet, View, Text } from 'react-native';
 import MapView, { Polyline, Marker } from 'react-native-maps';
 import { useTranslation } from 'react-i18next';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
+import { useColors } from '@/hooks/use-colors';
 import { spacing, radius } from '@/theme/tokens';
 import { useWalkStore } from '@/stores/walk-store';
 
@@ -12,15 +11,14 @@ interface WalkMapProps {
 
 export function WalkMap({ followUser = true }: WalkMapProps) {
   const { t } = useTranslation();
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const theme = useColors();
   const points = useWalkStore((s) => s.points);
 
   const coordinates = points.map((p) => ({ latitude: p.lat, longitude: p.lng }));
   const lastPoint = coordinates[coordinates.length - 1];
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { borderColor: theme.border + '33' }]}>
       <MapView
         style={styles.map}
         showsUserLocation={followUser}
@@ -44,7 +42,7 @@ export function WalkMap({ followUser = true }: WalkMapProps) {
         {coordinates.length >= 2 ? (
           <Polyline
             coordinates={coordinates}
-            strokeColor={colors.primary}
+            strokeColor={theme.interactive}
             strokeWidth={4}
           />
         ) : null}
@@ -58,8 +56,14 @@ export function WalkMap({ followUser = true }: WalkMapProps) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, position: 'relative' },
-  map: { flex: 1, borderRadius: radius.md },
+  container: {
+    flex: 1,
+    position: 'relative',
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  map: { flex: 1 },
   badge: {
     position: 'absolute',
     bottom: spacing.sm,

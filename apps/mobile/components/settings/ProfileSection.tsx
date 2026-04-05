@@ -4,8 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useUpdateProfile } from '@/hooks/use-profile-mutation';
 import { Button } from '@/components/ui/Button';
 import { TextInput } from '@/components/ui/TextInput';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
+import { useColors } from '@/hooks/use-colors';
 import { spacing, radius, typography } from '@/theme/tokens';
 
 interface ProfileSectionProps {
@@ -14,8 +13,7 @@ interface ProfileSectionProps {
 
 export function ProfileSection({ displayName }: ProfileSectionProps) {
   const { t } = useTranslation();
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const theme = useColors();
   const { mutateAsync: updateProfile, isPending } = useUpdateProfile();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -40,9 +38,17 @@ export function ProfileSection({ displayName }: ProfileSectionProps) {
   }
 
   return (
-    <View style={[styles.card, { backgroundColor: colors.card }]}>
-      <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-        {t('settings.profile')}
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: theme.surfaceContainerLowest,
+          borderColor: theme.border + '33',
+        },
+      ]}
+    >
+      <Text style={[styles.sectionTitle, { color: theme.onSurfaceVariant }]}>
+        {t('settings.profile').toUpperCase()}
       </Text>
       {isEditing ? (
         <View>
@@ -73,10 +79,10 @@ export function ProfileSection({ displayName }: ProfileSectionProps) {
       ) : (
         <View style={styles.displayRow}>
           <View style={styles.nameSection}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>
+            <Text style={[styles.label, { color: theme.onSurfaceVariant }]}>
               {t('settings.displayName')}
             </Text>
-            <Text style={[styles.nameText, { color: colors.text }]}>
+            <Text style={[styles.nameText, { color: theme.onSurface }]}>
               {displayName ?? '-'}
             </Text>
           </View>
@@ -94,15 +100,14 @@ export function ProfileSection({ displayName }: ProfileSectionProps) {
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
+    borderWidth: 1,
     padding: spacing.md,
     marginBottom: spacing.md,
   },
   sectionTitle: {
-    ...typography.caption,
+    ...typography.label,
     marginBottom: spacing.md,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
   displayRow: {
     flexDirection: 'row',

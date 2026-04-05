@@ -1,7 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
-import { spacing, radius } from '@/theme/tokens';
+import { useColors } from '@/hooks/use-colors';
+import { spacing, radius, typography } from '@/theme/tokens';
 
 interface SegmentOption {
   label: string;
@@ -15,11 +14,10 @@ interface SegmentedControlProps {
 }
 
 export function SegmentedControl({ options, selected, onChange }: SegmentedControlProps) {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const theme = useColors();
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.border }]}>
+    <View style={[styles.container, { backgroundColor: theme.surfaceContainerHigh }]}>
       {options.map((opt) => {
         const isSelected = opt.value === selected;
         return (
@@ -31,14 +29,13 @@ export function SegmentedControl({ options, selected, onChange }: SegmentedContr
             onPress={() => onChange(opt.value)}
             style={[
               styles.segment,
-              isSelected && [styles.selectedSegment, { backgroundColor: colors.card }],
+              isSelected && [styles.selectedSegment, { backgroundColor: theme.surfaceContainerLowest }],
             ]}
           >
             <Text
               style={[
                 styles.label,
-                { color: isSelected ? colors.text : colors.textSecondary },
-                isSelected && styles.selectedLabel,
+                { color: isSelected ? theme.onSurface : theme.onSurfaceVariant },
               ]}
             >
               {opt.label}
@@ -53,28 +50,18 @@ export function SegmentedControl({ options, selected, onChange }: SegmentedContr
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    borderRadius: radius.sm,
+    borderRadius: radius.md,
     padding: 2,
   },
   segment: {
     flex: 1,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
     alignItems: 'center',
-    borderRadius: radius.sm - 2,
+    borderRadius: radius.md - 2,
   },
-  selectedSegment: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
+  selectedSegment: {},
   label: {
-    fontSize: 13,
-    fontWeight: '400',
-  },
-  selectedLabel: {
-    fontWeight: '500',
+    ...typography.label,
   },
 });

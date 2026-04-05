@@ -1,20 +1,17 @@
 import { useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { RegisterForm } from '@/components/auth/RegisterForm';
 import { ConfirmForm } from '@/components/auth/ConfirmForm';
-import { ThemedText } from '@/components/themed-text';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
-import { spacing } from '@/theme/tokens';
+import { useColors } from '@/hooks/use-colors';
+import { spacing, typography } from '@/theme/tokens';
 
 type Step = 'register' | 'confirm';
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const theme = useColors();
 
   const { t } = useTranslation();
   const [step, setStep] = useState<Step>('register');
@@ -35,22 +32,39 @@ export default function RegisterScreen() {
 
   return (
     <ScrollView
-      contentContainerStyle={[styles.container, { backgroundColor: colors.background }]}
+      contentContainerStyle={[styles.container, { backgroundColor: theme.background }]}
       keyboardShouldPersistTaps="handled"
     >
-      <View style={styles.header}>
-        <ThemedText variant="h1">
-          {step === 'register' ? t('auth.register.title') : t('auth.confirm.title')}
-        </ThemedText>
-      </View>
-
       {step === 'register' ? (
-        <RegisterForm
-          onSuccess={handleRegisterSuccess}
-          onLoginPress={() => router.back()}
-        />
+        <>
+          <View style={styles.hero}>
+            <Text style={[styles.brandLabel, { color: theme.onSurfaceVariant }]}>
+              WALKING DOG
+            </Text>
+            <Text style={[styles.heroText, { color: theme.onSurface }]}>
+              {t('auth.register.title', { defaultValue: 'Create Account' })}
+            </Text>
+            <Text style={[styles.subText, { color: theme.onSurfaceVariant }]}>
+              {t('auth.register.subtitle', { defaultValue: "Join the archive of your dog's journeys." })}
+            </Text>
+          </View>
+          <RegisterForm
+            onSuccess={handleRegisterSuccess}
+            onLoginPress={() => router.back()}
+          />
+        </>
       ) : (
-        <ConfirmForm email={pendingEmail} onSuccess={handleConfirmSuccess} />
+        <>
+          <View style={styles.hero}>
+            <Text style={[styles.heroText, { color: theme.onSurface }]}>
+              {t('auth.confirm.title', { defaultValue: 'Check your email' })}
+            </Text>
+            <Text style={[styles.subText, { color: theme.onSurfaceVariant }]}>
+              {t('auth.confirm.subtitle', { defaultValue: 'We sent a code to your email. Enter it below to verify your account.' })}
+            </Text>
+          </View>
+          <ConfirmForm email={pendingEmail} onSuccess={handleConfirmSuccess} />
+        </>
       )}
     </ScrollView>
   );
@@ -59,11 +73,25 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
-    padding: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xxl,
     justifyContent: 'center',
   },
-  header: {
-    alignItems: 'center',
+  hero: {
     marginBottom: spacing.xl,
+  },
+  brandLabel: {
+    ...typography.label,
+    marginBottom: spacing.sm,
+  },
+  heroText: {
+    fontSize: 40,
+    fontWeight: '900',
+    letterSpacing: -0.8,
+    lineHeight: 44,
+  },
+  subText: {
+    ...typography.body,
+    marginTop: spacing.sm,
   },
 });

@@ -1,7 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
+import { useColors } from '@/hooks/use-colors';
 import { spacing, typography } from '@/theme/tokens';
 import { Button } from './Button';
 
@@ -12,12 +11,11 @@ interface ErrorScreenProps {
 
 export function ErrorScreen({ message, onRetry }: ErrorScreenProps) {
   const { t } = useTranslation();
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const theme = useColors();
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Text style={[styles.message, { color: colors.textSecondary }]}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <Text style={[styles.message, { color: theme.onSurfaceVariant }]}>
         {message ?? t('common.error')}
       </Text>
       {onRetry ? (

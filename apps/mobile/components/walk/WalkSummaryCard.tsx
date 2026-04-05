@@ -1,8 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'expo-router';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
+import { useColors } from '@/hooks/use-colors';
 import { spacing, radius, typography } from '@/theme/tokens';
 import { useWalkStore } from '@/stores/walk-store';
 import { formatTime, formatDistance } from '@/lib/walk/format';
@@ -10,8 +9,7 @@ import { formatTime, formatDistance } from '@/lib/walk/format';
 export function WalkSummaryCard() {
   const { t } = useTranslation();
   const router = useRouter();
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const theme = useColors();
   const walkId = useWalkStore((s) => s.walkId);
   const startedAt = useWalkStore((s) => s.startedAt);
   const totalDistanceM = useWalkStore((s) => s.totalDistanceM);
@@ -22,24 +20,32 @@ export function WalkSummaryCard() {
     : 0;
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Text style={[styles.title, { color: colors.text }]}>{t('walk.finished.title')}</Text>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <Text style={[styles.title, { color: theme.onSurface }]}>{t('walk.finished.title')}</Text>
 
-      <View style={[styles.card, { backgroundColor: colors.card }]}>
+      <View
+        style={[
+          styles.card,
+          {
+            backgroundColor: theme.surfaceContainerLowest,
+            borderColor: theme.border + '33',
+          },
+        ]}
+      >
         <View style={styles.stats}>
           <View style={styles.stat}>
-            <Text style={[styles.statValue, { color: colors.text }]}>
+            <Text style={[styles.statValue, { color: theme.onSurface }]}>
               {formatTime(elapsedSec)}
             </Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+            <Text style={[styles.statLabel, { color: theme.onSurfaceVariant }]}>
               {t('walk.recording.time')}
             </Text>
           </View>
           <View style={styles.stat}>
-            <Text style={[styles.statValue, { color: colors.text }]}>
+            <Text style={[styles.statValue, { color: theme.onSurface }]}>
               {formatDistance(totalDistanceM)}
             </Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+            <Text style={[styles.statLabel, { color: theme.onSurfaceVariant }]}>
               {t('walk.recording.distance')}
             </Text>
           </View>
@@ -53,9 +59,16 @@ export function WalkSummaryCard() {
           onPress={() => {
             if (walkId) router.push(`/walks/${walkId}`);
           }}
-          style={[styles.button, { backgroundColor: colors.surface }]}
+          style={[
+            styles.button,
+            {
+              backgroundColor: theme.surfaceContainerLowest,
+              borderColor: theme.border + '33',
+              borderWidth: 1,
+            },
+          ]}
         >
-          <Text style={[styles.buttonText, { color: colors.text }]}>
+          <Text style={[styles.buttonText, { color: theme.onSurface }]}>
             {t('walk.finished.details')}
           </Text>
         </Pressable>
@@ -63,9 +76,9 @@ export function WalkSummaryCard() {
           accessibilityRole="button"
           accessibilityLabel={t('walk.finished.walkAgain')}
           onPress={reset}
-          style={[styles.button, { backgroundColor: colors.primary }]}
+          style={[styles.button, { backgroundColor: theme.interactive }]}
         >
-          <Text style={[styles.buttonText, { color: '#fff' }]}>
+          <Text style={[styles.buttonText, { color: theme.onInteractive }]}>
             {t('walk.finished.walkAgain')}
           </Text>
         </Pressable>
@@ -77,16 +90,20 @@ export function WalkSummaryCard() {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: spacing.lg, justifyContent: 'center' },
   title: { ...typography.h2, textAlign: 'center', marginBottom: spacing.lg },
-  card: { borderRadius: radius.md, padding: spacing.lg },
+  card: {
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    padding: spacing.lg,
+  },
   stats: { flexDirection: 'row', justifyContent: 'space-around' },
   stat: { alignItems: 'center' },
   statValue: { fontSize: 24, fontWeight: '700' },
-  statLabel: { ...typography.caption, marginTop: spacing.xs },
+  statLabel: { ...typography.label, marginTop: spacing.xs },
   buttons: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg },
   button: {
     flex: 1,
     paddingVertical: spacing.md,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     alignItems: 'center',
   },
   buttonText: { ...typography.button },

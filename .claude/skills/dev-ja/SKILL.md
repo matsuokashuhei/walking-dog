@@ -27,12 +27,13 @@ Interviewer → [Inspector] → Explorer → Planner → [Inspector] → Impleme
 
 ## モデル選択ガイダンス
 
-エージェント起動時に `model` パラメータで使い分ける:
+エージェント起動時に `model` パラメータで使い分���る。**公式エージェントは親のモデルを継承するため、必ず明示指定すること。**
 
-| タスク種別 | モデル | 対象エージェント |
-|----------|-------|----------------|
-| 探索・簡素化・単純実装 | sonnet | Explorer, Simplifier, Implementer（1-2ファイル変更） |
-| 設計・レビュー・検査・複雑実装 | opus | Architect, Inspector, Reviewer全般, Implementer（複雑タスク） |
+| モデル | 対象エージェント | 理由 |
+|-------|----------------|------|
+| opus | Architect, Interviewer | 設計判断・要件整理に深い推論が必要 |
+| sonnet | Explorer, Inspector, Implementer, Simplifier, Reviewer（汎用・エラー・型）, Tester | 構造化タスク・パターンマッチ・チェックリスト検証 |
+| haiku | comment-analyzer | 単純なテキスト比較 |
 
 ## エージェント一覧
 
@@ -81,7 +82,7 @@ Interviewer → [Inspector] → Explorer → Planner → [Inspector] → Impleme
 
 ### ステップ 2: コードベース探索
 
-`code-explorer` で2〜3個のエージェントを**並列**起動し、それぞれ異なるフォーカスを持たせる:
+`code-explorer`（`model: "sonnet"`）で2〜3個のエージェントを**並列**起動し、それぞれ異なるフォーカスを持たせる:
 - エージェント1: 要件に類似した機能を見つけ、実装をトレース
 - エージェント2: 関連領域のアーキテクチャと抽象化をマッピング
 - エージェント3: テストパターン、拡張ポイント、既存ユーティリティを特定（任意）
@@ -92,7 +93,7 @@ Interviewer → [Inspector] → Explorer → Planner → [Inspector] → Impleme
 
 ### ステップ 3: 実装計画
 
-`code-architect` でエージェントを起動:
+`code-architect`（`model: "opus"`）でエージェントを起動:
 - 提供する情報: 要件仕様書 + コードベース探索サマリー
 - 以下の形式で出力するよう追加指示する:
   - タスクチェックリスト: 各タスクに対象ファイル、テストファイル、検証コマンド、完了条件
@@ -144,7 +145,7 @@ Implementerは以下の4ステータスのいずれかで完了する:
 
 ### ステップ 5: コード簡素化
 
-`code-simplifier` でエージェントを起動:
+`code-simplifier`（`model: "sonnet"`）でエージェントを起動:
 - 提供する情報: Implementerのレポートからの変更ファイル一覧
 - コードの明確性を磨きつつ機能を保持する
 - このステージはポリッシュ — 動作を変更してはいけない
@@ -165,12 +166,12 @@ PASS → ステップ6 コードレビューへ
 以下のエージェントを1つのメッセージで**並列**起動する:
 
 **常に実行:**
-1. `code-reviewer` — 汎用コード品質、CLAUDE.md準拠、バグ検出
-2. `silent-failure-hunter` — エラーハンドリング監査、サイレントフェイル検出
+1. `code-reviewer`（`model: "sonnet"`）— 汎用コード品質、CLAUDE.md準拠、バグ検出
+2. `silent-failure-hunter`（`model: "sonnet"`）— エラーハンドリング監査、サイレントフェイル検出
 
 **条件付きで実行:**
-3. `comment-analyzer` — コメント/docstringが追加・修正された場合
-4. `type-design-analyzer` — 新しい型/クラスが導入された場合
+3. `comment-analyzer`（`model: "haiku"`）— コメント/docstringが追加・修正された場合
+4. `type-design-analyzer`（`model: "sonnet"`）— 新しい型/クラスが導入された場合
 
 各エージェントに提供: git diff、実装計画、CLAUDE.mdの内容。
 

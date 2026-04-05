@@ -1,6 +1,5 @@
 import { Modal, StyleSheet, Text, View } from 'react-native';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
+import { useColors } from '@/hooks/use-colors';
 import { spacing, radius, typography } from '@/theme/tokens';
 import { Button } from './Button';
 
@@ -25,15 +24,14 @@ export function ConfirmDialog({
   onCancel,
   destructive = false,
 }: ConfirmDialogProps) {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const theme = useColors();
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <View style={styles.overlay}>
-        <View style={[styles.dialog, { backgroundColor: colors.card }]}>
-          <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
-          <Text style={[styles.message, { color: colors.textSecondary }]}>{message}</Text>
+        <View style={[styles.dialog, { backgroundColor: theme.surfaceContainerLowest }]}>
+          <Text style={[styles.title, { color: theme.onSurface }]}>{title}</Text>
+          <Text style={[styles.message, { color: theme.onSurfaceVariant }]}>{message}</Text>
           <View style={styles.actions}>
             <Button label={cancelLabel} variant="secondary" onPress={onCancel} />
             <View style={styles.spacer} />

@@ -1,8 +1,9 @@
-import { View, useColorScheme, type ViewProps } from 'react-native';
+import { View, type ViewProps } from 'react-native';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { colors } from '@/theme/tokens';
 
 interface ThemedViewProps extends ViewProps {
-  surface?: 'background' | 'surface' | 'surfaceContainer' | 'surfaceContainerHigh';
+  surface?: 'background' | 'surface' | 'surfaceContainer' | 'surfaceContainerHigh' | 'surfaceContainerLowest';
 }
 
 export function ThemedView({ style, surface = 'background', ...rest }: ThemedViewProps) {

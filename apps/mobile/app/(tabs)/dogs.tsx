@@ -23,7 +23,7 @@ export default function DogsScreen() {
   return (
     <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
-        <ThemedText type="title">{t('dogs.list.title')}</ThemedText>
+        <ThemedText variant="h1">{t('dogs.list.title')}</ThemedText>
       </View>
 
       <FlatList

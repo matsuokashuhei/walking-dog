@@ -33,7 +33,7 @@ export default function SettingsScreen() {
         style={styles.container}
         contentContainerStyle={styles.content}
       >
-        <ThemedText type="title" style={styles.title}>
+        <ThemedText variant="h1" style={styles.title}>
           {t('settings.title')}
         </ThemedText>
 

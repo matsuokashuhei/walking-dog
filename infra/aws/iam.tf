@@ -43,6 +43,7 @@ resource "aws_iam_role_policy" "cognito_sns" {
   })
 }
 
+/*
 # --- ECS Execution Role (ECR pull, CloudWatch Logs) ---
 
 resource "aws_iam_role" "ecs_execution" {
@@ -225,3 +226,4 @@ resource "aws_iam_role_policy" "scheduler_lambda" {
     ]
   })
 }
+*/

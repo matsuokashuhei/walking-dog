@@ -43,6 +43,7 @@ resource "aws_iam_role" "github_actions" {
   }
 }
 
+/*
 resource "aws_iam_role_policy" "github_actions" {
   name = "${var.project_name}-github-actions"
   role = aws_iam_role.github_actions.id
@@ -102,3 +103,4 @@ resource "aws_iam_role_policy" "github_actions" {
     ]
   })
 }
+*/

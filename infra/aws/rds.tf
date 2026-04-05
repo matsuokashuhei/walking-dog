@@ -1,3 +1,4 @@
+/*
 resource "random_password" "db_password" {
   length  = 24
   special = false
@@ -40,3 +41,4 @@ resource "aws_db_instance" "main" {
     Project     = var.project_name
   }
 }
+*/

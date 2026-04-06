@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react-native';
-import SettingsScreen from './settings';
+import SettingsScreen from '../../../app/(tabs)/settings';
 
 jest.mock('@/hooks/use-color-scheme', () => ({
   useColorScheme: () => 'light',

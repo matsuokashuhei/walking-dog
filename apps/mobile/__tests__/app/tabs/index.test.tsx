@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react-native';
-import HomeScreen from './index';
+import HomeScreen from '../../../app/(tabs)/index';
 
 jest.mock('@/hooks/use-color-scheme', () => ({
   useColorScheme: () => 'light',

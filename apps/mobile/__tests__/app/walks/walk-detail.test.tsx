@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import WalkDetailScreen from '../[id]';
+import WalkDetailScreen from '../../../app/walks/[id]';
 import type { Walk } from '@/types/graphql';
 
 const mockWalk: Walk = {

@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react-native';
-import DogsScreen from './dogs';
+import DogsScreen from '../../../app/(tabs)/dogs';
 
 jest.mock('@/hooks/use-color-scheme', () => ({
   useColorScheme: () => 'light',

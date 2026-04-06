@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import DogDetailScreen from '../[id]/index';
+import DogDetailScreen from '../../../app/dogs/[id]/index';
 
 const mockPush = jest.fn();
 const mockReplace = jest.fn();

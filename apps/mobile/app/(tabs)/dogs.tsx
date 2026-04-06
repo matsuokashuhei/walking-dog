@@ -6,26 +6,51 @@ import { useMe } from '@/hooks/use-me';
 import { DogListItem } from '@/components/dogs/DogListItem';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
-import { ThemedText } from '@/components/themed-text';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
-import { spacing } from '@/theme/tokens';
+import { useColors } from '@/hooks/use-colors';
+import { spacing, typography, radius } from '@/theme/tokens';
 
 export default function DogsScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const theme = useColors();
   const { data: me, isLoading, refetch } = useMe();
 
   if (isLoading) return <LoadingScreen />;
 
-  return (
-    <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={styles.header}>
-        <ThemedText variant="h1">{t('dogs.list.title')}</ThemedText>
-      </View>
+  const dogCount = me?.dogs?.length ?? 0;
 
+  const ListHeader = (
+    <View style={styles.headerContainer}>
+      <Text style={[styles.sectionLabel, { color: theme.onSurfaceVariant }]}>
+        {t('dogs.list.sectionLabel')}
+      </Text>
+      <Text style={[styles.heroTitle, { color: theme.onSurface }]}>
+        {t('dogs.list.title')}
+      </Text>
+
+      <View style={styles.bentoRow}>
+        <View
+          style={[
+            styles.bentoCard,
+            {
+              backgroundColor: theme.surfaceContainerLowest,
+              borderColor: theme.border + '33',
+            },
+          ]}
+        >
+          <Text style={[styles.bentoValue, { color: theme.onSurface }]}>
+            {dogCount}
+          </Text>
+          <Text style={[styles.bentoLabel, { color: theme.onSurfaceVariant }]}>
+            Dogs
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
+
+  return (
+    <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: theme.background }]}>
       <FlatList
         data={me?.dogs ?? []}
         keyExtractor={(dog) => dog.id}
@@ -35,6 +60,7 @@ export default function DogsScreen() {
             onPress={(id) => router.push(`/dogs/${id}`)}
           />
         )}
+        ListHeaderComponent={ListHeader}
         contentContainerStyle={styles.list}
         onRefresh={refetch}
         refreshing={isLoading}
@@ -50,10 +76,10 @@ export default function DogsScreen() {
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={t('dogs.list.addDog')}
-        style={[styles.fab, { backgroundColor: colors.primary }]}
+        style={[styles.fab, { backgroundColor: theme.interactive }]}
         onPress={() => router.push('/dogs/new')}
       >
-        <Text style={styles.fabIcon}>+</Text>
+        <Text style={[styles.fabIcon, { color: theme.onInteractive }]}>+</Text>
       </Pressable>
     </SafeAreaView>
   );
@@ -61,13 +87,45 @@ export default function DogsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: {
-    padding: spacing.lg,
-    paddingBottom: spacing.sm,
+  headerContainer: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.md,
+  },
+  sectionLabel: {
+    ...typography.label,
+    marginBottom: spacing.xs,
+  },
+  heroTitle: {
+    fontSize: 40,
+    fontWeight: '900',
+    letterSpacing: -0.8,
+    lineHeight: 44,
+    marginBottom: spacing.md,
+  },
+  bentoRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  bentoCard: {
+    flex: 1,
+    padding: spacing.md,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  bentoValue: {
+    ...typography.display,
+    marginBottom: spacing.xs,
+  },
+  bentoLabel: {
+    ...typography.label,
   },
   list: {
-    padding: spacing.md,
+    paddingHorizontal: spacing.md,
     flexGrow: 1,
+    paddingBottom: spacing.xl + 56 + spacing.xl,
   },
   fab: {
     position: 'absolute',
@@ -78,14 +136,8 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
   },
   fabIcon: {
-    color: '#FFFFFF',
     fontSize: 28,
     lineHeight: 32,
   },

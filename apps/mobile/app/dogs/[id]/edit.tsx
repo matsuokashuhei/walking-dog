@@ -8,8 +8,7 @@ import { DogForm, type DogFormValues } from '@/components/dogs/DogForm';
 import { PhotoPicker } from '@/components/dogs/PhotoPicker';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { uploadToPresignedUrl } from '@/lib/upload';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
+import { useColors } from '@/hooks/use-colors';
 import { spacing } from '@/theme/tokens';
 import { getPhotoUrl } from '@/lib/photo-url';
 
@@ -17,8 +16,7 @@ export default function EditDogScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const theme = useColors();
 
   const { data: dog, isLoading } = useDog(id, 'ALL');
   const { mutateAsync: updateDog } = useUpdateDog();
@@ -54,7 +52,7 @@ export default function EditDogScreen() {
 
   return (
     <ScrollView
-      contentContainerStyle={[styles.container, { backgroundColor: colors.background }]}
+      contentContainerStyle={[styles.container, { backgroundColor: theme.background }]}
       keyboardShouldPersistTaps="handled"
     >
       <PhotoPicker

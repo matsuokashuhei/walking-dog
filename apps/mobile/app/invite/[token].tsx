@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Platform, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { useTranslation } from 'react-i18next';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { useColors } from '@/hooks/use-colors';
 import { spacing, typography } from '@/theme/tokens';
 import { useAuthStore } from '@/stores/auth-store';
 import { useAcceptInvitation } from '@/hooks/use-accept-invitation';
@@ -55,12 +55,11 @@ export default function AcceptInviteScreen() {
   const { token } = useLocalSearchParams<{ token: string }>();
   const { t } = useTranslation();
   const router = useRouter();
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const theme = useColors();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const acceptInvitation = useAcceptInvitation();
 
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [dogName, setDogName] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -79,6 +78,7 @@ export default function AcceptInviteScreen() {
       return;
     }
 
+    setStatus('loading');
     acceptInvitation
       .mutateAsync(token)
       .then((dog) => {
@@ -94,9 +94,9 @@ export default function AcceptInviteScreen() {
 
   if (status === 'loading') {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
         <ActivityIndicator size="large" />
-        <Text style={[styles.message, { color: colors.textSecondary }]}>
+        <Text style={[styles.message, { color: theme.onSurfaceVariant }]}>
           {t('invite.accepting')}
         </Text>
       </View>
@@ -105,8 +105,8 @@ export default function AcceptInviteScreen() {
 
   if (status === 'error') {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <Text style={[styles.errorText, { color: colors.error }]}>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <Text style={[styles.errorText, { color: theme.error }]}>
           {errorMessage}
         </Text>
         <Button
@@ -118,16 +118,69 @@ export default function AcceptInviteScreen() {
     );
   }
 
+  if (status === 'success') {
+    return (
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <Text style={[styles.successText, { color: theme.onSurface }]}>
+          {t('invite.success', { name: dogName })}
+        </Text>
+        <Button
+          label={t('invite.goToDog')}
+          onPress={() => router.replace('/(tabs)/dogs' as never)}
+          style={styles.button}
+        />
+      </View>
+    );
+  }
+
+  // idle — invitation landing screen
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Text style={[styles.successText, { color: colors.text }]}>
-        {t('invite.success', { name: dogName })}
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={[styles.iconContainer, { backgroundColor: theme.surfaceContainerHigh }]}>
+        <Ionicons name="mail" size={36} color={theme.onSurface} />
+      </View>
+
+      <Text style={[styles.heroText, { color: theme.onSurface }]}>
+        {t('invite.title')}
       </Text>
+
+      <Text style={[styles.bodyText, { color: theme.onSurfaceVariant }]}>
+        {t('invite.description')}
+      </Text>
+
       <Button
-        label={t('invite.goToDog')}
-        onPress={() => router.replace('/(tabs)/dogs' as never)}
-        style={styles.button}
+        label={t('invite.accept')}
+        variant="primary"
+        onPress={() => {
+          setStatus('loading');
+          if (!token) return;
+          acceptInvitation
+            .mutateAsync(token)
+            .then((dog) => {
+              setDogName(dog.name);
+              setStatus('success');
+            })
+            .catch((error: unknown) => {
+              const msg = extractGraphQLErrorMessage(error);
+              setErrorMessage(mapInviteErrorMessage(msg, t));
+              setStatus('error');
+            });
+        }}
+        style={styles.acceptButton}
       />
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t('invite.decline')}
+        onPress={() => router.back()}
+        style={styles.declineButton}
+        hitSlop={12}
+      >
+        <Text style={[styles.declineText, { color: theme.onSurfaceVariant }]}>
+          {t('invite.decline')}
+        </Text>
+      </Pressable>
+
     </View>
   );
 }
@@ -138,6 +191,37 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: spacing.xl,
+  },
+  iconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xl,
+  },
+  heroText: {
+    fontSize: 28,
+    fontWeight: '800',
+    letterSpacing: -0.56,
+    textAlign: 'center',
+    marginBottom: spacing.md,
+  },
+  bodyText: {
+    ...typography.body,
+    textAlign: 'center',
+    marginBottom: spacing.xl,
+  },
+  acceptButton: {
+    width: '100%',
+    marginBottom: spacing.md,
+  },
+  declineButton: {
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.xl,
+  },
+  declineText: {
+    ...typography.body,
   },
   message: { ...typography.body, marginTop: spacing.lg },
   successText: { ...typography.h2, textAlign: 'center' },

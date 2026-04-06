@@ -3,11 +3,11 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  useColorScheme,
   type PressableProps,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { colors, spacing, radius, typography } from '@/theme/tokens';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'destructive';
@@ -83,7 +83,7 @@ export function Button({
 const styles = StyleSheet.create({
   base: {
     height: 52,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',

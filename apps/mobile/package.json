@@ -72,6 +72,10 @@
     "setupFilesAfterEnv": [
       "<rootDir>/jest.setup.ts"
     ],
+    "testPathIgnorePatterns": [
+      "<rootDir>/node_modules/",
+      "<rootDir>/app-example/"
+    ],
     "moduleNameMapper": {
       "^@/(.*)$": "<rootDir>/$1"
     },

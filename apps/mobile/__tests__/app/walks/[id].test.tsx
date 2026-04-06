@@ -29,7 +29,7 @@ jest.mock('@/hooks/use-walks', () => ({
 }));
 
 // eslint-disable-next-line import/first
-import WalkDetailScreen from '../[id]';
+import WalkDetailScreen from '../../../app/walks/[id]';
 
 const baseWalk = {
   id: 'walk-1',

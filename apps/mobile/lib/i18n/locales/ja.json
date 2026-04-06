@@ -35,6 +35,7 @@
       "description": "{{email}} に確認コードを送りました",
       "code": "確認コード",
       "submit": "確認",
+      "resend": "コードを再送する",
       "error": {
         "invalidCode": "確認コードが正しくありません",
         "expiredCode": "確認コードの有効期限が切れています",
@@ -45,6 +46,7 @@
   "dogs": {
     "list": {
       "title": "愛犬",
+      "sectionLabel": "YOUR PACK",
       "empty": "まだ犬が登録されていません",
       "addDog": "犬を追加"
     },
@@ -124,6 +126,10 @@
       "walkAgain": "もう一度散歩",
       "saving": "散歩データを保存中..."
     },
+    "home": {
+      "hero": "今日の散歩、準備はいい？",
+      "startWalk": "散歩を始める →"
+    },
     "history": {
       "title": "最近の散歩",
       "empty": "まだ散歩がありません。最初の散歩を始めましょう！",
@@ -169,6 +175,7 @@
   },
   "settings": {
     "title": "設定",
+    "sectionLabel": "PREFERENCES",
     "profile": "プロフィール",
     "displayName": "表示名",
     "edit": "編集",

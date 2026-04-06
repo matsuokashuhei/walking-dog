@@ -1,21 +1,20 @@
-import { View, useColorScheme } from 'react-native';
-import { colors } from '@/theme/tokens';
+import { StyleSheet, View } from 'react-native';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { colors, spacing } from '@/theme/tokens';
 
-interface DividerProps {
-  opacity?: number;
-}
-
-export function Divider({ opacity = 0.2 }: DividerProps) {
+export function Divider() {
   const colorScheme = useColorScheme();
   const theme = colors[colorScheme ?? 'light'];
 
   return (
     <View
-      style={{
-        height: 1,
-        backgroundColor: theme.border,
-        opacity,
-      }}
+      style={[styles.divider, { backgroundColor: theme.surface }]}
     />
   );
 }
+
+const styles = StyleSheet.create({
+  divider: {
+    height: spacing.md,
+  },
+});

@@ -1,4 +1,5 @@
-import { View, StyleSheet, useColorScheme, type ViewProps } from 'react-native';
+import { View, StyleSheet, type ViewProps } from 'react-native';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { colors, spacing, radius } from '@/theme/tokens';
 
 interface CardProps extends ViewProps {
@@ -14,7 +15,7 @@ export function Card({ style, padding = 'md', children, ...rest }: CardProps) {
       style={[
         styles.base,
         {
-          backgroundColor: theme.surface,
+          backgroundColor: theme.surfaceContainerLowest,
           borderColor: theme.border + '33', // 20% opacity ghost border
           padding: spacing[padding],
         },
@@ -29,7 +30,7 @@ export function Card({ style, padding = 'md', children, ...rest }: CardProps) {
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     borderWidth: 1,
   },
 });

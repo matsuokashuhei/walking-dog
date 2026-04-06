@@ -35,6 +35,7 @@
       "description": "We sent a confirmation code to {{email}}",
       "code": "Confirmation Code",
       "submit": "Confirm",
+      "resend": "Resend Code",
       "error": {
         "invalidCode": "Invalid confirmation code",
         "expiredCode": "Confirmation code has expired",
@@ -45,6 +46,7 @@
   "dogs": {
     "list": {
       "title": "My Dogs",
+      "sectionLabel": "YOUR PACK",
       "empty": "No dogs registered yet",
       "addDog": "Add Dog"
     },
@@ -124,6 +126,10 @@
       "walkAgain": "Walk Again",
       "saving": "Saving walk data..."
     },
+    "home": {
+      "hero": "Ready for the morning run?",
+      "startWalk": "Start Walk →"
+    },
     "history": {
       "title": "Recent Walks",
       "empty": "No walks yet. Start your first walk!",
@@ -169,6 +175,7 @@
   },
   "settings": {
     "title": "Settings",
+    "sectionLabel": "PREFERENCES",
     "profile": "Profile",
     "displayName": "Display Name",
     "edit": "Edit",

@@ -13,16 +13,14 @@ import { DogMembersList } from '@/components/dogs/DogMembersList';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
+import { useColors } from '@/hooks/use-colors';
 import { spacing } from '@/theme/tokens';
 
 export default function DogMembersScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const theme = useColors();
 
   const { data: dog, isLoading: dogLoading } = useDog(id, 'ALL');
   const { data: me, isLoading: meLoading } = useMe();
@@ -77,7 +75,7 @@ export default function DogMembersScreen() {
   }
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={styles.listSection}>
         <DogMembersList
           members={members}

@@ -1,7 +1,6 @@
 import { ActionSheetIOS, Platform, StyleSheet, Text, Pressable, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
+import { useColors } from '@/hooks/use-colors';
 import { spacing, radius, typography } from '@/theme/tokens';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { useSettingsStore } from '@/stores/settings-store';
@@ -13,9 +12,8 @@ const LANGUAGES = [
 
 export function AppearanceSection() {
   const { t } = useTranslation();
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
-  const theme = useSettingsStore((s) => s.theme);
+  const theme = useColors();
+  const themeMode = useSettingsStore((s) => s.theme);
   const language = useSettingsStore((s) => s.language);
   const setTheme = useSettingsStore((s) => s.setTheme);
   const setLanguage = useSettingsStore((s) => s.setLanguage);
@@ -50,38 +48,46 @@ export function AppearanceSection() {
   }
 
   return (
-    <View style={[styles.card, { backgroundColor: colors.card }]}>
-      <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-        {t('settings.appearance')}
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: theme.surfaceContainerLowest,
+          borderColor: theme.border + '33',
+        },
+      ]}
+    >
+      <Text style={[styles.sectionTitle, { color: theme.onSurfaceVariant }]}>
+        {t('settings.appearance').toUpperCase()}
       </Text>
 
       <View style={styles.row}>
-        <Text style={[styles.rowLabel, { color: colors.text }]}>
+        <Text style={[styles.rowLabel, { color: theme.onSurface }]}>
           {t('settings.theme')}
         </Text>
         <View style={styles.segmentWrapper}>
           <SegmentedControl
             options={themeOptions}
-            selected={theme}
+            selected={themeMode}
             onChange={(v) => setTheme(v as 'light' | 'dark' | 'auto')}
           />
         </View>
       </View>
 
       <View style={[styles.row, { marginTop: spacing.md }]}>
-        <Text style={[styles.rowLabel, { color: colors.text }]}>
+        <Text style={[styles.rowLabel, { color: theme.onSurface }]}>
           {t('settings.language')}
         </Text>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`${t('settings.language')}: ${currentLanguageLabel}`}
           onPress={handleLanguagePress}
-          style={[styles.dropdown, { borderColor: colors.border }]}
+          style={[styles.dropdown, { borderColor: theme.border + '33' }]}
         >
-          <Text style={[styles.dropdownText, { color: colors.text }]}>
+          <Text style={[styles.dropdownText, { color: theme.onSurface }]}>
             {currentLanguageLabel}
           </Text>
-          <Text style={[styles.dropdownArrow, { color: colors.textSecondary }]}>▼</Text>
+          <Text style={[styles.dropdownArrow, { color: theme.onSurfaceVariant }]}>&#9660;</Text>
         </Pressable>
       </View>
     </View>
@@ -90,15 +96,14 @@ export function AppearanceSection() {
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
+    borderWidth: 1,
     padding: spacing.md,
     marginBottom: spacing.md,
   },
   sectionTitle: {
-    ...typography.caption,
+    ...typography.label,
     marginBottom: spacing.md,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
   row: {
     flexDirection: 'row',

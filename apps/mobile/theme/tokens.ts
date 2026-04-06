@@ -4,6 +4,7 @@ export const colors = {
     surface: '#f6f3f2',
     surfaceContainer: '#f0edec',
     surfaceContainerHigh: '#e5e2e1',
+    surfaceContainerLowest: '#ffffff',
     onSurface: '#1c1b1b',
     onSurfaceVariant: '#474747',
     textDisabled: '#adadad',
@@ -12,12 +13,14 @@ export const colors = {
     border: '#c6c6c6',
     error: '#ba1a1a',
     overlay: 'rgba(0,0,0,0.4)',
+    primaryContainer: '#3c3b3b',
   },
   dark: {
     background: '#111111',
     surface: '#1e1e1e',
     surfaceContainer: '#2a2a2a',
     surfaceContainerHigh: '#333333',
+    surfaceContainerLowest: '#1a1a1a',
     onSurface: '#f0f0f0',
     onSurfaceVariant: '#adadad',
     textDisabled: '#5a5a5a',
@@ -26,6 +29,7 @@ export const colors = {
     border: '#3a3a3a',
     error: '#ffb4ab',
     overlay: 'rgba(0,0,0,0.6)',
+    primaryContainer: '#d4d4d4',
   },
 } as const;
 
@@ -36,6 +40,7 @@ export interface ColorTokens {
   surface: string;
   surfaceContainer: string;
   surfaceContainerHigh: string;
+  surfaceContainerLowest: string;
   onSurface: string;
   onSurfaceVariant: string;
   textDisabled: string;
@@ -44,6 +49,7 @@ export interface ColorTokens {
   border: string;
   error: string;
   overlay: string;
+  primaryContainer: string;
 }
 
 export const spacing = {
@@ -56,19 +62,26 @@ export const spacing = {
 } as const;
 
 export const radius = {
-  sm: 6,
-  md: 12,
-  lg: 16,
+  sm: 4,
+  md: 8,
+  lg: 12,
   full: 9999,
 } as const;
 
 export const typography = {
-  h1: { fontSize: 32, fontWeight: '700' as const, lineHeight: 40 },
+  display: { fontSize: 48, fontWeight: '900' as const, lineHeight: 52, letterSpacing: -0.96 },
+  h1: { fontSize: 32, fontWeight: '900' as const, lineHeight: 40, letterSpacing: -0.64 },
   h2: { fontSize: 24, fontWeight: '600' as const, lineHeight: 32 },
   h3: { fontSize: 20, fontWeight: '600' as const, lineHeight: 28 },
   body: { fontSize: 16, fontWeight: '400' as const, lineHeight: 24 },
   bodyMedium: { fontSize: 16, fontWeight: '500' as const, lineHeight: 24 },
   caption: { fontSize: 12, fontWeight: '400' as const, lineHeight: 16 },
-  label: { fontSize: 11, fontWeight: '600' as const, lineHeight: 16, letterSpacing: 0.8 },
+  label: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    lineHeight: 16,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase' as const,
+  },
   button: { fontSize: 16, fontWeight: '600' as const, lineHeight: 24 },
 } as const;

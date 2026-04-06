@@ -4,8 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/Button';
 import { TextInput } from '@/components/ui/TextInput';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
+import { useColors } from '@/hooks/use-colors';
 import { spacing, typography } from '@/theme/tokens';
 
 interface RegisterFormProps {
@@ -16,8 +15,7 @@ interface RegisterFormProps {
 export function RegisterForm({ onSuccess, onLoginPress }: RegisterFormProps) {
   const { signUp } = useAuth();
   const { t } = useTranslation();
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const theme = useColors();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -75,7 +73,7 @@ export function RegisterForm({ onSuccess, onLoginPress }: RegisterFormProps) {
         error={password.length > 0 && password.length < 8 ? t('auth.register.passwordError') : undefined}
       />
       {error ? (
-        <Text style={[styles.error, { color: colors.error }]}>{error}</Text>
+        <Text style={[styles.error, { color: theme.error }]}>{error}</Text>
       ) : null}
       <Button
         label={t('auth.register.submit')}

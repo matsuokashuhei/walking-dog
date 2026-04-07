@@ -49,13 +49,17 @@ pub async fn upsert_friendship<C: sea_orm::ConnectionTrait>(
     Ok(friendship)
 }
 
-/// Update the total_interaction_sec of an existing friendship.
+/// Update the total_interaction_sec of an existing friendship by a precise delta.
 pub async fn update_friendship_duration(
     db: &sea_orm::DatabaseConnection,
     dog_id_1: Uuid,
     dog_id_2: Uuid,
-    new_duration_sec: i32,
+    delta_sec: i32,
 ) -> Result<bool, AppError> {
+    if delta_sec == 0 {
+        return Ok(true);
+    }
+
     let existing = FriendshipEntity::find()
         .filter(friendships::Column::DogId1.eq(dog_id_1))
         .filter(friendships::Column::DogId2.eq(dog_id_2))
@@ -63,11 +67,9 @@ pub async fn update_friendship_duration(
         .await?;
 
     if let Some(existing) = existing {
-        let old_per_encounter = existing.total_interaction_sec / existing.encounter_count.max(1);
-        // Replace last encounter's duration with new_duration_sec
-        let new_total = existing.total_interaction_sec - old_per_encounter + new_duration_sec;
+        let new_total = (existing.total_interaction_sec + delta_sec).max(0);
         let mut active: friendships::ActiveModel = existing.into();
-        active.total_interaction_sec = Set(new_total.max(0));
+        active.total_interaction_sec = Set(new_total);
         active.update(db).await?;
     }
 

@@ -1311,6 +1311,14 @@ fn record_encounter_field(state: Arc<AppState>) -> Field {
                         .into_graphql_error());
                 }
 
+                // Check calling user's own encounter_detection_enabled
+                if !user.encounter_detection_enabled {
+                    return Err(AppError::Unauthorized(
+                        "Encounter detection is disabled for your account".to_string(),
+                    )
+                    .into_graphql_error());
+                }
+
                 // Check encounter_detection_enabled for all users of theirWalk
                 let their_walk_dogs = WalkDogEntity::find()
                     .filter(walk_dogs::Column::WalkId.eq(their_walk_id))

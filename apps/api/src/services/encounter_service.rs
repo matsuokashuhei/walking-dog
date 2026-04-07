@@ -146,13 +146,15 @@ pub async fn update_encounter_duration(
                 .await?;
 
             if let Some(existing) = existing {
-                let new_duration = existing.duration_sec.max(duration_sec);
+                let old_duration = existing.duration_sec;
+                let new_duration = old_duration.max(duration_sec);
                 let mut active: encounters::ActiveModel = existing.into();
                 active.duration_sec = Set(new_duration);
                 active.update(db).await?;
 
-                // Update friendship total_interaction_sec
-                friendship_service::update_friendship_duration(db, dog_id_1, dog_id_2, new_duration).await?;
+                // Update friendship total_interaction_sec with precise delta
+                let delta = new_duration - old_duration;
+                friendship_service::update_friendship_duration(db, dog_id_1, dog_id_2, delta).await?;
             }
         }
     }

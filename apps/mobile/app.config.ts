@@ -21,6 +21,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     infoPlist: {
       NSLocationWhenInUseUsageDescription:
         'Walking Dog uses your location to record walk routes.',
+      NSBluetoothAlwaysUsageDescription:
+        'Walking Dog uses Bluetooth to detect nearby dogs during walks.',
     },
   },
   android: {
@@ -64,6 +66,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ],
     'expo-secure-store',
     'expo-sqlite',
+    [
+      'react-native-ble-plx',
+      {
+        isBackgroundEnabled: false,
+        neverForLocation: true,
+      },
+    ],
   ],
   experiments: {
     typedRoutes: true,

@@ -4,8 +4,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
 import { useWalkStore } from '@/stores/walk-store';
+import { useMe } from '@/hooks/use-me';
 import { useStartWalk, useFinishWalk, useAddWalkPoints } from '@/hooks/use-walk-mutations';
+import { useRecordEncounter, useUpdateEncounterDuration } from '@/hooks/use-encounter-mutations';
 import { requestPermission, startTracking } from '@/lib/walk/gps-tracker';
+import { requestBluetoothPermission } from '@/lib/ble/permissions';
+import { startScanning, startAdvertising, type BleScanner } from '@/lib/ble/scanner';
+import { EncounterTracker } from '@/lib/ble/encounter-tracker';
 import { DogSelector } from '@/components/walk/DogSelector';
 import { WalkMap } from '@/components/walk/WalkMap';
 import { WalkControls } from '@/components/walk/WalkControls';
@@ -24,10 +29,16 @@ export default function WalkScreen() {
   const startRecording = useWalkStore((s) => s.startRecording);
   const finish = useWalkStore((s) => s.finish);
 
+  const { data: me } = useMe();
   const startWalk = useStartWalk();
   const finishWalk = useFinishWalk();
   const addWalkPoints = useAddWalkPoints();
+  const recordEncounter = useRecordEncounter();
+  const updateEncounterDuration = useUpdateEncounterDuration();
   const stopTrackingRef = useRef<(() => void) | null>(null);
+  const bleScannerRef = useRef<BleScanner | null>(null);
+  const bleAdvertiserRef = useRef<{ stop: () => void } | null>(null);
+  const encounterTrackerRef = useRef<EncounterTracker | null>(null);
   const [isStopping, setIsStopping] = useState(false);
 
   const handleStart = useCallback(async () => {
@@ -44,10 +55,41 @@ export default function WalkScreen() {
         addPoint(point);
       });
       stopTrackingRef.current = stop;
+
+      // Start BLE encounter detection if enabled
+      const bleEnabled = me?.encounterDetectionEnabled ?? true;
+      if (bleEnabled) {
+        const bleGranted = await requestBluetoothPermission();
+        if (bleGranted) {
+          const currentWalkId = walk.id;
+          const tracker = new EncounterTracker({
+            onEncounterDetected: (theirWalkId) => {
+              recordEncounter.mutate({ myWalkId: currentWalkId, theirWalkId });
+            },
+            onEncounterFinalized: (theirWalkId, durationMs) => {
+              updateEncounterDuration.mutate({
+                myWalkId: currentWalkId,
+                theirWalkId,
+                durationSec: Math.round(durationMs / 1000),
+              });
+            },
+          });
+          tracker.start();
+          encounterTrackerRef.current = tracker;
+
+          const scanner = await startScanning((detectedWalkId) => {
+            tracker.onDeviceDetected(detectedWalkId);
+          });
+          bleScannerRef.current = scanner;
+
+          const advertiser = await startAdvertising(currentWalkId);
+          bleAdvertiserRef.current = advertiser;
+        }
+      }
     } catch {
       Alert.alert(t('common.error'), t('walk.error.startFailed'));
     }
-  }, [selectedDogIds, startWalk, startRecording, addPoint, t]);
+  }, [selectedDogIds, startWalk, startRecording, addPoint, me, recordEncounter, updateEncounterDuration, t]);
 
   const handleStop = useCallback(async () => {
     if (!walkId) return;
@@ -55,6 +97,14 @@ export default function WalkScreen() {
 
     stopTrackingRef.current?.();
     stopTrackingRef.current = null;
+
+    // Stop BLE
+    bleScannerRef.current?.stop();
+    bleScannerRef.current = null;
+    bleAdvertiserRef.current?.stop();
+    bleAdvertiserRef.current = null;
+    encounterTrackerRef.current?.stop();
+    encounterTrackerRef.current = null;
 
     try {
       const currentPoints = useWalkStore.getState().points;

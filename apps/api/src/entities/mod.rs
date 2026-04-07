@@ -5,6 +5,8 @@ pub mod prelude;
 pub mod dog_invitations;
 pub mod dog_members;
 pub mod dogs;
+pub mod encounters;
+pub mod friendships;
 pub mod users;
 pub mod walk_dogs;
 pub mod walks;

@@ -9,6 +9,7 @@ import { ErrorScreen } from '@/components/ui/ErrorScreen';
 import { ProfileSection } from '@/components/settings/ProfileSection';
 import { DogListSection } from '@/components/settings/DogListSection';
 import { AppearanceSection } from '@/components/settings/AppearanceSection';
+import { EncounterDetectionSection } from '@/components/settings/EncounterDetectionSection';
 import { LogoutButton } from '@/components/settings/LogoutButton';
 import Constants from 'expo-constants';
 
@@ -40,6 +41,7 @@ export default function SettingsScreen() {
         <ProfileSection displayName={me.displayName} />
         <DogListSection dogs={me.dogs} />
         <AppearanceSection />
+        <EncounterDetectionSection enabled={me.encounterDetectionEnabled} />
 
         <LogoutButton />
 

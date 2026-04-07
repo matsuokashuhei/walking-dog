@@ -77,6 +77,7 @@ export interface User {
   id: string;
   displayName: string | null;
   avatarUrl: string | null;
+  encounterDetectionEnabled: boolean;
   dogs: Dog[];
   createdAt: string;
 }
@@ -131,6 +132,38 @@ export interface GenerateDogInvitationResponse { generateDogInvitation: DogInvit
 export interface AcceptDogInvitationResponse { acceptDogInvitation: Dog; }
 export interface RemoveDogMemberResponse { removeDogMember: boolean; }
 export interface LeaveDogResponse { leaveDog: boolean; }
+export interface UpdateEncounterDetectionResponse { updateEncounterDetection: User; }
+export interface RecordEncounterResponse { recordEncounter: Encounter[]; }
+export interface UpdateEncounterDurationResponse { updateEncounterDuration: boolean; }
+
+export interface FriendDog {
+  id: string;
+  name: string;
+  breed: string | null;
+  photoUrl: string | null;
+}
+
+export interface Friendship {
+  id: string;
+  encounterCount: number;
+  totalInteractionSec: number;
+  firstMetAt: string;
+  lastMetAt: string;
+  friend: FriendDog;
+}
+
+export interface Encounter {
+  id: string;
+  durationSec: number;
+  metAt: string;
+  dog1: FriendDog;
+  dog2: FriendDog;
+}
+
+export interface DogFriendsResponse { dogFriends: Friendship[]; }
+export interface DogEncountersResponse { dogEncounters: Encounter[]; }
+export interface FriendshipResponse { friendship: Friendship | null; }
+
 export interface StartWalkResponse { startWalk: Walk; }
 export interface AddWalkPointsResponse { addWalkPoints: boolean; }
 export interface FinishWalkResponse { finishWalk: Walk; }

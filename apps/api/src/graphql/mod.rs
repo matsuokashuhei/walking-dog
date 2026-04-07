@@ -36,6 +36,8 @@ pub fn build_schema(state: Arc<AppState>) -> AppSchema {
         // Query output types
         .register(custom_queries::walk_point_type())
         .register(custom_queries::walk_stats_type())
+        .register(custom_queries::encounter_output_type())
+        .register(custom_queries::friendship_output_type())
         // Mutation output types
         .register(custom_mutations::birth_date_type())
         .register(custom_mutations::dog_output_type())

@@ -4,8 +4,8 @@ use uuid::Uuid;
 use crate::AppState;
 use crate::auth;
 use crate::error::AppError;
-use crate::graphql::custom_queries::WalkPointOutput;
-use crate::services::{dog_invitation_service, dog_member_service, dog_service, s3_service, user_service, walk_points_service, walk_service};
+use crate::graphql::custom_queries::{EncounterOutput, WalkPointOutput};
+use crate::services::{dog_invitation_service, dog_member_service, dog_service, encounter_service, s3_service, user_service, walk_points_service, walk_service};
 
 // ─── BirthDate types ─────────────────────────────────────────────────────────
 
@@ -259,6 +259,7 @@ pub struct UserOutput {
     pub display_name: Option<String>,
     pub avatar_url: Option<String>,
     pub created_at: String,
+    pub encounter_detection_enabled: bool,
 }
 
 impl From<crate::entities::users::Model> for UserOutput {
@@ -270,6 +271,7 @@ impl From<crate::entities::users::Model> for UserOutput {
             display_name: m.display_name,
             avatar_url: m.avatar_url,
             created_at: created.to_rfc3339(),
+            encounter_detection_enabled: m.encounter_detection_enabled,
         }
     }
 }
@@ -361,13 +363,13 @@ pub fn walk_output_type() -> Object {
         .field(Field::new("distanceM", TypeRef::named(TypeRef::INT), |ctx| {
             FieldFuture::new(async move {
                 let w = ctx.parent_value.try_downcast_ref::<WalkOutput>()?;
-                Ok(w.distance_m.map(|v| FieldValue::value(v)))
+                Ok(w.distance_m.map(FieldValue::value))
             })
         }))
         .field(Field::new("durationSec", TypeRef::named(TypeRef::INT), |ctx| {
             FieldFuture::new(async move {
                 let w = ctx.parent_value.try_downcast_ref::<WalkOutput>()?;
-                Ok(w.duration_sec.map(|v| FieldValue::value(v)))
+                Ok(w.duration_sec.map(FieldValue::value))
             })
         }))
         .field(Field::new("startedAt", TypeRef::named_nn(TypeRef::STRING), |ctx| {
@@ -541,6 +543,12 @@ pub fn user_output_type() -> Object {
             FieldFuture::new(async move {
                 let u = ctx.parent_value.try_downcast_ref::<UserOutput>()?;
                 Ok(Some(FieldValue::value(u.created_at.clone())))
+            })
+        }))
+        .field(Field::new("encounterDetectionEnabled", TypeRef::named_nn(TypeRef::BOOLEAN), |ctx| {
+            FieldFuture::new(async move {
+                let u = ctx.parent_value.try_downcast_ref::<UserOutput>()?;
+                Ok(Some(FieldValue::value(u.encounter_detection_enabled)))
             })
         }))
 }
@@ -743,7 +751,10 @@ pub fn mutation_fields(state: Arc<AppState>) -> Vec<Field> {
         generate_dog_invitation_field(state.clone()),
         accept_dog_invitation_field(state.clone()),
         remove_dog_member_field(state.clone()),
-        leave_dog_field(state),
+        leave_dog_field(state.clone()),
+        record_encounter_field(state.clone()),
+        update_encounter_duration_field(state.clone()),
+        update_encounter_detection_field(state),
     ]
 }
 
@@ -764,7 +775,7 @@ fn sign_up_field(state: Arc<AppState>) -> Field {
                 &display_name,
             )
             .await
-            .map_err(|e| async_graphql::Error::new(e))?;
+            .map_err(async_graphql::Error::new)?;
 
             Ok(Some(FieldValue::owned_any(SignUpOutput {
                 success: true,
@@ -790,7 +801,7 @@ fn confirm_sign_up_field(state: Arc<AppState>) -> Field {
                 &code,
             )
             .await
-            .map_err(|e| async_graphql::Error::new(e))?;
+            .map_err(async_graphql::Error::new)?;
 
             Ok(Some(FieldValue::value(true)))
         })
@@ -813,7 +824,7 @@ fn sign_in_field(state: Arc<AppState>) -> Field {
                 &password,
             )
             .await
-            .map_err(|e| async_graphql::Error::new(e))?;
+            .map_err(async_graphql::Error::new)?;
 
             Ok(Some(FieldValue::owned_any(SignInOutput {
                 access_token: result.access_token,
@@ -832,7 +843,7 @@ fn sign_out_field(state: Arc<AppState>) -> Field {
 
             auth::service::sign_out(&state.cognito, &access_token)
                 .await
-                .map_err(|e| async_graphql::Error::new(e))?;
+                .map_err(async_graphql::Error::new)?;
 
             Ok(Some(FieldValue::value(true)))
         })
@@ -853,7 +864,7 @@ fn refresh_token_field(state: Arc<AppState>) -> Field {
                 &refresh_token,
             )
             .await
-            .map_err(|e| async_graphql::Error::new(e))?;
+            .map_err(async_graphql::Error::new)?;
 
             Ok(Some(FieldValue::owned_any(SignInOutput {
                 access_token: result.access_token,
@@ -1260,4 +1271,177 @@ fn leave_dog_field(state: Arc<AppState>) -> Field {
         })
     })
     .argument(InputValue::new("dogId", TypeRef::named_nn(TypeRef::ID)))
+}
+
+fn record_encounter_field(state: Arc<AppState>) -> Field {
+    Field::new(
+        "recordEncounter",
+        TypeRef::named_nn_list_nn("EncounterOutput"),
+        move |ctx| {
+            let state = state.clone();
+            FieldFuture::new(async move {
+                use crate::entities::{
+                    walks::Entity as WalkEntity,
+                    walk_dogs::{self, Entity as WalkDogEntity},
+                    dog_members::{self, Entity as DogMemberEntity},
+                    users::Entity as UserEntity,
+                };
+                use sea_orm::{EntityTrait, ColumnTrait, QueryFilter};
+
+                let cognito_sub = auth::require_auth(&ctx)?;
+                let my_walk_id_str = ctx.args.try_get("myWalkId")?.string()?;
+                let their_walk_id_str = ctx.args.try_get("theirWalkId")?.string()?;
+                let my_walk_id = Uuid::parse_str(my_walk_id_str)
+                    .map_err(|_| async_graphql::Error::new("Invalid myWalkId"))?;
+                let their_walk_id = Uuid::parse_str(their_walk_id_str)
+                    .map_err(|_| async_graphql::Error::new("Invalid theirWalkId"))?;
+
+                let user = user_service::get_or_create_user(&state.db, &cognito_sub)
+                    .await
+                    .map_err(AppError::into_graphql_error)?;
+
+                // Verify myWalkId belongs to the current user
+                let my_walk = WalkEntity::find_by_id(my_walk_id)
+                    .one(&state.db)
+                    .await
+                    .map_err(|e| AppError::Database(e).into_graphql_error())?
+                    .ok_or_else(|| async_graphql::Error::new("Walk not found"))?;
+                if my_walk.user_id != user.id {
+                    return Err(AppError::Unauthorized("Walk does not belong to user".to_string())
+                        .into_graphql_error());
+                }
+
+                // Check encounter_detection_enabled for all users of theirWalk
+                let their_walk_dogs = WalkDogEntity::find()
+                    .filter(walk_dogs::Column::WalkId.eq(their_walk_id))
+                    .all(&state.db)
+                    .await
+                    .map_err(|e| AppError::Database(e).into_graphql_error())?;
+
+                for wd in &their_walk_dogs {
+                    // Find all dog_members for this dog
+                    let members = DogMemberEntity::find()
+                        .filter(dog_members::Column::DogId.eq(wd.dog_id))
+                        .all(&state.db)
+                        .await
+                        .map_err(|e| AppError::Database(e).into_graphql_error())?;
+
+                    for member in &members {
+                        let u = UserEntity::find_by_id(member.user_id)
+                            .one(&state.db)
+                            .await
+                            .map_err(|e| AppError::Database(e).into_graphql_error())?;
+                        if let Some(u) = u {
+                            if !u.encounter_detection_enabled {
+                                return Err(AppError::Unauthorized(
+                                    "Encounter detection is disabled for the other user".to_string(),
+                                )
+                                .into_graphql_error());
+                            }
+                        }
+                    }
+                }
+
+                let encounters = encounter_service::record_encounter(
+                    &state.db,
+                    my_walk_id,
+                    their_walk_id,
+                    30,
+                )
+                .await
+                .map_err(AppError::into_graphql_error)?;
+
+                let values: Vec<FieldValue> = encounters
+                    .into_iter()
+                    .map(|e| FieldValue::owned_any(EncounterOutput::from(e)))
+                    .collect();
+                Ok(Some(FieldValue::list(values)))
+            })
+        },
+    )
+    .argument(InputValue::new("myWalkId", TypeRef::named_nn(TypeRef::ID)))
+    .argument(InputValue::new("theirWalkId", TypeRef::named_nn(TypeRef::ID)))
+}
+
+fn update_encounter_duration_field(state: Arc<AppState>) -> Field {
+    Field::new(
+        "updateEncounterDuration",
+        TypeRef::named_nn(TypeRef::BOOLEAN),
+        move |ctx| {
+            let state = state.clone();
+            FieldFuture::new(async move {
+                use crate::entities::walks::Entity as WalkEntity;
+                use sea_orm::EntityTrait;
+
+                let cognito_sub = auth::require_auth(&ctx)?;
+                let my_walk_id_str = ctx.args.try_get("myWalkId")?.string()?;
+                let their_walk_id_str = ctx.args.try_get("theirWalkId")?.string()?;
+                let duration_sec = ctx.args.try_get("durationSec")?.i64()? as i32;
+                let my_walk_id = Uuid::parse_str(my_walk_id_str)
+                    .map_err(|_| async_graphql::Error::new("Invalid myWalkId"))?;
+                let their_walk_id = Uuid::parse_str(their_walk_id_str)
+                    .map_err(|_| async_graphql::Error::new("Invalid theirWalkId"))?;
+
+                let user = user_service::get_or_create_user(&state.db, &cognito_sub)
+                    .await
+                    .map_err(AppError::into_graphql_error)?;
+
+                // Verify myWalkId belongs to the current user
+                let my_walk = WalkEntity::find_by_id(my_walk_id)
+                    .one(&state.db)
+                    .await
+                    .map_err(|e| AppError::Database(e).into_graphql_error())?
+                    .ok_or_else(|| async_graphql::Error::new("Walk not found"))?;
+                if my_walk.user_id != user.id {
+                    return Err(AppError::Unauthorized("Walk does not belong to user".to_string())
+                        .into_graphql_error());
+                }
+
+                let result = encounter_service::update_encounter_duration(
+                    &state.db,
+                    my_walk_id,
+                    their_walk_id,
+                    duration_sec,
+                )
+                .await
+                .map_err(AppError::into_graphql_error)?;
+
+                Ok(Some(FieldValue::value(result)))
+            })
+        },
+    )
+    .argument(InputValue::new("myWalkId", TypeRef::named_nn(TypeRef::ID)))
+    .argument(InputValue::new("theirWalkId", TypeRef::named_nn(TypeRef::ID)))
+    .argument(InputValue::new("durationSec", TypeRef::named_nn(TypeRef::INT)))
+}
+
+fn update_encounter_detection_field(state: Arc<AppState>) -> Field {
+    Field::new(
+        "updateEncounterDetection",
+        TypeRef::named_nn("UserOutput"),
+        move |ctx| {
+            let state = state.clone();
+            FieldFuture::new(async move {
+                use crate::entities::users;
+                use sea_orm::{ActiveModelTrait, Set};
+
+                let cognito_sub = auth::require_auth(&ctx)?;
+                let enabled = ctx.args.try_get("enabled")?.boolean()?;
+
+                let user = user_service::get_or_create_user(&state.db, &cognito_sub)
+                    .await
+                    .map_err(AppError::into_graphql_error)?;
+
+                let mut active: users::ActiveModel = user.into();
+                active.encounter_detection_enabled = Set(enabled);
+                let updated = active
+                    .update(&state.db)
+                    .await
+                    .map_err(|e| AppError::Database(e).into_graphql_error())?;
+
+                Ok(Some(FieldValue::owned_any(UserOutput::from(updated))))
+            })
+        },
+    )
+    .argument(InputValue::new("enabled", TypeRef::named_nn(TypeRef::BOOLEAN)))
 }

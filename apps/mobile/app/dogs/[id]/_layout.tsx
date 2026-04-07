@@ -42,6 +42,20 @@ export default function DogDetailLayout() {
           headerStyle: { backgroundColor: theme.background },
         }}
       />
+      <Stack.Screen
+        name="friends"
+        options={{
+          title: t('dogs.friends.title', 'Friends'),
+          headerStyle: { backgroundColor: theme.background },
+        }}
+      />
+      <Stack.Screen
+        name="encounters"
+        options={{
+          title: t('dogs.encounters.title', 'Encounter History'),
+          headerStyle: { backgroundColor: theme.background },
+        }}
+      />
     </Stack>
   );
 }

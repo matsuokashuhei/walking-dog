@@ -1,5 +1,24 @@
 mod common;
 
+/// Helper: enable encounter detection for a user (reset state between tests).
+async fn enable_encounter_detection(client: &common::TestClient, user_token: &str) {
+    let res = client
+        .post("/graphql")
+        .header("Authorization", format!("Bearer {}", user_token))
+        .json(&serde_json::json!({
+            "query": r#"mutation { updateEncounterDetection(enabled: true) { encounterDetectionEnabled } }"#
+        }))
+        .send()
+        .await
+        .unwrap();
+    let body: serde_json::Value = res.json().await.unwrap();
+    assert!(
+        body["errors"].is_null(),
+        "Failed to enable encounter detection: {:?}",
+        body
+    );
+}
+
 /// Helper: create a dog as user and return its ID.
 async fn create_dog(client: &common::TestClient, user_token: &str) -> String {
     let res = client
@@ -67,6 +86,10 @@ async fn record_encounter(
 async fn test_record_encounter_basic() {
     let client = common::test_client().await;
 
+    // Reset encounter detection to enabled for both users (test isolation)
+    enable_encounter_detection(&client, "test-token").await;
+    enable_encounter_detection(&client, "test-user-b-cognito-sub").await;
+
     // User A creates dog D1 and starts walk W1
     let d1 = create_dog(&client, "test-token").await;
     let w1 = start_walk(&client, "test-token", &d1).await;
@@ -105,6 +128,10 @@ async fn test_record_encounter_basic() {
 async fn test_record_encounter_dedup() {
     // If both devices call recordEncounter, the second call should UPSERT (not error).
     let client = common::test_client().await;
+
+    // Reset encounter detection to enabled for both users (test isolation)
+    enable_encounter_detection(&client, "test-token").await;
+    enable_encounter_detection(&client, "test-user-b-cognito-sub").await;
 
     let d1 = create_dog(&client, "test-token").await;
     let w1 = start_walk(&client, "test-token", &d1).await;
@@ -145,6 +172,10 @@ async fn test_record_encounter_multi_dog_walk() {
     // User A has 2 dogs in one walk, User B has 1 dog → should create 2 encounters
     let client = common::test_client().await;
 
+    // Reset encounter detection to enabled for both users (test isolation)
+    enable_encounter_detection(&client, "test-token").await;
+    enable_encounter_detection(&client, "test-user-b-cognito-sub").await;
+
     let d1 = create_dog(&client, "test-token").await;
     let d2 = create_dog(&client, "test-token").await;
 
@@ -182,22 +213,36 @@ async fn test_record_encounter_multi_dog_walk() {
 
 // ─── Opt-out Test ────────────────────────────────────────────────────────
 
+/// Unique tokens for the opt-out test to avoid cross-test contamination
+const USER_OPTOUT_A: &str = "test-optout-user-a";
+const USER_OPTOUT_B: &str = "test-optout-user-b";
+
 #[tokio::test]
 async fn test_encounter_detection_disabled() {
     let client = common::test_client().await;
 
-    let d1 = create_dog(&client, "test-token").await;
-    let w1 = start_walk(&client, "test-token", &d1).await;
-    let d2 = create_dog(&client, "test-user-b-cognito-sub").await;
-    let w2 = start_walk(&client, "test-user-b-cognito-sub", &d2).await;
+    // Reset encounter detection to enabled at start
+    enable_encounter_detection(&client, USER_OPTOUT_A).await;
+    enable_encounter_detection(&client, USER_OPTOUT_B).await;
+
+    let d1 = create_dog(&client, USER_OPTOUT_A).await;
+    let w1 = start_walk(&client, USER_OPTOUT_A, &d1).await;
+    let d2 = create_dog(&client, USER_OPTOUT_B).await;
+    let w2 = start_walk(&client, USER_OPTOUT_B, &d2).await;
 
     // User B opts out
-    let opt_out = common::graphql_as(
-        &client,
-        &common::USER_B,
-        r#"mutation { updateEncounterDetection(enabled: false) { encounterDetectionEnabled } }"#,
-    )
-    .await;
+    let opt_out = client
+        .post("/graphql")
+        .header("Authorization", format!("Bearer {}", USER_OPTOUT_B))
+        .json(&serde_json::json!({
+            "query": r#"mutation { updateEncounterDetection(enabled: false) { encounterDetectionEnabled } }"#
+        }))
+        .send()
+        .await
+        .unwrap()
+        .json::<serde_json::Value>()
+        .await
+        .unwrap();
     assert!(opt_out["errors"].is_null(), "Opt-out failed: {:?}", opt_out);
     assert!(
         !opt_out["data"]["updateEncounterDetection"]["encounterDetectionEnabled"]
@@ -206,7 +251,7 @@ async fn test_encounter_detection_disabled() {
     );
 
     // User A tries to record encounter with opted-out User B
-    let body = record_encounter(&client, "test-token", &w1, &w2).await;
+    let body = record_encounter(&client, USER_OPTOUT_A, &w1, &w2).await;
     assert!(
         body["errors"].is_array() && !body["errors"].as_array().unwrap().is_empty(),
         "Expected error when other user has opted out, got: {:?}",
@@ -219,6 +264,10 @@ async fn test_encounter_detection_disabled() {
 #[tokio::test]
 async fn test_dog_friends_after_encounter() {
     let client = common::test_client().await;
+
+    // Reset encounter detection to enabled for both users (test isolation)
+    enable_encounter_detection(&client, "test-token").await;
+    enable_encounter_detection(&client, "test-user-b-cognito-sub").await;
 
     let d1 = create_dog(&client, "test-token").await;
     let w1 = start_walk(&client, "test-token", &d1).await;
@@ -254,6 +303,10 @@ async fn test_dog_friends_after_encounter() {
 #[tokio::test]
 async fn test_dog_encounters_history() {
     let client = common::test_client().await;
+
+    // Reset encounter detection to enabled for both users (test isolation)
+    enable_encounter_detection(&client, "test-token").await;
+    enable_encounter_detection(&client, "test-user-b-cognito-sub").await;
 
     let d1 = create_dog(&client, "test-token").await;
     let w1 = start_walk(&client, "test-token", &d1).await;

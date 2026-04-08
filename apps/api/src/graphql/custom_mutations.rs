@@ -1394,6 +1394,14 @@ fn update_encounter_duration_field(state: Arc<AppState>) -> Field {
                     .await
                     .map_err(AppError::into_graphql_error)?;
 
+                // Check calling user's own encounter_detection_enabled
+                if !user.encounter_detection_enabled {
+                    return Err(AppError::Unauthorized(
+                        "Encounter detection is disabled for your account".to_string(),
+                    )
+                    .into_graphql_error());
+                }
+
                 // Verify myWalkId belongs to the current user
                 let my_walk = WalkEntity::find_by_id(my_walk_id)
                     .one(&state.db)

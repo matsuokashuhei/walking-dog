@@ -1,0 +1,9 @@
+{
+  "platforms": ["ios", "android"],
+  "ios": {
+    "modules": ["BleAdvertiserModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.bleadvertiser.BleAdvertiserModule"]
+  }
+}

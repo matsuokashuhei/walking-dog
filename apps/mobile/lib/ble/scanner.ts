@@ -1,17 +1,24 @@
 /**
  * BLE scanner and advertiser for Walking Dog encounter detection.
  *
- * Uses react-native-ble-plx for BLE Central mode (scanning).
- * Walk ID is encoded in manufacturer data of the BLE advertisement.
+ * Scanning: Uses react-native-ble-plx (Central mode) to discover nearby
+ * Walking Dog users by filtering on WALKING_DOG_SERVICE_UUID.
  *
- * NOTE: This module requires react-native-ble-plx to be installed.
- * It will gracefully fail if BLE is not available (e.g., in simulator).
+ * Advertising: Uses the custom ble-advertiser Expo Module (Peripheral mode)
+ * to broadcast our walk ID as a service UUID.
+ *
+ * Walk ID transmission strategy:
+ * Both iOS and Android advertise 2 service UUIDs:
+ *   1. WALKING_DOG_SERVICE_UUID — fixed, used for scan filtering
+ *   2. Walk ID UUID — the actual walk ID for encounter matching
+ *
+ * This avoids the iOS limitation where CBPeripheralManager cannot include
+ * manufacturer data in advertisements.
  */
 
-import { WALKING_DOG_SERVICE_UUID, COMPANY_ID, PROTOCOL_VERSION } from './constants';
+import { WALKING_DOG_SERVICE_UUID } from './constants';
 
-// Lazy import to avoid crash when react-native-ble-plx is not installed.
-// This allows the rest of the app to work without BLE.
+// Lazy import BLE scanner to avoid crash when library is not installed.
 let BleManager: any = null;
 let bleManagerInstance: any = null;
 
@@ -28,39 +35,12 @@ async function getBleManager(): Promise<any> {
   }
 }
 
-/** Encode a walk ID (UUID string) into manufacturer data bytes. */
-export function encodeWalkId(walkId: string): number[] {
-  // Remove hyphens from UUID and convert to byte array
-  const hex = walkId.replace(/-/g, '');
-  const bytes: number[] = [
-    COMPANY_ID & 0xff,
-    (COMPANY_ID >> 8) & 0xff,
-    PROTOCOL_VERSION,
-  ];
-  for (let i = 0; i < hex.length; i += 2) {
-    bytes.push(parseInt(hex.substring(i, i + 2), 16));
-  }
-  return bytes;
-}
-
-/** Decode a walk ID from manufacturer data bytes. Returns null if invalid. */
-export function decodeWalkId(manufacturerData: string): string | null {
+// Lazy import BLE advertiser to avoid crash when native module is not built.
+function getBleAdvertiser(): { startAdvertising: any; stopAdvertising: any } | null {
   try {
-    // manufacturerData is base64 encoded
-    const raw = atob(manufacturerData);
-    if (raw.length < 19) return null; // 2 (company) + 1 (version) + 16 (UUID)
-
-    const version = raw.charCodeAt(2);
-    if (version !== PROTOCOL_VERSION) return null;
-
-    const hexParts: string[] = [];
-    for (let i = 3; i < 19; i++) {
-      hexParts.push(raw.charCodeAt(i).toString(16).padStart(2, '0'));
-    }
-    const hex = hexParts.join('');
-    // Format as UUID: 8-4-4-4-12
-    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+    return require('../../modules/ble-advertiser');
   } catch {
+    console.warn('[BLE] ble-advertiser module not available');
     return null;
   }
 }
@@ -71,6 +51,7 @@ export interface BleScanner {
 
 /**
  * Start scanning for nearby Walking Dog users.
+ * Extracts walk ID from advertised service UUIDs.
  * Returns a stop function, or null if BLE is not available.
  */
 export async function startScanning(
@@ -79,12 +60,13 @@ export async function startScanning(
   const manager = await getBleManager();
   if (!manager) return null;
 
-  // Wait for BLE to be powered on
   const state = await manager.state();
   if (state !== 'PoweredOn') {
     console.warn(`[BLE] Bluetooth state is ${state}, cannot scan`);
     return null;
   }
+
+  const serviceUuidUpper = WALKING_DOG_SERVICE_UUID.toUpperCase();
 
   manager.startDeviceScan(
     [WALKING_DOG_SERVICE_UUID],
@@ -94,9 +76,12 @@ export async function startScanning(
         console.warn('[BLE] Scan error:', error.message);
         return;
       }
-      if (!device?.manufacturerData) return;
+      if (!device?.serviceUUIDs || device.serviceUUIDs.length < 2) return;
 
-      const walkId = decodeWalkId(device.manufacturerData);
+      // Extract Walk ID: find the service UUID that is NOT our fixed filter UUID
+      const walkId = device.serviceUUIDs.find(
+        (uuid: string) => uuid.toUpperCase() !== serviceUuidUpper,
+      );
       if (walkId) {
         onWalkIdDetected(walkId);
       }
@@ -112,20 +97,30 @@ export async function startScanning(
 
 /**
  * Start advertising our walk ID to nearby devices.
- * Returns a stop function, or null if advertising is not available.
- *
- * NOTE: react-native-ble-plx does not natively support BLE Peripheral mode.
- * This is a placeholder that will need a native module or react-native-ble-advertiser.
- * For now, we log a warning and return a no-op stop function.
+ * Uses the ble-advertiser Expo Module for Peripheral mode.
  */
 export async function startAdvertising(
-  _walkId: string,
+  walkId: string,
 ): Promise<{ stop: () => void } | null> {
-  console.warn(
-    '[BLE] Advertising not yet implemented. Will need react-native-ble-advertiser or custom Expo Module.',
-  );
-  // TODO: Implement BLE Peripheral mode advertising
-  return { stop: () => {} };
+  const advertiser = getBleAdvertiser();
+  if (!advertiser) {
+    console.warn('[BLE] Advertising not available (native module not built)');
+    return null;
+  }
+
+  try {
+    await advertiser.startAdvertising(WALKING_DOG_SERVICE_UUID, walkId);
+    return {
+      stop: () => {
+        advertiser.stopAdvertising().catch((err: any) =>
+          console.warn('[BLE] Stop advertising error:', err),
+        );
+      },
+    };
+  } catch (error) {
+    console.warn('[BLE] Failed to start advertising:', error);
+    return null;
+  }
 }
 
 /** Destroy the BLE manager (call on app unmount). */

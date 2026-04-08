@@ -47,6 +47,10 @@ jest.mock('@/components/settings/AppearanceSection', () => ({
   AppearanceSection: () => null,
 }));
 
+jest.mock('@/components/settings/EncounterDetectionSection', () => ({
+  EncounterDetectionSection: () => null,
+}));
+
 jest.mock('@/components/settings/LogoutButton', () => ({
   LogoutButton: () => null,
 }));

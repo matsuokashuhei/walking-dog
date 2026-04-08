@@ -12,6 +12,7 @@ pub struct Model {
     pub display_name: Option<String>,
     pub avatar_url: Option<String>,
     pub created_at: DateTimeWithTimeZone,
+    pub encounter_detection_enabled: bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

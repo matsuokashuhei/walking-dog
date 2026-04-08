@@ -123,6 +123,33 @@ export const LEAVE_DOG_MUTATION = gql`
   }
 `;
 
+export const UPDATE_ENCOUNTER_DETECTION_MUTATION = gql`
+  mutation UpdateEncounterDetection($enabled: Boolean!) {
+    updateEncounterDetection(enabled: $enabled) {
+      id
+      encounterDetectionEnabled
+    }
+  }
+`;
+
+export const RECORD_ENCOUNTER_MUTATION = gql`
+  mutation RecordEncounter($myWalkId: ID!, $theirWalkId: ID!) {
+    recordEncounter(myWalkId: $myWalkId, theirWalkId: $theirWalkId) {
+      id
+      durationSec
+      metAt
+      dog1 { id name }
+      dog2 { id name }
+    }
+  }
+`;
+
+export const UPDATE_ENCOUNTER_DURATION_MUTATION = gql`
+  mutation UpdateEncounterDuration($myWalkId: ID!, $theirWalkId: ID!, $durationSec: Int!) {
+    updateEncounterDuration(myWalkId: $myWalkId, theirWalkId: $theirWalkId, durationSec: $durationSec)
+  }
+`;
+
 export const START_WALK_MUTATION = gql`
   mutation StartWalk($dogIds: [ID!]!) {
     startWalk(dogIds: $dogIds) {

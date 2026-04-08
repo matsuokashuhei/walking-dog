@@ -92,6 +92,23 @@ export default function DogDetailScreen() {
         </Pressable>
       ) : null}
 
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t('dogs.detail.viewFriends', 'View friends')}
+        style={[styles.membersRow, { borderColor: theme.border + '33' }]}
+        onPress={() => router.push(`/dogs/${id}/friends`)}
+      >
+        <View>
+          <Text style={[styles.membersLabel, { color: theme.onSurface }]}>
+            {t('dogs.detail.friends', 'Friends')}
+          </Text>
+          <Text style={[styles.membersCount, { color: theme.onSurfaceVariant }]}>
+            {t('dogs.detail.viewFriendsList', 'View encounter history')}
+          </Text>
+        </View>
+        <Text style={{ color: theme.onSurfaceVariant, fontSize: 20 }}>{'>'}</Text>
+      </Pressable>
+
       {dog.walkStats ? (
         <View style={styles.statsSection}>
           <DogStatsCard stats={dog.walkStats} />

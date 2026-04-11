@@ -93,3 +93,14 @@ output "route53_nameservers" {
 output "acm_certificate_arn" {
   value = aws_acm_certificate.main.arn
 }
+
+# --- VPS API IAM User ---
+
+output "vps_api_access_key_id" {
+  value = aws_iam_access_key.vps_api.id
+}
+
+output "vps_api_secret_access_key" {
+  value     = aws_iam_access_key.vps_api.secret
+  sensitive = true
+}

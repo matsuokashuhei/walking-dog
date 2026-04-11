@@ -41,6 +41,9 @@
         "expiredCode": "Confirmation code has expired",
         "generic": "Verification failed"
       }
+    },
+    "error": {
+      "networkError": "Please check your network connection"
     }
   },
   "dogs": {

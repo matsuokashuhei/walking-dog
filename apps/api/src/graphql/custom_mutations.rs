@@ -777,6 +777,21 @@ fn sign_up_field(state: Arc<AppState>) -> Field {
             .await
             .map_err(async_graphql::Error::new)?;
 
+            // display_name 付きで DB ユーザーレコードを即時作成する。
+            // 失敗しても Cognito 登録は成功済みなので非致命的エラーとして扱う。
+            if !result.user_sub.is_empty() {
+                if let Err(e) = user_service::create_user_with_profile(
+                    &state.db,
+                    &result.user_sub,
+                    &display_name,
+                ).await {
+                    tracing::warn!(
+                        "Failed to create user record during sign-up: {}",
+                        e
+                    );
+                }
+            }
+
             Ok(Some(FieldValue::owned_any(SignUpOutput {
                 success: true,
                 user_confirmed: result.user_confirmed,

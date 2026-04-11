@@ -3,6 +3,7 @@ import { Tabs } from 'expo-router';
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useColors } from '@/hooks/use-colors';
+import { typography } from '@/theme/tokens';
 
 export default function TabLayout() {
   const theme = useColors();
@@ -10,11 +11,16 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: theme.onInteractive,
-        tabBarInactiveTintColor: theme.onSurfaceVariant,
-        tabBarActiveBackgroundColor: theme.interactive,
+        tabBarActiveTintColor: theme.interactive,
+        tabBarInactiveTintColor: theme.border,
         headerShown: false,
         tabBarButton: HapticTab,
+        tabBarLabelStyle: {
+          fontSize: typography.label.fontSize,
+          fontWeight: typography.label.fontWeight,
+          letterSpacing: typography.label.letterSpacing,
+          textTransform: typography.label.textTransform,
+        },
         tabBarStyle: {
           backgroundColor: theme.background,
           borderTopWidth: 0,

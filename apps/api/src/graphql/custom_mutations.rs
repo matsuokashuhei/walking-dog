@@ -777,6 +777,17 @@ fn sign_up_field(state: Arc<AppState>) -> Field {
             .await
             .map_err(async_graphql::Error::new)?;
 
+            // display_name 付きで DB ユーザーレコードを即時作成する。
+            if !result.user_sub.is_empty() {
+                user_service::create_user_with_profile(
+                    &state.db,
+                    &result.user_sub,
+                    &display_name,
+                )
+                .await
+                .map_err(AppError::into_graphql_error)?;
+            }
+
             Ok(Some(FieldValue::owned_any(SignUpOutput {
                 success: true,
                 user_confirmed: result.user_confirmed,

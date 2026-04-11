@@ -3,6 +3,7 @@ use aws_sdk_cognitoidentityprovider::types::AttributeType;
 
 pub struct SignUpResult {
     pub user_confirmed: bool,
+    pub user_sub: String,
 }
 
 pub struct SignInResult {
@@ -54,6 +55,7 @@ pub async fn sign_up(
 
     Ok(SignUpResult {
         user_confirmed: result.user_confirmed,
+        user_sub: result.user_sub().to_string(),
     })
 }
 

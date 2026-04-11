@@ -4,6 +4,7 @@
 
 - **git コマンドを実行する前に必ず `pwd` で作業ディレクトリを確認する**
 - **git worktree を使わない** — Docker Compose が `./apps/mobile:/app` のようにメインリポジトリのパスをマウントしているため、worktree 側の変更が Docker に反映されない。通常のブランチ切り替えで作業すること。
+- **エラーを隠す回避策を提案しない** — バグ修正では必ず根本原因を特定して直す。エラーを握りつぶすコード（optional化、try/catch追加、fallback値）を「修正」として提案してはならない。
 
 ## Development Rules
 

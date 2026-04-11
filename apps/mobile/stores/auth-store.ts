@@ -1,31 +1,54 @@
 import { create } from 'zustand';
 import { getToken, setToken, deleteToken } from '@/lib/auth/secure-storage';
 import { refreshToken } from '@/lib/auth/api';
-import { setAuthToken } from '@/lib/graphql/client';
+import { setAuthToken, authenticatedRequest } from '@/lib/graphql/client';
 import { isNetworkError } from '@/lib/graphql/errors';
+import { ME_QUERY } from '@/lib/graphql/queries';
 
 interface AuthState {
   accessToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  networkError: boolean;
   initialize: () => Promise<void>;
   setAuth: (accessToken: string, refreshToken: string) => Promise<void>;
   clearAuth: () => Promise<void>;
   refreshAuth: () => Promise<boolean>;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   accessToken: null,
   isAuthenticated: false,
   isLoading: true,
+  networkError: false,
 
   initialize: async () => {
-    set({ isLoading: true });
+    set({ isLoading: true, networkError: false });
     try {
       const stored = await getToken();
-      if (stored) {
-        setAuthToken(stored.accessToken);
-        set({ accessToken: stored.accessToken, isAuthenticated: true });
+      if (!stored) return;
+
+      setAuthToken(stored.accessToken);
+      try {
+        await authenticatedRequest(ME_QUERY);
+        // Re-read token in case authenticatedRequest triggered a refresh
+        const current = await getToken();
+        set({
+          accessToken: current?.accessToken ?? stored.accessToken,
+          isAuthenticated: true,
+        });
+      } catch (error) {
+        if (isNetworkError(error)) {
+          set({ networkError: true });
+        } else {
+          try {
+            await get().clearAuth();
+          } catch {
+            // Force in-memory state clean even if storage failed
+            setAuthToken(null);
+            set({ accessToken: null, isAuthenticated: false });
+          }
+        }
       }
     } finally {
       set({ isLoading: false });
@@ -41,7 +64,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   clearAuth: async () => {
     await deleteToken();
     setAuthToken(null);
-    set({ accessToken: null, isAuthenticated: false });
+    set({ accessToken: null, isAuthenticated: false, networkError: false });
   },
 
   refreshAuth: async () => {

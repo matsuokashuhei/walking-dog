@@ -4,12 +4,14 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
 import '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AppProviders } from '@/lib/providers';
 import { useAuthStore } from '@/stores/auth-store';
 import { useSettingsStore } from '@/stores/settings-store';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
+import { ErrorScreen } from '@/components/ui/ErrorScreen';
 import {
   getPendingInviteToken,
   deletePendingInviteToken,
@@ -51,7 +53,9 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
   const isLoading = useAuthStore((s) => s.isLoading);
   const initialize = useAuthStore((s) => s.initialize);
+  const networkError = useAuthStore((s) => s.networkError);
   const initializeSettings = useSettingsStore((s) => s.initialize);
+  const { t } = useTranslation();
 
   useEffect(() => {
     initialize();
@@ -60,6 +64,10 @@ export default function RootLayout() {
 
   if (isLoading) {
     return <LoadingScreen />;
+  }
+
+  if (networkError) {
+    return <ErrorScreen message={t('auth.error.networkError')} onRetry={initialize} />;
   }
 
   return (

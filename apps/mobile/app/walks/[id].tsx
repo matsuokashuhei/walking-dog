@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View, ActivityIndicator } from 'react-native';
-import MapView, { Polyline } from 'react-native-maps';
+import MapView, { Polyline, Marker } from 'react-native-maps';
 import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -7,6 +7,14 @@ import { useColors } from '@/hooks/use-colors';
 import { spacing, radius, typography } from '@/theme/tokens';
 import { useWalk } from '@/hooks/use-walks';
 import { formatClockTime } from '@/lib/walk/format';
+import { WalkEventTimeline } from '@/components/walk/WalkEventTimeline';
+import type { WalkEventType } from '@/types/graphql';
+
+const EVENT_EMOJIS: Record<WalkEventType, string> = {
+  pee: '🚽',
+  poo: '💩',
+  photo: '📷',
+};
 
 export default function WalkDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -23,6 +31,7 @@ export default function WalkDetailScreen() {
   }
 
   const coordinates = (walk.points ?? []).map((p) => ({ latitude: p.lat, longitude: p.lng }));
+  const events = walk.events ?? [];
   const durationMin = walk.durationSec ? Math.round(walk.durationSec / 60) : 0;
   const distanceKm = walk.distanceM ? (walk.distanceM / 1000).toFixed(2) : '0';
   const date = new Date(walk.startedAt).toLocaleDateString();
@@ -53,6 +62,17 @@ export default function WalkDetailScreen() {
           {coordinates.length >= 2 ? (
             <Polyline coordinates={coordinates} strokeColor={theme.interactive} strokeWidth={4} />
           ) : null}
+          {events
+            .filter((e) => e.lat != null && e.lng != null)
+            .map((e) => (
+              <Marker
+                key={e.id}
+                coordinate={{ latitude: e.lat!, longitude: e.lng! }}
+                accessibilityLabel={`${EVENT_EMOJIS[e.eventType]} event`}
+              >
+                <Text style={styles.eventMarker}>{EVENT_EMOJIS[e.eventType]}</Text>
+              </Marker>
+            ))}
         </MapView>
       </View>
 
@@ -141,6 +161,8 @@ export default function WalkDetailScreen() {
           </View>
         </View>
       </View>
+
+      {events.length > 0 ? <WalkEventTimeline events={events} /> : null}
     </View>
   );
 }
@@ -183,4 +205,5 @@ const styles = StyleSheet.create({
   },
   statValue: { ...typography.h3 },
   statLabel: { ...typography.label, marginTop: spacing.xs },
+  eventMarker: { fontSize: 20 },
 });

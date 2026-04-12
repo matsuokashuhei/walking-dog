@@ -7,7 +7,9 @@ jest.mock('@/hooks/use-color-scheme', () => ({
 }));
 
 jest.mock('react-native-maps', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const React = require('react');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { View } = require('react-native');
 
   const MockMapView = ({ children, testID }: { children?: React.ReactNode; testID?: string }) =>

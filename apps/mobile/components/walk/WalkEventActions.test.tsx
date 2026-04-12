@@ -42,7 +42,7 @@ const defaultStoreState = {
 
 function setupMocks(overrides: Partial<typeof defaultStoreState> = {}) {
   const storeState = { ...defaultStoreState, ...overrides };
-  (walkStore.useWalkStore as jest.Mock).mockImplementation(
+  (walkStore.useWalkStore as unknown as jest.Mock).mockImplementation(
     (selector: (s: typeof storeState) => unknown) => selector(storeState),
   );
 

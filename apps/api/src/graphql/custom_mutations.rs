@@ -1115,6 +1115,7 @@ fn generate_dog_photo_upload_url_field(state: Arc<AppState>) -> Field {
                 let dog_id_str = ctx.args.try_get("dogId")?.string()?;
                 let dog_id = Uuid::parse_str(dog_id_str)
                     .map_err(|_| async_graphql::Error::new("Invalid dog ID"))?;
+                let content_type = ctx.args.try_get("contentType")?.string()?.to_string();
 
                 let user = user_service::get_or_create_user(&state.db, &cognito_sub)
                     .await
@@ -1127,6 +1128,7 @@ fn generate_dog_photo_upload_url_field(state: Arc<AppState>) -> Field {
                     &state.s3,
                     &state.config.s3_bucket_dog_photos,
                     dog_id,
+                    &content_type,
                 )
                 .await
                 .map_err(AppError::into_graphql_error)?;
@@ -1140,6 +1142,10 @@ fn generate_dog_photo_upload_url_field(state: Arc<AppState>) -> Field {
         },
     )
     .argument(InputValue::new("dogId", TypeRef::named_nn(TypeRef::ID)))
+    .argument(InputValue::new(
+        "contentType",
+        TypeRef::named_nn(TypeRef::STRING),
+    ))
 }
 
 fn generate_dog_invitation_field(state: Arc<AppState>) -> Field {

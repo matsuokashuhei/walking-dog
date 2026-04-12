@@ -97,7 +97,7 @@ async fn test_generate_dog_photo_upload_url() {
         .header("Authorization", "Bearer test-token")
         .json(&serde_json::json!({
             "query": format!(
-                r#"mutation {{ generateDogPhotoUploadUrl(dogId: "{}") {{ url key expiresAt }} }}"#,
+                r#"mutation {{ generateDogPhotoUploadUrl(dogId: "{}", contentType: "image/png") {{ url key expiresAt }} }}"#,
                 dog_id
             )
         }))
@@ -106,8 +106,50 @@ async fn test_generate_dog_photo_upload_url() {
     let body: serde_json::Value = res.json().await.unwrap();
     let url = body["data"]["generateDogPhotoUploadUrl"]["url"].as_str().unwrap();
     assert!(url.starts_with("http"), "URL should be an HTTP URL, got: {}", url);
-    assert!(body["data"]["generateDogPhotoUploadUrl"]["key"].is_string());
+    let key = body["data"]["generateDogPhotoUploadUrl"]["key"]
+        .as_str()
+        .unwrap();
+    assert!(key.ends_with(".png"), "key should end with .png, got: {}", key);
     assert!(body["data"]["generateDogPhotoUploadUrl"]["expiresAt"].is_string());
+}
+
+#[tokio::test]
+async fn test_generate_dog_photo_upload_url_rejects_invalid_content_type() {
+    let client = common::test_client().await;
+    // 犬を作成
+    let create_res = client
+        .post("/graphql")
+        .header("Authorization", "Bearer test-token")
+        .json(&serde_json::json!({
+            "query": r#"mutation { createDog(input: { name: "PhotoDogReject" }) { id } }"#
+        }))
+        .send().await.unwrap();
+    let create_body: serde_json::Value = create_res.json().await.unwrap();
+    let dog_id = create_body["data"]["createDog"]["id"].as_str().unwrap();
+
+    let res = client
+        .post("/graphql")
+        .header("Authorization", "Bearer test-token")
+        .json(&serde_json::json!({
+            "query": format!(
+                r#"mutation {{ generateDogPhotoUploadUrl(dogId: "{}", contentType: "application/pdf") {{ url key expiresAt }} }}"#,
+                dog_id
+            )
+        }))
+        .send().await.unwrap();
+    assert_eq!(res.status(), 200);
+    let body: serde_json::Value = res.json().await.unwrap();
+    assert!(
+        body["errors"].is_array(),
+        "expected GraphQL errors array, got: {:?}",
+        body
+    );
+    let msg = body["errors"][0]["message"].as_str().unwrap_or("");
+    assert!(
+        msg.contains("Unsupported content type"),
+        "expected 'Unsupported content type' error, got: {}",
+        msg
+    );
 }
 
 #[tokio::test]

@@ -28,7 +28,7 @@ export default function EditDogScreen() {
   async function handlePhotoChange(uri: string, contentType: string) {
     setPhotoLoading(true);
     try {
-      const { url, key } = await generateUploadUrl(id);
+      const { url, key } = await generateUploadUrl({ dogId: id, contentType });
       await uploadToPresignedUrl(url, uri, contentType);
       await updateDog({ id, input: { photoUrl: key } });
     } catch {

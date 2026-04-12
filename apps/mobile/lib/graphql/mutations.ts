@@ -83,8 +83,8 @@ export const DELETE_DOG_MUTATION = gql`
 `;
 
 export const GENERATE_DOG_PHOTO_UPLOAD_URL_MUTATION = gql`
-  mutation GenerateDogPhotoUploadUrl($dogId: ID!) {
-    generateDogPhotoUploadUrl(dogId: $dogId) {
+  mutation GenerateDogPhotoUploadUrl($dogId: ID!, $contentType: String!) {
+    generateDogPhotoUploadUrl(dogId: $dogId, contentType: $contentType) {
       url
       key
       expiresAt

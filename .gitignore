@@ -13,3 +13,4 @@ apps/api/.env.production
 *.tfstate.backup
 .terraform.lock.hcl
 infra/**/lambda/*.zip
+infra/sakura/.env

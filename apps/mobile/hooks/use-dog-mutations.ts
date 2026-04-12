@@ -63,11 +63,11 @@ export function useDeleteDog() {
 }
 
 export function useGeneratePhotoUploadUrl() {
-  return useMutation<PresignedUrl, Error, string>({
-    mutationFn: async (dogId) => {
+  return useMutation<PresignedUrl, Error, { dogId: string; contentType: string }>({
+    mutationFn: async ({ dogId, contentType }) => {
       const data = await authenticatedRequest<GenerateDogPhotoUploadUrlResponse>(
         GENERATE_DOG_PHOTO_UPLOAD_URL_MUTATION,
-        { dogId },
+        { dogId, contentType },
       );
       return data.generateDogPhotoUploadUrl;
     },

@@ -1,5 +1,5 @@
 import { useWalkStore } from './walk-store';
-import type { WalkPoint } from '@/types/graphql';
+import type { WalkPoint, WalkEvent } from '@/types/graphql';
 
 beforeEach(() => {
   useWalkStore.getState().reset();
@@ -54,5 +54,51 @@ describe('walk-store', () => {
     expect(state.walkId).toBeNull();
     expect(state.points).toEqual([]);
     expect(state.selectedDogIds).toEqual([]);
+  });
+
+  describe('walk events', () => {
+    const mockEvent: WalkEvent = {
+      id: 'event-1',
+      walkId: 'walk-123',
+      dogId: 'dog-1',
+      eventType: 'pee',
+      occurredAt: '2026-04-12T10:00:00Z',
+      lat: 35.6812,
+      lng: 139.7671,
+      photoUrl: null,
+    };
+
+    it('initial events is empty array', () => {
+      expect(useWalkStore.getState().events).toEqual([]);
+    });
+
+    it('addEvent appends event to events array', () => {
+      useWalkStore.getState().addEvent(mockEvent);
+      expect(useWalkStore.getState().events).toHaveLength(1);
+      expect(useWalkStore.getState().events[0]).toEqual(mockEvent);
+    });
+
+    it('addEvent can append multiple events', () => {
+      const event2: WalkEvent = { ...mockEvent, id: 'event-2', eventType: 'poo' };
+      useWalkStore.getState().addEvent(mockEvent);
+      useWalkStore.getState().addEvent(event2);
+      expect(useWalkStore.getState().events).toHaveLength(2);
+    });
+
+    it('removeEvent removes event by id', () => {
+      const event2: WalkEvent = { ...mockEvent, id: 'event-2', eventType: 'poo' };
+      useWalkStore.getState().addEvent(mockEvent);
+      useWalkStore.getState().addEvent(event2);
+      useWalkStore.getState().removeEvent('event-1');
+      const state = useWalkStore.getState();
+      expect(state.events).toHaveLength(1);
+      expect(state.events[0].id).toBe('event-2');
+    });
+
+    it('reset clears events array', () => {
+      useWalkStore.getState().addEvent(mockEvent);
+      useWalkStore.getState().reset();
+      expect(useWalkStore.getState().events).toEqual([]);
+    });
   });
 });

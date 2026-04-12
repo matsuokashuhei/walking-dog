@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-tertiary-fixed": "#ffffff",
+                    "background": "#fcf9f8",
+                    "surface-container-high": "#eae7e7",
+                    "on-secondary-fixed-variant": "#3b3b3c",
+                    "secondary-fixed": "#c7c6c6",
+                    "surface-dim": "#dcd9d9",
+                    "on-surface-variant": "#474747",
+                    "on-error": "#ffffff",
+                    "on-primary-fixed": "#ffffff",
+                    "on-background": "#1c1b1b",
+                    "on-secondary-fixed": "#1b1c1c",
+                    "primary-container": "#3c3b3b",
+                    "on-tertiary": "#e2e2e2",
+                    "on-primary-container": "#ffffff",
+                    "on-tertiary-fixed-variant": "#e2e2e2",
+                    "secondary": "#5e5e5e",
+                    "error-container": "#ffdad6",
+                    "tertiary": "#3a3c3c",
+                    "error": "#ba1a1a",
+                    "on-error-container": "#410002",
+                    "surface-container-lowest": "#ffffff",
+                    "secondary-fixed-dim": "#acabab",
+                    "primary-fixed-dim": "#474746",
+                    "inverse-surface": "#313030",
+                    "surface-bright": "#fcf9f8",
+                    "primary": "#000000",
+                    "inverse-on-surface": "#f3f0ef",
+                    "secondary-container": "#d5d4d4",
+                    "outline": "#777777",
+                    "tertiary-container": "#737575",
+                    "surface-container": "#f0eded",
+                    "tertiary-fixed": "#5d5f5f",
+                    "on-tertiary-container": "#ffffff",
+                    "surface": "#fcf9f8",
+                    "on-primary-fixed-variant": "#e5e2e1",
+                    "inverse-primary": "#c8c6c5",
+                    "tertiary-fixed-dim": "#454747",
+                    "surface-container-low": "#f6f3f2",
+                    "primary-fixed": "#5f5e5e",
+                    "on-primary": "#e5e2e1",
+                    "on-secondary": "#ffffff",
+                    "on-secondary-container": "#1b1c1c",
+                    "surface-container-highest": "#e5e2e1",
+                    "surface-tint": "#5f5e5e",
+                    "outline-variant": "#c6c6c6",
+                    "surface-variant": "#e5e2e1",
+                    "on-surface": "#1c1b1b"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Inter"],
+                    "body": ["Inter"],
+                    "label": ["Inter"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            line-height: 1;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface min-h-screen flex flex-col selection:bg-primary selection:text-on-primary">
+<!-- INVITE ACCEPTANCE CANVAS: Full Screen Center -->
+<main class="flex-grow flex flex-col items-center justify-center px-8 pb-20">
+<div class="w-full max-w-sm flex flex-col items-center">
+<!-- ICON AREA: Minimal Geometric Mark -->
+<div class="mb-12 relative flex items-center justify-center">
+<!-- Inner Tonal Layer -->
+<div class="w-24 h-24 rounded-full bg-surface-container-lowest border border-outline-variant/30 flex items-center justify-center">
+<span class="material-symbols-outlined text-4xl text-primary" data-icon="mail">mail</span>
+</div>
+<!-- Outer Decorative Ring -->
+<div class="absolute -inset-4 rounded-full border border-outline-variant/10"></div>
+</div>
+<!-- CONTENT AREA: Typography Driven -->
+<div class="text-center space-y-4 mb-16">
+<h2 class="text-3xl font-extrabold tracking-tighter text-primary">
+                    You're invited!
+                </h2>
+<p class="text-on-surface-variant leading-relaxed text-sm max-w-[280px] mx-auto">
+                    Sarah Chen invited you to follow <span class="font-bold text-on-surface">Moka</span>.
+                </p>
+</div>
+<!-- ACTION AREA -->
+<div class="w-full space-y-8 flex flex-col items-center">
+<!-- PRIMARY CTA: Notion-Inspired / Architectural -->
+<button class="w-full bg-primary text-on-primary-container h-14 rounded-xl font-bold tracking-tight active:scale-[0.98] transition-transform duration-200 shadow-sm">
+                    Accept Invitation
+                </button>
+<!-- SECONDARY CTA -->
+<button class="text-on-surface-variant font-semibold text-sm hover:text-on-surface transition-colors duration-200">
+                    Decline
+                </button>
+</div>
+<!-- CONTEXTUAL METADATA (Optional Editorial Detail) -->
+<div class="mt-24 pt-8 border-t border-outline-variant/20 w-full text-center">
+<span class="text-[10px] font-bold uppercase tracking-[0.1em] text-on-surface-variant/60">
+                    INVITATION CODE: ARCH-2024-MOKA
+                </span>
+</div>
+</div>
+</main>
+<!-- SUPPRESSION LOGIC: Navigation shells are hidden per instructions for Transactional/Focused screens. -->
+<!-- BACKGROUND TEXTURE (Editorial Archive Signature) -->
+<div class="fixed inset-0 -z-10 opacity-20 pointer-events-none">
+<div class="absolute top-0 left-0 w-full h-full bg-[radial-gradient(#c6c6c6_1px,transparent_1px)] [background-size:32px_32px]"></div>
+</div>
+</body></html>

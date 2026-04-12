@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sign Up | Walking Dog</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-error": "#ffffff",
+                        "tertiary": "#3a3c3c",
+                        "surface-container": "#f0eded",
+                        "inverse-surface": "#313030",
+                        "on-primary": "#e5e2e1",
+                        "tertiary-fixed-dim": "#454747",
+                        "secondary": "#5e5e5e",
+                        "primary": "#000000",
+                        "outline": "#777777",
+                        "on-error-container": "#410002",
+                        "surface-tint": "#5f5e5e",
+                        "on-tertiary-container": "#ffffff",
+                        "secondary-container": "#d5d4d4",
+                        "background": "#fcf9f8",
+                        "surface-variant": "#e5e2e1",
+                        "on-primary-fixed": "#ffffff",
+                        "on-background": "#1c1b1b",
+                        "on-primary-fixed-variant": "#e5e2e1",
+                        "on-surface-variant": "#474747",
+                        "on-surface": "#1c1b1b",
+                        "surface-container-lowest": "#ffffff",
+                        "primary-container": "#3c3b3b",
+                        "on-secondary-container": "#1b1c1c",
+                        "secondary-fixed": "#c7c6c6",
+                        "primary-fixed": "#5f5e5e",
+                        "on-primary-container": "#ffffff",
+                        "surface-container-high": "#eae7e7",
+                        "surface-dim": "#dcd9d9",
+                        "surface-container-low": "#f6f3f2",
+                        "surface-bright": "#fcf9f8",
+                        "on-secondary-fixed": "#1b1c1c",
+                        "tertiary-container": "#737575",
+                        "primary-fixed-dim": "#474746",
+                        "on-tertiary": "#e2e2e2",
+                        "on-secondary-fixed-variant": "#3b3b3c",
+                        "on-tertiary-fixed": "#ffffff",
+                        "tertiary-fixed": "#5d5f5f",
+                        "error": "#ba1a1a",
+                        "on-secondary": "#ffffff",
+                        "surface": "#fcf9f8",
+                        "secondary-fixed-dim": "#acabab",
+                        "inverse-primary": "#c8c6c5",
+                        "surface-container-highest": "#e5e2e1",
+                        "outline-variant": "#c6c6c6",
+                        "inverse-on-surface": "#f3f0ef",
+                        "on-tertiary-fixed-variant": "#e2e2e2",
+                        "error-container": "#ffdad6"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Inter"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            line-height: 1;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #fcf9f8;
+            -webkit-font-smoothing: antialiased;
+        }
+        .editorial-grid {
+            display: grid;
+            grid-template-columns: 1fr minmax(auto, 420px) 1fr;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface min-h-screen selection:bg-primary selection:text-white">
+<header class="sticky top-0 z-50 bg-[#fcf9f8]/80 backdrop-blur-xl border-b border-gray-200/20 px-6 py-4 w-full flex justify-between items-center">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-black" data-icon="pets">pets</span>
+<span class="text-xl font-black text-black tracking-tighter uppercase">Walking Dog</span>
+</div>
+<nav class="hidden md:flex gap-8 items-center">
+<span class="text-gray-400 font-medium text-xs tracking-widest uppercase cursor-not-allowed">Product</span>
+<span class="text-gray-400 font-medium text-xs tracking-widest uppercase cursor-not-allowed">Archive</span>
+<span class="text-black font-bold text-xs tracking-widest uppercase">Sign In</span>
+</nav>
+</header>
+<main class="editorial-grid min-h-[calc(100vh-72px)] py-20 px-6">
+<div class="col-start-2">
+<section class="space-y-12">
+<header class="space-y-4">
+<h1 class="text-5xl font-black tracking-tighter text-primary leading-none">
+                        Create Account
+                    </h1>
+<p class="text-on-surface-variant text-lg leading-relaxed max-w-sm">
+                        Join the archive of your dog's journeys.
+                    </p>
+</header>
+<form class="space-y-8" onsubmit="return false;">
+<div class="space-y-6">
+<div class="group">
+<label class="block font-label text-[10px] font-bold uppercase tracking-[0.1em] text-on-surface-variant mb-2 ml-1" for="name">
+                                Full Name
+                            </label>
+<input class="w-full px-4 py-3.5 bg-surface-container-lowest border border-outline-variant/30 rounded-xl focus:ring-0 focus:border-primary transition-all placeholder:text-gray-300 text-on-surface" id="name" placeholder="Elias Thorne" type="text"/>
+</div>
+<div class="group">
+<label class="block font-label text-[10px] font-bold uppercase tracking-[0.1em] text-on-surface-variant mb-2 ml-1" for="email">
+                                Email Address
+                            </label>
+<input class="w-full px-4 py-3.5 bg-surface-container-lowest border border-outline-variant/30 rounded-xl focus:ring-0 focus:border-primary transition-all placeholder:text-gray-300 text-on-surface" id="email" placeholder="archive@walkingdog.io" type="email"/>
+</div>
+<div class="group">
+<label class="block font-label text-[10px] font-bold uppercase tracking-[0.1em] text-on-surface-variant mb-2 ml-1" for="password">
+                                Password
+                            </label>
+<input class="w-full px-4 py-3.5 bg-surface-container-lowest border border-outline-variant/30 rounded-xl focus:ring-0 focus:border-primary transition-all placeholder:text-gray-300 text-on-surface" id="password" placeholder="••••••••" type="password"/>
+</div>
+</div>
+<div class="pt-4 space-y-6">
+<button class="w-full bg-primary text-white py-4 px-6 rounded-xl font-bold text-sm tracking-widest uppercase hover:opacity-90 active:scale-[0.98] transition-all">
+                            Sign Up
+                        </button>
+<div class="flex items-center gap-4 py-2">
+<div class="h-[1px] flex-1 bg-outline-variant/20"></div>
+<span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Metadata</span>
+<div class="h-[1px] flex-1 bg-outline-variant/20"></div>
+</div>
+<div class="text-center">
+<a class="text-xs font-medium text-on-surface-variant hover:text-primary transition-colors inline-flex items-center gap-2 group" href="#">
+                                Already have an account? 
+                                <span class="text-primary font-bold decoration-1 underline-offset-4 group-hover:underline">Sign In</span>
+</a>
+</div>
+</div>
+</form>
+</section>
+<footer class="mt-24 pt-8 border-t border-outline-variant/10">
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
+<div class="flex flex-col gap-1">
+<span class="text-[9px] font-black uppercase tracking-[0.2em] text-gray-300">System Status</span>
+<div class="flex items-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-black"></span>
+<span class="text-[10px] font-medium text-on-surface-variant">Archival engines operational</span>
+</div>
+</div>
+<div class="flex gap-6">
+<span class="text-[10px] font-bold uppercase tracking-widest text-gray-400 cursor-help">Privacy</span>
+<span class="text-[10px] font-bold uppercase tracking-widest text-gray-400 cursor-help">Terms</span>
+<span class="text-[10px] font-bold uppercase tracking-widest text-gray-400 cursor-help">API</span>
+</div>
+</div>
+</footer>
+</div>
+</main>
+<aside class="fixed right-12 bottom-12 hidden lg:block">
+<div class="w-64 p-6 bg-surface-container-low rounded-xl border border-outline-variant/10 space-y-4">
+<span class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Current Log</span>
+<div class="space-y-3">
+<div class="flex justify-between items-end">
+<span class="text-[9px] text-on-surface-variant uppercase font-bold">New User Intake</span>
+<span class="text-[9px] font-mono text-gray-400">00.12.A</span>
+</div>
+<div class="h-1 bg-outline-variant/20 rounded-full overflow-hidden">
+<div class="h-full w-1/3 bg-primary"></div>
+</div>
+<p class="text-[11px] leading-relaxed text-on-surface-variant/70 italic">
+                    "A journey of a thousand miles begins with a single paw print recorded in the archive."
+                </p>
+</div>
+</div>
+</aside>
+</body></html>

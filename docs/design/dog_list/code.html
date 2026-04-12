@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Walking Dog - Dogs</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-tertiary-fixed": "#ffffff",
+                    "background": "#fcf9f8",
+                    "surface-container-high": "#eae7e7",
+                    "on-secondary-fixed-variant": "#3b3b3c",
+                    "secondary-fixed": "#c7c6c6",
+                    "surface-dim": "#dcd9d9",
+                    "on-surface-variant": "#474747",
+                    "on-error": "#ffffff",
+                    "on-primary-fixed": "#ffffff",
+                    "on-background": "#1c1b1b",
+                    "on-secondary-fixed": "#1b1c1c",
+                    "primary-container": "#3c3b3b",
+                    "on-tertiary": "#e2e2e2",
+                    "on-primary-container": "#ffffff",
+                    "on-tertiary-fixed-variant": "#e2e2e2",
+                    "secondary": "#5e5e5e",
+                    "error-container": "#ffdad6",
+                    "tertiary": "#3a3c3c",
+                    "error": "#ba1a1a",
+                    "on-error-container": "#410002",
+                    "surface-container-lowest": "#ffffff",
+                    "secondary-fixed-dim": "#acabab",
+                    "primary-fixed-dim": "#474746",
+                    "inverse-surface": "#313030",
+                    "surface-bright": "#fcf9f8",
+                    "primary": "#000000",
+                    "inverse-on-surface": "#f3f0ef",
+                    "secondary-container": "#d5d4d4",
+                    "outline": "#777777",
+                    "tertiary-container": "#737575",
+                    "surface-container": "#f0eded",
+                    "tertiary-fixed": "#5d5f5f",
+                    "on-tertiary-container": "#ffffff",
+                    "surface": "#fcf9f8",
+                    "on-primary-fixed-variant": "#e5e2e1",
+                    "inverse-primary": "#c8c6c5",
+                    "tertiary-fixed-dim": "#454747",
+                    "surface-container-low": "#f6f3f2",
+                    "primary-fixed": "#5f5e5e",
+                    "on-primary": "#e5e2e1",
+                    "on-secondary": "#ffffff",
+                    "on-secondary-container": "#1b1c1c",
+                    "surface-container-highest": "#e5e2e1",
+                    "surface-tint": "#5f5e5e",
+                    "outline-variant": "#c6c6c6",
+                    "surface-variant": "#e5e2e1",
+                    "on-surface": "#1c1b1b"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Inter"],
+                    "body": ["Inter"],
+                    "label": ["Inter"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Inter', sans-serif; }
+        .tap-highlight-none { -webkit-tap-highlight-color: transparent; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background antialiased">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-[#fcf9f8]/80 dark:bg-black/80 backdrop-blur-xl">
+<div class="flex justify-between items-center w-full px-6 py-4">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-black dark:text-white cursor-pointer active:scale-95 transition-transform">menu</span>
+</div>
+<h1 class="text-lg font-black tracking-widest text-black dark:text-white font-['Inter'] uppercase">WALKING DOG</h1>
+<div class="w-8 h-8 rounded-full overflow-hidden bg-surface-container-high border border-outline-variant/20">
+<img alt="user profile picture" class="w-full h-full object-cover" data-alt="Professional studio headshot of a person with a friendly expression, soft lighting, neutral background, high-end editorial style" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCgcF0cenBwVa9IcDxOqyDwOR1aZz-LhuUhHmzsW4QRK0ZbzOouwRj9as_l03kMSmki6SFsXd02OFiVsFHAgHKKqakj-9J3TW7UqtkcccW3PhlkPeinLW8vTUNeSytBdYimONLv9McLbY5bzqJybfqDrDWKVoq-dm__J_B140-de1Zcl7SlDC7uMDg_cFLbz37ScxSryn4qwDLInExFQpt7KHg0fSuqrg5ETrGewIjchLOdDjan5zOplyOmjZVWOFzyAIN8TvHb3EIB"/>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="pt-24 pb-32 px-6 max-w-2xl mx-auto min-h-screen">
+<!-- Header Section -->
+<section class="mb-10">
+<div class="flex flex-col gap-1">
+<span class="text-[10px] font-bold uppercase tracking-[0.2em] text-on-surface-variant">Your Pack</span>
+<h2 class="text-4xl font-extrabold tracking-tighter text-primary">Dogs</h2>
+</div>
+</section>
+<!-- Asymmetrical Bento-style Quick Stats (Design System flair) -->
+<div class="grid grid-cols-12 gap-4 mb-12">
+<div class="col-span-12 md:col-span-7 bg-surface-container-low p-6 rounded-xl border border-outline-variant/10">
+<p class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-4">ACTIVE STATUS</p>
+<div class="flex items-end gap-2">
+<span class="text-5xl font-black tracking-tighter text-primary">02</span>
+<span class="text-sm font-medium text-on-surface-variant mb-2">Registered Pups</span>
+</div>
+</div>
+<div class="col-span-12 md:col-span-5 bg-primary p-6 rounded-xl flex flex-col justify-between">
+<p class="text-[10px] font-bold uppercase tracking-widest text-on-primary-fixed mb-4">LAST WALK</p>
+<p class="text-on-primary-fixed text-lg font-bold">2.4 km</p>
+<p class="text-on-primary-fixed-variant text-xs">With Kona • 2h ago</p>
+</div>
+</div>
+<!-- Dogs List -->
+<div class="flex flex-col gap-4">
+<!-- Dog Card: Moka -->
+<div class="group bg-surface-container-lowest p-4 rounded-xl flex items-center justify-between border border-outline-variant/20 hover:bg-surface-container-low transition-all duration-300 cursor-pointer active:scale-[0.98]">
+<div class="flex items-center gap-4">
+<div class="w-14 h-14 rounded-full overflow-hidden border-2 border-primary/5 ring-2 ring-background ring-offset-0 group-hover:ring-primary/10 transition-all">
+<img alt="Moka" class="w-full h-full object-cover" data-alt="A small, adorable Shiba Inu dog sitting calmly, looking directly at the camera with sharp focus, clean neutral background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDx-9yzaTBgfuJDg4swyI8S5OmxPtFZ01CKuvIS7QCX_gMFvmxMXT0Ho71RtlA-aBqmWfYGENUB6B6HJM4MSj1InWQtGHT1ARyUvG-8bdKp_AkTRQQcudkuUM_v5bCdyqJcJNoPzNQIH2CxTx5FBPzDE74Cssi3pq7s3bmZwvbJrz656_fk9UNvSbScU4mAdUcSAH0TT1CR6yHfL5y34SNVP-c84QmbZJuKCcyDQEe1dTFTZTEiUoIeOT3EkprmzF31iEXqfUHSxYXR"/>
+</div>
+<div class="flex flex-col">
+<span class="text-lg font-bold tracking-tight text-primary">Moka</span>
+<span class="text-xs text-on-surface-variant font-medium">Shiba Inu</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors">chevron_right</span>
+</div>
+<!-- Dog Card: Kona -->
+<div class="group bg-surface-container-lowest p-4 rounded-xl flex items-center justify-between border border-outline-variant/20 hover:bg-surface-container-low transition-all duration-300 cursor-pointer active:scale-[0.98]">
+<div class="flex items-center gap-4">
+<div class="w-14 h-14 rounded-full overflow-hidden border-2 border-primary/5 ring-2 ring-background ring-offset-0 group-hover:ring-primary/10 transition-all">
+<img alt="Kona" class="w-full h-full object-cover" data-alt="A golden Labrador retriever headshot, ears floppy, happy expression, warm natural sunlight, outdoor garden background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCWbWCadBdKBwLHYjhy5iPV7-dXL71Jkxo51OJBkAvIPwDGxH7V0oppv-FF1nVjtH8nPACWSiMkhD6g24yyMf46uIpAhqkRKPFUPTOhp6qEKfGjJulmQeOdtHIRqrIzRJwiildD2zuJ1ePftkacnieGoEsexBaKqmxuIR-kw9u5hRBdK7GHAK-71YMpSoFZQoeWVK1qk5Fq_cJqC5eynCJtxkBqtvHO_EyJfipJsPBjhJKLGu0NeXuh1amSQc3S7Jzm9AGIEMLczS3V"/>
+</div>
+<div class="flex flex-col">
+<span class="text-lg font-bold tracking-tight text-primary">Kona</span>
+<span class="text-xs text-on-surface-variant font-medium">Labrador</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors">chevron_right</span>
+</div>
+</div>
+<!-- Optional Empty State Illustration (Hidden since we have data) -->
+<div class="hidden flex-col items-center justify-center py-20 text-center opacity-40">
+<span class="material-symbols-outlined text-6xl mb-4" style="font-variation-settings: 'wght' 200;">pets</span>
+<p class="text-lg font-bold text-primary">No dogs yet.</p>
+<p class="text-sm text-on-surface-variant">Add your first dog to start tracking.</p>
+</div>
+</main>
+<!-- Floating Action Button -->
+<button class="fixed bottom-24 right-6 w-14 h-14 bg-black rounded-full flex items-center justify-center text-white shadow-xl hover:scale-105 active:scale-95 transition-transform z-50">
+<span class="material-symbols-outlined text-3xl">add</span>
+</button>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full h-20 bg-[#fcf9f8]/90 dark:bg-black/90 backdrop-blur-2xl flex justify-around items-center px-4 pb-safe z-50 border-t border-black/5 dark:border-white/5">
+<!-- Home -->
+<a class="flex flex-col items-center justify-center text-gray-400 dark:text-gray-600 pt-2 tap-highlight-none active:scale-90 transition-transform group" href="#">
+<span class="material-symbols-outlined group-hover:text-black dark:group-hover:text-white">home_max</span>
+<span class="font-['Inter'] text-[10px] font-bold uppercase tracking-[0.05em] group-hover:text-black dark:group-hover:text-white">Home</span>
+</a>
+<!-- Walks -->
+<a class="flex flex-col items-center justify-center text-gray-400 dark:text-gray-600 pt-2 tap-highlight-none active:scale-90 transition-transform group" href="#">
+<span class="material-symbols-outlined group-hover:text-black dark:group-hover:text-white">directions_walk</span>
+<span class="font-['Inter'] text-[10px] font-bold uppercase tracking-[0.05em] group-hover:text-black dark:group-hover:text-white">Walks</span>
+</a>
+<!-- Dogs (ACTIVE) -->
+<a class="flex flex-col items-center justify-center text-black dark:text-white border-t-2 border-black dark:border-white pt-2 tap-highlight-none active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">pets</span>
+<span class="font-['Inter'] text-[10px] font-bold uppercase tracking-[0.05em]">Dogs</span>
+</a>
+<!-- Settings -->
+<a class="flex flex-col items-center justify-center text-gray-400 dark:text-gray-600 pt-2 tap-highlight-none active:scale-90 transition-transform group" href="#">
+<span class="material-symbols-outlined group-hover:text-black dark:group-hover:text-white">settings</span>
+<span class="font-['Inter'] text-[10px] font-bold uppercase tracking-[0.05em] group-hover:text-black dark:group-hover:text-white">Settings</span>
+</a>
+</nav>
+</body></html>

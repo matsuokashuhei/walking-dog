@@ -24,8 +24,21 @@ public class BleAdvertiserModule: Module {
       delegate.onPoweredOn = { [weak self] in
         guard let self = self else { return }
 
-        let serviceUUID = CBUUID(string: serviceUuid)
-        let walkIdUUID = CBUUID(string: walkIdUuid)
+        // Validate UUIDs via Swift's failable `UUID(uuidString:)` first, then
+        // bridge to CBUUID. CBUUID(string:) throws NSException on invalid
+        // input and would crash the app; validating up front lets us reject
+        // the Promise with a clear error instead.
+        guard let serviceNsUuid = UUID(uuidString: serviceUuid) else {
+          promise.reject("INVALID_SERVICE_UUID", "Invalid service UUID: \(serviceUuid)")
+          return
+        }
+        guard let walkIdNsUuid = UUID(uuidString: walkIdUuid) else {
+          promise.reject("INVALID_WALK_ID_UUID", "Invalid walk ID UUID: \(walkIdUuid)")
+          return
+        }
+
+        let serviceUUID = CBUUID(nsuuid: serviceNsUuid)
+        let walkIdUUID = CBUUID(nsuuid: walkIdNsUuid)
 
         let advertisementData: [String: Any] = [
           CBAdvertisementDataServiceUUIDsKey: [serviceUUID, walkIdUUID],

@@ -1,15 +1,17 @@
 import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
 import { spacing, radius, typography } from '@/theme/tokens';
 import { formatClockTime } from '@/lib/walk/format';
 import type { WalkEvent, WalkEventType } from '@/types/graphql';
 
-const EVENT_CONFIG: Record<WalkEventType, { emoji: string; label: string }> = {
-  pee: { emoji: '🚽', label: 'Pee' },
-  poo: { emoji: '💩', label: 'Poo' },
-  photo: { emoji: '📷', label: 'Photo' },
+const EVENT_CONFIG: Record<WalkEventType, { emoji: string }> = {
+  pee: { emoji: '🚽' },
+  poo: { emoji: '💩' },
+  photo: { emoji: '📷' },
 };
 
 interface WalkEventTimelineProps {
@@ -17,7 +19,9 @@ interface WalkEventTimelineProps {
 }
 
 export function WalkEventTimeline({ events }: WalkEventTimelineProps) {
+  const { t } = useTranslation();
   const theme = useColors();
+  const insets = useSafeAreaInsets();
   const [fullScreenPhoto, setFullScreenPhoto] = useState<string | null>(null);
 
   if (events.length === 0) return null;
@@ -26,16 +30,21 @@ export function WalkEventTimeline({ events }: WalkEventTimelineProps) {
     <View style={styles.container}>
       {events.map((event) => {
         const config = EVENT_CONFIG[event.eventType];
+        const label = t(`walk.event.${event.eventType}`);
         const time = formatClockTime(event.occurredAt);
 
         return (
           <View key={event.id} style={[styles.row, { borderBottomColor: theme.border + '33' }]}>
             <Text style={styles.time}>{time}</Text>
             <Text style={styles.emoji}>{config.emoji}</Text>
-            <Text style={[styles.label, { color: theme.onSurface }]}>{config.label}</Text>
+            <Text style={[styles.label, { color: theme.onSurface }]}>{label}</Text>
             {event.eventType === 'photo' && event.photoUrl ? (
               <Pressable
-                onPress={() => setFullScreenPhoto(event.photoUrl)}
+                onPress={() => {
+                  if (event.photoUrl) {
+                    setFullScreenPhoto(event.photoUrl);
+                  }
+                }}
                 accessibilityRole="button"
                 accessibilityLabel="Photo thumbnail"
                 accessibilityHint="Tap to view full screen"
@@ -62,7 +71,7 @@ export function WalkEventTimeline({ events }: WalkEventTimelineProps) {
       >
         <View style={[styles.modalOverlay, { backgroundColor: theme.overlay }]}>
           <Pressable
-            style={styles.closeButton}
+            style={[styles.closeButton, { top: insets.top + 8 }]}
             onPress={() => setFullScreenPhoto(null)}
             accessibilityRole="button"
             accessibilityLabel="Close photo"
@@ -124,7 +133,6 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     position: 'absolute',
-    top: spacing.xl,
     right: spacing.lg,
     zIndex: 1,
     padding: spacing.sm,

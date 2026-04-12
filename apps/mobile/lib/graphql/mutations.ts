@@ -179,3 +179,28 @@ export const FINISH_WALK_MUTATION = gql`
     }
   }
 `;
+
+export const RECORD_WALK_EVENT_MUTATION = gql`
+  mutation RecordWalkEvent($input: RecordWalkEventInput!) {
+    recordWalkEvent(input: $input) {
+      id
+      walkId
+      dogId
+      eventType
+      occurredAt
+      lat
+      lng
+      photoUrl
+    }
+  }
+`;
+
+export const GENERATE_WALK_EVENT_PHOTO_UPLOAD_URL_MUTATION = gql`
+  mutation GenerateWalkEventPhotoUploadUrl($walkId: ID!, $contentType: String!) {
+    generateWalkEventPhotoUploadUrl(walkId: $walkId, contentType: $contentType) {
+      url
+      key
+      expiresAt
+    }
+  }
+`;

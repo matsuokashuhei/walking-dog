@@ -61,6 +61,29 @@ export interface DogWithStats extends Dog {
   members?: DogMember[];
 }
 
+export type WalkEventType = 'pee' | 'poo' | 'photo';
+
+export interface WalkEvent {
+  id: string;
+  walkId: string;
+  dogId: string | null;
+  eventType: WalkEventType;
+  occurredAt: string;
+  lat: number | null;
+  lng: number | null;
+  photoUrl: string | null;
+}
+
+export interface RecordWalkEventInput {
+  walkId: string;
+  dogId?: string;
+  eventType: WalkEventType;
+  occurredAt: string;
+  lat?: number;
+  lng?: number;
+  photoKey?: string;
+}
+
 export interface Walk {
   id: string;
   dogs: Dog[];
@@ -71,6 +94,7 @@ export interface Walk {
   startedAt: string;
   endedAt: string | null;
   points?: WalkPoint[];
+  events?: WalkEvent[];
 }
 
 export interface User {
@@ -167,3 +191,7 @@ export interface FriendshipResponse { friendship: Friendship | null; }
 export interface StartWalkResponse { startWalk: Walk; }
 export interface AddWalkPointsResponse { addWalkPoints: boolean; }
 export interface FinishWalkResponse { finishWalk: Walk; }
+export interface RecordWalkEventResponse { recordWalkEvent: WalkEvent; }
+export interface GenerateWalkEventPhotoUploadUrlResponse {
+  generateWalkEventPhotoUploadUrl: PresignedUrl;
+}

@@ -7,7 +7,9 @@
 
 // Custom 128-bit service UUID for Walking Dog BLE encounter detection.
 // Used to filter scan results to only our app's devices.
-export const WALKING_DOG_SERVICE_UUID = 'WD000001-0000-1000-8000-00805F9B34FB';
+// Prefix "5744" is the ASCII hex for "WD" — preserves the Walking Dog
+// symbolism while satisfying UUID's strict hex-only requirement.
+export const WALKING_DOG_SERVICE_UUID = '57440001-0000-1000-8000-00805F9B34FB';
 
 // Manufacturer data company ID (0xFFFF = reserved for testing/development).
 export const COMPANY_ID = 0xffff;

@@ -32,6 +32,16 @@ output "s3_bucket_dog_photos" {
   value = aws_s3_bucket.dog_photos.bucket
 }
 
+# --- CloudFront ---
+
+output "cloudfront_dog_photos_domain" {
+  value = aws_cloudfront_distribution.dog_photos.domain_name
+}
+
+output "cloudfront_dog_photos_url" {
+  value = "https://${aws_cloudfront_distribution.dog_photos.domain_name}"
+}
+
 /*
 # --- RDS ---
 

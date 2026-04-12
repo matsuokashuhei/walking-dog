@@ -3,7 +3,6 @@ import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
 import { spacing, radius, typography } from '@/theme/tokens';
-import { getPhotoUrl } from '@/lib/photo-url';
 import type { Friendship } from '@/types/graphql';
 
 interface FriendCardProps {
@@ -32,7 +31,7 @@ export function FriendCard({ friendship, onPress }: FriendCardProps) {
       onPress={onPress}
     >
       <Image
-        source={getPhotoUrl(friend.photoUrl) ?? require('@/assets/images/icon.png')}
+        source={friend.photoUrl ?? require('@/assets/images/icon.png')}
         style={styles.avatar}
         contentFit="cover"
         cachePolicy="memory-disk"

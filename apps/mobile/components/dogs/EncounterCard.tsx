@@ -3,7 +3,6 @@ import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
 import { spacing, radius, typography } from '@/theme/tokens';
-import { getPhotoUrl } from '@/lib/photo-url';
 import type { Encounter } from '@/types/graphql';
 
 interface EncounterCardProps {
@@ -37,7 +36,7 @@ export function EncounterCard({ encounter, myDogId }: EncounterCardProps) {
       ]}
     >
       <Image
-        source={getPhotoUrl(otherDog.photoUrl) ?? require('@/assets/images/icon.png')}
+        source={otherDog.photoUrl ?? require('@/assets/images/icon.png')}
         style={styles.avatar}
         contentFit="cover"
         cachePolicy="memory-disk"

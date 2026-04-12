@@ -7,6 +7,7 @@ pub struct Config {
     pub dynamodb_endpoint_url: Option<String>,
     pub dynamodb_table_walk_points: String,
     pub s3_bucket_dog_photos: String,
+    pub photo_cdn_url: String,
     pub cognito_user_pool_id: String,
     /// cognito-local のエンドポイント (例: http://localhost:9229)
     /// 本番環境では None にする
@@ -33,6 +34,8 @@ impl Config {
                 .unwrap_or_else(|_| "WalkPoints".to_string()),
             s3_bucket_dog_photos: std::env::var("S3_BUCKET_DOG_PHOTOS")
                 .unwrap_or_else(|_| "dog-photos".to_string()),
+            photo_cdn_url: std::env::var("PHOTO_CDN_URL")
+                .unwrap_or_else(|_| "http://localhost:4566/dog-photos".to_string()),
             cognito_user_pool_id: std::env::var("COGNITO_USER_POOL_ID")
                 .unwrap_or_default(),
             cognito_endpoint_url: std::env::var("COGNITO_ENDPOINT_URL")

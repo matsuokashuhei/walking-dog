@@ -10,7 +10,6 @@ import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { uploadToPresignedUrl } from '@/lib/upload';
 import { useColors } from '@/hooks/use-colors';
 import { spacing } from '@/theme/tokens';
-import { getPhotoUrl } from '@/lib/photo-url';
 
 export default function EditDogScreen() {
   const { t } = useTranslation();
@@ -22,16 +21,20 @@ export default function EditDogScreen() {
   const { mutateAsync: updateDog } = useUpdateDog();
   const { mutateAsync: generateUploadUrl } = useGeneratePhotoUploadUrl();
   const [photoLoading, setPhotoLoading] = useState(false);
+  const [previewUri, setPreviewUri] = useState<string | null>(null);
 
   if (isLoading || !dog) return <LoadingScreen />;
 
   async function handlePhotoChange(uri: string, contentType: string) {
+    setPreviewUri(uri);
     setPhotoLoading(true);
     try {
       const { url, key } = await generateUploadUrl({ dogId: id, contentType });
       await uploadToPresignedUrl(url, uri, contentType);
       await updateDog({ id, input: { photoUrl: key } });
+      setPreviewUri(null);
     } catch {
+      setPreviewUri(null);
       Alert.alert(t('common.error'), t('dogs.edit.photoUploadError'));
     } finally {
       setPhotoLoading(false);
@@ -56,7 +59,7 @@ export default function EditDogScreen() {
       keyboardShouldPersistTaps="handled"
     >
       <PhotoPicker
-        currentPhotoUrl={getPhotoUrl(dog.photoUrl)}
+        currentPhotoUrl={previewUri ?? dog.photoUrl ?? null}
         onPick={handlePhotoChange}
         loading={photoLoading}
       />

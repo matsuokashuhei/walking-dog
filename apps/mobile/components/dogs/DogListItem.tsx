@@ -3,7 +3,6 @@ import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
 import { spacing, radius, typography } from '@/theme/tokens';
-import { getPhotoUrl } from '@/lib/photo-url';
 import type { Dog } from '@/types/graphql';
 
 interface DogListItemProps {
@@ -31,7 +30,7 @@ export function DogListItem({ dog, onPress }: DogListItemProps) {
       ]}
     >
       <Image
-        source={getPhotoUrl(dog.photoUrl) ?? require('@/assets/images/icon.png')}
+        source={dog.photoUrl ?? require('@/assets/images/icon.png')}
         style={styles.photo}
         contentFit="cover"
         cachePolicy="memory-disk"

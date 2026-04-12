@@ -132,7 +132,15 @@ pub fn dog_output_type() -> Object {
         .field(Field::new("photoUrl", TypeRef::named(TypeRef::STRING), |ctx| {
             FieldFuture::new(async move {
                 let d = ctx.parent_value.try_downcast_ref::<DogOutput>()?;
-                Ok(d.photo_url.clone().map(FieldValue::value))
+                let state = ctx.data::<Arc<crate::AppState>>()?;
+                Ok(d.photo_url.clone().map(|key| {
+                    let url = if key.starts_with("http") {
+                        key
+                    } else {
+                        format!("{}/{}", state.config.photo_cdn_url, key)
+                    };
+                    FieldValue::value(url)
+                }))
             })
         }))
         .field(Field::new("createdAt", TypeRef::named_nn(TypeRef::STRING), |ctx| {

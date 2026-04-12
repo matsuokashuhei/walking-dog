@@ -36,7 +36,13 @@ jest.spyOn(Alert, 'alert');
 const mockMutateAsync = jest.fn();
 const mockPhotoMutateAsync = jest.fn();
 
-const defaultStoreState = {
+const defaultStoreState: {
+  walkId: string | null;
+  selectedDogIds: string[];
+  points: { lat: number; lng: number; recordedAt: string }[];
+  addEvent: jest.Mock;
+  removeEvent: jest.Mock;
+} = {
   walkId: 'walk-123',
   selectedDogIds: ['dog-1'],
   points: [

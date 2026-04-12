@@ -4,12 +4,20 @@ import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
 import { spacing, radius } from '@/theme/tokens';
 import { useWalkStore } from '@/stores/walk-store';
+import type { WalkEvent, WalkEventType } from '@/types/graphql';
+
+const EVENT_EMOJIS: Record<WalkEventType, string> = {
+  pee: '🚽',
+  poo: '💩',
+  photo: '📷',
+};
 
 interface WalkMapProps {
   followUser?: boolean;
+  events?: WalkEvent[];
 }
 
-export function WalkMap({ followUser = true }: WalkMapProps) {
+export function WalkMap({ followUser = true, events = [] }: WalkMapProps) {
   const { t } = useTranslation();
   const theme = useColors();
   const points = useWalkStore((s) => s.points);
@@ -47,6 +55,18 @@ export function WalkMap({ followUser = true }: WalkMapProps) {
           />
         ) : null}
         {lastPoint ? <Marker coordinate={lastPoint} /> : null}
+        {events
+          .filter((e) => e.lat != null && e.lng != null)
+          .map((e) => (
+            <Marker
+              key={e.id}
+              testID={`event-marker-${e.id}`}
+              coordinate={{ latitude: e.lat!, longitude: e.lng! }}
+              accessibilityLabel={`${EVENT_EMOJIS[e.eventType]} event at ${e.occurredAt}`}
+            >
+              <Text style={styles.eventMarker}>{EVENT_EMOJIS[e.eventType]}</Text>
+            </Marker>
+          ))}
       </MapView>
       <View style={[styles.badge, { backgroundColor: 'rgba(239,68,68,0.9)' }]}>
         <Text style={styles.badgeText}>{t('walk.recording.recording')}</Text>
@@ -73,4 +93,5 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
   },
   badgeText: { color: '#fff', fontSize: 11, fontWeight: '600' },
+  eventMarker: { fontSize: 20 },
 });

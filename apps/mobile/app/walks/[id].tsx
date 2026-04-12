@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, ActivityIndicator, ScrollView } from 'react-native';
 import MapView, { Polyline, Marker } from 'react-native-maps';
 import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
@@ -49,6 +49,7 @@ export default function WalkDetailScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       <View style={[styles.mapContainer, { borderColor: theme.border + '33' }]}>
         <MapView
           style={styles.map}
@@ -163,12 +164,14 @@ export default function WalkDetailScreen() {
       </View>
 
       {events.length > 0 ? <WalkEventTimeline events={events} /> : null}
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  scrollContent: { flexGrow: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   mapContainer: {
     borderWidth: 1,

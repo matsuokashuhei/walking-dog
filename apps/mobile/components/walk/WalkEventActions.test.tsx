@@ -394,7 +394,7 @@ describe('WalkEventActions', () => {
     });
   });
 
-  it('photo upload failure shows presign-specific error different from generic record error', async () => {
+  it('photo presign failure shows presign-specific error message', async () => {
     const mockAsset = { uri: 'file:///photo.jpg', mimeType: 'image/jpeg' };
     (imagePicker.launchCameraAsync as jest.Mock).mockResolvedValue({
       canceled: false,
@@ -408,8 +408,7 @@ describe('WalkEventActions', () => {
     await waitFor(() => {
       expect(Alert.alert).toHaveBeenCalledWith(
         expect.any(String),
-        // presign-specific message should differ from the generic recordError
-        expect.not.stringContaining('Failed to record'),
+        'Failed to prepare photo upload. Please try again.',
       );
     });
   });

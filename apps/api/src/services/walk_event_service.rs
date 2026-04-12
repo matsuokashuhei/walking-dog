@@ -27,7 +27,7 @@ pub struct RecordEventInput {
 ///
 /// Authorization passes if the user is the walk owner OR a member of any dog
 /// that is part of the walk (walk_dogs -> dog_members).
-async fn require_walk_access(
+pub async fn require_walk_access(
     db: &sea_orm::DatabaseConnection,
     walk_id: Uuid,
     user_id: Uuid,

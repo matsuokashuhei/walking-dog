@@ -2045,9 +2045,6 @@ fn generate_walk_event_photo_upload_url_field(state: Arc<AppState>) -> Field {
         move |ctx| {
             let state = state.clone();
             FieldFuture::new(async move {
-                use crate::entities::walk_dogs::{self, Entity as WalkDogEntity};
-                use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
-
                 let cognito_sub = auth::require_auth(&ctx)?;
                 let walk_id_str = ctx.args.try_get("walkId")?.string()?;
                 let walk_id = Uuid::parse_str(walk_id_str)
@@ -2058,38 +2055,9 @@ fn generate_walk_event_photo_upload_url_field(state: Arc<AppState>) -> Field {
                     .await
                     .map_err(AppError::into_graphql_error)?;
 
-                // Authorization: walk owner or dog member
-                let walk = crate::entities::walks::Entity::find_by_id(walk_id)
-                    .one(&state.db)
+                walk_event_service::require_walk_access(&state.db, walk_id, user.id)
                     .await
-                    .map_err(|e| AppError::Database(e).into_graphql_error())?
-                    .ok_or_else(|| async_graphql::Error::new("Walk not found"))?;
-
-                if walk.user_id != user.id {
-                    // Check dog membership
-                    let walk_dog_rows = WalkDogEntity::find()
-                        .filter(walk_dogs::Column::WalkId.eq(walk_id))
-                        .all(&state.db)
-                        .await
-                        .map_err(|e| AppError::Database(e).into_graphql_error())?;
-
-                    let mut authorized = false;
-                    for wd in &walk_dog_rows {
-                        if dog_member_service::require_dog_member(&state.db, wd.dog_id, user.id)
-                            .await
-                            .is_ok()
-                        {
-                            authorized = true;
-                            break;
-                        }
-                    }
-                    if !authorized {
-                        return Err(AppError::Unauthorized(
-                            "Not authorized for this walk".to_string(),
-                        )
-                        .into_graphql_error());
-                    }
-                }
+                    .map_err(AppError::into_graphql_error)?;
 
                 let presigned = s3_service::generate_walk_event_photo_upload_url(
                     &state.s3,

@@ -55,6 +55,12 @@ export function WalkEventActions() {
   const handlePhoto = async () => {
     if (!walkId) return;
 
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert(t('common.error'), t('walk.event.cameraPermissionError'));
+      return;
+    }
+
     let phase: 'presign' | 'upload' | 'record' = 'presign';
 
     try {

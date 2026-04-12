@@ -80,6 +80,7 @@ let consoleErrorSpy: jest.SpyInstance;
 beforeEach(() => {
   jest.clearAllMocks();
   setupMocks();
+  (imagePicker.requestCameraPermissionsAsync as jest.Mock).mockResolvedValue({ granted: true });
   consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 });
 
@@ -411,5 +412,20 @@ describe('WalkEventActions', () => {
         'Failed to prepare photo upload. Please try again.',
       );
     });
+  });
+
+  it('when camera permission is denied, shows Alert and does not launch camera', async () => {
+    (imagePicker.requestCameraPermissionsAsync as jest.Mock).mockResolvedValue({ granted: false });
+
+    render(<WalkEventActions />);
+    fireEvent.press(screen.getByRole('button', { name: /photo/i }));
+
+    await waitFor(() => {
+      expect(Alert.alert).toHaveBeenCalledWith(
+        expect.any(String),
+        'Camera access is required. Please enable it in Settings.',
+      );
+    });
+    expect(imagePicker.launchCameraAsync).not.toHaveBeenCalled();
   });
 });

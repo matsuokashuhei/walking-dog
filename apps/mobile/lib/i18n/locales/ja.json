@@ -164,7 +164,8 @@
       "photo": "写真",
       "recordError": "記録に失敗しました。もう一度お試しください。",
       "photoPresignError": "写真のアップロード準備に失敗しました。もう一度お試しください。",
-      "photoUploadError": "写真のアップロードに失敗しました。もう一度お試しください。"
+      "photoUploadError": "写真のアップロードに失敗しました。もう一度お試しください。",
+      "cameraPermissionError": "カメラへのアクセスを許可してください。設定から変更できます。"
     }
   },
   "invite": {

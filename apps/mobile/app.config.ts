@@ -62,6 +62,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'expo-image-picker',
       {
         photosPermission: 'Allow Walking Dog to access your photos for dog profile pictures.',
+        cameraPermission: 'Allow Walking Dog to use the camera to record walk events.',
       },
     ],
     'expo-secure-store',

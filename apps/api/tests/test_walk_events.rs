@@ -97,10 +97,11 @@ async fn record_event_pee_inserts_row() {
         .await
         .expect("Failed to connect to DB");
 
-    // Get user_id via service
-    let user = walking_dog_api::services::user_service::get_or_create_user(&db, "test-token")
-        .await
-        .unwrap();
+    // In TEST_MODE "test-token" Bearer maps to "test-user-cognito-sub" cognito_sub
+    let user =
+        walking_dog_api::services::user_service::get_or_create_user(&db, "test-user-cognito-sub")
+            .await
+            .unwrap();
 
     let input = RecordEventInput {
         dog_id: Some(dog_id),
@@ -164,12 +165,10 @@ async fn record_event_rejects_non_owner() {
         .expect("Failed to connect to DB");
 
     // User B (not owner) attempts to record event
-    let user_b = walking_dog_api::services::user_service::get_or_create_user(
-        &db,
-        "test-user-b-cognito-sub",
-    )
-    .await
-    .unwrap();
+    let user_b =
+        walking_dog_api::services::user_service::get_or_create_user(&db, "test-user-b-cognito-sub")
+            .await
+            .unwrap();
 
     let input = RecordEventInput {
         dog_id: None,
@@ -181,7 +180,10 @@ async fn record_event_rejects_non_owner() {
     };
 
     let result = walk_event_service::record_event(&db, walk_id, user_b.id, input).await;
-    assert!(result.is_err(), "Expected authorization error for non-owner");
+    assert!(
+        result.is_err(),
+        "Expected authorization error for non-owner"
+    );
 }
 
 #[tokio::test]
@@ -224,9 +226,10 @@ async fn record_event_without_gps_succeeds() {
         .await
         .expect("Failed to connect to DB");
 
-    let user = walking_dog_api::services::user_service::get_or_create_user(&db, "test-token")
-        .await
-        .unwrap();
+    let user =
+        walking_dog_api::services::user_service::get_or_create_user(&db, "test-user-cognito-sub")
+            .await
+            .unwrap();
 
     // No GPS coordinates
     let input = RecordEventInput {
@@ -287,9 +290,10 @@ async fn record_event_photo_requires_photo_key() {
         .await
         .expect("Failed to connect to DB");
 
-    let user = walking_dog_api::services::user_service::get_or_create_user(&db, "test-token")
-        .await
-        .unwrap();
+    let user =
+        walking_dog_api::services::user_service::get_or_create_user(&db, "test-user-cognito-sub")
+            .await
+            .unwrap();
 
     // photo event without photo_key should fail
     let input = RecordEventInput {
@@ -345,9 +349,10 @@ async fn list_events_returns_in_occurred_at_asc() {
         .await
         .expect("Failed to connect to DB");
 
-    let user = walking_dog_api::services::user_service::get_or_create_user(&db, "test-token")
-        .await
-        .unwrap();
+    let user =
+        walking_dog_api::services::user_service::get_or_create_user(&db, "test-user-cognito-sub")
+            .await
+            .unwrap();
 
     let now = chrono::Utc::now();
 
@@ -381,8 +386,14 @@ async fn list_events_returns_in_occurred_at_asc() {
         .expect("Failed to list events");
 
     assert_eq!(events.len(), 2);
-    assert_eq!(events[0].event_type, "pee", "First event should be pee (earlier occurred_at)");
-    assert_eq!(events[1].event_type, "poo", "Second event should be poo (later occurred_at)");
+    assert_eq!(
+        events[0].event_type, "pee",
+        "First event should be pee (earlier occurred_at)"
+    );
+    assert_eq!(
+        events[1].event_type, "poo",
+        "Second event should be poo (later occurred_at)"
+    );
 }
 
 // ─── T-A4: S3 Service Tests ────────────────────────────────────────────────────
@@ -443,7 +454,10 @@ async fn generate_walk_event_photo_upload_url_rejects_invalid_content_type() {
     )
     .await;
 
-    assert!(result.is_err(), "Expected error for unsupported content type");
+    assert!(
+        result.is_err(),
+        "Expected error for unsupported content type"
+    );
 }
 
 // ─── T-A5: GraphQL Mutation Tests ─────────────────────────────────────────────
@@ -508,7 +522,11 @@ async fn mutation_record_walk_event_pee_returns_event() {
         .await
         .unwrap();
 
-    assert!(body["errors"].is_null(), "Expected no errors, got: {:?}", body);
+    assert!(
+        body["errors"].is_null(),
+        "Expected no errors, got: {:?}",
+        body
+    );
     let event = &body["data"]["recordWalkEvent"];
     assert_eq!(event["eventType"].as_str().unwrap(), "pee");
     assert!(event["id"].as_str().is_some());
@@ -575,10 +593,16 @@ async fn mutation_record_walk_event_photo_resolves_cloudfront_url() {
         .await
         .unwrap();
 
-    assert!(body["errors"].is_null(), "Expected no errors, got: {:?}", body);
+    assert!(
+        body["errors"].is_null(),
+        "Expected no errors, got: {:?}",
+        body
+    );
     let event = &body["data"]["recordWalkEvent"];
     assert_eq!(event["eventType"].as_str().unwrap(), "photo");
-    let photo_url = event["photoUrl"].as_str().expect("photoUrl should be present");
+    let photo_url = event["photoUrl"]
+        .as_str()
+        .expect("photoUrl should be present");
     assert!(
         photo_url.starts_with("http"),
         "photoUrl should be a CloudFront URL, got: {}",
@@ -673,14 +697,21 @@ async fn mutation_generate_walk_event_photo_upload_url_returns_key() {
         .await
         .unwrap();
 
-    assert!(body["errors"].is_null(), "Expected no errors, got: {:?}", body);
+    assert!(
+        body["errors"].is_null(),
+        "Expected no errors, got: {:?}",
+        body
+    );
     let result = &body["data"]["generateWalkEventPhotoUploadUrl"];
     let key = result["key"].as_str().expect("key should be present");
     assert!(
         key.starts_with(&format!("walks/{}/", walk_id)),
         "Key should start with walks/{walk_id}/, got: {key}"
     );
-    assert!(key.ends_with(".jpg"), "Key should end with .jpg, got: {key}");
+    assert!(
+        key.ends_with(".jpg"),
+        "Key should end with .jpg, got: {key}"
+    );
     assert!(!result["url"].as_str().unwrap_or("").is_empty());
 }
 
@@ -726,9 +757,10 @@ async fn query_walk_returns_events_sorted_by_occurred_at() {
         .await
         .expect("Failed to connect to DB");
 
-    let user = walking_dog_api::services::user_service::get_or_create_user(&db, "test-token")
-        .await
-        .unwrap();
+    let user =
+        walking_dog_api::services::user_service::get_or_create_user(&db, "test-user-cognito-sub")
+            .await
+            .unwrap();
 
     let now = chrono::Utc::now();
 
@@ -787,9 +819,23 @@ async fn query_walk_returns_events_sorted_by_occurred_at() {
         .await
         .unwrap();
 
-    assert!(body["errors"].is_null(), "Expected no errors, got: {:?}", body);
-    let events = body["data"]["walk"]["events"].as_array().expect("events should be an array");
+    assert!(
+        body["errors"].is_null(),
+        "Expected no errors, got: {:?}",
+        body
+    );
+    let events = body["data"]["walk"]["events"]
+        .as_array()
+        .expect("events should be an array");
     assert_eq!(events.len(), 2);
-    assert_eq!(events[0]["eventType"].as_str().unwrap(), "pee", "First event should be pee");
-    assert_eq!(events[1]["eventType"].as_str().unwrap(), "poo", "Second event should be poo");
+    assert_eq!(
+        events[0]["eventType"].as_str().unwrap(),
+        "pee",
+        "First event should be pee"
+    );
+    assert_eq!(
+        events[1]["eventType"].as_str().unwrap(),
+        "poo",
+        "Second event should be poo"
+    );
 }

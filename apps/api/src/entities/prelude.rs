@@ -5,4 +5,5 @@ pub use super::dog_members::Entity as DogMembers;
 pub use super::dogs::Entity as Dogs;
 pub use super::users::Entity as Users;
 pub use super::walk_dogs::Entity as WalkDogs;
+pub use super::walk_events::Entity as WalkEvents;
 pub use super::walks::Entity as Walks;

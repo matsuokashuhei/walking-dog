@@ -1,6 +1,6 @@
-use std::sync::Arc;
-use seaography::BuilderContext;
 use crate::AppState;
+use seaography::BuilderContext;
+use std::sync::Arc;
 
 pub mod custom_mutations;
 pub mod custom_queries;
@@ -32,7 +32,8 @@ pub fn build_schema(state: Arc<AppState>) -> AppSchema {
     }
 
     // Register custom types with the schema builder.
-    builder.schema = builder.schema
+    builder.schema = builder
+        .schema
         // Query output types
         .register(custom_queries::walk_point_type())
         .register(custom_queries::walk_stats_type())
@@ -45,6 +46,7 @@ pub fn build_schema(state: Arc<AppState>) -> AppSchema {
         .register(custom_mutations::walker_output_type())
         .register(custom_mutations::walk_point_output_type())
         .register(custom_mutations::user_output_type())
+        .register(custom_mutations::walk_event_output_type())
         .register(custom_mutations::presigned_url_type())
         .register(custom_mutations::dog_invitation_output_type())
         .register(custom_mutations::dog_member_output_type())
@@ -59,7 +61,8 @@ pub fn build_schema(state: Arc<AppState>) -> AppSchema {
         .register(custom_mutations::sign_up_input_type())
         .register(custom_mutations::confirm_sign_up_input_type())
         .register(custom_mutations::sign_in_input_type())
-        .register(custom_mutations::refresh_token_input_type());
+        .register(custom_mutations::refresh_token_input_type())
+        .register(custom_mutations::record_walk_event_input_type());
 
     // schema_builder() registers builder.query and builder.mutation as root
     // Query/Mutation types, then returns the completed SchemaBuilder.

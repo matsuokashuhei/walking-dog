@@ -80,6 +80,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   extra: {
     apiUrl: process.env.API_URL ?? 'http://localhost:3000',
+    photoCdnUrl: process.env.PHOTO_CDN_URL ?? 'http://localhost:4566/dog-photos',
     appEnv: APP_ENV,
   },
 });

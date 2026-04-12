@@ -1,0 +1,7 @@
+{
+    email matsuokashuheiii@gmail.com
+}
+
+walkingdogdev.dpdns.org {
+    reverse_proxy api:3000
+}

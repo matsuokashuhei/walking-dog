@@ -1,6 +1,4 @@
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
 import { spacing, typography, radius } from '@/theme/tokens';
@@ -8,10 +6,13 @@ import { useMyWalks } from '@/hooks/use-walks';
 import { WalkHistoryItem } from '@/components/walk/WalkHistoryItem';
 import type { Walk } from '@/types/graphql';
 
-export default function HomeScreen() {
+interface WalkReadyViewProps {
+  onStartPress: () => void;
+}
+
+export function WalkReadyView({ onStartPress }: WalkReadyViewProps) {
   const { t } = useTranslation();
   const theme = useColors();
-  const router = useRouter();
   const { data: walks, isLoading } = useMyWalks();
 
   const ListHeader = (
@@ -22,7 +23,7 @@ export default function HomeScreen() {
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={t('walk.home.startWalk')}
-        onPress={() => router.push('/(tabs)/walk')}
+        onPress={onStartPress}
         style={[styles.heroCta, { backgroundColor: theme.interactive }]}
       >
         <Text style={[styles.heroCtaText, { color: theme.onInteractive }]}>
@@ -35,25 +36,26 @@ export default function HomeScreen() {
     </View>
   );
 
+  if (!isLoading && (!walks || walks.length === 0)) {
+    return (
+      <View style={styles.container}>
+        {ListHeader}
+        <Text style={[styles.empty, { color: theme.onSurfaceVariant }]}>
+          {t('walk.history.empty')}
+        </Text>
+      </View>
+    );
+  }
+
   return (
-    <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: theme.background }]}>
-      {!isLoading && (!walks || walks.length === 0) ? (
-        <>
-          {ListHeader}
-          <Text style={[styles.empty, { color: theme.onSurfaceVariant }]}>
-            {t('walk.history.empty')}
-          </Text>
-        </>
-      ) : (
-        <FlatList
-          data={walks}
-          keyExtractor={(item: Walk) => item.id}
-          renderItem={({ item }) => <WalkHistoryItem walk={item} />}
-          ListHeaderComponent={ListHeader}
-          contentContainerStyle={styles.list}
-        />
-      )}
-    </SafeAreaView>
+    <FlatList
+      style={styles.container}
+      data={walks}
+      keyExtractor={(item: Walk) => item.id}
+      renderItem={({ item }) => <WalkHistoryItem walk={item} />}
+      ListHeaderComponent={ListHeader}
+      contentContainerStyle={styles.list}
+    />
   );
 }
 
@@ -85,6 +87,11 @@ const styles = StyleSheet.create({
     ...typography.label,
     marginBottom: spacing.sm,
   },
-  empty: { ...typography.body, textAlign: 'center', marginTop: spacing.xl, paddingHorizontal: spacing.lg },
+  empty: {
+    ...typography.body,
+    textAlign: 'center',
+    marginTop: spacing.xl,
+    paddingHorizontal: spacing.lg,
+  },
   list: { paddingBottom: spacing.xl },
 });

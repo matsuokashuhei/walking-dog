@@ -8,7 +8,6 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useColors } from '@/hooks/use-colors';
 import { spacing, radius, typography } from '@/theme/tokens';
-import { getPhotoUrl } from '@/lib/photo-url';
 
 function formatDuration(totalSec: number): string {
   if (totalSec < 60) return `${totalSec}s`;
@@ -34,7 +33,7 @@ export default function FriendDogDetailScreen() {
     <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={styles.photoSection}>
         <Image
-          source={getPhotoUrl(friend.photoUrl) ?? require('@/assets/images/icon.png')}
+          source={friend.photoUrl ?? require('@/assets/images/icon.png')}
           style={styles.photo}
           contentFit="cover"
           cachePolicy="memory-disk"

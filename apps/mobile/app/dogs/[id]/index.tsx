@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useColors } from '@/hooks/use-colors';
 import { spacing, radius, typography } from '@/theme/tokens';
-import { getPhotoUrl } from '@/lib/photo-url';
 
 export default function DogDetailScreen() {
   const { t } = useTranslation();
@@ -43,7 +42,7 @@ export default function DogDetailScreen() {
     <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={styles.photoSection}>
         <Image
-          source={getPhotoUrl(dog.photoUrl) ?? require('@/assets/images/icon.png')}
+          source={dog.photoUrl ?? require('@/assets/images/icon.png')}
           style={styles.photo}
           contentFit="cover"
           cachePolicy="memory-disk"

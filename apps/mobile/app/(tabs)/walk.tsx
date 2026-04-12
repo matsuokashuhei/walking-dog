@@ -14,6 +14,7 @@ import { EncounterTracker } from '@/lib/ble/encounter-tracker';
 import { DogSelector } from '@/components/walk/DogSelector';
 import { WalkMap } from '@/components/walk/WalkMap';
 import { WalkControls } from '@/components/walk/WalkControls';
+import { WalkEventActions } from '@/components/walk/WalkEventActions';
 import { WalkSummaryCard } from '@/components/walk/WalkSummaryCard';
 import type { WalkPoint } from '@/types/graphql';
 
@@ -138,6 +139,7 @@ export default function WalkScreen() {
       {phase === 'recording' && (
         <>
           <WalkMap />
+          <WalkEventActions />
           <WalkControls onStop={handleStop} isStopping={isStopping} />
         </>
       )}

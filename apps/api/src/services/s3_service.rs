@@ -1,7 +1,4 @@
-use aws_sdk_s3::{
-    Client as S3Client,
-    presigning::PresigningConfig,
-};
+use aws_sdk_s3::{presigning::PresigningConfig, Client as S3Client};
 use std::time::Duration;
 use uuid::Uuid;
 
@@ -26,6 +23,39 @@ pub fn extension_for_content_type(ct: &str) -> Option<&'static str> {
     }
 }
 
+pub async fn generate_walk_event_photo_upload_url(
+    s3: &S3Client,
+    bucket: &str,
+    walk_id: Uuid,
+    content_type: &str,
+) -> Result<PresignedUrl, crate::error::AppError> {
+    let ext = extension_for_content_type(content_type).ok_or_else(|| {
+        crate::error::AppError::BadRequest(format!("Unsupported content type: {}", content_type))
+    })?;
+
+    let key = format!("walks/{}/{}.{}", walk_id, Uuid::new_v4(), ext);
+    let expires_in = Duration::from_secs(3600);
+
+    let presigned = s3
+        .put_object()
+        .bucket(bucket)
+        .key(&key)
+        .content_type(content_type)
+        .presigned(
+            PresigningConfig::expires_in(expires_in)
+                .map_err(|e| crate::error::AppError::Internal(e.to_string()))?,
+        )
+        .await
+        .map_err(|e| crate::error::AppError::Internal(e.to_string()))?;
+
+    let expires_at = chrono::Utc::now() + chrono::Duration::seconds(3600);
+    Ok(PresignedUrl {
+        url: presigned.uri().to_string(),
+        key,
+        expires_at,
+    })
+}
+
 pub async fn generate_dog_photo_upload_url(
     s3: &S3Client,
     bucket: &str,
@@ -33,10 +63,7 @@ pub async fn generate_dog_photo_upload_url(
     content_type: &str,
 ) -> Result<PresignedUrl, crate::error::AppError> {
     let ext = extension_for_content_type(content_type).ok_or_else(|| {
-        crate::error::AppError::BadRequest(format!(
-            "Unsupported content type: {}",
-            content_type
-        ))
+        crate::error::AppError::BadRequest(format!("Unsupported content type: {}", content_type))
     })?;
 
     let key = format!("dogs/{}/{}.{}", dog_id, Uuid::new_v4(), ext);

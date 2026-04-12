@@ -63,6 +63,7 @@ export const WALK_QUERY = gql`
       startedAt
       endedAt
       points { lat lng recordedAt }
+      events { id walkId dogId eventType occurredAt lat lng photoUrl }
     }
   }
 `;

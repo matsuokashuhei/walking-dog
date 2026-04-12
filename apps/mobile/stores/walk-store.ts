@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { haversineDistance } from '@/lib/walk/distance';
-import type { WalkPoint } from '@/types/graphql';
+import type { WalkPoint, WalkEvent } from '@/types/graphql';
 
 type WalkPhase = 'ready' | 'recording' | 'finished';
 
@@ -11,9 +11,12 @@ interface WalkState {
   points: WalkPoint[];
   totalDistanceM: number;
   startedAt: Date | null;
+  events: WalkEvent[];
   selectDog: (dogId: string) => void;
   startRecording: (walkId: string) => void;
   addPoint: (point: WalkPoint) => void;
+  addEvent: (event: WalkEvent) => void;
+  removeEvent: (eventId: string) => void;
   finish: () => void;
   reset: () => void;
 }
@@ -25,6 +28,7 @@ export const useWalkStore = create<WalkState>((set, get) => ({
   points: [],
   totalDistanceM: 0,
   startedAt: null,
+  events: [],
 
   selectDog: (dogId) =>
     set((state) => ({
@@ -46,6 +50,12 @@ export const useWalkStore = create<WalkState>((set, get) => ({
       };
     }),
 
+  addEvent: (event) =>
+    set((state) => ({ events: [...state.events, event] })),
+
+  removeEvent: (eventId) =>
+    set((state) => ({ events: state.events.filter((e) => e.id !== eventId) })),
+
   finish: () => set({ phase: 'finished' }),
 
   reset: () =>
@@ -56,5 +66,6 @@ export const useWalkStore = create<WalkState>((set, get) => ({
       points: [],
       totalDistanceM: 0,
       startedAt: null,
+      events: [],
     }),
 }));

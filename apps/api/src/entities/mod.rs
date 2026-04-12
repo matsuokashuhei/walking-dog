@@ -9,6 +9,7 @@ pub mod encounters;
 pub mod friendships;
 pub mod users;
 pub mod walk_dogs;
+pub mod walk_events;
 pub mod walks;
 
 /// Register all entities for GraphQL queries (mutations are handled by custom resolvers).

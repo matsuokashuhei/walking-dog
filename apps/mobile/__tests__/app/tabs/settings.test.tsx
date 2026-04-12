@@ -39,10 +39,6 @@ jest.mock('@/components/settings/ProfileSection', () => ({
   ProfileSection: () => null,
 }));
 
-jest.mock('@/components/settings/DogListSection', () => ({
-  DogListSection: () => null,
-}));
-
 jest.mock('@/components/settings/AppearanceSection', () => ({
   AppearanceSection: () => null,
 }));

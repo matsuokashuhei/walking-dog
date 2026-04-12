@@ -49,6 +49,22 @@ resource "aws_iam_user_policy" "vps_api" {
         ]
         Resource = aws_cognito_user_pool.main.arn
       },
+      {
+        Sid      = "ECRAuth"
+        Effect   = "Allow"
+        Action   = ["ecr:GetAuthorizationToken"]
+        Resource = "*"
+      },
+      {
+        Sid    = "ECRPull"
+        Effect = "Allow"
+        Action = [
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage",
+        ]
+        Resource = aws_ecr_repository.api.arn
+      },
     ]
   })
 }

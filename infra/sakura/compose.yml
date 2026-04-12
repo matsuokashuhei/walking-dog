@@ -10,9 +10,7 @@ services:
     restart: unless-stopped
 
   api:
-    build:
-      context: ../../apps/api
-      dockerfile: Dockerfile
+    image: ${ECR_IMAGE}
     ports:
       - "3000:3000"
     env_file:

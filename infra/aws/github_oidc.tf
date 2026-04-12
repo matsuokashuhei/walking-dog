@@ -43,7 +43,6 @@ resource "aws_iam_role" "github_actions" {
   }
 }
 
-/*
 resource "aws_iam_role_policy" "github_actions" {
   name = "${var.project_name}-github-actions"
   role = aws_iam_role.github_actions.id
@@ -52,11 +51,9 @@ resource "aws_iam_role_policy" "github_actions" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid    = "ECRAuth"
-        Effect = "Allow"
-        Action = [
-          "ecr:GetAuthorizationToken",
-        ]
+        Sid      = "ECRAuth"
+        Effect   = "Allow"
+        Action   = ["ecr:GetAuthorizationToken"]
         Resource = "*"
       },
       {
@@ -73,34 +70,6 @@ resource "aws_iam_role_policy" "github_actions" {
         ]
         Resource = aws_ecr_repository.api.arn
       },
-      {
-        Sid    = "ECSTaskDefinition"
-        Effect = "Allow"
-        Action = [
-          "ecs:DescribeTaskDefinition",
-          "ecs:RegisterTaskDefinition",
-        ]
-        Resource = "*"
-      },
-      {
-        Sid    = "ECSService"
-        Effect = "Allow"
-        Action = [
-          "ecs:DescribeServices",
-          "ecs:UpdateService",
-        ]
-        Resource = "arn:aws:ecs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:service/${aws_ecs_cluster.main.name}/*"
-      },
-      {
-        Sid    = "PassRole"
-        Effect = "Allow"
-        Action = "iam:PassRole"
-        Resource = [
-          aws_iam_role.ecs_execution.arn,
-          aws_iam_role.ecs_task.arn,
-        ]
-      },
     ]
   })
 }
-*/

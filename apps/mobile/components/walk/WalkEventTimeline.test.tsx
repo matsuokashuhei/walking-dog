@@ -81,6 +81,6 @@ describe('WalkEventTimeline', () => {
     render(<WalkEventTimeline events={[photoEvent]} />);
     const thumbnail = screen.getByAccessibilityHint('Tap to view full screen');
     fireEvent.press(thumbnail);
-    expect(screen.getByAccessibilityLabel('Close photo')).toBeTruthy();
+    expect(screen.getByLabelText('Close photo')).toBeTruthy();
   });
 });

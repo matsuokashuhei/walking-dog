@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react-native';
-import HomeScreen from '../../../app/(tabs)/index';
+import { fireEvent, render, screen } from '@testing-library/react-native';
+import { WalkReadyView } from './WalkReadyView';
 
 jest.mock('@/hooks/use-color-scheme', () => ({
   useColorScheme: () => 'light',
@@ -7,7 +7,6 @@ jest.mock('@/hooks/use-color-scheme', () => ({
 
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: jest.fn() }),
-  usePathname: () => '/',
 }));
 
 jest.mock('@/hooks/use-walks', () => ({
@@ -18,24 +17,31 @@ jest.mock('@/components/walk/WalkHistoryItem', () => ({
   WalkHistoryItem: () => null,
 }));
 
-describe('HomeScreen', () => {
-  it('renders editorial hero heading', () => {
-    render(<HomeScreen />);
+describe('WalkReadyView', () => {
+  it('renders hero heading', () => {
+    render(<WalkReadyView onStartPress={jest.fn()} />);
     expect(screen.getByText('Ready for the morning run?')).toBeTruthy();
   });
 
   it('renders Start Walk CTA button', () => {
-    render(<HomeScreen />);
+    render(<WalkReadyView onStartPress={jest.fn()} />);
     expect(screen.getByRole('button', { name: 'Start Walk →' })).toBeTruthy();
   });
 
   it('renders walk history section title', () => {
-    render(<HomeScreen />);
+    render(<WalkReadyView onStartPress={jest.fn()} />);
     expect(screen.getByText('Recent Walks')).toBeTruthy();
   });
 
   it('renders empty state when no walks', () => {
-    render(<HomeScreen />);
+    render(<WalkReadyView onStartPress={jest.fn()} />);
     expect(screen.getByText('No walks yet. Start your first walk!')).toBeTruthy();
+  });
+
+  it('invokes onStartPress when CTA is pressed', () => {
+    const onStartPress = jest.fn();
+    render(<WalkReadyView onStartPress={onStartPress} />);
+    fireEvent.press(screen.getByRole('button', { name: 'Start Walk →' }));
+    expect(onStartPress).toHaveBeenCalledTimes(1);
   });
 });

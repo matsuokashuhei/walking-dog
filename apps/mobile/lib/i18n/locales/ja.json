@@ -126,7 +126,7 @@
     "finished": {
       "title": "散歩完了！",
       "details": "詳細を見る",
-      "walkAgain": "もう一度散歩",
+      "done": "閉じる",
       "saving": "散歩データを保存中..."
     },
     "home": {

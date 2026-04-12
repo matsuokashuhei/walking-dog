@@ -10,6 +10,7 @@ export default function TabLayout() {
 
   return (
     <Tabs
+      initialRouteName="walk"
       screenOptions={{
         tabBarActiveTintColor: theme.interactive,
         tabBarInactiveTintColor: theme.border,
@@ -26,13 +27,6 @@ export default function TabLayout() {
           borderTopWidth: 0,
         },
       }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
-        }}
-      />
       <Tabs.Screen
         name="walk"
         options={{

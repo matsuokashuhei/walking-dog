@@ -126,7 +126,7 @@
     "finished": {
       "title": "Walk Complete!",
       "details": "View Details",
-      "walkAgain": "Walk Again",
+      "done": "Done",
       "saving": "Saving walk data..."
     },
     "home": {

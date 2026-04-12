@@ -74,12 +74,12 @@ export function WalkSummaryCard() {
         </Pressable>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={t('walk.finished.walkAgain')}
+          accessibilityLabel={t('walk.finished.done')}
           onPress={reset}
           style={[styles.button, { backgroundColor: theme.interactive }]}
         >
           <Text style={[styles.buttonText, { color: theme.onInteractive }]}>
-            {t('walk.finished.walkAgain')}
+            {t('walk.finished.done')}
           </Text>
         </Pressable>
       </View>

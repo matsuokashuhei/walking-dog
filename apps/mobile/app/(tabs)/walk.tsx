@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -11,7 +11,8 @@ import { requestPermission, startTracking } from '@/lib/walk/gps-tracker';
 import { requestBluetoothPermission } from '@/lib/ble/permissions';
 import { startScanning, startAdvertising, type BleScanner } from '@/lib/ble/scanner';
 import { EncounterTracker } from '@/lib/ble/encounter-tracker';
-import { DogSelector } from '@/components/walk/DogSelector';
+import { WalkReadyView } from '@/components/walk/WalkReadyView';
+import { DogSelectorSheet } from '@/components/walk/DogSelectorSheet';
 import { WalkMap } from '@/components/walk/WalkMap';
 import { WalkControls } from '@/components/walk/WalkControls';
 import { WalkEventActions } from '@/components/walk/WalkEventActions';
@@ -41,6 +42,13 @@ export default function WalkScreen() {
   const bleAdvertiserRef = useRef<{ stop: () => void } | null>(null);
   const encounterTrackerRef = useRef<EncounterTracker | null>(null);
   const [isStopping, setIsStopping] = useState(false);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+
+  useEffect(() => {
+    if (phase !== 'ready') {
+      setIsSheetOpen(false);
+    }
+  }, [phase]);
 
   const handleStart = useCallback(async () => {
     const granted = await requestPermission();
@@ -134,7 +142,15 @@ export default function WalkScreen() {
   return (
     <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: theme.background }]}>
       {phase === 'ready' && (
-        <DogSelector onStart={handleStart} isStarting={startWalk.isPending} />
+        <>
+          <WalkReadyView onStartPress={() => setIsSheetOpen(true)} />
+          <DogSelectorSheet
+            visible={isSheetOpen}
+            onClose={() => setIsSheetOpen(false)}
+            onStart={handleStart}
+            isStarting={startWalk.isPending}
+          />
+        </>
       )}
       {phase === 'recording' && (
         <>

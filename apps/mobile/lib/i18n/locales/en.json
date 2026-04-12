@@ -157,6 +157,14 @@
       "startFailed": "Failed to start walk",
       "finishFailed": "Failed to save walk. Please try again.",
       "retry": "Retry"
+    },
+    "event": {
+      "pee": "Pee",
+      "poo": "Poo",
+      "photo": "Photo",
+      "recordError": "Failed to record. Please try again.",
+      "photoPresignError": "Failed to prepare photo upload. Please try again.",
+      "photoUploadError": "Failed to upload photo. Please try again."
     }
   },
   "invite": {

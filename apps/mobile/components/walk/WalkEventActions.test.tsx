@@ -1,10 +1,16 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { Alert } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { WalkEventActions } from './WalkEventActions';
 import * as walkEventMutations from '@/hooks/use-walk-event-mutations';
 import * as walkStore from '@/stores/walk-store';
 import * as imagePicker from 'expo-image-picker';
 import * as upload from '@/lib/upload';
+
+jest.mock('expo-haptics', () => ({
+  impactAsync: jest.fn(),
+  ImpactFeedbackStyle: { Light: 'Light' },
+}));
 
 jest.mock('@/hooks/use-color-scheme', () => ({
   useColorScheme: () => 'light',
@@ -40,24 +46,39 @@ const defaultStoreState = {
   removeEvent: jest.fn(),
 };
 
-function setupMocks(overrides: Partial<typeof defaultStoreState> = {}) {
-  const storeState = { ...defaultStoreState, ...overrides };
+interface MockOptions {
+  storeOverrides?: Partial<typeof defaultStoreState>;
+  recordIsPending?: boolean;
+  generateIsPending?: boolean;
+}
+
+function setupMocks(storeOverrides: Partial<typeof defaultStoreState> = {}, options: MockOptions = {}) {
+  const storeState = { ...defaultStoreState, ...storeOverrides };
   (walkStore.useWalkStore as unknown as jest.Mock).mockImplementation(
     (selector: (s: typeof storeState) => unknown) => selector(storeState),
   );
 
   (walkEventMutations.useRecordWalkEvent as jest.Mock).mockReturnValue({
     mutateAsync: mockMutateAsync,
+    isPending: options.recordIsPending ?? false,
   });
 
   (walkEventMutations.useGenerateWalkEventPhotoUploadUrl as jest.Mock).mockReturnValue({
     mutateAsync: mockPhotoMutateAsync,
+    isPending: options.generateIsPending ?? false,
   });
 }
+
+let consoleErrorSpy: jest.SpyInstance;
 
 beforeEach(() => {
   jest.clearAllMocks();
   setupMocks();
+  consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+});
+
+afterEach(() => {
+  consoleErrorSpy.mockRestore();
 });
 
 describe('WalkEventActions', () => {
@@ -243,6 +264,146 @@ describe('WalkEventActions', () => {
     await waitFor(() => {
       expect(mockMutateAsync).toHaveBeenCalledWith(
         expect.not.objectContaining({ lat: expect.anything(), lng: expect.anything() }),
+      );
+    });
+  });
+
+  it('on mutation failure, logs error with console.error', async () => {
+    mockMutateAsync.mockRejectedValue(new Error('Network error'));
+
+    render(<WalkEventActions />);
+    fireEvent.press(screen.getByRole('button', { name: /pee/i }));
+
+    await waitFor(() => {
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'walk event record failed',
+        expect.any(Error),
+      );
+    });
+  });
+
+  it('when camera throws an error, shows Alert and logs error', async () => {
+    (imagePicker.launchCameraAsync as jest.Mock).mockRejectedValue(new Error('Camera unavailable'));
+
+    render(<WalkEventActions />);
+    fireEvent.press(screen.getByRole('button', { name: /photo/i }));
+
+    await waitFor(() => {
+      expect(Alert.alert).toHaveBeenCalled();
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'walk event record failed',
+        expect.any(Error),
+      );
+    });
+  });
+
+  it('buttons are disabled when walkId is null', () => {
+    setupMocks({ walkId: null });
+
+    render(<WalkEventActions />);
+    expect(screen.getByRole('button', { name: /pee/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /poo/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /photo/i })).toBeDisabled();
+  });
+
+  it('buttons are disabled when recordWalkEvent is pending', () => {
+    setupMocks({}, { recordIsPending: true });
+
+    render(<WalkEventActions />);
+    expect(screen.getByRole('button', { name: /pee/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /poo/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /photo/i })).toBeDisabled();
+  });
+
+  it('buttons are disabled when generatePhotoUploadUrl is pending', () => {
+    setupMocks({}, { generateIsPending: true });
+
+    render(<WalkEventActions />);
+    expect(screen.getByRole('button', { name: /pee/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /poo/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /photo/i })).toBeDisabled();
+  });
+
+  it('pressing button while pending does not call mutateAsync', async () => {
+    setupMocks({}, { recordIsPending: true });
+
+    render(<WalkEventActions />);
+    fireEvent.press(screen.getByRole('button', { name: /pee/i }));
+
+    await waitFor(() => {
+      expect(mockMutateAsync).not.toHaveBeenCalled();
+    });
+  });
+
+  it('on pee success, triggers haptic feedback', async () => {
+    const event = {
+      id: 'event-1',
+      walkId: 'walk-123',
+      dogId: 'dog-1',
+      eventType: 'pee',
+      occurredAt: '2026-04-12T10:00:00Z',
+      lat: 35.6812,
+      lng: 139.7671,
+      photoUrl: null,
+    };
+    mockMutateAsync.mockResolvedValue(event);
+
+    render(<WalkEventActions />);
+    fireEvent.press(screen.getByRole('button', { name: /pee/i }));
+
+    await waitFor(() => {
+      expect(Haptics.impactAsync).toHaveBeenCalledWith(Haptics.ImpactFeedbackStyle.Light);
+    });
+  });
+
+  it('on photo success, triggers haptic feedback', async () => {
+    const mockAsset = { uri: 'file:///photo.jpg', mimeType: 'image/jpeg' };
+    (imagePicker.launchCameraAsync as jest.Mock).mockResolvedValue({
+      canceled: false,
+      assets: [mockAsset],
+    });
+    mockPhotoMutateAsync.mockResolvedValue({
+      url: 'https://s3.example.com/presigned',
+      key: 'walks/walk-123/photo.jpg',
+      expiresAt: '2026-04-12T10:15:00Z',
+    });
+    (upload.uploadToPresignedUrl as jest.Mock).mockResolvedValue(undefined);
+    const photoEvent = {
+      id: 'event-3',
+      walkId: 'walk-123',
+      dogId: 'dog-1',
+      eventType: 'photo',
+      occurredAt: '2026-04-12T10:05:00Z',
+      lat: 35.6812,
+      lng: 139.7671,
+      photoUrl: 'https://cdn.example.com/walks/walk-123/photo.jpg',
+    };
+    mockMutateAsync.mockResolvedValue(photoEvent);
+
+    render(<WalkEventActions />);
+    fireEvent.press(screen.getByRole('button', { name: /photo/i }));
+
+    await waitFor(() => {
+      expect(Haptics.impactAsync).toHaveBeenCalledWith(Haptics.ImpactFeedbackStyle.Light);
+    });
+  });
+
+  it('photo upload failure shows presign-specific error different from generic record error', async () => {
+    const mockAsset = { uri: 'file:///photo.jpg', mimeType: 'image/jpeg' };
+    (imagePicker.launchCameraAsync as jest.Mock).mockResolvedValue({
+      canceled: false,
+      assets: [mockAsset],
+    });
+    mockPhotoMutateAsync.mockRejectedValue(new Error('Presign failed'));
+
+    render(<WalkEventActions />);
+    fireEvent.press(screen.getByRole('button', { name: /photo/i }));
+
+    await waitFor(() => {
+      expect(Alert.alert).toHaveBeenCalledWith(
+        expect.any(String),
+        // presign-specific message should differ from the generic recordError
+        expect.not.stringContaining('Failed to record'),
       );
     });
   });

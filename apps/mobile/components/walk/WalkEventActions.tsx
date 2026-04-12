@@ -1,5 +1,7 @@
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as Haptics from 'expo-haptics';
+import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
 import { spacing, radius } from '@/theme/tokens';
 import { useWalkStore } from '@/stores/walk-store';
@@ -7,13 +9,14 @@ import { useRecordWalkEvent, useGenerateWalkEventPhotoUploadUrl } from '@/hooks/
 import { uploadToPresignedUrl } from '@/lib/upload';
 import type { WalkEventType } from '@/types/graphql';
 
-const EVENT_BUTTONS: { type: WalkEventType; emoji: string; label: string }[] = [
-  { type: 'pee', emoji: '🚽', label: 'Pee' },
-  { type: 'poo', emoji: '💩', label: 'Poo' },
-  { type: 'photo', emoji: '📷', label: 'Photo' },
+const EVENT_BUTTONS: { type: WalkEventType; emoji: string }[] = [
+  { type: 'pee', emoji: '🚽' },
+  { type: 'poo', emoji: '💩' },
+  { type: 'photo', emoji: '📷' },
 ];
 
 export function WalkEventActions() {
+  const { t } = useTranslation();
   const theme = useColors();
   const walkId = useWalkStore((s) => s.walkId);
   const selectedDogIds = useWalkStore((s) => s.selectedDogIds);
@@ -25,6 +28,8 @@ export function WalkEventActions() {
 
   const dogId = selectedDogIds.length === 1 ? selectedDogIds[0] : undefined;
   const latestPoint = points[points.length - 1];
+
+  const isDisabled = !walkId || recordWalkEvent.isPending || generatePhotoUploadUrl.isPending;
 
   const handlePeeOrPoo = async (eventType: 'pee' | 'poo') => {
     if (!walkId) return;
@@ -40,32 +45,38 @@ export function WalkEventActions() {
     try {
       const event = await recordWalkEvent.mutateAsync(input);
       addEvent(event);
-    } catch {
-      Alert.alert('エラー', '記録に失敗しました。もう一度お試しください。');
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch (err) {
+      console.error('walk event record failed', err);
+      Alert.alert(t('common.error'), t('walk.event.recordError'));
     }
   };
 
   const handlePhoto = async () => {
     if (!walkId) return;
 
-    const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: false,
-      quality: 0.8,
-    });
-
-    if (result.canceled || !result.assets[0]) return;
-
-    const asset = result.assets[0];
-    const contentType = asset.mimeType ?? 'image/jpeg';
+    let phase: 'presign' | 'upload' | 'record' = 'presign';
 
     try {
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: false,
+        quality: 0.8,
+      });
+
+      if (result.canceled || !result.assets[0]) return;
+
+      const asset = result.assets[0];
+      const contentType = asset.mimeType ?? 'image/jpeg';
+
       const { url, key } = await generatePhotoUploadUrl.mutateAsync({
         walkId,
         contentType,
       });
 
+      phase = 'upload';
       await uploadToPresignedUrl(url, asset.uri, contentType);
 
+      phase = 'record';
       const event = await recordWalkEvent.mutateAsync({
         walkId,
         dogId,
@@ -76,36 +87,53 @@ export function WalkEventActions() {
       });
 
       addEvent(event);
-    } catch {
-      Alert.alert('エラー', '記録に失敗しました。もう一度お試しください。');
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch (err) {
+      console.error('walk event record failed', err);
+      const messageKey = {
+        presign: 'walk.event.photoPresignError' as const,
+        upload: 'walk.event.photoUploadError' as const,
+        record: 'walk.event.recordError' as const,
+      }[phase];
+      Alert.alert(t('common.error'), t(messageKey));
     }
   };
 
   const handlePress = (type: WalkEventType) => {
     if (type === 'photo') {
-      handlePhoto();
+      void handlePhoto().catch((err) => {
+        console.error('walk event record failed', err);
+      });
     } else {
-      handlePeeOrPoo(type);
+      void handlePeeOrPoo(type).catch((err) => {
+        console.error('walk event record failed', err);
+      });
     }
   };
 
   return (
     <View style={[styles.container, { borderTopColor: theme.border + '33' }]}>
-      {EVENT_BUTTONS.map(({ type, emoji, label }) => (
-        <Pressable
-          key={type}
-          style={({ pressed }) => [
-            styles.button,
-            { backgroundColor: pressed ? theme.surfaceContainerHigh : theme.surfaceContainer },
-          ]}
-          accessibilityRole="button"
-          accessibilityLabel={label}
-          onPress={() => handlePress(type)}
-        >
-          <Text style={styles.emoji}>{emoji}</Text>
-          <Text style={[styles.label, { color: theme.onSurfaceVariant }]}>{label}</Text>
-        </Pressable>
-      ))}
+      {EVENT_BUTTONS.map(({ type, emoji }) => {
+        const label = t(`walk.event.${type}`);
+        return (
+          <Pressable
+            key={type}
+            disabled={isDisabled}
+            style={({ pressed }) => [
+              styles.button,
+              { backgroundColor: pressed ? theme.surfaceContainerHigh : theme.surfaceContainer },
+              isDisabled && styles.buttonDisabled,
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={label}
+            accessibilityState={{ disabled: isDisabled }}
+            onPress={() => handlePress(type)}
+          >
+            <Text style={styles.emoji}>{emoji}</Text>
+            <Text style={[styles.label, { color: theme.onSurfaceVariant }]}>{label}</Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
@@ -125,6 +153,9 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     borderRadius: radius.md,
     gap: spacing.xs,
+  },
+  buttonDisabled: {
+    opacity: 0.4,
   },
   emoji: {
     fontSize: 24,

@@ -49,6 +49,14 @@ app/
 - Full-screen modals: separate route in layout group
 - Bottom sheets: `@gorhom/bottom-sheet` (not navigation)
 
+## Group-only Path (禁止事項)
+- `(tabs)` や `(auth)` のような group segment だけを指すパス
+  （例: `/(tabs)`, `/(auth)`）を `router.push` / `router.replace` に
+  渡してはならない。group は URL を持たないため Unmatched Route になる。
+- 必ず具体的な子ルート（例: `/(tabs)/walk`, `/(auth)/login`）を指定する。
+- 型チェックを `as never` で握りつぶさない（eslint で error になる）。
+- typed routes の生成型は `.expo/types/router.d.ts` にある。Metro/expo を再起動すると最新化される。
+
 ## Best Practices
 - Keep navigation state minimal (pass IDs, not full objects)
 - Prefetch data for likely next screens

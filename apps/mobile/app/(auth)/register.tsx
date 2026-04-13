@@ -19,7 +19,7 @@ export default function RegisterScreen() {
 
   function handleRegisterSuccess(email: string, userConfirmed: boolean) {
     if (userConfirmed) {
-      router.replace('/(auth)/login' as never);
+      router.replace('/(auth)/login');
     } else {
       setPendingEmail(email);
       setStep('confirm');
@@ -27,7 +27,7 @@ export default function RegisterScreen() {
   }
 
   function handleConfirmSuccess() {
-    router.replace('/(auth)/login' as never);
+    router.replace('/(auth)/login');
   }
 
   return (

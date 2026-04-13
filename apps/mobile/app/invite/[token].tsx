@@ -69,7 +69,7 @@ export default function AcceptInviteScreen() {
     if (!isAuthenticated) {
       savePendingInviteToken(token)
         .then(() => {
-          router.replace('/(auth)/login' as never);
+          router.replace('/(auth)/login');
         })
         .catch(() => {
           setErrorMessage(t('invite.error.saveFailed'));
@@ -126,7 +126,7 @@ export default function AcceptInviteScreen() {
         </Text>
         <Button
           label={t('invite.goToDog')}
-          onPress={() => router.replace('/(tabs)/dogs' as never)}
+          onPress={() => router.replace('/(tabs)/dogs')}
           style={styles.button}
         />
       </View>

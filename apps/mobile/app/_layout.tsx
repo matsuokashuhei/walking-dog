@@ -28,13 +28,13 @@ function NavigationGuard() {
     const inAuthGroup = segments[0] === '(auth)';
 
     if (!isAuthenticated && !inAuthGroup) {
-      router.replace('/(auth)/login' as never);
+      router.replace('/(auth)/login');
     } else if (isAuthenticated && inAuthGroup) {
       // Check for pending invite token from deep link before auth
       getPendingInviteToken().then((token) => {
         if (token) {
           deletePendingInviteToken();
-          router.replace(`/invite/${token}` as never);
+          router.replace(`/invite/${token}`);
         } else {
           router.replace('/(tabs)/walk');
         }

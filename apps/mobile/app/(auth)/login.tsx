@@ -24,7 +24,7 @@ export default function LoginScreen() {
         onSuccess={() => {
           // Navigation guard in _layout.tsx handles redirect to (tabs)
         }}
-        onRegisterPress={() => router.push('/(auth)/register' as never)}
+        onRegisterPress={() => router.push('/(auth)/register')}
       />
     </View>
   );

@@ -5,9 +5,13 @@ on:
     branches: [main]
     paths:
       - "apps/mobile/**"
+      - "apps/mobile/.npmrc"
+      - ".github/workflows/test-mobile.yml"
   pull_request:
     paths:
       - "apps/mobile/**"
+      - "apps/mobile/.npmrc"
+      - ".github/workflows/test-mobile.yml"
 
 concurrency:
   group: test-mobile-${{ github.ref }}

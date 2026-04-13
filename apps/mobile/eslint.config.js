@@ -7,4 +7,16 @@ module.exports = defineConfig([
   {
     ignores: ['dist/*'],
   },
+  {
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'TSAsExpression[typeAnnotation.type="TSNeverKeyword"]',
+          message:
+            '`as never` キャストは型エラーを握りつぶすため禁止。router.push/replace には typed routes の生成型 (Href) を使う。',
+        },
+      ],
+    },
+  },
 ]);

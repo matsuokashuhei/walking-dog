@@ -2,6 +2,9 @@
 .worktrees/
 .superpowers/brainstorm/
 
+# Claude Code local-only hookify rules
+.claude/hookify.*.local.md
+
 # Environment files
 apps/api/.env
 apps/api/.env.development

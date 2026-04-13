@@ -36,7 +36,7 @@ function NavigationGuard() {
           deletePendingInviteToken();
           router.replace(`/invite/${token}` as never);
         } else {
-          router.replace('/(tabs)' as never);
+          router.replace('/(tabs)/walk');
         }
       });
     }

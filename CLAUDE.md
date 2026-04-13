@@ -53,6 +53,10 @@ This project uses the obra/superpowers plugin. Always check for relevant skills 
 - **receiving-code-review** — レビューコメントを受け取ったら、盲目的に実装せず技術的に検証してから対応
 - **finishing-a-development-branch** — 実装完了後のブランチをクリーンアップして PR を作成
 
+### 統合ワークフロー
+- **`/dev_ja`** — フルパイプライン（ヒアリング→設計→実装→レビュー→テスト）。要件が曖昧な大規模タスク向け
+- **`/pge`** — Planner-Generator-Evaluator の改善ループ。仕様が明確な小〜中規模タスク向け。公式スキルのみ使用
+
 ### デバッグフェーズ
 - **systematic-debugging** — バグ・テスト失敗・CI エラーに直面したら使う
 

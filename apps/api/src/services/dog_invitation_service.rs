@@ -91,3 +91,13 @@ fn generate_token() -> String {
     let bytes: [u8; 16] = rand::thread_rng().gen();
     hex::encode(bytes)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn invitation_expiry_hours_is_24() {
+        assert_eq!(INVITATION_EXPIRY_HOURS, 24);
+    }
+}

@@ -127,4 +127,9 @@ mod tests {
     fn extension_for_content_type_rejects_empty_string() {
         assert_eq!(extension_for_content_type(""), None);
     }
+
+    #[test]
+    fn s3_presigned_url_expiry_is_3600_secs() {
+        assert_eq!(S3_PRESIGNED_URL_EXPIRY.as_secs(), 3600);
+    }
 }

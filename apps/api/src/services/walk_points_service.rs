@@ -94,3 +94,13 @@ pub async fn get_walk_points(
     points.sort_by(|a, b| a.recorded_at.cmp(&b.recorded_at));
     Ok(points)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn dynamodb_batch_write_limit_is_25() {
+        assert_eq!(DYNAMODB_BATCH_WRITE_LIMIT, 25);
+    }
+}

@@ -4,7 +4,7 @@
 
 - [x] Phase 1: 定数化 (S3_PRESIGNED_URL_EXPIRY / DYNAMODB_BATCH_WRITE_LIMIT / INVITATION_EXPIRY) — 2026-04-15 — RED: f71b93d / GREEN: 3d9954e
 - [x] Phase 2: enum 化 (WalkStatus / WalkEventType / Period, SeaORM DeriveActiveEnum) — 2026-04-15 — RED: f224fcb / GREEN: f3311b0
-- [ ] Phase 3: 純粋関数抽出 (normalize_dog_pair / parse_birth_date_input)
+- [x] Phase 3: 純粋関数抽出 (normalize_dog_pair / parse_birth_date_input) — 2026-04-15 — RED: a9f3491/93b3339 / GREEN: 8818ea1/251109e
 - [ ] Phase 4: user_service upsert 統合 + duplicate key 文字列判定撲滅 (SeaORM on_conflict)
 - [ ] Phase 5: Cognito エラー ProvideErrorMetadata::code() 化 + smithy mocks unit test
 - [ ] Phase 6: walk_event_service 認可ハブ化 + auth_helpers 導入 (依存: Phase 4)

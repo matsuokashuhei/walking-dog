@@ -2,6 +2,9 @@ use aws_sdk_s3::{presigning::PresigningConfig, Client as S3Client};
 use std::time::Duration;
 use uuid::Uuid;
 
+/// Expiry for S3 presigned PUT URLs (1 hour).
+const S3_PRESIGNED_URL_EXPIRY: Duration = Duration::from_secs(3600);
+
 pub struct PresignedUrl {
     pub url: String,
     pub key: String,
@@ -34,7 +37,6 @@ pub async fn generate_walk_event_photo_upload_url(
     })?;
 
     let key = format!("walks/{}/{}.{}", walk_id, Uuid::new_v4(), ext);
-    let expires_in = Duration::from_secs(3600);
 
     let presigned = s3
         .put_object()
@@ -42,13 +44,14 @@ pub async fn generate_walk_event_photo_upload_url(
         .key(&key)
         .content_type(content_type)
         .presigned(
-            PresigningConfig::expires_in(expires_in)
+            PresigningConfig::expires_in(S3_PRESIGNED_URL_EXPIRY)
                 .map_err(|e| crate::error::AppError::Internal(e.to_string()))?,
         )
         .await
         .map_err(|e| crate::error::AppError::Internal(e.to_string()))?;
 
-    let expires_at = chrono::Utc::now() + chrono::Duration::seconds(3600);
+    let expires_at =
+        chrono::Utc::now() + chrono::Duration::seconds(S3_PRESIGNED_URL_EXPIRY.as_secs() as i64);
     Ok(PresignedUrl {
         url: presigned.uri().to_string(),
         key,
@@ -67,7 +70,6 @@ pub async fn generate_dog_photo_upload_url(
     })?;
 
     let key = format!("dogs/{}/{}.{}", dog_id, Uuid::new_v4(), ext);
-    let expires_in = Duration::from_secs(3600);
 
     let presigned = s3
         .put_object()
@@ -75,13 +77,14 @@ pub async fn generate_dog_photo_upload_url(
         .key(&key)
         .content_type(content_type)
         .presigned(
-            PresigningConfig::expires_in(expires_in)
+            PresigningConfig::expires_in(S3_PRESIGNED_URL_EXPIRY)
                 .map_err(|e| crate::error::AppError::Internal(e.to_string()))?,
         )
         .await
         .map_err(|e| crate::error::AppError::Internal(e.to_string()))?;
 
-    let expires_at = chrono::Utc::now() + chrono::Duration::seconds(3600);
+    let expires_at =
+        chrono::Utc::now() + chrono::Duration::seconds(S3_PRESIGNED_URL_EXPIRY.as_secs() as i64);
     Ok(PresignedUrl {
         url: presigned.uri().to_string(),
         key,

@@ -52,6 +52,39 @@ impl Related<super::dogs::Entity> for Entity {
 
 impl ActiveModelBehavior for ActiveModel {}
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn walk_status_active_to_string() {
+        assert_eq!(WalkStatus::Active.to_string(), "active");
+    }
+
+    #[test]
+    fn walk_status_finished_to_string() {
+        assert_eq!(WalkStatus::Finished.to_string(), "finished");
+    }
+
+    #[test]
+    fn walk_status_from_str_active() {
+        let s: WalkStatus = "active".parse().unwrap();
+        assert_eq!(s, WalkStatus::Active);
+    }
+
+    #[test]
+    fn walk_status_from_str_finished() {
+        let s: WalkStatus = "finished".parse().unwrap();
+        assert_eq!(s, WalkStatus::Finished);
+    }
+
+    #[test]
+    fn walk_status_from_str_invalid_returns_error() {
+        let result: Result<WalkStatus, _> = "pending".parse();
+        assert!(result.is_err());
+    }
+}
+
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelatedEntity)]
 pub enum RelatedEntity {
     #[sea_orm(entity = "super::users::Entity")]

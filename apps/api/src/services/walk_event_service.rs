@@ -127,3 +127,41 @@ pub async fn list_events(
 
     Ok(events)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn walk_event_type_from_str_pee() {
+        let t: WalkEventType = "pee".parse().unwrap();
+        assert_eq!(t, WalkEventType::Pee);
+    }
+
+    #[test]
+    fn walk_event_type_from_str_poo() {
+        let t: WalkEventType = "poo".parse().unwrap();
+        assert_eq!(t, WalkEventType::Poo);
+    }
+
+    #[test]
+    fn walk_event_type_from_str_photo() {
+        let t: WalkEventType = "photo".parse().unwrap();
+        assert_eq!(t, WalkEventType::Photo);
+    }
+
+    #[test]
+    fn walk_event_type_from_str_invalid_returns_error() {
+        let result: Result<WalkEventType, _> = "bark".parse();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn walk_event_type_display_roundtrip() {
+        for t in [WalkEventType::Pee, WalkEventType::Poo, WalkEventType::Photo] {
+            let s = t.to_string();
+            let back: WalkEventType = s.parse().unwrap();
+            assert_eq!(back, t);
+        }
+    }
+}

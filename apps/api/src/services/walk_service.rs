@@ -1,14 +1,14 @@
+use crate::entities::{
+    walk_dogs::{self, ActiveModel as WalkDogActiveModel, Entity as WalkDogEntity},
+    walks::{self, ActiveModel, Entity as WalkEntity, Model as WalkModel},
+};
+use crate::error::AppError;
+use chrono::Utc;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect, Set,
     TransactionTrait,
 };
 use uuid::Uuid;
-use chrono::Utc;
-use crate::entities::{
-    walks::{self, ActiveModel, Entity as WalkEntity, Model as WalkModel},
-    walk_dogs::{self, ActiveModel as WalkDogActiveModel, Entity as WalkDogEntity},
-};
-use crate::error::AppError;
 
 pub struct WalkStats {
     pub total_walks: i32,
@@ -63,9 +63,10 @@ pub async fn finish_walk(
         .ok_or_else(|| AppError::NotFound(format!("Walk {} not found", walk_id)))?;
 
     if walk.status != "active" {
-        return Err(AppError::BadRequest(
-            format!("Walk is not active (current status: {})", walk.status)
-        ));
+        return Err(AppError::BadRequest(format!(
+            "Walk is not active (current status: {})",
+            walk.status
+        )));
     }
 
     let started_at: chrono::DateTime<chrono::Utc> = walk.started_at.into();
@@ -117,7 +118,11 @@ pub async fn get_walk_stats(
     let total_distance_m = walks.iter().filter_map(|w| w.distance_m).sum();
     let total_duration_sec = walks.iter().filter_map(|w| w.duration_sec).sum();
 
-    Ok(WalkStats { total_walks, total_distance_m, total_duration_sec })
+    Ok(WalkStats {
+        total_walks,
+        total_distance_m,
+        total_duration_sec,
+    })
 }
 
 /// Get walks for a user. Returns walks the user recorded (walks.user_id)
@@ -163,3 +168,46 @@ pub async fn get_walks_for_user(
     Ok(walks)
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn period_from_str_week() {
+        let p: Period = "Week".parse().unwrap();
+        assert_eq!(p, Period::Week);
+    }
+
+    #[test]
+    fn period_from_str_month() {
+        let p: Period = "Month".parse().unwrap();
+        assert_eq!(p, Period::Month);
+    }
+
+    #[test]
+    fn period_from_str_year() {
+        let p: Period = "Year".parse().unwrap();
+        assert_eq!(p, Period::Year);
+    }
+
+    #[test]
+    fn period_from_str_all() {
+        let p: Period = "All".parse().unwrap();
+        assert_eq!(p, Period::All);
+    }
+
+    #[test]
+    fn period_from_str_invalid_returns_error() {
+        let result: Result<Period, _> = "invalid".parse();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn period_to_string_roundtrip() {
+        for period in [Period::Week, Period::Month, Period::Year, Period::All] {
+            let s = period.to_string();
+            let back: Period = s.parse().unwrap();
+            assert_eq!(back, period);
+        }
+    }
+}

@@ -1,9 +1,34 @@
 use crate::AppState;
+use async_graphql::dynamic::{Enum, EnumItem};
 use seaography::BuilderContext;
 use std::sync::Arc;
 
 pub mod custom_mutations;
 pub mod custom_queries;
+
+/// GraphQL enum type for walk lifecycle status.
+fn walk_status_enum() -> Enum {
+    Enum::new("WalkStatus")
+        .item(EnumItem::new("ACTIVE"))
+        .item(EnumItem::new("FINISHED"))
+}
+
+/// GraphQL enum type for walk event types.
+fn walk_event_type_enum() -> Enum {
+    Enum::new("WalkEventType")
+        .item(EnumItem::new("PEE"))
+        .item(EnumItem::new("POO"))
+        .item(EnumItem::new("PHOTO"))
+}
+
+/// GraphQL enum type for walk statistics period.
+fn period_enum() -> Enum {
+    Enum::new("Period")
+        .item(EnumItem::new("WEEK"))
+        .item(EnumItem::new("MONTH"))
+        .item(EnumItem::new("YEAR"))
+        .item(EnumItem::new("ALL"))
+}
 
 /// Dynamic schema produced by Seaography.
 pub type AppSchema = async_graphql::dynamic::Schema;
@@ -34,6 +59,10 @@ pub fn build_schema(state: Arc<AppState>) -> AppSchema {
     // Register custom types with the schema builder.
     builder.schema = builder
         .schema
+        // Enum types
+        .register(walk_status_enum())
+        .register(walk_event_type_enum())
+        .register(period_enum())
         // Query output types
         .register(custom_queries::walk_point_type())
         .register(custom_queries::walk_stats_type())

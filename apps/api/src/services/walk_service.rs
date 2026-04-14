@@ -1,6 +1,6 @@
 use crate::entities::{
     walk_dogs::{self, ActiveModel as WalkDogActiveModel, Entity as WalkDogEntity},
-    walks::{self, ActiveModel, Entity as WalkEntity, Model as WalkModel},
+    walks::{self, ActiveModel, Entity as WalkEntity, Model as WalkModel, WalkStatus},
 };
 use crate::error::AppError;
 use chrono::Utc;
@@ -8,12 +8,61 @@ use sea_orm::{
     ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect, Set,
     TransactionTrait,
 };
+use std::fmt;
+use std::str::FromStr;
 use uuid::Uuid;
 
 pub struct WalkStats {
     pub total_walks: i32,
     pub total_distance_m: i32,
     pub total_duration_sec: i32,
+}
+
+/// Time period for walk statistics queries.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Period {
+    Week,
+    Month,
+    Year,
+    All,
+}
+
+impl fmt::Display for Period {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Period::Week => write!(f, "Week"),
+            Period::Month => write!(f, "Month"),
+            Period::Year => write!(f, "Year"),
+            Period::All => write!(f, "All"),
+        }
+    }
+}
+
+impl FromStr for Period {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "Week" => Ok(Period::Week),
+            "Month" => Ok(Period::Month),
+            "Year" => Ok(Period::Year),
+            "All" => Ok(Period::All),
+            other => Err(format!("Invalid Period: '{}'", other)),
+        }
+    }
+}
+
+impl Period {
+    /// Returns the cutoff duration for this period, or `None` for `All`.
+    pub fn since(&self) -> Option<chrono::DateTime<Utc>> {
+        let now = Utc::now();
+        match self {
+            Period::Week => Some(now - chrono::Duration::weeks(1)),
+            Period::Month => Some(now - chrono::Duration::days(30)),
+            Period::Year => Some(now - chrono::Duration::days(365)),
+            Period::All => None,
+        }
+    }
 }
 
 pub async fn start_walk(
@@ -30,7 +79,7 @@ pub async fn start_walk(
     let walk = ActiveModel {
         id: Set(Uuid::new_v4()),
         user_id: Set(user_id),
-        status: Set("active".to_string()),
+        status: Set(WalkStatus::Active),
         started_at: Set(Utc::now().into()),
         ..Default::default()
     }
@@ -62,7 +111,7 @@ pub async fn finish_walk(
         .await?
         .ok_or_else(|| AppError::NotFound(format!("Walk {} not found", walk_id)))?;
 
-    if walk.status != "active" {
+    if walk.status != WalkStatus::Active {
         return Err(AppError::BadRequest(format!(
             "Walk is not active (current status: {})",
             walk.status
@@ -74,7 +123,7 @@ pub async fn finish_walk(
     let duration_sec = (ended_at - started_at).num_seconds() as i32;
 
     let mut active: walks::ActiveModel = walk.into();
-    active.status = Set("finished".to_string());
+    active.status = Set(WalkStatus::Finished);
     active.ended_at = Set(Some(ended_at.into()));
     active.duration_sec = Set(Some(duration_sec));
     active.distance_m = Set(distance_m);
@@ -88,13 +137,8 @@ pub async fn get_walk_stats(
     dog_id: Uuid,
     period: &str,
 ) -> Result<WalkStats, AppError> {
-    let now = Utc::now();
-    let since: Option<chrono::DateTime<chrono::Utc>> = match period {
-        "Week" => Some(now - chrono::Duration::weeks(1)),
-        "Month" => Some(now - chrono::Duration::days(30)),
-        "Year" => Some(now - chrono::Duration::days(365)),
-        _ => None, // "All" or unknown
-    };
+    let period: Period = period.parse().unwrap_or(Period::All);
+    let since = period.since();
 
     let walk_ids: Vec<Uuid> = WalkDogEntity::find()
         .filter(walk_dogs::Column::DogId.eq(dog_id))
@@ -106,7 +150,7 @@ pub async fn get_walk_stats(
 
     let mut query = WalkEntity::find()
         .filter(walks::Column::Id.is_in(walk_ids))
-        .filter(walks::Column::Status.eq("finished"));
+        .filter(walks::Column::Status.eq(WalkStatus::Finished));
 
     if let Some(s) = since {
         query = query.filter(walks::Column::StartedAt.gte(s));

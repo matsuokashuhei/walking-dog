@@ -284,7 +284,7 @@ impl From<crate::entities::walks::Model> for WalkOutput {
         Self {
             id: m.id,
             user_id: m.user_id,
-            status: m.status,
+            status: m.status.to_string(),
             distance_m: m.distance_m,
             duration_sec: m.duration_sec,
             started_at: started.to_rfc3339(),

@@ -1,6 +1,7 @@
 use crate::auth;
 use crate::error::AppError;
 use crate::graphql::custom_queries::{EncounterOutput, WalkPointOutput};
+use crate::graphql::input::birth_date::parse_birth_date_input;
 use crate::services::{
     dog_invitation_service, dog_member_service, dog_service, encounter_service, s3_service,
     user_service, walk_event_service, walk_points_service, walk_service,
@@ -1305,25 +1306,7 @@ fn create_dog_field(state: Arc<AppState>) -> Field {
                 .get("gender")
                 .map(|v| v.string().map(|s| s.to_string()))
                 .transpose()?;
-            let birth_date = input
-                .get("birthDate")
-                .map(|v| {
-                    let obj = v.object()?;
-                    let year = obj
-                        .get("year")
-                        .map(|v| v.i64().map(|n| n as i32))
-                        .transpose()?;
-                    let month = obj
-                        .get("month")
-                        .map(|v| v.i64().map(|n| n as i32))
-                        .transpose()?;
-                    let day = obj
-                        .get("day")
-                        .map(|v| v.i64().map(|n| n as i32))
-                        .transpose()?;
-                    Ok::<_, async_graphql::Error>(BirthDate::to_json(year, month, day))
-                })
-                .transpose()?;
+            let birth_date = parse_birth_date_input(input.get("birthDate"))?;
 
             let user = user_service::get_or_create_user(&state.db, &cognito_sub)
                 .await
@@ -1361,25 +1344,7 @@ fn update_dog_field(state: Arc<AppState>) -> Field {
                 .get("gender")
                 .map(|v| v.string().map(|s| s.to_string()))
                 .transpose()?;
-            let birth_date = input
-                .get("birthDate")
-                .map(|v| {
-                    let obj = v.object()?;
-                    let year = obj
-                        .get("year")
-                        .map(|v| v.i64().map(|n| n as i32))
-                        .transpose()?;
-                    let month = obj
-                        .get("month")
-                        .map(|v| v.i64().map(|n| n as i32))
-                        .transpose()?;
-                    let day = obj
-                        .get("day")
-                        .map(|v| v.i64().map(|n| n as i32))
-                        .transpose()?;
-                    Ok::<_, async_graphql::Error>(BirthDate::to_json(year, month, day))
-                })
-                .transpose()?;
+            let birth_date = parse_birth_date_input(input.get("birthDate"))?;
             let photo_url = input
                 .get("photoUrl")
                 .map(|v| v.string().map(|s| s.to_string()))

@@ -15,6 +15,18 @@ use crate::entities::{
 };
 use crate::error::AppError;
 
+/// Normalize a dog pair so that `dog_id_1 < dog_id_2` (UUID lexicographic order).
+/// Returns `None` if both IDs are equal (same dog — skip).
+fn normalize_dog_pair(a: Uuid, b: Uuid) -> Option<(Uuid, Uuid)> {
+    if a < b {
+        Some((a, b))
+    } else if a > b {
+        Some((b, a))
+    } else {
+        None
+    }
+}
+
 /// Record encounters between all dog pairs from two walks.
 /// Creates or updates `encounters` and `friendships` rows.
 pub async fn record_encounter(
@@ -53,13 +65,8 @@ pub async fn record_encounter(
 
     for my_dog in &my_dog_ids {
         for their_dog in &their_dog_ids {
-            // Normalize ordering: dog_id_1 < dog_id_2 (UUID lexicographic)
-            let (dog_id_1, dog_id_2) = if my_dog < their_dog {
-                (*my_dog, *their_dog)
-            } else if my_dog > their_dog {
-                (*their_dog, *my_dog)
-            } else {
-                // Same dog — skip
+            // Normalize ordering: dog_id_1 < dog_id_2 (UUID lexicographic); skip same dog
+            let Some((dog_id_1, dog_id_2)) = normalize_dog_pair(*my_dog, *their_dog) else {
                 continue;
             };
 
@@ -142,11 +149,7 @@ pub async fn update_encounter_duration(
 
     for my_dog in &my_dog_ids {
         for their_dog in &their_dog_ids {
-            let (dog_id_1, dog_id_2) = if my_dog < their_dog {
-                (*my_dog, *their_dog)
-            } else if my_dog > their_dog {
-                (*their_dog, *my_dog)
-            } else {
+            let Some((dog_id_1, dog_id_2)) = normalize_dog_pair(*my_dog, *their_dog) else {
                 continue;
             };
 

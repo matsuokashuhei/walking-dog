@@ -9,7 +9,7 @@
 - [x] Phase 5: Cognito エラー ProvideErrorMetadata::code() 化 + smithy mocks unit test — 2026-04-15 — RED: ee4b315 / GREEN: e129a62
 - [x] Phase 6: walk_event_service 認可ハブ化 + auth_helpers 導入 (依存: Phase 4) — 2026-04-15 — RED→GREEN: 1c9360d / GREEN: e295f75, 888b2b0, cf8ce84
 - [x] Phase 7: encounter_service 責務集約 + verify_encounter_detection 新設 (依存: Phase 6) — 2026-04-15 — RED: ea49c80 / GREEN: cb5f112 — CLEANUP: dcb273e (remove self-referential static guards) / FMT: 58077bc — verify_encounter_detection in walk_event_service; acting_user_id added to record_encounter + update_encounter_duration; update_encounter_duration_field slim 46→25 lines; record_encounter_field counterparty loop retained (Phase 8)
-- [ ] Phase 8: encounter N+M クエリ解消 JOIN 一括取得 (依存: Phase 7)
+- [x] Phase 8: encounter N+M クエリ解消 JOIN 一括取得 (依存: Phase 7) — 2026-04-15 — RED: f1b00c5 / GREEN: 03837cb — CLEANUP: 361866f (remove self-referential static guard) — verify_counterparty_encounter_detection added to walk_event_service (3 fixed queries: walk_dogs IN, dog_members IN, users IN+filter); encounter_service::record_encounter calls it; record_encounter_field triple-nested loop (29 lines) deleted; SQL log confirms O(N×M) → 3 fixed queries
 - [ ] Phase 9: GraphQL field-wise バリデーションエラー
 - [ ] Phase 10: TEST_MODE → trait JwtVerifier 抽象化
 - [ ] Phase 11: テスト基盤整備 tests/support/ 分離 + MockDatabase (依存: Phase 3, 7)

@@ -236,34 +236,4 @@ mod tests {
         }
     }
 
-    /// Static guard: verify_encounter_detection must exist in this module.
-    #[test]
-    fn verify_encounter_detection_exists_in_walk_event_service() {
-        let src = include_str!("walk_event_service.rs");
-        assert!(
-            src.contains("pub async fn verify_encounter_detection"),
-            "verify_encounter_detection must be defined as pub async fn in walk_event_service.rs"
-        );
-    }
-
-    /// Static guard: verify_encounter_detection must check encounter_detection_enabled.
-    #[test]
-    fn verify_encounter_detection_checks_encounter_detection_enabled() {
-        let src = include_str!("walk_event_service.rs");
-        assert!(
-            src.contains("encounter_detection_enabled"),
-            "verify_encounter_detection must check encounter_detection_enabled"
-        );
-    }
-
-    /// Static guard: verify_encounter_detection must check walk ownership (user_id).
-    #[test]
-    fn verify_encounter_detection_checks_walk_ownership() {
-        let src = include_str!("walk_event_service.rs");
-        // The function must verify that the walk belongs to the given user_id
-        assert!(
-            src.contains("user_id") && src.contains("verify_encounter_detection"),
-            "verify_encounter_detection must accept user_id and verify walk ownership"
-        );
-    }
 }

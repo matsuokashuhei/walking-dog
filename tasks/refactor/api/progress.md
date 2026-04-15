@@ -8,7 +8,7 @@
 - [x] Phase 4: user_service upsert 統合 + duplicate key 文字列判定撲滅 (SeaORM on_conflict) — 2026-04-15 — RED: 92c3a6b / GREEN: ca059a5 — FIX: bf6484b (test_authorization runtime bug) — HARDEN: 8160a5a (proper DbErr propagation)
 - [x] Phase 5: Cognito エラー ProvideErrorMetadata::code() 化 + smithy mocks unit test — 2026-04-15 — RED: ee4b315 / GREEN: e129a62
 - [ ] Phase 6: walk_event_service 認可ハブ化 + auth_helpers 導入 (依存: Phase 4)
-- [ ] Phase 7: encounter_service 責務集約 + verify_encounter_detection 新設 (依存: Phase 6)
+- [x] Phase 7: encounter_service 責務集約 + verify_encounter_detection 新設 — 2026-04-15 — RED: 9ca5399 / GREEN: 6e7dd96
 - [ ] Phase 8: encounter N+M クエリ解消 JOIN 一括取得 (依存: Phase 7)
 - [ ] Phase 9: GraphQL field-wise バリデーションエラー
 - [ ] Phase 10: TEST_MODE → trait JwtVerifier 抽象化

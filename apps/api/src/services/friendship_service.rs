@@ -5,7 +5,8 @@ use sea_orm::{
 use uuid::Uuid;
 
 use crate::entities::friendships::{
-    self, ActiveModel as FriendshipActiveModel, Entity as FriendshipEntity, Model as FriendshipModel,
+    self, ActiveModel as FriendshipActiveModel, Entity as FriendshipEntity,
+    Model as FriendshipModel,
 };
 use crate::error::AppError;
 
@@ -27,8 +28,7 @@ pub async fn upsert_friendship<C: sea_orm::ConnectionTrait>(
     let friendship = if let Some(existing) = existing {
         let mut active: friendships::ActiveModel = existing.into();
         active.encounter_count = Set(active.encounter_count.unwrap() + 1);
-        active.total_interaction_sec =
-            Set(active.total_interaction_sec.unwrap() + duration_sec);
+        active.total_interaction_sec = Set(active.total_interaction_sec.unwrap() + duration_sec);
         active.last_met_at = Set(met_at.into());
         active.update(db).await?
     } else {

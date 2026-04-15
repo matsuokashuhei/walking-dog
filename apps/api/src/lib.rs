@@ -7,15 +7,19 @@ pub mod error;
 pub mod graphql;
 pub mod services;
 
-use std::sync::Arc;
-use axum::{Router, middleware, routing::{get, post}};
-use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
-use sea_orm::DatabaseConnection;
-use aws_sdk_dynamodb::Client as DynamoClient;
-use aws_sdk_s3::Client as S3Client;
-use tower_http::cors::CorsLayer;
 use crate::config::Config;
 use crate::graphql::AppSchema;
+use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
+use aws_sdk_dynamodb::Client as DynamoClient;
+use aws_sdk_s3::Client as S3Client;
+use axum::{
+    middleware,
+    routing::{get, post},
+    Router,
+};
+use sea_orm::DatabaseConnection;
+use std::sync::Arc;
+use tower_http::cors::CorsLayer;
 
 pub struct AppState {
     pub db: DatabaseConnection,
@@ -32,7 +36,13 @@ pub fn build_app(
     cognito: aws_sdk_cognitoidentityprovider::Client,
     config: Config,
 ) -> Router {
-    let state = Arc::new(AppState { db, dynamo, s3, cognito, config });
+    let state = Arc::new(AppState {
+        db,
+        dynamo,
+        s3,
+        cognito,
+        config,
+    });
     let schema = graphql::build_schema(state);
 
     Router::new()

@@ -5,6 +5,7 @@ use std::str::FromStr;
 use uuid::Uuid;
 
 use crate::entities::{
+    users::Entity as UserEntity,
     walk_dogs::{self, Entity as WalkDogEntity},
     walk_events::{
         ActiveModel as WalkEventActiveModel, Column as WalkEventColumn, Entity as WalkEventEntity,
@@ -57,6 +58,45 @@ pub struct RecordEventInput {
     pub lng: Option<f64>,
     /// S3 key for photo events; required when event_type == "photo".
     pub photo_key: Option<String>,
+}
+
+/// Verify that encounter detection is allowed for the acting user's walk.
+///
+/// Checks:
+/// 1. The walk exists.
+/// 2. The walk belongs to `user_id` (ownership check).
+/// 3. The user has `encounter_detection_enabled = true`.
+pub async fn verify_encounter_detection(
+    db: &sea_orm::DatabaseConnection,
+    walk_id: Uuid,
+    user_id: Uuid,
+) -> Result<(), AppError> {
+    // 1. Fetch walk
+    let walk = WalkEntity::find_by_id(walk_id)
+        .one(db)
+        .await?
+        .ok_or_else(|| AppError::NotFound(format!("Walk {} not found", walk_id)))?;
+
+    // 2. Ownership check
+    if walk.user_id != user_id {
+        return Err(AppError::Unauthorized(
+            "Walk does not belong to user".to_string(),
+        ));
+    }
+
+    // 3. Encounter detection enabled check
+    let user = UserEntity::find_by_id(user_id)
+        .one(db)
+        .await?
+        .ok_or_else(|| AppError::NotFound(format!("User {} not found", user_id)))?;
+
+    if !user.encounter_detection_enabled {
+        return Err(AppError::Unauthorized(
+            "Encounter detection is disabled for your account".to_string(),
+        ));
+    }
+
+    Ok(())
 }
 
 /// Verify that the given user is authorized to record events for the walk.

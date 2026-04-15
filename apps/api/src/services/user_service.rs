@@ -1,8 +1,8 @@
 use crate::entities::users::{self, ActiveModel, Entity as UserEntity, Model as UserModel};
 use crate::error::AppError;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter, Set,
-    TryInsertResult,
+    sea_query::OnConflict, ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel,
+    QueryFilter, Set, TryInsertResult,
 };
 use uuid::Uuid;
 
@@ -20,8 +20,13 @@ async fn upsert_user(
         ..Default::default()
     };
 
+    let on_conflict = OnConflict::column(users::Column::CognitoSub)
+        .do_nothing()
+        .to_owned();
+
     let result = UserEntity::insert(model)
-        .on_conflict_do_nothing()
+        .on_conflict(on_conflict)
+        .try_insert()
         .exec_with_returning(db)
         .await?;
 

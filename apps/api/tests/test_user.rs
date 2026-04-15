@@ -1,4 +1,5 @@
 mod common;
+use common::USER_A;
 
 #[tokio::test]
 async fn test_me_query() {
@@ -51,5 +52,37 @@ async fn test_update_profile_mutation() {
         body["data"]["updateProfile"]["displayName"], "Taro",
         "got: {:?}",
         body
+    );
+}
+
+/// Verify that calling the me query twice with the same cognito_sub does not fail.
+/// This exercises the upsert conflict path: the second call hits ON CONFLICT DO NOTHING
+/// and must still return the existing user row without error.
+#[tokio::test]
+async fn test_upsert_conflict_returns_existing_user() {
+    let client = common::test_client().await;
+
+    // First call: inserts the user
+    let body1 = common::graphql_as(&client, &USER_A, "{ me { id } }").await;
+    assert!(
+        body1["data"]["me"]["id"].is_string(),
+        "first call should succeed, got: {:?}",
+        body1
+    );
+    let id1 = body1["data"]["me"]["id"].as_str().unwrap();
+
+    // Second call: same cognito_sub — hits ON CONFLICT DO NOTHING, must still return user
+    let body2 = common::graphql_as(&client, &USER_A, "{ me { id } }").await;
+    assert!(
+        body2["errors"].is_null(),
+        "second call should not error on conflict, got: {:?}",
+        body2
+    );
+    let id2 = body2["data"]["me"]["id"].as_str().unwrap();
+
+    assert_eq!(
+        id1, id2,
+        "both calls must return the same user id, got {} vs {}",
+        id1, id2
     );
 }

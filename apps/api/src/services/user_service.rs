@@ -2,7 +2,7 @@ use crate::entities::users::{self, ActiveModel, Entity as UserEntity, Model as U
 use crate::error::AppError;
 use sea_orm::{
     sea_query::OnConflict, ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel,
-    QueryFilter, Set, TryInsertResult,
+    QueryFilter, Set,
 };
 use uuid::Uuid;
 
@@ -24,28 +24,20 @@ async fn upsert_user(
         .do_nothing()
         .to_owned();
 
-    let result = UserEntity::insert(model)
+    // INSERT ... ON CONFLICT DO NOTHING: ignore the result (insert or skip).
+    // exec() is used here rather than exec_with_returning() because DO NOTHING
+    // returns no row on conflict, causing SeaORM's exec_with_returning to fail
+    // with RecordNotFound. We always SELECT after to get the current row.
+    let _ = UserEntity::insert(model)
         .on_conflict(on_conflict)
-        .try_insert()
-        .exec_with_returning(db)
-        .await?;
+        .exec(db)
+        .await;
 
-    match result {
-        TryInsertResult::Inserted(m) => Ok(m),
-        TryInsertResult::Conflicted => {
-            let m = UserEntity::find()
-                .filter(users::Column::CognitoSub.eq(cognito_sub))
-                .one(db)
-                .await?
-                .ok_or_else(|| {
-                    AppError::Internal("User disappeared after insert conflict".to_string())
-                })?;
-            Ok(m)
-        }
-        TryInsertResult::Empty => Err(AppError::Internal(
-            "Unexpected empty insert result".to_string(),
-        )),
-    }
+    UserEntity::find()
+        .filter(users::Column::CognitoSub.eq(cognito_sub))
+        .one(db)
+        .await?
+        .ok_or_else(|| AppError::Internal("User disappeared after upsert".to_string()))
 }
 
 pub async fn get_or_create_user(

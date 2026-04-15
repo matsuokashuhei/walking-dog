@@ -1749,64 +1749,40 @@ fn record_encounter_field(state: Arc<AppState>) -> Field {
                     dog_members::{self, Entity as DogMemberEntity},
                     users::Entity as UserEntity,
                     walk_dogs::{self, Entity as WalkDogEntity},
-                    walks::Entity as WalkEntity,
                 };
                 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 
+                // 1. Parse input
                 let cognito_sub = auth::require_auth(&ctx)?;
-                let my_walk_id_str = ctx.args.try_get("myWalkId")?.string()?;
-                let their_walk_id_str = ctx.args.try_get("theirWalkId")?.string()?;
-                let my_walk_id = Uuid::parse_str(my_walk_id_str)
+                let my_walk_id = Uuid::parse_str(ctx.args.try_get("myWalkId")?.string()?)
                     .map_err(|_| async_graphql::Error::new("Invalid myWalkId"))?;
-                let their_walk_id = Uuid::parse_str(their_walk_id_str)
+                let their_walk_id = Uuid::parse_str(ctx.args.try_get("theirWalkId")?.string()?)
                     .map_err(|_| async_graphql::Error::new("Invalid theirWalkId"))?;
 
+                // 2. Resolve user
                 let user = user_service::get_or_create_user(&state.db, &cognito_sub)
                     .await
                     .map_err(AppError::into_graphql_error)?;
 
-                // Verify myWalkId belongs to the current user
-                let my_walk = WalkEntity::find_by_id(my_walk_id)
-                    .one(&state.db)
-                    .await
-                    .map_err(|e| AppError::Database(e).into_graphql_error())?
-                    .ok_or_else(|| async_graphql::Error::new("Walk not found"))?;
-                if my_walk.user_id != user.id {
-                    return Err(
-                        AppError::Unauthorized("Walk does not belong to user".to_string())
-                            .into_graphql_error(),
-                    );
-                }
-
-                // Check calling user's own encounter_detection_enabled
-                if !user.encounter_detection_enabled {
-                    return Err(AppError::Unauthorized(
-                        "Encounter detection is disabled for your account".to_string(),
-                    )
-                    .into_graphql_error());
-                }
-
                 // Check encounter_detection_enabled for all users of theirWalk
+                // (Phase 8 will consolidate this into the service layer)
                 let their_walk_dogs = WalkDogEntity::find()
                     .filter(walk_dogs::Column::WalkId.eq(their_walk_id))
                     .all(&state.db)
                     .await
                     .map_err(|e| AppError::Database(e).into_graphql_error())?;
-
                 for wd in &their_walk_dogs {
-                    // Find all dog_members for this dog
                     let members = DogMemberEntity::find()
                         .filter(dog_members::Column::DogId.eq(wd.dog_id))
                         .all(&state.db)
                         .await
                         .map_err(|e| AppError::Database(e).into_graphql_error())?;
-
                     for member in &members {
-                        let u = UserEntity::find_by_id(member.user_id)
+                        if let Some(u) = UserEntity::find_by_id(member.user_id)
                             .one(&state.db)
                             .await
-                            .map_err(|e| AppError::Database(e).into_graphql_error())?;
-                        if let Some(u) = u {
+                            .map_err(|e| AppError::Database(e).into_graphql_error())?
+                        {
                             if !u.encounter_detection_enabled {
                                 return Err(AppError::Unauthorized(
                                     "Encounter detection is disabled for the other user"
@@ -1818,11 +1794,18 @@ fn record_encounter_field(state: Arc<AppState>) -> Field {
                     }
                 }
 
-                let encounters =
-                    encounter_service::record_encounter(&state.db, my_walk_id, their_walk_id, 30)
-                        .await
-                        .map_err(AppError::into_graphql_error)?;
+                // 3. Delegate to service (ownership + caller detection check inside)
+                let encounters = encounter_service::record_encounter(
+                    &state.db,
+                    my_walk_id,
+                    their_walk_id,
+                    30,
+                    user.id,
+                )
+                .await
+                .map_err(AppError::into_graphql_error)?;
 
+                // 4. Convert output
                 let values: Vec<FieldValue> = encounters
                     .into_iter()
                     .map(|e| FieldValue::owned_any(EncounterOutput::from(e)))
@@ -1845,52 +1828,31 @@ fn update_encounter_duration_field(state: Arc<AppState>) -> Field {
         move |ctx| {
             let state = state.clone();
             FieldFuture::new(async move {
-                use crate::entities::walks::Entity as WalkEntity;
-                use sea_orm::EntityTrait;
-
+                // 1. Parse input
                 let cognito_sub = auth::require_auth(&ctx)?;
-                let my_walk_id_str = ctx.args.try_get("myWalkId")?.string()?;
-                let their_walk_id_str = ctx.args.try_get("theirWalkId")?.string()?;
-                let duration_sec = ctx.args.try_get("durationSec")?.i64()? as i32;
-                let my_walk_id = Uuid::parse_str(my_walk_id_str)
+                let my_walk_id = Uuid::parse_str(ctx.args.try_get("myWalkId")?.string()?)
                     .map_err(|_| async_graphql::Error::new("Invalid myWalkId"))?;
-                let their_walk_id = Uuid::parse_str(their_walk_id_str)
+                let their_walk_id = Uuid::parse_str(ctx.args.try_get("theirWalkId")?.string()?)
                     .map_err(|_| async_graphql::Error::new("Invalid theirWalkId"))?;
+                let duration_sec = ctx.args.try_get("durationSec")?.i64()? as i32;
 
+                // 2. Resolve user
                 let user = user_service::get_or_create_user(&state.db, &cognito_sub)
                     .await
                     .map_err(AppError::into_graphql_error)?;
 
-                // Check calling user's own encounter_detection_enabled
-                if !user.encounter_detection_enabled {
-                    return Err(AppError::Unauthorized(
-                        "Encounter detection is disabled for your account".to_string(),
-                    )
-                    .into_graphql_error());
-                }
-
-                // Verify myWalkId belongs to the current user
-                let my_walk = WalkEntity::find_by_id(my_walk_id)
-                    .one(&state.db)
-                    .await
-                    .map_err(|e| AppError::Database(e).into_graphql_error())?
-                    .ok_or_else(|| async_graphql::Error::new("Walk not found"))?;
-                if my_walk.user_id != user.id {
-                    return Err(
-                        AppError::Unauthorized("Walk does not belong to user".to_string())
-                            .into_graphql_error(),
-                    );
-                }
-
+                // 3. Delegate to service (ownership + detection check inside)
                 let result = encounter_service::update_encounter_duration(
                     &state.db,
                     my_walk_id,
                     their_walk_id,
                     duration_sec,
+                    user.id,
                 )
                 .await
                 .map_err(AppError::into_graphql_error)?;
 
+                // 4. Convert output
                 Ok(Some(FieldValue::value(result)))
             })
         },

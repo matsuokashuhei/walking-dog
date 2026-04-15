@@ -5,7 +5,7 @@ use sea_orm::{
 };
 use uuid::Uuid;
 
-use super::friendship_service;
+use super::{friendship_service, walk_event_service};
 use crate::entities::{
     encounters::{
         self, ActiveModel as EncounterActiveModel, Entity as EncounterEntity,
@@ -29,12 +29,19 @@ fn normalize_dog_pair(a: Uuid, b: Uuid) -> Option<(Uuid, Uuid)> {
 
 /// Record encounters between all dog pairs from two walks.
 /// Creates or updates `encounters` and `friendships` rows.
+///
+/// Authorization: `acting_user_id` must own `my_walk_id` and have
+/// `encounter_detection_enabled = true` (verified via `verify_encounter_detection`).
 pub async fn record_encounter(
     db: &sea_orm::DatabaseConnection,
     my_walk_id: Uuid,
     their_walk_id: Uuid,
     duration_sec: i32,
+    acting_user_id: Uuid,
 ) -> Result<Vec<EncounterModel>, AppError> {
+    // Verify walk ownership + encounter_detection_enabled for the acting user
+    walk_event_service::verify_encounter_detection(db, my_walk_id, acting_user_id).await?;
+
     // Fetch all dog IDs in each walk
     let my_dog_ids: Vec<Uuid> = WalkDogEntity::find()
         .filter(walk_dogs::Column::WalkId.eq(my_walk_id))
@@ -125,12 +132,19 @@ pub async fn record_encounter(
 }
 
 /// Update the duration of an existing encounter (called when BLE signal ends).
+///
+/// Authorization: `acting_user_id` must own `my_walk_id` and have
+/// `encounter_detection_enabled = true` (verified via `verify_encounter_detection`).
 pub async fn update_encounter_duration(
     db: &sea_orm::DatabaseConnection,
     my_walk_id: Uuid,
     their_walk_id: Uuid,
     duration_sec: i32,
+    acting_user_id: Uuid,
 ) -> Result<bool, AppError> {
+    // Verify walk ownership + encounter_detection_enabled for the acting user
+    walk_event_service::verify_encounter_detection(db, my_walk_id, acting_user_id).await?;
+
     let their_dog_ids: Vec<Uuid> = WalkDogEntity::find()
         .filter(walk_dogs::Column::WalkId.eq(their_walk_id))
         .select_only()

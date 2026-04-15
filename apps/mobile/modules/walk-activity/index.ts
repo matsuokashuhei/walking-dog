@@ -3,9 +3,12 @@ import { Platform } from 'react-native';
 
 export interface WalkActivityStartInput {
   walkId: string;
+  dogId?: string;
   dogName: string;
   startedAtMs: number;
   distanceM: number;
+  appGroup: string;
+  apiUrl: string;
 }
 
 export interface WalkActivityUpdateInput {
@@ -18,7 +21,7 @@ interface WalkActivityModuleType {
   isSupported(): boolean;
   startActivity(input: WalkActivityStartInput): Promise<string>;
   updateActivity(activityId: string, input: WalkActivityUpdateInput): Promise<void>;
-  endActivity(activityId: string): Promise<void>;
+  endActivity(activityId: string, appGroup: string): Promise<void>;
 }
 
 const nativeModule =
@@ -42,7 +45,7 @@ export async function updateActivity(
   await nativeModule.updateActivity(activityId, input);
 }
 
-export async function endActivity(activityId: string): Promise<void> {
+export async function endActivity(activityId: string, appGroup: string): Promise<void> {
   if (!nativeModule) return;
-  await nativeModule.endActivity(activityId);
+  await nativeModule.endActivity(activityId, appGroup);
 }

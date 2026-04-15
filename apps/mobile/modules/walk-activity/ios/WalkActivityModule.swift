@@ -26,11 +26,21 @@ public class WalkActivityModule: Module {
                 let walkId = input["walkId"] as? String,
                 let dogName = input["dogName"] as? String,
                 let startedAtMs = input["startedAtMs"] as? Double,
-                let distanceM = input["distanceM"] as? Double
+                let distanceM = input["distanceM"] as? Double,
+                let appGroup = input["appGroup"] as? String,
+                let apiUrl = input["apiUrl"] as? String
             else {
                 promise.reject("INVALID_INPUT", "Missing required fields")
                 return
             }
+            let dogId = input["dogId"] as? String
+
+            SharedWalkContext.write(
+                appGroup: appGroup,
+                walkId: walkId,
+                dogId: dogId,
+                apiUrl: apiUrl
+            )
 
             let attributes = WalkAttributes(
                 walkId: walkId,
@@ -47,6 +57,7 @@ public class WalkActivityModule: Module {
                 )
                 promise.resolve(activity.id)
             } catch {
+                SharedWalkContext.clear(appGroup: appGroup)
                 promise.reject("ACTIVITY_REQUEST_FAILED", error.localizedDescription)
             }
         }
@@ -83,11 +94,14 @@ public class WalkActivityModule: Module {
             }
         }
 
-        AsyncFunction("endActivity") { (activityId: String, promise: Promise) in
+        AsyncFunction("endActivity") {
+            (activityId: String, appGroup: String, promise: Promise) in
             guard #available(iOS 17.0, *) else {
+                SharedWalkContext.clear(appGroup: appGroup)
                 promise.resolve(nil)
                 return
             }
+            SharedWalkContext.clear(appGroup: appGroup)
             guard let activity = Activity<WalkAttributes>.activities.first(where: { $0.id == activityId }) else {
                 promise.resolve(nil)
                 return

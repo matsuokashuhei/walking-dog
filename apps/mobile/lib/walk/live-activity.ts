@@ -1,3 +1,4 @@
+import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
 type WalkActivityModule = typeof import('@/modules/walk-activity');
@@ -14,6 +15,11 @@ function loadModule(): WalkActivityModule | null {
 
 const mod = loadModule();
 
+const extras = (Constants.expoConfig?.extra ?? {}) as {
+  apiUrl?: string;
+  appGroup?: string;
+};
+
 const UPDATE_DEBOUNCE_MS = 10_000;
 
 let currentActivityId: string | null = null;
@@ -21,6 +27,7 @@ let lastUpdateAt = 0;
 
 export interface LiveActivityStartInput {
   walkId: string;
+  dogId?: string;
   dogName: string;
   startedAt: Date;
   distanceM: number;
@@ -32,13 +39,20 @@ export function isLiveActivitySupported(): boolean {
 
 export async function startLiveActivity(input: LiveActivityStartInput): Promise<void> {
   if (!mod || !mod.isSupported()) return;
+  if (!extras.appGroup || !extras.apiUrl) {
+    console.warn('[live-activity] appGroup or apiUrl missing from expo config extras');
+    return;
+  }
   if (currentActivityId) return;
   try {
     const id = await mod.startActivity({
       walkId: input.walkId,
+      dogId: input.dogId,
       dogName: input.dogName,
       startedAtMs: input.startedAt.getTime(),
       distanceM: input.distanceM,
+      appGroup: extras.appGroup,
+      apiUrl: extras.apiUrl,
     });
     currentActivityId = id;
     lastUpdateAt = Date.now();
@@ -82,8 +96,9 @@ export async function endLiveActivity(): Promise<void> {
   const id = currentActivityId;
   currentActivityId = null;
   lastUpdateAt = 0;
+  if (!extras.appGroup) return;
   try {
-    await mod.endActivity(id);
+    await mod.endActivity(id, extras.appGroup);
   } catch (err) {
     console.error('[live-activity] end failed', err);
   }

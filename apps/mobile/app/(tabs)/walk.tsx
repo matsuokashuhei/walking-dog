@@ -70,6 +70,7 @@ export default function WalkScreen() {
         selectedDogIds.length === 1 ? t('walk.liveActivity.walking') : t('walk.liveActivity.walkingWithDogs', { count: selectedDogIds.length });
       await startLiveActivity({
         walkId: walk.id,
+        dogId: selectedDogIds[0],
         dogName,
         startedAt: useWalkStore.getState().startedAt ?? new Date(),
         distanceM: 0,

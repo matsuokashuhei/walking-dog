@@ -96,6 +96,22 @@ mod tests {
         );
     }
 
+    /// Verify that production code does not silently swallow Result with `let _ = ... .await`.
+    /// The `let _ = expr.await` pattern discards the entire Result including genuine DB errors.
+    /// Only `let _ = expr.await?` (which already propagated the error) is acceptable.
+    #[test]
+    fn no_silent_error_swallowing_in_upsert() {
+        let source = include_str!("user_service.rs");
+        let production_code = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("file must contain #[cfg(test)]");
+        assert!(
+            !production_code.contains("let _ ="),
+            "Production code must not use 'let _ =' which silently swallows errors"
+        );
+    }
+
     /// Verify that upsert_user is the single implementation path:
     /// get_or_create_user and create_user_with_profile must delegate to upsert_user.
     #[test]

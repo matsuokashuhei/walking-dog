@@ -31,30 +31,6 @@ fn period_enum() -> Enum {
         .item(EnumItem::new("ALL"))
 }
 
-/// GraphQL enum type for walk lifecycle status.
-fn walk_status_enum() -> Enum {
-    Enum::new("WalkStatus")
-        .item(EnumItem::new("ACTIVE"))
-        .item(EnumItem::new("FINISHED"))
-}
-
-/// GraphQL enum type for walk event types.
-fn walk_event_type_enum() -> Enum {
-    Enum::new("WalkEventType")
-        .item(EnumItem::new("PEE"))
-        .item(EnumItem::new("POO"))
-        .item(EnumItem::new("PHOTO"))
-}
-
-/// GraphQL enum type for walk statistics period.
-fn period_enum() -> Enum {
-    Enum::new("Period")
-        .item(EnumItem::new("WEEK"))
-        .item(EnumItem::new("MONTH"))
-        .item(EnumItem::new("YEAR"))
-        .item(EnumItem::new("ALL"))
-}
-
 /// Dynamic schema produced by Seaography.
 pub type AppSchema = async_graphql::dynamic::Schema;
 

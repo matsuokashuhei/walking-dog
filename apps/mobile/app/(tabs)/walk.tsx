@@ -17,6 +17,11 @@ import { WalkMap } from '@/components/walk/WalkMap';
 import { WalkControls } from '@/components/walk/WalkControls';
 import { WalkEventActions } from '@/components/walk/WalkEventActions';
 import { WalkSummaryCard } from '@/components/walk/WalkSummaryCard';
+import {
+  startLiveActivity,
+  updateLiveActivityDistance,
+  endLiveActivity,
+} from '@/lib/walk/live-activity';
 import type { WalkPoint } from '@/types/graphql';
 
 const MAX_POINTS_PER_BATCH = 200;
@@ -60,8 +65,19 @@ export default function WalkScreen() {
     try {
       const walk = await startWalk.mutateAsync(selectedDogIds);
       startRecording(walk.id);
+
+      const dogName =
+        selectedDogIds.length === 1 ? t('walk.liveActivity.walking') : t('walk.liveActivity.walkingWithDogs', { count: selectedDogIds.length });
+      await startLiveActivity({
+        walkId: walk.id,
+        dogName,
+        startedAt: useWalkStore.getState().startedAt ?? new Date(),
+        distanceM: 0,
+      });
+
       const stop = await startTracking((point: WalkPoint) => {
         addPoint(point);
+        void updateLiveActivityDistance(useWalkStore.getState().totalDistanceM);
       });
       stopTrackingRef.current = stop;
 
@@ -132,6 +148,7 @@ export default function WalkScreen() {
         distanceM: Math.round(totalDistanceM),
       });
       finish();
+      void endLiveActivity();
     } catch {
       Alert.alert(t('common.error'), t('walk.error.finishFailed'));
     } finally {

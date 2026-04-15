@@ -18,11 +18,19 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ios: {
     supportsTablet: false,
     bundleIdentifier: IS_DEV ? 'com.walkingdog.dev' : 'com.walkingdog.app',
+    appleTeamId: process.env.APPLE_TEAM_ID ?? 'CY4LJR5KMM',
     infoPlist: {
       NSLocationWhenInUseUsageDescription:
         'Walking Dog uses your location to record walk routes.',
       NSBluetoothAlwaysUsageDescription:
         'Walking Dog uses Bluetooth to detect nearby dogs during walks.',
+      NSSupportsLiveActivities: true,
+      NSSupportsLiveActivitiesFrequentUpdates: true,
+    },
+    entitlements: {
+      'com.apple.security.application-groups': [
+        IS_DEV ? 'group.com.walkingdog.dev' : 'group.com.walkingdog.app',
+      ],
     },
   },
   android: {
@@ -74,6 +82,15 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         neverForLocation: true,
       },
     ],
+    [
+      'expo-build-properties',
+      {
+        ios: {
+          deploymentTarget: '17.0',
+        },
+      },
+    ],
+    '@bacons/apple-targets',
   ],
   experiments: {
     typedRoutes: true,

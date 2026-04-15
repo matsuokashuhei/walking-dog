@@ -166,6 +166,10 @@
       "photoPresignError": "Failed to prepare photo upload. Please try again.",
       "photoUploadError": "Failed to upload photo. Please try again.",
       "cameraPermissionError": "Camera access is required. Please enable it in Settings."
+    },
+    "liveActivity": {
+      "walking": "Walking",
+      "walkingWithDogs": "Walking {{count}} dogs"
     }
   },
   "invite": {

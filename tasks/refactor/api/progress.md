@@ -7,7 +7,7 @@
 - [x] Phase 3: 純粋関数抽出 (normalize_dog_pair / parse_birth_date_input) — 2026-04-15 — RED: a9f3491/93b3339 / GREEN: 8818ea1/251109e
 - [x] Phase 4: user_service upsert 統合 + duplicate key 文字列判定撲滅 (SeaORM on_conflict) — 2026-04-15 — RED: 92c3a6b / GREEN: ca059a5 — FIX: bf6484b (test_authorization runtime bug) — HARDEN: 8160a5a (proper DbErr propagation)
 - [x] Phase 5: Cognito エラー ProvideErrorMetadata::code() 化 + smithy mocks unit test — 2026-04-15 — RED: ee4b315 / GREEN: e129a62
-- [ ] Phase 6: walk_event_service 認可ハブ化 + auth_helpers 導入 (依存: Phase 4)
+- [x] Phase 6: walk_event_service 認可ハブ化 + auth_helpers 導入 (依存: Phase 4) — 2026-04-15 — RED→GREEN: 1c9360d / GREEN: e295f75, 888b2b0, cf8ce84
 - [ ] Phase 7: encounter_service 責務集約 + verify_encounter_detection 新設 (依存: Phase 6)
 - [ ] Phase 8: encounter N+M クエリ解消 JOIN 一括取得 (依存: Phase 7)
 - [ ] Phase 9: GraphQL field-wise バリデーションエラー

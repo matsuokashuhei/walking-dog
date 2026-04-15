@@ -38,6 +38,10 @@ pub async fn resolve_user_and_dog(
 ///
 /// Uses `walk_event_service::require_walk_access` which checks walk ownership
 /// or membership through walk_dogs → dog_members.
+///
+/// Security: unauthorized access and missing walks both return a uniform
+/// `"Walk not found"` error to prevent walk ID enumeration by unauthenticated
+/// or non-member users. See `tests/test_review_fixes.rs` (Fix 2).
 pub async fn resolve_user_and_walk(
     ctx: &ResolverContext<'_>,
     state: &AppState,
@@ -46,6 +50,12 @@ pub async fn resolve_user_and_walk(
     let user = resolve_user(ctx, state).await?;
     walk_event_service::require_walk_access(&state.db, walk_id, user.id)
         .await
+        .map_err(|e| match e {
+            AppError::Unauthorized(_) | AppError::NotFound(_) => {
+                AppError::NotFound("Walk not found".to_string())
+            }
+            other => other,
+        })
         .map_err(AppError::into_graphql_error)?;
     Ok(user)
 }

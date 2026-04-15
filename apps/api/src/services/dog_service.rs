@@ -1,8 +1,3 @@
-use sea_orm::{
-    ActiveModelTrait, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, Set,
-    TransactionTrait,
-};
-use uuid::Uuid;
 use crate::entities::{
     dogs::{ActiveModel, Entity as DogEntity, Model as DogModel},
     walk_dogs::{self, Entity as WalkDogEntity},
@@ -10,6 +5,10 @@ use crate::entities::{
 };
 use crate::error::AppError;
 use crate::services::dog_member_service;
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, Set, TransactionTrait,
+};
+use uuid::Uuid;
 
 pub async fn create_dog(
     db: &sea_orm::DatabaseConnection,
@@ -92,10 +91,7 @@ pub async fn get_dog_by_id(
 /// Delete a dog. Only the owner should call this (authorization checked at GraphQL layer).
 /// ON DELETE CASCADE on walk_dogs removes related walk_dogs rows automatically.
 /// Walks with no remaining dogs are also deleted inside the transaction.
-pub async fn delete_dog(
-    db: &sea_orm::DatabaseConnection,
-    dog_id: Uuid,
-) -> Result<bool, AppError> {
+pub async fn delete_dog(db: &sea_orm::DatabaseConnection, dog_id: Uuid) -> Result<bool, AppError> {
     let txn = db.begin().await?;
 
     let dog = DogEntity::find_by_id(dog_id)

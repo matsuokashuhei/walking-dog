@@ -5,6 +5,7 @@ use std::sync::Arc;
 
 pub mod custom_mutations;
 pub mod custom_queries;
+pub mod input;
 
 /// GraphQL enum type for walk lifecycle status.
 fn walk_status_enum() -> Enum {

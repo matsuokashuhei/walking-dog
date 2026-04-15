@@ -132,11 +132,7 @@ async fn test_sharing_flow() {
         ),
     )
     .await;
-    assert_eq!(
-        body["data"]["removeDogMember"], true,
-        "got: {:?}",
-        body
-    );
+    assert_eq!(body["data"]["removeDogMember"], true, "got: {:?}", body);
 
     // 8. User B can no longer access the dog
     let body = graphql_as(
@@ -153,12 +149,7 @@ async fn test_sharing_flow() {
     );
 
     // 9. User B's walk data still exists (User A can see it)
-    let body = graphql_as(
-        &client,
-        &USER_A,
-        r#"{ myWalks { id } }"#,
-    )
-    .await;
+    let body = graphql_as(&client, &USER_A, r#"{ myWalks { id } }"#).await;
     let walks = body["data"]["myWalks"].as_array().unwrap();
     let walk_still_exists = walks.iter().any(|w| w["id"].as_str().unwrap() == walk_id);
     assert!(

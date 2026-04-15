@@ -1,6 +1,7 @@
 use crate::auth;
 use crate::error::AppError;
 use crate::graphql::custom_queries::{EncounterOutput, WalkPointOutput};
+use crate::graphql::input::birth_date::parse_birth_date_input;
 use crate::services::{
     dog_invitation_service, dog_member_service, dog_service, encounter_service, s3_service,
     user_service, walk_event_service, walk_points_service, walk_service,
@@ -1166,7 +1167,7 @@ fn sign_up_field(state: Arc<AppState>) -> Field {
                 &display_name,
             )
             .await
-            .map_err(async_graphql::Error::new)?;
+            .map_err(AppError::into_graphql_error)?;
 
             // display_name 付きで DB ユーザーレコードを即時作成する。
             if !result.user_sub.is_empty() {
@@ -1202,7 +1203,7 @@ fn confirm_sign_up_field(state: Arc<AppState>) -> Field {
                     &code,
                 )
                 .await
-                .map_err(async_graphql::Error::new)?;
+                .map_err(AppError::into_graphql_error)?;
 
                 Ok(Some(FieldValue::value(true)))
             })
@@ -1229,7 +1230,7 @@ fn sign_in_field(state: Arc<AppState>) -> Field {
                 &password,
             )
             .await
-            .map_err(async_graphql::Error::new)?;
+            .map_err(AppError::into_graphql_error)?;
 
             Ok(Some(FieldValue::owned_any(SignInOutput {
                 access_token: result.access_token,
@@ -1248,7 +1249,7 @@ fn sign_out_field(state: Arc<AppState>) -> Field {
 
             auth::service::sign_out(&state.cognito, &access_token)
                 .await
-                .map_err(async_graphql::Error::new)?;
+                .map_err(AppError::into_graphql_error)?;
 
             Ok(Some(FieldValue::value(true)))
         })
@@ -1275,7 +1276,7 @@ fn refresh_token_field(state: Arc<AppState>) -> Field {
                     &refresh_token,
                 )
                 .await
-                .map_err(async_graphql::Error::new)?;
+                .map_err(AppError::into_graphql_error)?;
 
                 Ok(Some(FieldValue::owned_any(SignInOutput {
                     access_token: result.access_token,
@@ -1305,25 +1306,7 @@ fn create_dog_field(state: Arc<AppState>) -> Field {
                 .get("gender")
                 .map(|v| v.string().map(|s| s.to_string()))
                 .transpose()?;
-            let birth_date = input
-                .get("birthDate")
-                .map(|v| {
-                    let obj = v.object()?;
-                    let year = obj
-                        .get("year")
-                        .map(|v| v.i64().map(|n| n as i32))
-                        .transpose()?;
-                    let month = obj
-                        .get("month")
-                        .map(|v| v.i64().map(|n| n as i32))
-                        .transpose()?;
-                    let day = obj
-                        .get("day")
-                        .map(|v| v.i64().map(|n| n as i32))
-                        .transpose()?;
-                    Ok::<_, async_graphql::Error>(BirthDate::to_json(year, month, day))
-                })
-                .transpose()?;
+            let birth_date = parse_birth_date_input(input.get("birthDate"))?;
 
             let user = user_service::get_or_create_user(&state.db, &cognito_sub)
                 .await
@@ -1361,25 +1344,7 @@ fn update_dog_field(state: Arc<AppState>) -> Field {
                 .get("gender")
                 .map(|v| v.string().map(|s| s.to_string()))
                 .transpose()?;
-            let birth_date = input
-                .get("birthDate")
-                .map(|v| {
-                    let obj = v.object()?;
-                    let year = obj
-                        .get("year")
-                        .map(|v| v.i64().map(|n| n as i32))
-                        .transpose()?;
-                    let month = obj
-                        .get("month")
-                        .map(|v| v.i64().map(|n| n as i32))
-                        .transpose()?;
-                    let day = obj
-                        .get("day")
-                        .map(|v| v.i64().map(|n| n as i32))
-                        .transpose()?;
-                    Ok::<_, async_graphql::Error>(BirthDate::to_json(year, month, day))
-                })
-                .transpose()?;
+            let birth_date = parse_birth_date_input(input.get("birthDate"))?;
             let photo_url = input
                 .get("photoUrl")
                 .map(|v| v.string().map(|s| s.to_string()))

@@ -119,11 +119,7 @@ async fn test_delete_dog_owner_only() {
     let body: serde_json::Value = res.json().await.unwrap();
     // Should return error (not found) or null
     let is_null_or_error = body["data"]["dog"].is_null() || body["errors"].is_array();
-    assert!(
-        is_null_or_error,
-        "Expected null or error, got: {:?}",
-        body
-    );
+    assert!(is_null_or_error, "Expected null or error, got: {:?}", body);
 }
 
 #[tokio::test]
@@ -142,13 +138,14 @@ async fn test_dog_output_has_members_field() {
         .unwrap();
     let body: serde_json::Value = res.json().await.unwrap();
     let members = body["data"]["createDog"]["members"].as_array();
-    assert!(
-        members.is_some(),
-        "Expected members array, got: {:?}",
-        body
-    );
+    assert!(members.is_some(), "Expected members array, got: {:?}", body);
     let members = members.unwrap();
-    assert_eq!(members.len(), 1, "Expected 1 member (owner), got: {:?}", members);
+    assert_eq!(
+        members.len(),
+        1,
+        "Expected 1 member (owner), got: {:?}",
+        members
+    );
     assert_eq!(members[0]["role"], "owner");
     assert!(members[0]["userId"].is_string());
     assert!(members[0]["user"].is_object());
@@ -174,7 +171,11 @@ async fn test_dog_output_has_role_field_in_me_query() {
         .unwrap();
     let body: serde_json::Value = res.json().await.unwrap();
     let dogs = body["data"]["me"]["dogs"].as_array().unwrap();
-    assert!(!dogs.is_empty(), "Expected at least one dog, got: {:?}", body);
+    assert!(
+        !dogs.is_empty(),
+        "Expected at least one dog, got: {:?}",
+        body
+    );
 
     // Find the dog we created and verify it has role = "owner"
     let has_owner_role = dogs.iter().any(|d| d["role"] == "owner");

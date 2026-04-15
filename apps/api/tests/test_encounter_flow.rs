@@ -8,7 +8,11 @@ async fn enable_detection(client: &common::TestClient, token: &'static str) {
         r#"mutation { updateEncounterDetection(enabled: true) { encounterDetectionEnabled } }"#,
     )
     .await;
-    assert!(body["errors"].is_null(), "Enable detection failed: {:?}", body);
+    assert!(
+        body["errors"].is_null(),
+        "Enable detection failed: {:?}",
+        body
+    );
 }
 
 /// Helper: create a dog as user and return its ID.
@@ -30,7 +34,10 @@ async fn start_walk(client: &common::TestClient, token: &'static str, dog_id: &s
     let body = common::graphql_as(
         client,
         &common::UserToken(token),
-        &format!(r#"mutation {{ startWalk(dogIds: ["{}"]) {{ id }} }}"#, dog_id),
+        &format!(
+            r#"mutation {{ startWalk(dogIds: ["{}"]) {{ id }} }}"#,
+            dog_id
+        ),
     )
     .await;
     body["data"]["startWalk"]["id"]
@@ -82,13 +89,21 @@ async fn test_full_encounter_flow() {
 
     // 4. User A records encounter
     let body = record_encounter(&client, FLOW_USER_A, &w1a, &w2a).await;
-    assert!(body["errors"].is_null(), "First encounter failed: {:?}", body);
+    assert!(
+        body["errors"].is_null(),
+        "First encounter failed: {:?}",
+        body
+    );
     let encounters = body["data"]["recordEncounter"].as_array().unwrap();
     assert_eq!(encounters.len(), 1, "Expected 1 encounter pair");
 
     // 5. User B records same encounter (dedup)
     let body_b = record_encounter(&client, FLOW_USER_B, &w2a, &w1a).await;
-    assert!(body_b["errors"].is_null(), "Dedup call failed: {:?}", body_b);
+    assert!(
+        body_b["errors"].is_null(),
+        "Dedup call failed: {:?}",
+        body_b
+    );
 
     // 6. Verify friendship: encounter_count should be 1 (deduped)
     let friends = common::graphql_as(
@@ -100,7 +115,11 @@ async fn test_full_encounter_flow() {
         ),
     )
     .await;
-    assert!(friends["errors"].is_null(), "dogFriends failed: {:?}", friends);
+    assert!(
+        friends["errors"].is_null(),
+        "dogFriends failed: {:?}",
+        friends
+    );
     let friends_list = friends["data"]["dogFriends"].as_array().unwrap();
     assert_eq!(friends_list.len(), 1, "Expected 1 friend");
     assert_eq!(friends_list[0]["encounterCount"].as_i64().unwrap(), 1);
@@ -110,7 +129,11 @@ async fn test_full_encounter_flow() {
     let w1b = start_walk(&client, FLOW_USER_A, &d1).await;
     let w2b = start_walk(&client, FLOW_USER_B, &d2).await;
     let body2 = record_encounter(&client, FLOW_USER_A, &w1b, &w2b).await;
-    assert!(body2["errors"].is_null(), "Second encounter failed: {:?}", body2);
+    assert!(
+        body2["errors"].is_null(),
+        "Second encounter failed: {:?}",
+        body2
+    );
 
     // 8. Verify friendship: encounter_count should now be 2
     let friends2 = common::graphql_as(
@@ -136,7 +159,11 @@ async fn test_full_encounter_flow() {
         ),
     )
     .await;
-    assert!(history["errors"].is_null(), "dogEncounters failed: {:?}", history);
+    assert!(
+        history["errors"].is_null(),
+        "dogEncounters failed: {:?}",
+        history
+    );
     let enc_list = history["data"]["dogEncounters"].as_array().unwrap();
     assert_eq!(enc_list.len(), 2, "Expected 2 encounters in history");
 
@@ -163,10 +190,7 @@ async fn test_full_encounter_flow() {
     let friends3 = common::graphql_as(
         &client,
         &common::UserToken(FLOW_USER_A),
-        &format!(
-            r#"{{ dogFriends(dogId: "{}") {{ encounterCount }} }}"#,
-            d1
-        ),
+        &format!(r#"{{ dogFriends(dogId: "{}") {{ encounterCount }} }}"#, d1),
     )
     .await;
     let f3 = &friends3["data"]["dogFriends"].as_array().unwrap()[0];

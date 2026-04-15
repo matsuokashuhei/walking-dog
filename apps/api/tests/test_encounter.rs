@@ -150,7 +150,10 @@ async fn test_record_encounter_dedup() {
     let body_friends = common::graphql_as(
         &client,
         &common::USER_A,
-        &format!(r#"{{ dogFriends(dogId: "{}") {{ id encounterCount }} }}"#, d1),
+        &format!(
+            r#"{{ dogFriends(dogId: "{}") {{ id encounterCount }} }}"#,
+            d1
+        ),
     )
     .await;
     assert!(
@@ -193,7 +196,10 @@ async fn test_record_encounter_multi_dog_walk() {
         .await
         .unwrap();
     let body: serde_json::Value = res.json().await.unwrap();
-    let w1 = body["data"]["startWalk"]["id"].as_str().unwrap().to_string();
+    let w1 = body["data"]["startWalk"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
 
     let d3 = create_dog(&client, "test-user-b-cognito-sub").await;
     let w2 = start_walk(&client, "test-user-b-cognito-sub", &d3).await;

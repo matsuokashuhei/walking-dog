@@ -163,6 +163,17 @@ pub async fn list_events(
 mod tests {
     use super::*;
 
+    /// Static assertion: verify_encounter_detection has the expected signature.
+    /// Fails to compile until the function is implemented.
+    #[allow(dead_code)]
+    async fn verify_encounter_detection_signature_check(
+        db: &sea_orm::DatabaseConnection,
+        walk_id: uuid::Uuid,
+        user_id: uuid::Uuid,
+    ) {
+        let _: Result<(), AppError> = verify_encounter_detection(db, walk_id, user_id).await;
+    }
+
     #[test]
     fn walk_event_type_from_str_pee() {
         let t: WalkEventType = "pee".parse().unwrap();

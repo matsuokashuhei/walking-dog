@@ -208,6 +208,32 @@ pub async fn get_encounters_for_dog(
 mod tests {
     use super::*;
 
+    /// Static assertion: record_encounter accepts acting_user_id: Uuid.
+    /// Fails to compile until the signature is updated.
+    #[allow(dead_code)]
+    async fn record_encounter_accepts_acting_user_id(
+        db: &sea_orm::DatabaseConnection,
+        my_walk_id: Uuid,
+        their_walk_id: Uuid,
+        acting_user_id: Uuid,
+    ) {
+        let _: Result<Vec<crate::entities::encounters::Model>, AppError> =
+            record_encounter(db, my_walk_id, their_walk_id, 30, acting_user_id).await;
+    }
+
+    /// Static assertion: update_encounter_duration accepts acting_user_id: Uuid.
+    /// Fails to compile until the signature is updated.
+    #[allow(dead_code)]
+    async fn update_encounter_duration_accepts_acting_user_id(
+        db: &sea_orm::DatabaseConnection,
+        my_walk_id: Uuid,
+        their_walk_id: Uuid,
+        acting_user_id: Uuid,
+    ) {
+        let _: Result<bool, AppError> =
+            update_encounter_duration(db, my_walk_id, their_walk_id, 60, acting_user_id).await;
+    }
+
     #[test]
     fn normalize_dog_pair_returns_ordered_pair_when_a_less_than_b() {
         let a = Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap();

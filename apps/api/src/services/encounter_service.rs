@@ -287,4 +287,26 @@ mod tests {
             "encounter_service must call walk_event_service::verify_encounter_detection"
         );
     }
+
+    /// Static guard: walk_event_service must expose verify_counterparty_encounter_detection.
+    /// References a separate file to avoid self-referential trap.
+    #[test]
+    fn walk_event_service_exposes_verify_counterparty_encounter_detection() {
+        let src = include_str!("walk_event_service.rs");
+        assert!(
+            src.contains("pub async fn verify_counterparty_encounter_detection"),
+            "walk_event_service must expose verify_counterparty_encounter_detection, \
+             but the function was not found"
+        );
+    }
+
+    /// Static guard: record_encounter must call verify_counterparty_encounter_detection.
+    #[test]
+    fn record_encounter_calls_verify_counterparty_encounter_detection() {
+        let src = include_str!("encounter_service.rs");
+        assert!(
+            src.contains("verify_counterparty_encounter_detection"),
+            "record_encounter must call walk_event_service::verify_counterparty_encounter_detection"
+        );
+    }
 }

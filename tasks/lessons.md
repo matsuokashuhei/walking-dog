@@ -32,3 +32,34 @@
 - 静的ガード: `let _ = ` で始まり `.await;` で終わるパターンを grep / unit test で禁止 (現在は `user_service.rs` の `no_silent_error_swallowing_in_upsert` でガード)
 
 **関連**: `apps/api/src/services/user_service.rs:tests::no_silent_error_swallowing_in_upsert`
+
+---
+
+## 2026-04-16 — `include_str!` 自己参照テストは即時 pass する
+
+**パターン**: `#[cfg(test)] mod tests` 内で `include_str!("same_file.rs")` を使い、本番コードに特定文字列が存在/不在を assert するテストは、自分自身 (テストモジュール) も同じファイルに含まれるため assertion 文字列自体がヒットしてしまい RED/GREEN サイクルが破綻する。
+
+**なぜ**: Phase 7 で `walk_event_service.rs` に「`verify_encounter_detection` 関数が存在する」を static guard として追加したところ、production 関数未実装の段階でも test 内の assertion 文字列 `"verify_encounter_detection"` が include_str! でヒットして即時 pass した。TDD の RED フェーズが成立せず、production 実装の有無を実質的に検証できない。
+
+**どう適用するか**:
+- 静的ガードテストは **別ファイル参照** に限定する (例: `walk_event_service.rs` から `include_str!("../services/encounter_service.rs")`)
+- 自ファイルの構造を検証したい場合は、`proc-macro` / `syn` ベースの AST 検査か、runtime テスト (実際に関数を呼ぶ) に切り替える
+- 「静的検査は補助ガード、単独で完了判定しない」の原則 (1つ目のレッスン) と合わせ、意味的検証は必ず integration test で担保
+
+**関連**: Phase 7 commit `dcb273e` (自己参照 guard tests 削除)
+
+---
+
+## 2026-04-16 — worktree ベースの local main が stale だと Phase 間 conflict が発生する
+
+**パターン**: `Agent(isolation: "worktree")` で作成される worktree は **local main の HEAD** から分岐する。local main が前回の PR squash merge 後に sync されていないと、worktree は古い base から分岐し、次の Phase を merge 済み Phase の上に載せた rebase でほぼ確実に conflict する。
+
+**なぜ**: Phase 6 merge 後、local main は `260f380` (Phase 1-5 unsquashed) のまま残り、origin/main は `e99dddf` (Phase 6 squash) に進んでいた。Phase 7 worktree agent は local main から分岐したため Phase 6 の `auth_helpers` を見ずに `auth::require_auth` 直接呼び出しで実装。PR rebase で `custom_mutations.rs` conflict → PR 破棄 → redo が必要になった。
+
+**どう適用するか**:
+- **Phase 夫々の agent dispatch 前に必ず `git reset --hard origin/main`** で local main を origin に同期 (content equivalent のため非破壊)
+- もしくは agent prompt に `base: origin/main` を明記し、agent 側で明示的 checkout させる
+- worktree 作成後に `git log origin/main..HEAD` で base 一致を確認
+- PR merge 後 `gh pr merge --delete-branch` が `fatal: 'main' is already used by worktree` で失敗するが remote merge 自体は成功する — `git ls-remote` で確認、手動で worktree/branch cleanup
+
+**関連**: Phase 7 失敗 → PR #91 close → local main sync → PR #92 で redo

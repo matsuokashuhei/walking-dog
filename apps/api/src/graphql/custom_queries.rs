@@ -1,9 +1,9 @@
+use super::auth_helpers;
 use super::custom_mutations::{DogOutput, UserOutput, WalkOutput};
-use crate::auth;
 use crate::error::AppError;
 use crate::services::{
-    dog_member_service, dog_service, encounter_service, friendship_service, user_service,
-    walk_points_service, walk_service,
+    dog_member_service, dog_service, encounter_service, friendship_service, walk_points_service,
+    walk_service,
 };
 use crate::AppState;
 use async_graphql::dynamic::{Field, FieldFuture, FieldValue, InputValue, Object, TypeRef};
@@ -337,41 +337,14 @@ fn walk_by_id_field(state: Arc<AppState>) -> Field {
     Field::new("walk", TypeRef::named("WalkOutput"), move |ctx| {
         let state = state.clone();
         FieldFuture::new(async move {
-            use crate::entities::{
-                walk_dogs::{self, Entity as WalkDogEntity},
-                walks::Entity as WalkEntity,
-            };
-            use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
+            use crate::entities::walks::Entity as WalkEntity;
+            use sea_orm::EntityTrait;
 
-            let cognito_sub = auth::require_auth(&ctx)?;
             let walk_id_str = ctx.args.try_get("id")?.string()?;
             let walk_id = Uuid::parse_str(walk_id_str)
                 .map_err(|_| async_graphql::Error::new("Invalid walk ID"))?;
 
-            let user = user_service::get_or_create_user(&state.db, &cognito_sub)
-                .await
-                .map_err(AppError::into_graphql_error)?;
-
-            // Check authorization via walk_dogs -> dog_members
-            let walk_dog_rows = WalkDogEntity::find()
-                .filter(walk_dogs::Column::WalkId.eq(walk_id))
-                .all(&state.db)
-                .await
-                .map_err(|e| AppError::Database(e).into_graphql_error())?;
-
-            let mut authorized = false;
-            for wd in &walk_dog_rows {
-                if dog_member_service::require_dog_member(&state.db, wd.dog_id, user.id)
-                    .await
-                    .is_ok()
-                {
-                    authorized = true;
-                    break;
-                }
-            }
-            if !authorized {
-                return Err(async_graphql::Error::new("Walk not found"));
-            }
+            auth_helpers::resolve_user_and_walk(&ctx, &state, walk_id).await?;
 
             let walk = WalkEntity::find_by_id(walk_id)
                 .one(&state.db)
@@ -388,18 +361,11 @@ fn dog_field(state: Arc<AppState>) -> Field {
     Field::new("dog", TypeRef::named("DogOutput"), move |ctx| {
         let state = state.clone();
         FieldFuture::new(async move {
-            let cognito_sub = auth::require_auth(&ctx)?;
             let dog_id_str = ctx.args.try_get("id")?.string()?;
             let dog_id = Uuid::parse_str(dog_id_str)
                 .map_err(|_| async_graphql::Error::new("Invalid dog ID"))?;
 
-            let user = user_service::get_or_create_user(&state.db, &cognito_sub)
-                .await
-                .map_err(AppError::into_graphql_error)?;
-
-            dog_member_service::require_dog_member(&state.db, dog_id, user.id)
-                .await
-                .map_err(AppError::into_graphql_error)?;
+            auth_helpers::resolve_user_and_dog(&ctx, &state, dog_id).await?;
 
             let dog = dog_service::get_dog_by_id(&state.db, dog_id)
                 .await
@@ -418,7 +384,6 @@ fn my_walks_field(state: Arc<AppState>) -> Field {
         move |ctx| {
             let state = state.clone();
             FieldFuture::new(async move {
-                let cognito_sub = auth::require_auth(&ctx)?;
                 let limit = ctx
                     .args
                     .get("limit")
@@ -429,9 +394,7 @@ fn my_walks_field(state: Arc<AppState>) -> Field {
                     .get("offset")
                     .and_then(|v| v.i64().ok())
                     .map(|v| v as u64);
-                let user = user_service::get_or_create_user(&state.db, &cognito_sub)
-                    .await
-                    .map_err(AppError::into_graphql_error)?;
+                let user = auth_helpers::resolve_user(&ctx, &state).await?;
                 let walks = walk_service::get_walks_for_user(&state.db, user.id, limit, offset)
                     .await
                     .map_err(AppError::into_graphql_error)?;
@@ -451,10 +414,7 @@ fn me_field(state: Arc<AppState>) -> Field {
     Field::new("me", TypeRef::named_nn("UserOutput"), move |ctx| {
         let state = state.clone();
         FieldFuture::new(async move {
-            let cognito_sub = auth::require_auth(&ctx)?;
-            let user = user_service::get_or_create_user(&state.db, &cognito_sub)
-                .await
-                .map_err(AppError::into_graphql_error)?;
+            let user = auth_helpers::resolve_user(&ctx, &state).await?;
             Ok(Some(FieldValue::owned_any(UserOutput::from(user))))
         })
     })
@@ -464,17 +424,11 @@ fn dog_walk_stats_field(state: Arc<AppState>) -> Field {
     Field::new("dogWalkStats", TypeRef::named_nn("WalkStats"), move |ctx| {
         let state = state.clone();
         FieldFuture::new(async move {
-            let cognito_sub = auth::require_auth(&ctx)?;
             let dog_id_str = ctx.args.try_get("dogId")?.string()?;
             let dog_id = Uuid::parse_str(dog_id_str)
                 .map_err(|_| async_graphql::Error::new("Invalid dog ID"))?;
 
-            let user = user_service::get_or_create_user(&state.db, &cognito_sub)
-                .await
-                .map_err(AppError::into_graphql_error)?;
-            dog_member_service::require_dog_member(&state.db, dog_id, user.id)
-                .await
-                .map_err(AppError::into_graphql_error)?;
+            auth_helpers::resolve_user_and_dog(&ctx, &state, dog_id).await?;
 
             let period = ctx.args.try_get("period")?.string()?;
             let stats = walk_service::get_walk_stats(&state.db, dog_id, period)
@@ -497,38 +451,11 @@ fn walk_points_field(state: Arc<AppState>) -> Field {
         move |ctx| {
             let state = state.clone();
             FieldFuture::new(async move {
-                use crate::entities::walk_dogs::{self, Entity as WalkDogEntity};
-                use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
-
-                let cognito_sub = auth::require_auth(&ctx)?;
                 let walk_id_str = ctx.args.try_get("walkId")?.string()?;
                 let walk_id = Uuid::parse_str(walk_id_str)
                     .map_err(|_| async_graphql::Error::new("Invalid walk ID"))?;
 
-                let user = user_service::get_or_create_user(&state.db, &cognito_sub)
-                    .await
-                    .map_err(AppError::into_graphql_error)?;
-
-                // Check authorization via walk_dogs -> dog_members
-                let walk_dog_rows = WalkDogEntity::find()
-                    .filter(walk_dogs::Column::WalkId.eq(walk_id))
-                    .all(&state.db)
-                    .await
-                    .map_err(|e| AppError::Database(e).into_graphql_error())?;
-
-                let mut authorized = false;
-                for wd in &walk_dog_rows {
-                    if dog_member_service::require_dog_member(&state.db, wd.dog_id, user.id)
-                        .await
-                        .is_ok()
-                    {
-                        authorized = true;
-                        break;
-                    }
-                }
-                if !authorized {
-                    return Err(async_graphql::Error::new("Walk not found"));
-                }
+                auth_helpers::resolve_user_and_walk(&ctx, &state, walk_id).await?;
 
                 let points = walk_points_service::get_walk_points(
                     &state.dynamo,
@@ -556,17 +483,11 @@ fn dog_friends_field(state: Arc<AppState>) -> Field {
         move |ctx| {
             let state = state.clone();
             FieldFuture::new(async move {
-                let cognito_sub = auth::require_auth(&ctx)?;
                 let dog_id_str = ctx.args.try_get("dogId")?.string()?;
                 let dog_id = Uuid::parse_str(dog_id_str)
                     .map_err(|_| async_graphql::Error::new("Invalid dog ID"))?;
 
-                let user = user_service::get_or_create_user(&state.db, &cognito_sub)
-                    .await
-                    .map_err(AppError::into_graphql_error)?;
-                dog_member_service::require_dog_member(&state.db, dog_id, user.id)
-                    .await
-                    .map_err(AppError::into_graphql_error)?;
+                auth_helpers::resolve_user_and_dog(&ctx, &state, dog_id).await?;
 
                 let friendships = friendship_service::get_friends_for_dog(&state.db, dog_id)
                     .await
@@ -590,7 +511,6 @@ fn dog_encounters_field(state: Arc<AppState>) -> Field {
         move |ctx| {
             let state = state.clone();
             FieldFuture::new(async move {
-                let cognito_sub = auth::require_auth(&ctx)?;
                 let dog_id_str = ctx.args.try_get("dogId")?.string()?;
                 let dog_id = Uuid::parse_str(dog_id_str)
                     .map_err(|_| async_graphql::Error::new("Invalid dog ID"))?;
@@ -605,12 +525,7 @@ fn dog_encounters_field(state: Arc<AppState>) -> Field {
                     .and_then(|v| v.i64().ok())
                     .map(|v| v as u64);
 
-                let user = user_service::get_or_create_user(&state.db, &cognito_sub)
-                    .await
-                    .map_err(AppError::into_graphql_error)?;
-                dog_member_service::require_dog_member(&state.db, dog_id, user.id)
-                    .await
-                    .map_err(AppError::into_graphql_error)?;
+                auth_helpers::resolve_user_and_dog(&ctx, &state, dog_id).await?;
 
                 let encounters =
                     encounter_service::get_encounters_for_dog(&state.db, dog_id, limit, offset)
@@ -637,7 +552,6 @@ fn friendship_field(state: Arc<AppState>) -> Field {
         move |ctx| {
             let state = state.clone();
             FieldFuture::new(async move {
-                let cognito_sub = auth::require_auth(&ctx)?;
                 let dog_id_1_str = ctx.args.try_get("dogId1")?.string()?;
                 let dog_id_2_str = ctx.args.try_get("dogId2")?.string()?;
                 let dog_id_1 = Uuid::parse_str(dog_id_1_str)
@@ -645,9 +559,7 @@ fn friendship_field(state: Arc<AppState>) -> Field {
                 let dog_id_2 = Uuid::parse_str(dog_id_2_str)
                     .map_err(|_| async_graphql::Error::new("Invalid dogId2"))?;
 
-                let user = user_service::get_or_create_user(&state.db, &cognito_sub)
-                    .await
-                    .map_err(AppError::into_graphql_error)?;
+                let user = auth_helpers::resolve_user(&ctx, &state).await?;
 
                 // User must be a member of at least one of the two dogs
                 let is_member_of_1 =

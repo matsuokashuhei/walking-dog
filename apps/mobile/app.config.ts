@@ -5,6 +5,9 @@ const APP_ENV = process.env.APP_ENV ?? (process.env.NODE_ENV === 'production' ? 
 
 const IS_DEV = APP_ENV !== 'production';
 
+const APP_GROUP = IS_DEV ? 'group.com.walkingdog.dev' : 'group.com.walkingdog.app';
+const KEYCHAIN_SERVICE = 'com.walkingdog.shared';
+
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: IS_DEV ? `Walking Dog (${APP_ENV})` : 'Walking Dog',
@@ -28,9 +31,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       NSSupportsLiveActivitiesFrequentUpdates: true,
     },
     entitlements: {
-      'com.apple.security.application-groups': [
-        IS_DEV ? 'group.com.walkingdog.dev' : 'group.com.walkingdog.app',
-      ],
+      'com.apple.security.application-groups': [APP_GROUP],
     },
   },
   android: {
@@ -99,5 +100,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   extra: {
     apiUrl: process.env.API_URL ?? 'http://localhost:3000',
     appEnv: APP_ENV,
+    appGroup: APP_GROUP,
+    keychainService: KEYCHAIN_SERVICE,
   },
 });

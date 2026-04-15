@@ -43,6 +43,9 @@ pub async fn record_encounter(
     // Verify acting user ownership + encounter detection enabled
     walk_event_service::verify_encounter_detection(db, my_walk_id, acting_user_id).await?;
 
+    // Verify all counterparty users have encounter detection enabled (fixed 2-3 queries)
+    walk_event_service::verify_counterparty_encounter_detection(db, their_walk_id).await?;
+
     // Fetch all dog IDs in each walk
     let my_dog_ids: Vec<Uuid> = WalkDogEntity::find()
         .filter(walk_dogs::Column::WalkId.eq(my_walk_id))

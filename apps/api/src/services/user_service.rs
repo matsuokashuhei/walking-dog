@@ -1,9 +1,6 @@
 use crate::entities::users::{self, ActiveModel, Entity as UserEntity, Model as UserModel};
 use crate::error::AppError;
-use sea_orm::{
-    sea_query::OnConflict, ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel,
-    QueryFilter, Set,
-};
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter, Set};
 use uuid::Uuid;
 
 /// Internal helper: insert-or-fetch user by cognito_sub using SeaORM on_conflict.
@@ -20,18 +17,16 @@ async fn upsert_user(
         ..Default::default()
     };
 
-    let on_conflict = OnConflict::column(users::Column::CognitoSub)
-        .do_nothing()
-        .to_owned();
-
-    // INSERT ... ON CONFLICT DO NOTHING: ignore the result (insert or skip).
-    // exec() is used here rather than exec_with_returning() because DO NOTHING
-    // returns no row on conflict, causing SeaORM's exec_with_returning to fail
-    // with RecordNotFound. We always SELECT after to get the current row.
+    // INSERT ... ON CONFLICT (cognito_sub) DO NOTHING via SeaORM TryInsert.
+    // on_conflict_do_nothing_on returns TryInsert whose exec() maps
+    // DbErr::RecordNotInserted -> Ok(Conflicted), while all other DB errors
+    // propagate as Err via `?`. The TryInsertResult is intentionally discarded
+    // because we always SELECT after to get the current row regardless of
+    // whether insert or conflict occurred.
     let _ = UserEntity::insert(model)
-        .on_conflict(on_conflict)
+        .on_conflict_do_nothing_on([users::Column::CognitoSub])
         .exec(db)
-        .await;
+        .await?;
 
     UserEntity::find()
         .filter(users::Column::CognitoSub.eq(cognito_sub))
@@ -97,8 +92,9 @@ mod tests {
     }
 
     /// Verify that production code does not silently swallow Result with `let _ = ... .await`.
-    /// The `let _ = expr.await` pattern discards the entire Result including genuine DB errors.
-    /// Only `let _ = expr.await?` (which already propagated the error) is acceptable.
+    /// The `let _ = expr.await` pattern (ending with `.await;` not `.await?`) discards the
+    /// entire Result including genuine DB errors like connection lost or permission denied.
+    /// Using `.await?` propagates errors properly; discarding TryInsertResult after `?` is fine.
     #[test]
     fn no_silent_error_swallowing_in_upsert() {
         let source = include_str!("user_service.rs");
@@ -106,9 +102,12 @@ mod tests {
             .split("#[cfg(test)]")
             .next()
             .expect("file must contain #[cfg(test)]");
+        // Detect `.await;` (Result silently discarded) after stripping whitespace.
+        // `.await?;` is acceptable because `?` already propagates the error.
+        let normalized = production_code.replace('\n', " ").replace("  ", " ");
         assert!(
-            !production_code.contains("let _ ="),
-            "Production code must not use 'let _ =' which silently swallows errors"
+            !normalized.contains(".await;"),
+            "Production code must not end an expression with '.await;' which silently swallows Result errors. Use '.await?' to propagate errors."
         );
     }
 

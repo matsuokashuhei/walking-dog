@@ -1,11 +1,6 @@
 pub mod service;
 
-use axum::{
-    extract::Request,
-    http::StatusCode,
-    middleware::Next,
-    response::Response,
-};
+use axum::{extract::Request, http::StatusCode, middleware::Next, response::Response};
 use jsonwebtoken::{decode, decode_header, Algorithm, DecodingKey, Validation};
 use serde::Deserialize;
 
@@ -23,14 +18,14 @@ struct CognitoClaims {
 /// JWT検証ミドルウェア
 /// TEST_MODE=true のとき、JWT検証をスキップして固定のcognito_subを返す
 /// Authorization ヘッダーがない場合は AuthUser を挿入せずに続行する（オプショナル認証）
-pub async fn auth_middleware(
-    mut request: Request,
-    next: Next,
-) -> Result<Response, StatusCode> {
+pub async fn auth_middleware(mut request: Request, next: Next) -> Result<Response, StatusCode> {
     // TEST_MODE: JWT検証をスキップ
     // Use the Bearer token value as cognito_sub to allow multi-user testing.
     // Default: "test-user-cognito-sub" for backwards compatibility.
-    if std::env::var("TEST_MODE").map(|v| v == "true" || v == "1").unwrap_or(false) {
+    if std::env::var("TEST_MODE")
+        .map(|v| v == "true" || v == "1")
+        .unwrap_or(false)
+    {
         let cognito_sub = request
             .headers()
             .get("Authorization")
@@ -70,7 +65,9 @@ pub async fn auth_middleware(
 
 /// GraphQL リゾルバ用: コンテキストから認証済みの cognito_sub を取得する。
 /// 未認証の場合は Unauthorized エラーを返す。
-pub fn require_auth(ctx: &async_graphql::dynamic::ResolverContext<'_>) -> async_graphql::Result<String> {
+pub fn require_auth(
+    ctx: &async_graphql::dynamic::ResolverContext<'_>,
+) -> async_graphql::Result<String> {
     ctx.data::<Option<String>>()?
         .clone()
         .ok_or_else(|| async_graphql::Error::new("Unauthorized"))
@@ -119,8 +116,8 @@ async fn verify_cognito_jwt(token: &str) -> Result<String, String> {
         )]);
     }
 
-    let token_data = decode::<CognitoClaims>(token, &decoding_key, &validation)
-        .map_err(|e| e.to_string())?;
+    let token_data =
+        decode::<CognitoClaims>(token, &decoding_key, &validation).map_err(|e| e.to_string())?;
 
     Ok(token_data.claims.sub)
 }

@@ -21,7 +21,11 @@ async fn test_create_dog() {
         .unwrap();
     assert_eq!(res.status(), 200);
     let body: serde_json::Value = res.json().await.unwrap();
-    assert_eq!(body["data"]["createDog"]["name"], "Pochi", "got: {:?}", body);
+    assert_eq!(
+        body["data"]["createDog"]["name"], "Pochi",
+        "got: {:?}",
+        body
+    );
     assert_eq!(body["data"]["createDog"]["birthDate"]["year"], 2020);
     assert_eq!(body["data"]["createDog"]["birthDate"]["month"], 4);
     assert!(body["data"]["createDog"]["birthDate"]["day"].is_null());
@@ -37,7 +41,9 @@ async fn test_update_dog() {
         .json(&serde_json::json!({
             "query": r#"mutation { createDog(input: { name: "Hachi" }) { id } }"#
         }))
-        .send().await.unwrap();
+        .send()
+        .await
+        .unwrap();
     let create_body: serde_json::Value = create_res.json().await.unwrap();
     let dog_id = create_body["data"]["createDog"]["id"].as_str().unwrap();
 
@@ -50,7 +56,11 @@ async fn test_update_dog() {
         }))
         .send().await.unwrap();
     let body: serde_json::Value = res.json().await.unwrap();
-    assert_eq!(body["data"]["updateDog"]["name"], "Hachi Updated", "got: {:?}", body);
+    assert_eq!(
+        body["data"]["updateDog"]["name"], "Hachi Updated",
+        "got: {:?}",
+        body
+    );
 }
 
 #[tokio::test]
@@ -62,7 +72,9 @@ async fn test_delete_dog() {
         .json(&serde_json::json!({
             "query": r#"mutation { createDog(input: { name: "DeleteMe" }) { id } }"#
         }))
-        .send().await.unwrap();
+        .send()
+        .await
+        .unwrap();
     let create_body: serde_json::Value = create_res.json().await.unwrap();
     let dog_id = create_body["data"]["createDog"]["id"].as_str().unwrap();
 
@@ -72,7 +84,9 @@ async fn test_delete_dog() {
         .json(&serde_json::json!({
             "query": format!(r#"mutation {{ deleteDog(id: "{}") }}"#, dog_id)
         }))
-        .send().await.unwrap();
+        .send()
+        .await
+        .unwrap();
     let body: serde_json::Value = res.json().await.unwrap();
     assert_eq!(body["data"]["deleteDog"], true, "got: {:?}", body);
 }
@@ -87,7 +101,9 @@ async fn test_generate_dog_photo_upload_url() {
         .json(&serde_json::json!({
             "query": r#"mutation { createDog(input: { name: "PhotoDog" }) { id } }"#
         }))
-        .send().await.unwrap();
+        .send()
+        .await
+        .unwrap();
     let create_body: serde_json::Value = create_res.json().await.unwrap();
     let dog_id = create_body["data"]["createDog"]["id"].as_str().unwrap();
 
@@ -104,12 +120,22 @@ async fn test_generate_dog_photo_upload_url() {
         .send().await.unwrap();
     assert_eq!(res.status(), 200);
     let body: serde_json::Value = res.json().await.unwrap();
-    let url = body["data"]["generateDogPhotoUploadUrl"]["url"].as_str().unwrap();
-    assert!(url.starts_with("http"), "URL should be an HTTP URL, got: {}", url);
+    let url = body["data"]["generateDogPhotoUploadUrl"]["url"]
+        .as_str()
+        .unwrap();
+    assert!(
+        url.starts_with("http"),
+        "URL should be an HTTP URL, got: {}",
+        url
+    );
     let key = body["data"]["generateDogPhotoUploadUrl"]["key"]
         .as_str()
         .unwrap();
-    assert!(key.ends_with(".png"), "key should end with .png, got: {}", key);
+    assert!(
+        key.ends_with(".png"),
+        "key should end with .png, got: {}",
+        key
+    );
     assert!(body["data"]["generateDogPhotoUploadUrl"]["expiresAt"].is_string());
 }
 
@@ -123,7 +149,9 @@ async fn test_generate_dog_photo_upload_url_rejects_invalid_content_type() {
         .json(&serde_json::json!({
             "query": r#"mutation { createDog(input: { name: "PhotoDogReject" }) { id } }"#
         }))
-        .send().await.unwrap();
+        .send()
+        .await
+        .unwrap();
     let create_body: serde_json::Value = create_res.json().await.unwrap();
     let dog_id = create_body["data"]["createDog"]["id"].as_str().unwrap();
 
@@ -162,7 +190,9 @@ async fn test_walk_stats() {
         .json(&serde_json::json!({
             "query": r#"mutation { createDog(input: { name: "StatsDog" }) { id } }"#
         }))
-        .send().await.unwrap();
+        .send()
+        .await
+        .unwrap();
     let create_body: serde_json::Value = create_res.json().await.unwrap();
     let dog_id = create_body["data"]["createDog"]["id"].as_str().unwrap();
 
@@ -175,6 +205,10 @@ async fn test_walk_stats() {
         }))
         .send().await.unwrap();
     let body: serde_json::Value = res.json().await.unwrap();
-    assert_eq!(body["data"]["dogWalkStats"]["totalWalks"], 0, "got: {:?}", body);
+    assert_eq!(
+        body["data"]["dogWalkStats"]["totalWalks"], 0,
+        "got: {:?}",
+        body
+    );
     assert_eq!(body["data"]["dogWalkStats"]["totalDistanceM"], 0);
 }

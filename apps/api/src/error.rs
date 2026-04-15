@@ -20,21 +20,15 @@ impl AppError {
     pub fn into_graphql_error(self) -> async_graphql::Error {
         use async_graphql::ErrorExtensions;
         match self {
-            AppError::BadRequest(msg) => {
-                async_graphql::Error::new(msg).extend_with(|_, ext| {
-                    ext.set("code", "BAD_USER_INPUT");
-                })
-            }
-            AppError::NotFound(msg) => {
-                async_graphql::Error::new(msg).extend_with(|_, ext| {
-                    ext.set("code", "NOT_FOUND");
-                })
-            }
-            AppError::Unauthorized(msg) => {
-                async_graphql::Error::new(msg).extend_with(|_, ext| {
-                    ext.set("code", "UNAUTHENTICATED");
-                })
-            }
+            AppError::BadRequest(msg) => async_graphql::Error::new(msg).extend_with(|_, ext| {
+                ext.set("code", "BAD_USER_INPUT");
+            }),
+            AppError::NotFound(msg) => async_graphql::Error::new(msg).extend_with(|_, ext| {
+                ext.set("code", "NOT_FOUND");
+            }),
+            AppError::Unauthorized(msg) => async_graphql::Error::new(msg).extend_with(|_, ext| {
+                ext.set("code", "UNAUTHENTICATED");
+            }),
             other => async_graphql::Error::new(other.to_string()).extend_with(|_, ext| {
                 ext.set("code", "INTERNAL_SERVER_ERROR");
             }),

@@ -7,9 +7,14 @@ async fn create_test_dog(client: &common::TestClient) -> String {
         .json(&serde_json::json!({
             "query": r#"mutation { createDog(input: { name: "WalkDog" }) { id } }"#
         }))
-        .send().await.unwrap();
+        .send()
+        .await
+        .unwrap();
     let body: serde_json::Value = res.json().await.unwrap();
-    body["data"]["createDog"]["id"].as_str().unwrap().to_string()
+    body["data"]["createDog"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string()
 }
 
 #[tokio::test]
@@ -26,7 +31,11 @@ async fn test_start_walk() {
         .send().await.unwrap();
     assert_eq!(res.status(), 200);
     let body: serde_json::Value = res.json().await.unwrap();
-    assert_eq!(body["data"]["startWalk"]["status"], "active", "got: {:?}", body);
+    assert_eq!(
+        body["data"]["startWalk"]["status"], "active",
+        "got: {:?}",
+        body
+    );
     assert!(body["data"]["startWalk"]["id"].is_string());
 }
 
@@ -39,11 +48,21 @@ async fn test_start_walk_empty_dogs_returns_error() {
         .json(&serde_json::json!({
             "query": r#"mutation { startWalk(dogIds: []) { id } }"#
         }))
-        .send().await.unwrap();
+        .send()
+        .await
+        .unwrap();
     let body: serde_json::Value = res.json().await.unwrap();
-    assert!(body["errors"].is_array(), "expected errors, got: {:?}", body);
+    assert!(
+        body["errors"].is_array(),
+        "expected errors, got: {:?}",
+        body
+    );
     let err_msg = body["errors"][0]["message"].as_str().unwrap();
-    assert!(err_msg.contains("dogIds") || err_msg.to_lowercase().contains("empty"), "got: {}", err_msg);
+    assert!(
+        err_msg.contains("dogIds") || err_msg.to_lowercase().contains("empty"),
+        "got: {}",
+        err_msg
+    );
 }
 
 #[tokio::test]
@@ -58,7 +77,9 @@ async fn test_finish_walk() {
         .json(&serde_json::json!({
             "query": format!(r#"mutation {{ startWalk(dogIds: ["{}"]) {{ id }} }}"#, dog_id)
         }))
-        .send().await.unwrap();
+        .send()
+        .await
+        .unwrap();
     let start_body: serde_json::Value = start_res.json().await.unwrap();
     let walk_id = start_body["data"]["startWalk"]["id"].as_str().unwrap();
 
@@ -71,7 +92,11 @@ async fn test_finish_walk() {
         }))
         .send().await.unwrap();
     let body: serde_json::Value = res.json().await.unwrap();
-    assert_eq!(body["data"]["finishWalk"]["status"], "finished", "got: {:?}", body);
+    assert_eq!(
+        body["data"]["finishWalk"]["status"], "finished",
+        "got: {:?}",
+        body
+    );
     assert!(body["data"]["finishWalk"]["endedAt"].is_string());
 }
 
@@ -82,12 +107,15 @@ async fn test_my_walks_query() {
 
     // 散歩を2件作成
     for _ in 0..2 {
-        client.post("/graphql")
+        client
+            .post("/graphql")
             .header("Authorization", "Bearer test-token")
             .json(&serde_json::json!({
                 "query": format!(r#"mutation {{ startWalk(dogIds: ["{}"]) {{ id }} }}"#, dog_id)
             }))
-            .send().await.unwrap();
+            .send()
+            .await
+            .unwrap();
     }
 
     let res = client
@@ -96,11 +124,17 @@ async fn test_my_walks_query() {
         .json(&serde_json::json!({
             "query": r#"{ myWalks { id status startedAt } }"#
         }))
-        .send().await.unwrap();
+        .send()
+        .await
+        .unwrap();
     assert_eq!(res.status(), 200);
     let body: serde_json::Value = res.json().await.unwrap();
     let walks = body["data"]["myWalks"].as_array().unwrap();
-    assert!(walks.len() >= 2, "expected >= 2 walks, got: {}", walks.len());
+    assert!(
+        walks.len() >= 2,
+        "expected >= 2 walks, got: {}",
+        walks.len()
+    );
 }
 
 #[tokio::test]
@@ -114,7 +148,9 @@ async fn test_add_walk_points() {
         .json(&serde_json::json!({
             "query": format!(r#"mutation {{ startWalk(dogIds: ["{}"]) {{ id }} }}"#, dog_id)
         }))
-        .send().await.unwrap();
+        .send()
+        .await
+        .unwrap();
     let start_body: serde_json::Value = start_res.json().await.unwrap();
     let walk_id = start_body["data"]["startWalk"]["id"].as_str().unwrap();
 
@@ -129,7 +165,9 @@ async fn test_add_walk_points() {
                 ])
             }}"#, walk_id)
         }))
-        .send().await.unwrap();
+        .send()
+        .await
+        .unwrap();
     let body: serde_json::Value = res.json().await.unwrap();
     assert_eq!(body["data"]["addWalkPoints"], true, "got: {:?}", body);
 }

@@ -102,22 +102,14 @@ impl MigrationTrait for Migration {
                             .primary_key()
                             .extra("DEFAULT gen_random_uuid()"),
                     )
-                    .col(
-                        ColumnDef::new(DogInvitations::DogId)
-                            .uuid()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(DogInvitations::DogId).uuid().not_null())
                     .col(
                         ColumnDef::new(DogInvitations::Token)
                             .string_len(64)
                             .not_null()
                             .unique_key(),
                     )
-                    .col(
-                        ColumnDef::new(DogInvitations::InvitedBy)
-                            .uuid()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(DogInvitations::InvitedBy).uuid().not_null())
                     .col(ColumnDef::new(DogInvitations::UsedBy).uuid().null())
                     .col(
                         ColumnDef::new(DogInvitations::ExpiresAt)

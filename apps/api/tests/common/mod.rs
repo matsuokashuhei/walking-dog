@@ -82,11 +82,7 @@ pub const USER_B: UserToken = UserToken("test-user-b-cognito-sub");
 
 /// Helper to send a GraphQL request as a specific user.
 #[allow(dead_code)]
-pub async fn graphql_as(
-    client: &TestClient,
-    user: &UserToken,
-    query: &str,
-) -> serde_json::Value {
+pub async fn graphql_as(client: &TestClient, user: &UserToken, query: &str) -> serde_json::Value {
     let res = client
         .post("/graphql")
         .header("Authorization", format!("Bearer {}", user.0))

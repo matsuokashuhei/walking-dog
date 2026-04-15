@@ -3,6 +3,7 @@ use async_graphql::dynamic::{Enum, EnumItem};
 use seaography::BuilderContext;
 use std::sync::Arc;
 
+pub mod auth_helpers;
 pub mod custom_mutations;
 pub mod custom_queries;
 pub mod input;

@@ -1708,10 +1708,10 @@ fn record_encounter_field(state: Arc<AppState>) -> Field {
                     dog_members::{self, Entity as DogMemberEntity},
                     users::Entity as UserEntity,
                     walk_dogs::{self, Entity as WalkDogEntity},
-                    walks::Entity as WalkEntity,
                 };
                 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 
+                // Input parse
                 let my_walk_id_str = ctx.args.try_get("myWalkId")?.string()?;
                 let their_walk_id_str = ctx.args.try_get("theirWalkId")?.string()?;
                 let my_walk_id = Uuid::parse_str(my_walk_id_str)
@@ -1719,30 +1719,11 @@ fn record_encounter_field(state: Arc<AppState>) -> Field {
                 let their_walk_id = Uuid::parse_str(their_walk_id_str)
                     .map_err(|_| async_graphql::Error::new("Invalid theirWalkId"))?;
 
+                // Auth (includes walk ownership + encounter detection check via service)
                 let user = auth_helpers::resolve_user(&ctx, &state).await?;
 
-                // Verify myWalkId belongs to the current user
-                let my_walk = WalkEntity::find_by_id(my_walk_id)
-                    .one(&state.db)
-                    .await
-                    .map_err(|e| AppError::Database(e).into_graphql_error())?
-                    .ok_or_else(|| async_graphql::Error::new("Walk not found"))?;
-                if my_walk.user_id != user.id {
-                    return Err(
-                        AppError::Unauthorized("Walk does not belong to user".to_string())
-                            .into_graphql_error(),
-                    );
-                }
-
-                // Check calling user's own encounter_detection_enabled
-                if !user.encounter_detection_enabled {
-                    return Err(AppError::Unauthorized(
-                        "Encounter detection is disabled for your account".to_string(),
-                    )
-                    .into_graphql_error());
-                }
-
                 // Check encounter_detection_enabled for all users of theirWalk
+                // (Phase 8: will be moved into service with JOIN optimization)
                 let their_walk_dogs = WalkDogEntity::find()
                     .filter(walk_dogs::Column::WalkId.eq(their_walk_id))
                     .all(&state.db)
@@ -1750,7 +1731,6 @@ fn record_encounter_field(state: Arc<AppState>) -> Field {
                     .map_err(|e| AppError::Database(e).into_graphql_error())?;
 
                 for wd in &their_walk_dogs {
-                    // Find all dog_members for this dog
                     let members = DogMemberEntity::find()
                         .filter(dog_members::Column::DogId.eq(wd.dog_id))
                         .all(&state.db)
@@ -1774,11 +1754,18 @@ fn record_encounter_field(state: Arc<AppState>) -> Field {
                     }
                 }
 
-                let encounters =
-                    encounter_service::record_encounter(&state.db, my_walk_id, their_walk_id, 30)
-                        .await
-                        .map_err(AppError::into_graphql_error)?;
+                // Service call (authorization delegated to service)
+                let encounters = encounter_service::record_encounter(
+                    &state.db,
+                    my_walk_id,
+                    their_walk_id,
+                    30,
+                    user.id,
+                )
+                .await
+                .map_err(AppError::into_graphql_error)?;
 
+                // Output
                 let values: Vec<FieldValue> = encounters
                     .into_iter()
                     .map(|e| FieldValue::owned_any(EncounterOutput::from(e)))
@@ -1801,9 +1788,7 @@ fn update_encounter_duration_field(state: Arc<AppState>) -> Field {
         move |ctx| {
             let state = state.clone();
             FieldFuture::new(async move {
-                use crate::entities::walks::Entity as WalkEntity;
-                use sea_orm::EntityTrait;
-
+                // Input parse
                 let my_walk_id_str = ctx.args.try_get("myWalkId")?.string()?;
                 let their_walk_id_str = ctx.args.try_get("theirWalkId")?.string()?;
                 let duration_sec = ctx.args.try_get("durationSec")?.i64()? as i32;
@@ -1812,38 +1797,21 @@ fn update_encounter_duration_field(state: Arc<AppState>) -> Field {
                 let their_walk_id = Uuid::parse_str(their_walk_id_str)
                     .map_err(|_| async_graphql::Error::new("Invalid theirWalkId"))?;
 
+                // Auth
                 let user = auth_helpers::resolve_user(&ctx, &state).await?;
 
-                // Check calling user's own encounter_detection_enabled
-                if !user.encounter_detection_enabled {
-                    return Err(AppError::Unauthorized(
-                        "Encounter detection is disabled for your account".to_string(),
-                    )
-                    .into_graphql_error());
-                }
-
-                // Verify myWalkId belongs to the current user
-                let my_walk = WalkEntity::find_by_id(my_walk_id)
-                    .one(&state.db)
-                    .await
-                    .map_err(|e| AppError::Database(e).into_graphql_error())?
-                    .ok_or_else(|| async_graphql::Error::new("Walk not found"))?;
-                if my_walk.user_id != user.id {
-                    return Err(
-                        AppError::Unauthorized("Walk does not belong to user".to_string())
-                            .into_graphql_error(),
-                    );
-                }
-
+                // Service call (authorization delegated to service)
                 let result = encounter_service::update_encounter_duration(
                     &state.db,
                     my_walk_id,
                     their_walk_id,
                     duration_sec,
+                    user.id,
                 )
                 .await
                 .map_err(AppError::into_graphql_error)?;
 
+                // Output
                 Ok(Some(FieldValue::value(result)))
             })
         },

@@ -230,4 +230,47 @@ mod tests {
         let result = normalize_dog_pair(id, id);
         assert_eq!(result, None);
     }
+
+    /// Static guard: record_encounter must accept acting_user_id parameter.
+    #[test]
+    fn record_encounter_signature_has_acting_user_id() {
+        let src = include_str!("encounter_service.rs");
+        // The pub async fn record_encounter signature must include acting_user_id
+        let fn_start = src
+            .find("pub async fn record_encounter")
+            .expect("record_encounter must exist");
+        let fn_signature_end = src[fn_start..].find('{').unwrap_or(0);
+        let signature = &src[fn_start..fn_start + fn_signature_end];
+        assert!(
+            signature.contains("acting_user_id"),
+            "record_encounter signature must include acting_user_id: Uuid, got: {}",
+            signature
+        );
+    }
+
+    /// Static guard: update_encounter_duration must accept acting_user_id parameter.
+    #[test]
+    fn update_encounter_duration_signature_has_acting_user_id() {
+        let src = include_str!("encounter_service.rs");
+        let fn_start = src
+            .find("pub async fn update_encounter_duration")
+            .expect("update_encounter_duration must exist");
+        let fn_signature_end = src[fn_start..].find('{').unwrap_or(0);
+        let signature = &src[fn_start..fn_start + fn_signature_end];
+        assert!(
+            signature.contains("acting_user_id"),
+            "update_encounter_duration signature must include acting_user_id: Uuid, got: {}",
+            signature
+        );
+    }
+
+    /// Static guard: encounter_service must call verify_encounter_detection.
+    #[test]
+    fn encounter_service_calls_verify_encounter_detection() {
+        let src = include_str!("encounter_service.rs");
+        assert!(
+            src.contains("verify_encounter_detection"),
+            "encounter_service must call walk_event_service::verify_encounter_detection"
+        );
+    }
 }

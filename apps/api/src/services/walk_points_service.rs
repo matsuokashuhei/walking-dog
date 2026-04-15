@@ -1,9 +1,13 @@
+use crate::error::AppError;
 use aws_sdk_dynamodb::{
+    types::{AttributeValue, PutRequest, WriteRequest},
     Client as DynamoClient,
-    types::{AttributeValue, WriteRequest, PutRequest},
 };
 use uuid::Uuid;
-use crate::error::AppError;
+
+/// Maximum number of write requests per DynamoDB BatchWriteItem call.
+/// See: https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_BatchWriteItem.html
+const DYNAMODB_BATCH_WRITE_LIMIT: usize = 25;
 
 #[derive(Clone, Debug)]
 pub struct WalkPoint {
@@ -18,7 +22,7 @@ pub struct WalkPointInput {
     pub recorded_at: String,
 }
 
-/// バッチ書き込み: DynamoDBは1回のバッチで最大25件まで
+/// バッチ書き込み: DynamoDBは1回のバッチで最大 DYNAMODB_BATCH_WRITE_LIMIT 件まで
 pub async fn add_walk_points(
     client: &DynamoClient,
     table_name: &str,
@@ -26,7 +30,9 @@ pub async fn add_walk_points(
     points: Vec<WalkPointInput>,
 ) -> Result<bool, AppError> {
     if points.len() > 200 {
-        return Err(AppError::BadRequest("batch size must be <= 200".to_string()));
+        return Err(AppError::BadRequest(
+            "batch size must be <= 200".to_string(),
+        ));
     }
 
     if points.is_empty() {
@@ -39,10 +45,16 @@ pub async fn add_walk_points(
         .map(|point| {
             let item = std::collections::HashMap::from([
                 ("pk".to_string(), AttributeValue::S(pk.clone())),
-                ("sk".to_string(), AttributeValue::S(format!("PT#{}", point.recorded_at))),
+                (
+                    "sk".to_string(),
+                    AttributeValue::S(format!("PT#{}", point.recorded_at)),
+                ),
                 ("lat".to_string(), AttributeValue::N(point.lat.to_string())),
                 ("lng".to_string(), AttributeValue::N(point.lng.to_string())),
-                ("recorded_at".to_string(), AttributeValue::S(point.recorded_at.clone())),
+                (
+                    "recorded_at".to_string(),
+                    AttributeValue::S(point.recorded_at.clone()),
+                ),
             ]);
             WriteRequest::builder()
                 .put_request(PutRequest::builder().set_item(Some(item)).build().unwrap())
@@ -50,8 +62,8 @@ pub async fn add_walk_points(
         })
         .collect();
 
-    // DynamoDBは1バッチ最大25件のため分割送信
-    for chunk in all_requests.chunks(25) {
+    // DynamoDBは1バッチ最大 DYNAMODB_BATCH_WRITE_LIMIT 件のため分割送信
+    for chunk in all_requests.chunks(DYNAMODB_BATCH_WRITE_LIMIT) {
         client
             .batch_write_item()
             .request_items(table_name, chunk.to_vec())
@@ -86,11 +98,25 @@ pub async fn get_walk_points(
             let lat = item.get("lat")?.as_n().ok()?.parse().ok()?;
             let lng = item.get("lng")?.as_n().ok()?.parse().ok()?;
             let recorded_at = item.get("recorded_at")?.as_s().ok()?.clone();
-            Some(WalkPoint { lat, lng, recorded_at })
+            Some(WalkPoint {
+                lat,
+                lng,
+                recorded_at,
+            })
         })
         .collect();
 
     // recorded_at でソート
     points.sort_by(|a, b| a.recorded_at.cmp(&b.recorded_at));
     Ok(points)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn dynamodb_batch_write_limit_is_25() {
+        assert_eq!(DYNAMODB_BATCH_WRITE_LIMIT, 25);
+    }
 }

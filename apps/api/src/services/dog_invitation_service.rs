@@ -1,5 +1,8 @@
 use chrono::{Duration, Utc};
 use rand::Rng;
+
+/// Validity period for dog invitation tokens (in hours).
+const INVITATION_EXPIRY_HOURS: i64 = 24;
 use sea_orm::{
     sea_query::LockType, ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QuerySelect, Set,
     TransactionTrait,
@@ -19,7 +22,7 @@ pub async fn create_invitation(
     invited_by: Uuid,
 ) -> Result<DogInvitationModel, AppError> {
     let token = generate_token();
-    let expires_at = Utc::now() + Duration::hours(24);
+    let expires_at = Utc::now() + Duration::hours(INVITATION_EXPIRY_HOURS);
 
     let model = ActiveModel {
         id: Set(Uuid::new_v4()),
@@ -80,8 +83,7 @@ pub async fn accept_invitation(
     active.update(&txn).await?;
 
     // Add user as member
-    let member =
-        dog_member_service::add_member(&txn, invitation.dog_id, user_id, "member").await?;
+    let member = dog_member_service::add_member(&txn, invitation.dog_id, user_id, "member").await?;
 
     txn.commit().await?;
     Ok(member)
@@ -90,4 +92,14 @@ pub async fn accept_invitation(
 fn generate_token() -> String {
     let bytes: [u8; 16] = rand::thread_rng().gen();
     hex::encode(bytes)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn invitation_expiry_hours_is_24() {
+        assert_eq!(INVITATION_EXPIRY_HOURS, 24);
+    }
 }

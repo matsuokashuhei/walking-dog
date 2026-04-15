@@ -1,5 +1,7 @@
 use chrono::Utc;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set};
+use std::fmt;
+use std::str::FromStr;
 use uuid::Uuid;
 
 use crate::entities::{
@@ -12,6 +14,40 @@ use crate::entities::{
 };
 use crate::error::AppError;
 use crate::services::dog_member_service;
+
+/// Walk event type. The DB column stays `text`; this enum drives validation.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum WalkEventType {
+    Pee,
+    Poo,
+    Photo,
+}
+
+impl fmt::Display for WalkEventType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            WalkEventType::Pee => write!(f, "pee"),
+            WalkEventType::Poo => write!(f, "poo"),
+            WalkEventType::Photo => write!(f, "photo"),
+        }
+    }
+}
+
+impl FromStr for WalkEventType {
+    type Err = AppError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "pee" => Ok(WalkEventType::Pee),
+            "poo" => Ok(WalkEventType::Poo),
+            "photo" => Ok(WalkEventType::Photo),
+            other => Err(AppError::BadRequest(format!(
+                "Invalid event_type: '{}'. Must be one of: pee, poo, photo",
+                other
+            ))),
+        }
+    }
+}
 
 pub struct RecordEventInput {
     pub dog_id: Option<Uuid>,
@@ -73,21 +109,16 @@ pub async fn record_event(
     user_id: Uuid,
     input: RecordEventInput,
 ) -> Result<WalkEventModel, AppError> {
-    // Validate event_type
-    if !["pee", "poo", "photo"].contains(&input.event_type.as_str()) {
-        return Err(AppError::BadRequest(format!(
-            "Invalid event_type: '{}'. Must be one of: pee, poo, photo",
-            input.event_type
-        )));
-    }
+    // Validate event_type via enum parse
+    let event_type: WalkEventType = input.event_type.parse()?;
 
     // Validate photo_key requirement
-    if input.event_type == "photo" && input.photo_key.is_none() {
+    if event_type == WalkEventType::Photo && input.photo_key.is_none() {
         return Err(AppError::BadRequest(
             "photo_key is required for photo events".to_string(),
         ));
     }
-    if input.event_type != "photo" && input.photo_key.is_some() {
+    if event_type != WalkEventType::Photo && input.photo_key.is_some() {
         return Err(AppError::BadRequest(
             "photo_key must not be set for non-photo events".to_string(),
         ));
@@ -101,7 +132,7 @@ pub async fn record_event(
         id: Set(Uuid::new_v4()),
         walk_id: Set(walk_id),
         dog_id: Set(input.dog_id),
-        event_type: Set(input.event_type),
+        event_type: Set(event_type.to_string()),
         occurred_at: Set(input.occurred_at),
         lat: Set(input.lat),
         lng: Set(input.lng),
@@ -126,4 +157,42 @@ pub async fn list_events(
         .await?;
 
     Ok(events)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn walk_event_type_from_str_pee() {
+        let t: WalkEventType = "pee".parse().unwrap();
+        assert_eq!(t, WalkEventType::Pee);
+    }
+
+    #[test]
+    fn walk_event_type_from_str_poo() {
+        let t: WalkEventType = "poo".parse().unwrap();
+        assert_eq!(t, WalkEventType::Poo);
+    }
+
+    #[test]
+    fn walk_event_type_from_str_photo() {
+        let t: WalkEventType = "photo".parse().unwrap();
+        assert_eq!(t, WalkEventType::Photo);
+    }
+
+    #[test]
+    fn walk_event_type_from_str_invalid_returns_error() {
+        let result: Result<WalkEventType, _> = "bark".parse();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn walk_event_type_display_roundtrip() {
+        for t in [WalkEventType::Pee, WalkEventType::Poo, WalkEventType::Photo] {
+            let s = t.to_string();
+            let back: WalkEventType = s.parse().unwrap();
+            assert_eq!(back, t);
+        }
+    }
 }

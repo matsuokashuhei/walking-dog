@@ -1,3 +1,4 @@
+import { useCallback, useEffect } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
@@ -22,6 +23,8 @@ export function WalkEventActions() {
   const selectedDogIds = useWalkStore((s) => s.selectedDogIds);
   const points = useWalkStore((s) => s.points);
   const addEvent = useWalkStore((s) => s.addEvent);
+  const cameraRequestedAt = useWalkStore((s) => s.cameraRequestedAt);
+  const clearCameraRequest = useWalkStore((s) => s.clearCameraRequest);
 
   const recordWalkEvent = useRecordWalkEvent();
   const generatePhotoUploadUrl = useGenerateWalkEventPhotoUploadUrl();
@@ -52,7 +55,7 @@ export function WalkEventActions() {
     }
   };
 
-  const handlePhoto = async () => {
+  const handlePhoto = useCallback(async () => {
     if (!walkId) return;
 
     const permission = await ImagePicker.requestCameraPermissionsAsync();
@@ -103,7 +106,16 @@ export function WalkEventActions() {
       }[phase];
       Alert.alert(t('common.error'), t(messageKey));
     }
-  };
+  }, [walkId, dogId, latestPoint, t, generatePhotoUploadUrl, recordWalkEvent, addEvent]);
+
+  // Live Activity の Camera ボタン (deep link 経由) で walk-store の
+  // cameraRequestedAt が更新されたら、アプリ内 Pee/Poo/Photo ボタンを
+  // 押されたときと同じ handlePhoto を実行する。
+  useEffect(() => {
+    if (!cameraRequestedAt || !walkId) return;
+    void handlePhoto();
+    clearCameraRequest();
+  }, [cameraRequestedAt, walkId, handlePhoto, clearCameraRequest]);
 
   const handlePress = (type: WalkEventType) => {
     if (type === 'photo') {

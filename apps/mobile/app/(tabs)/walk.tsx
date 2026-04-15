@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
 import { useWalkStore } from '@/stores/walk-store';
@@ -35,6 +36,8 @@ export default function WalkScreen() {
   const addPoint = useWalkStore((s) => s.addPoint);
   const startRecording = useWalkStore((s) => s.startRecording);
   const finish = useWalkStore((s) => s.finish);
+  const requestCamera = useWalkStore((s) => s.requestCamera);
+  const params = useLocalSearchParams<{ action?: string }>();
 
   const { data: me } = useMe();
   const startWalk = useStartWalk();
@@ -54,6 +57,17 @@ export default function WalkScreen() {
       setIsSheetOpen(false);
     }
   }, [phase]);
+
+  // Live Activity の Camera ボタン (Link) からのディープリンク
+  // walking-dog://walk?action=camera を受けたら、撮影フローを起動する。
+  // setParams で action を null にして再来訪での連続発火を防ぐ。
+  useEffect(() => {
+    if (params.action !== 'camera') return;
+    if (phase === 'recording' && walkId) {
+      requestCamera();
+    }
+    router.setParams({ action: undefined });
+  }, [params.action, phase, walkId, requestCamera]);
 
   const handleStart = useCallback(async () => {
     const granted = await requestPermission();

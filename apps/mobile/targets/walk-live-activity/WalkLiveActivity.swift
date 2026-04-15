@@ -84,11 +84,16 @@ struct WalkLockScreenView: View {
     }
 }
 
+// Camera deep link is fixed at compile time. Routes via the app's URL scheme
+// (declared in app.config.ts) into the walk screen, where useLocalSearchParams
+// detects action=camera and triggers the existing handlePhoto flow.
+private let cameraDeepLink = URL(string: "walking-dog://walk?action=camera")!
+
 struct WalkEventButtons: View {
     let lastEventKind: String?
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 8) {
             Button(intent: PeeIntent()) {
                 eventLabel(emoji: "🚽", text: "Pee", highlighted: lastEventKind == "pee")
             }
@@ -98,6 +103,13 @@ struct WalkEventButtons: View {
                 eventLabel(emoji: "💩", text: "Poo", highlighted: lastEventKind == "poo")
             }
             .buttonStyle(.plain)
+
+            // Camera intentionally uses Link, not AppIntent — opening the
+            // camera UI requires the host app process. Tapping triggers Face
+            // ID unlock if the device is locked.
+            Link(destination: cameraDeepLink) {
+                eventLabel(emoji: "📷", text: "Camera", highlighted: false)
+            }
         }
     }
 

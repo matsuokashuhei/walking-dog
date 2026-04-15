@@ -12,11 +12,19 @@ interface WalkState {
   totalDistanceM: number;
   startedAt: Date | null;
   events: WalkEvent[];
+  // Bumped to a fresh timestamp each time the Live Activity camera button (or
+  // any other source) requests the camera flow. WalkEventActions watches it
+  // and triggers handlePhoto. Using a timestamp instead of a boolean gives a
+  // distinct value per request so repeat taps fire even if the previous one
+  // wasn't acknowledged yet.
+  cameraRequestedAt: number | null;
   selectDog: (dogId: string) => void;
   startRecording: (walkId: string) => void;
   addPoint: (point: WalkPoint) => void;
   addEvent: (event: WalkEvent) => void;
   removeEvent: (eventId: string) => void;
+  requestCamera: () => void;
+  clearCameraRequest: () => void;
   finish: () => void;
   reset: () => void;
 }
@@ -29,6 +37,7 @@ export const useWalkStore = create<WalkState>((set, get) => ({
   totalDistanceM: 0,
   startedAt: null,
   events: [],
+  cameraRequestedAt: null,
 
   selectDog: (dogId) =>
     set((state) => ({
@@ -56,7 +65,11 @@ export const useWalkStore = create<WalkState>((set, get) => ({
   removeEvent: (eventId) =>
     set((state) => ({ events: state.events.filter((e) => e.id !== eventId) })),
 
-  finish: () => set({ phase: 'finished' }),
+  requestCamera: () => set({ cameraRequestedAt: Date.now() }),
+
+  clearCameraRequest: () => set({ cameraRequestedAt: null }),
+
+  finish: () => set({ phase: 'finished', cameraRequestedAt: null }),
 
   reset: () =>
     set({
@@ -67,5 +80,6 @@ export const useWalkStore = create<WalkState>((set, get) => ({
       totalDistanceM: 0,
       startedAt: null,
       events: [],
+      cameraRequestedAt: null,
     }),
 }));

@@ -1,5 +1,5 @@
-use aws_sdk_cognitoidentityprovider::Client;
 use aws_sdk_cognitoidentityprovider::types::AttributeType;
+use aws_sdk_cognitoidentityprovider::Client;
 
 pub struct SignUpResult {
     pub user_confirmed: bool,
@@ -158,5 +158,53 @@ pub async fn sign_out(client: &Client, access_token: &str) -> Result<(), String>
         // cognito-local does not implement GlobalSignOut; treat as success.
         Err(ref e) if e == "UNSUPPORTED" => Ok(()),
         Err(e) => Err(e),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::map_error_code;
+    use crate::error::AppError;
+
+    #[test]
+    fn map_error_code_username_exists() {
+        let result = map_error_code(Some("UsernameExistsException"));
+        assert!(matches!(result, AppError::BadRequest(msg) if msg == "USER_EXISTS"));
+    }
+
+    #[test]
+    fn map_error_code_not_authorized() {
+        let result = map_error_code(Some("NotAuthorizedException"));
+        assert!(matches!(result, AppError::Unauthorized(msg) if msg == "INVALID_CREDENTIALS"));
+    }
+
+    #[test]
+    fn map_error_code_code_mismatch() {
+        let result = map_error_code(Some("CodeMismatchException"));
+        assert!(matches!(result, AppError::BadRequest(msg) if msg == "INVALID_CODE"));
+    }
+
+    #[test]
+    fn map_error_code_expired_code() {
+        let result = map_error_code(Some("ExpiredCodeException"));
+        assert!(matches!(result, AppError::BadRequest(msg) if msg == "EXPIRED_CODE"));
+    }
+
+    #[test]
+    fn map_error_code_invalid_password() {
+        let result = map_error_code(Some("InvalidPasswordException"));
+        assert!(matches!(result, AppError::BadRequest(msg) if msg == "INVALID_PASSWORD"));
+    }
+
+    #[test]
+    fn map_error_code_unknown() {
+        let result = map_error_code(None);
+        assert!(matches!(result, AppError::Internal(msg) if msg == "AUTH_ERROR"));
+    }
+
+    #[test]
+    fn map_error_code_unrecognized() {
+        let result = map_error_code(Some("SomeUnknownException"));
+        assert!(matches!(result, AppError::Internal(msg) if msg == "AUTH_ERROR"));
     }
 }

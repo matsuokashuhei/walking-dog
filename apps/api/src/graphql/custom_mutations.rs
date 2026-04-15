@@ -1167,7 +1167,7 @@ fn sign_up_field(state: Arc<AppState>) -> Field {
                 &display_name,
             )
             .await
-            .map_err(async_graphql::Error::new)?;
+            .map_err(AppError::into_graphql_error)?;
 
             // display_name 付きで DB ユーザーレコードを即時作成する。
             if !result.user_sub.is_empty() {
@@ -1203,7 +1203,7 @@ fn confirm_sign_up_field(state: Arc<AppState>) -> Field {
                     &code,
                 )
                 .await
-                .map_err(async_graphql::Error::new)?;
+                .map_err(AppError::into_graphql_error)?;
 
                 Ok(Some(FieldValue::value(true)))
             })
@@ -1230,7 +1230,7 @@ fn sign_in_field(state: Arc<AppState>) -> Field {
                 &password,
             )
             .await
-            .map_err(async_graphql::Error::new)?;
+            .map_err(AppError::into_graphql_error)?;
 
             Ok(Some(FieldValue::owned_any(SignInOutput {
                 access_token: result.access_token,
@@ -1249,7 +1249,7 @@ fn sign_out_field(state: Arc<AppState>) -> Field {
 
             auth::service::sign_out(&state.cognito, &access_token)
                 .await
-                .map_err(async_graphql::Error::new)?;
+                .map_err(AppError::into_graphql_error)?;
 
             Ok(Some(FieldValue::value(true)))
         })
@@ -1276,7 +1276,7 @@ fn refresh_token_field(state: Arc<AppState>) -> Field {
                     &refresh_token,
                 )
                 .await
-                .map_err(async_graphql::Error::new)?;
+                .map_err(AppError::into_graphql_error)?;
 
                 Ok(Some(FieldValue::owned_any(SignInOutput {
                     access_token: result.access_token,

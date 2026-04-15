@@ -19,6 +19,8 @@ aws-config = { version = "1", features = ["behavior-version-latest"] }
 aws-sdk-dynamodb = "1"
 aws-sdk-s3 = { version = "1", features = ["behavior-version-latest"] }
 aws-sdk-cognitoidentityprovider = "1"
+aws-smithy-types = "1"
+aws-smithy-runtime-api = { version = "1", features = ["client"] }
 aws-types = "1"
 migration = { path = "migration" }
 sea-orm-migration = { version = "~2.0.0-rc", features = ["sqlx-postgres", "runtime-tokio-rustls"] }

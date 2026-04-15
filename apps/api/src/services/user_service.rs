@@ -1,6 +1,9 @@
 use crate::entities::users::{self, ActiveModel, Entity as UserEntity, Model as UserModel};
 use crate::error::AppError;
-use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter, Set,
+    TryInsertResult,
+};
 use uuid::Uuid;
 
 /// Internal helper: insert-or-fetch user by cognito_sub using SeaORM on_conflict.
@@ -10,44 +13,41 @@ async fn upsert_user(
     cognito_sub: &str,
     display_name: Option<&str>,
 ) -> Result<UserModel, AppError> {
-    todo!("Phase 4 GREEN: implement upsert_user")
-}
-
-pub async fn get_or_create_user(
-    db: &sea_orm::DatabaseConnection,
-    cognito_sub: &str,
-) -> Result<UserModel, AppError> {
-    if let Some(model) = UserEntity::find()
-        .filter(users::Column::CognitoSub.eq(cognito_sub))
-        .one(db)
-        .await?
-    {
-        return Ok(model);
-    }
-
-    // Try to insert; if unique constraint violation, re-fetch
-    let result = ActiveModel {
+    let model = ActiveModel {
         id: Set(Uuid::new_v4()),
         cognito_sub: Set(cognito_sub.to_string()),
+        display_name: Set(display_name.map(|s| s.to_string())),
         ..Default::default()
-    }
-    .insert(db)
-    .await;
+    };
+
+    let result = UserEntity::insert(model)
+        .on_conflict_do_nothing()
+        .exec_with_returning(db)
+        .await?;
 
     match result {
-        Ok(model) => Ok(model),
-        Err(sea_orm::DbErr::Query(ref err)) if err.to_string().contains("duplicate key") => {
-            let model = UserEntity::find()
+        TryInsertResult::Inserted(m) => Ok(m),
+        TryInsertResult::Conflicted => {
+            let m = UserEntity::find()
                 .filter(users::Column::CognitoSub.eq(cognito_sub))
                 .one(db)
                 .await?
                 .ok_or_else(|| {
                     AppError::Internal("User disappeared after insert conflict".to_string())
                 })?;
-            Ok(model)
+            Ok(m)
         }
-        Err(e) => Err(AppError::Database(e)),
+        TryInsertResult::Empty => Err(AppError::Internal(
+            "Unexpected empty insert result".to_string(),
+        )),
     }
+}
+
+pub async fn get_or_create_user(
+    db: &sea_orm::DatabaseConnection,
+    cognito_sub: &str,
+) -> Result<UserModel, AppError> {
+    upsert_user(db, cognito_sub, None).await
 }
 
 pub async fn create_user_with_profile(
@@ -55,37 +55,7 @@ pub async fn create_user_with_profile(
     cognito_sub: &str,
     display_name: &str,
 ) -> Result<UserModel, AppError> {
-    if let Some(model) = UserEntity::find()
-        .filter(users::Column::CognitoSub.eq(cognito_sub))
-        .one(db)
-        .await?
-    {
-        return Ok(model);
-    }
-
-    let result = ActiveModel {
-        id: Set(Uuid::new_v4()),
-        cognito_sub: Set(cognito_sub.to_string()),
-        display_name: Set(Some(display_name.to_string())),
-        ..Default::default()
-    }
-    .insert(db)
-    .await;
-
-    match result {
-        Ok(model) => Ok(model),
-        Err(sea_orm::DbErr::Query(ref err)) if err.to_string().contains("duplicate key") => {
-            let model = UserEntity::find()
-                .filter(users::Column::CognitoSub.eq(cognito_sub))
-                .one(db)
-                .await?
-                .ok_or_else(|| {
-                    AppError::Internal("User disappeared after insert conflict".to_string())
-                })?;
-            Ok(model)
-        }
-        Err(e) => Err(AppError::Database(e)),
-    }
+    upsert_user(db, cognito_sub, Some(display_name)).await
 }
 
 pub async fn update_profile(
@@ -103,7 +73,7 @@ pub async fn update_profile(
         return Ok(model);
     }
 
-    let mut active: users::ActiveModel = model.into();
+    let mut active: users::ActiveModel = model.into_active_model();
     if let Some(name) = display_name {
         active.display_name = Set(Some(name));
     }
@@ -113,19 +83,19 @@ pub async fn update_profile(
 
 #[cfg(test)]
 mod tests {
-    /// Verify that "duplicate key" string matching is no longer present in this file.
+    /// Verify that "duplicate key" string matching is no longer present in production code.
     /// This test enforces the Phase 4 completion condition.
     #[test]
-    fn no_duplicate_key_string_matching() {
+    fn no_duplicate_key_string_matching_in_production_code() {
         let source = include_str!("user_service.rs");
-        // Count occurrences outside of this test module itself
-        let occurrences: Vec<_> = source.match_indices("duplicate key").collect();
-        // The only allowed occurrence is the one inside this test string literal
-        assert_eq!(
-            occurrences.len(),
-            1,
-            "Found 'duplicate key' string matching outside test: occurrences = {}",
-            occurrences.len()
+        // Split at cfg(test) to isolate production code
+        let production_code = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("file must contain #[cfg(test)]");
+        assert!(
+            !production_code.contains("duplicate key"),
+            "Production code must not contain 'duplicate key' string matching"
         );
     }
 

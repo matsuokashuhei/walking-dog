@@ -1,5 +1,5 @@
 use super::auth_helpers;
-use super::custom_mutations::{DogOutput, UserOutput, WalkOutput};
+use super::mutations::{DogOutput, UserOutput, WalkOutput};
 use crate::error::AppError;
 use crate::services::{
     dog_member_service, dog_service, encounter_service, friendship_service, walk_points_service,
@@ -371,7 +371,7 @@ fn dog_field(state: Arc<AppState>) -> Field {
                 .await
                 .map_err(AppError::into_graphql_error)?;
 
-            Ok(dog.map(|d| FieldValue::owned_any(super::custom_mutations::DogOutput::from(d))))
+            Ok(dog.map(|d| FieldValue::owned_any(super::mutations::DogOutput::from(d))))
         })
     })
     .argument(InputValue::new("id", TypeRef::named_nn(TypeRef::ID)))

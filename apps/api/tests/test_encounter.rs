@@ -339,3 +339,64 @@ async fn test_dog_encounters_history() {
     assert_eq!(encounters.len(), 1);
     assert_eq!(encounters[0]["durationSec"].as_i64().unwrap(), 30);
 }
+
+/// Phase 9: field-wise validation — both invalid UUIDs should produce
+/// extensions.fields with 2 entries (myWalkId + theirWalkId), not just the first.
+#[tokio::test]
+async fn test_record_encounter_invalid_both_uuids_returns_field_errors() {
+    let client = common::test_client().await;
+
+    let res = client
+        .post("/graphql")
+        .header("Authorization", "Bearer test-token")
+        .json(&serde_json::json!({
+            "query": r#"mutation {
+                recordEncounter(myWalkId: "not-a-uuid", theirWalkId: "also-not-a-uuid") {
+                    id
+                }
+            }"#
+        }))
+        .send()
+        .await
+        .unwrap();
+    let body: serde_json::Value = res.json().await.unwrap();
+
+    // Must have errors
+    assert!(
+        body["errors"].is_array(),
+        "expected errors array, got: {:?}",
+        body
+    );
+
+    // The error must contain extensions.fields with both field errors
+    let err = &body["errors"][0];
+    let fields = &err["extensions"]["fields"];
+    assert!(
+        fields.is_array(),
+        "expected extensions.fields array, got: {:?}",
+        err
+    );
+    let fields_arr = fields.as_array().unwrap();
+    assert_eq!(
+        fields_arr.len(),
+        2,
+        "expected 2 field errors (myWalkId + theirWalkId), got: {:?}",
+        fields_arr
+    );
+
+    // Verify field names are present
+    let field_names: Vec<&str> = fields_arr
+        .iter()
+        .filter_map(|e| e["field"].as_str())
+        .collect();
+    assert!(
+        field_names.contains(&"myWalkId"),
+        "expected myWalkId in fields, got: {:?}",
+        field_names
+    );
+    assert!(
+        field_names.contains(&"theirWalkId"),
+        "expected theirWalkId in fields, got: {:?}",
+        field_names
+    );
+}

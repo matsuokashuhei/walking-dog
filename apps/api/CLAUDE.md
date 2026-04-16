@@ -6,12 +6,13 @@
 - Docker Compose の `api` サービス経由で実行する:
   ```bash
   docker compose -f apps/compose.yml run --rm api cargo build
-  docker compose -f apps/compose.yml run --rm api cargo test
+  docker compose -f apps/compose.yml run --rm api cargo test --features test-utils
   ```
 - または既存コンテナで実行:
   ```bash
-  docker compose -f apps/compose.yml exec api cargo test
+  docker compose -f apps/compose.yml exec api cargo test --features test-utils
   ```
+- **注**: `cargo test --lib` (unit test のみ) は feature 不要。integration test を含む `cargo test` 系は `--features test-utils` 必須 (詳細は下の「Test Execution / Feature Flags」節)
 
 ## JWT 検証の仕組み
 

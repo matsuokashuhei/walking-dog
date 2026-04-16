@@ -39,8 +39,8 @@ impl AppError {
                 ext.set("code", "UNAUTHENTICATED");
             }),
             AppError::ValidationErrors(errors) => {
-                let json = serde_json::to_value(&errors)
-                    .unwrap_or(serde_json::Value::Array(vec![]));
+                let json =
+                    serde_json::to_value(&errors).unwrap_or(serde_json::Value::Array(vec![]));
                 let fields = async_graphql::Value::from_json(json)
                     .unwrap_or(async_graphql::Value::List(vec![]));
                 async_graphql::Error::new("Validation failed").extend_with(|_, ext| {

@@ -63,7 +63,7 @@ color: magenta
 **API（Rust）タスクがある場合:**
 - [ ] `docker compose -f apps/compose.yml run --rm api cargo fmt --check` — 違反なし
 - [ ] `docker compose -f apps/compose.yml run --rm api cargo clippy -- -D warnings` — 警告なし
-- [ ] `docker compose -f apps/compose.yml run --rm api cargo test` — 全テスト成功
+- [ ] `docker compose -f apps/compose.yml run --rm api cargo test --features test-utils` — 全テスト成功
 - [ ] テストが実装より先に書かれている（gitログの順序を確認）
 
 **Mobile（React Native）タスクがある場合:**
@@ -112,7 +112,7 @@ color: magenta
 - [ ] エラーパスがテストされている
 
 **API（Rust）の場合:**
-- [ ] `docker compose -f apps/compose.yml run --rm api cargo test` — 全テスト成功
+- [ ] `docker compose -f apps/compose.yml run --rm api cargo test --features test-utils` — 全テスト成功
 - [ ] テスト数が機能スコープに対して妥当
 
 **Mobile（React Native）の場合:**

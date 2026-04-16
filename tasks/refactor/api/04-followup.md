@@ -51,6 +51,8 @@
 
 **推奨**: A が最小変更。Step: feature flag 追加 + integration test 走らせる際に `--features test-utils` 明示。
 
+**ステータス**: DONE (PR TBD, 2026-04-17)
+
 ---
 
 ## 4. sign_up 仕様変更 D 案の保留 [Low]

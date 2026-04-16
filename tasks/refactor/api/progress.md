@@ -12,7 +12,7 @@
 - [x] Phase 8: encounter N+M クエリ解消 JOIN 一括取得 (依存: Phase 7) — 2026-04-15 — RED: f1b00c5 / GREEN: 03837cb — CLEANUP: 361866f (remove self-referential static guard) — verify_counterparty_encounter_detection added to walk_event_service (3 fixed queries: walk_dogs IN, dog_members IN, users IN+filter); encounter_service::record_encounter calls it; record_encounter_field triple-nested loop (29 lines) deleted; SQL log confirms O(N×M) → 3 fixed queries
 - [x] Phase 9: GraphQL field-wise バリデーションエラー — 2026-04-15 — RED(error.rs): 6afd58d / GREEN(error.rs): f06396e / RED(integration): 83b3f79 / GREEN(resolvers): 0f955d2 — FieldError struct + ValidationErrors variant + into_graphql_error extensions.fields; record_encounter_field + add_walk_points_field UUID parse ? → accumulation; test_record_encounter_invalid_both_uuids_returns_field_errors integration test added
 - [x] Phase 10: TEST_MODE → trait JwtVerifier 抽象化 — 2026-04-15 — RED: 3f558a6 / GREEN: 1cb07e2 — JwtVerifier trait + CognitoJwtVerifier + NoOpJwtVerifier in auth/jwt.rs; TEST_MODE branch removed from middleware; tests inject NoOpJwtVerifier; production binary: TEST_MODE 0 hits
-- [ ] Phase 11: テスト基盤整備 tests/support/ 分離 + MockDatabase (依存: Phase 3, 7)
+- [x] Phase 11: テスト基盤整備 tests/support/ 分離 + MockDatabase (依存: Phase 3, 7) — 2026-04-16 — REFACTOR: 9e25fe8 / RED: 74ddb92 / GREEN: 1f4732d — tests/common/mod.rs → tests/support/{mod.rs,client.rs,tokens.rs,fixtures.rs}; #[allow(dead_code)] 0 hits; 6 new MockDatabase tests (encounter×3, walk×3); cargo test --lib: 60 passed
 - [ ] Phase 12: sign_up facade 化 (依存: Phase 4)
 - [ ] Phase 13: custom_mutations.rs ファイル分割 (依存: Phase 6,7,8,9,10,12)
 

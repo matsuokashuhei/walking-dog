@@ -1,4 +1,6 @@
 use migration::{Migrator, MigratorTrait};
+use std::sync::Arc;
+use walking_dog_api::auth::jwt::CognitoJwtVerifier;
 use walking_dog_api::config::Config;
 
 #[tokio::main]
@@ -32,10 +34,12 @@ async fn main() {
     )
     .await;
 
+    let verifier = Arc::new(CognitoJwtVerifier);
+
     let addr = std::net::SocketAddr::from(([0, 0, 0, 0], config.port));
     tracing::info!("Listening on {}", addr);
 
-    let app = walking_dog_api::build_app(db, dynamo, s3, cognito, config);
+    let app = walking_dog_api::build_app(db, dynamo, s3, cognito, config, verifier);
 
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();

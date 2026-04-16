@@ -1,4 +1,5 @@
 use std::net::SocketAddr;
+use std::sync::Arc;
 use tokio::net::TcpListener;
 
 pub struct TestClient {
@@ -25,7 +26,6 @@ impl TestClient {
 }
 
 pub async fn test_client() -> TestClient {
-    std::env::set_var("TEST_MODE", "true");
     let config = walking_dog_api::config::Config::from_env();
 
     let db = walking_dog_api::db::connect(&config.database_url)
@@ -54,7 +54,12 @@ pub async fn test_client() -> TestClient {
     )
     .await;
 
-    let app = walking_dog_api::build_app(db, dynamo, s3, cognito, config);
+    // Use NoOpJwtVerifier so integration tests don't need real Cognito tokens.
+    // The Bearer token value is used as cognito_sub directly.
+    // "test-token" maps to "test-user-cognito-sub" for backwards compatibility.
+    let verifier = Arc::new(walking_dog_api::auth::jwt::NoOpJwtVerifier);
+
+    let app = walking_dog_api::build_app(db, dynamo, s3, cognito, config, verifier);
 
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr: SocketAddr = listener.local_addr().unwrap();
@@ -70,7 +75,7 @@ pub async fn test_client() -> TestClient {
 }
 
 /// Helper to make GraphQL requests as a specific user.
-/// In TEST_MODE, the Bearer token value is used as the cognito_sub.
+/// The Bearer token value is used as the cognito_sub via NoOpJwtVerifier.
 /// "test-token" maps to the default "test-user-cognito-sub" user.
 #[allow(dead_code)]
 pub struct UserToken(pub &'static str);

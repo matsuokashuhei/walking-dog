@@ -402,7 +402,6 @@ async fn list_events_returns_in_occurred_at_asc() {
 async fn generate_walk_event_photo_upload_url_returns_presigned_put_with_walks_prefix() {
     use walking_dog_api::services::s3_service;
 
-    std::env::set_var("TEST_MODE", "true");
     let config = walking_dog_api::config::Config::from_env();
     let s3 = walking_dog_api::aws::client::build_s3_client(
         &config.aws_region,
@@ -437,7 +436,6 @@ async fn generate_walk_event_photo_upload_url_returns_presigned_put_with_walks_p
 async fn generate_walk_event_photo_upload_url_rejects_invalid_content_type() {
     use walking_dog_api::services::s3_service;
 
-    std::env::set_var("TEST_MODE", "true");
     let config = walking_dog_api::config::Config::from_env();
     let s3 = walking_dog_api::aws::client::build_s3_client(
         &config.aws_region,

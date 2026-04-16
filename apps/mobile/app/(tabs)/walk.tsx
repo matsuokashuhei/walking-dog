@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
 import { useWalkStore } from '@/stores/walk-store';
@@ -17,6 +18,11 @@ import { WalkMap } from '@/components/walk/WalkMap';
 import { WalkControls } from '@/components/walk/WalkControls';
 import { WalkEventActions } from '@/components/walk/WalkEventActions';
 import { WalkSummaryCard } from '@/components/walk/WalkSummaryCard';
+import {
+  startLiveActivity,
+  updateLiveActivityDistance,
+  endLiveActivity,
+} from '@/lib/walk/live-activity';
 import type { WalkPoint } from '@/types/graphql';
 
 const MAX_POINTS_PER_BATCH = 200;
@@ -30,6 +36,8 @@ export default function WalkScreen() {
   const addPoint = useWalkStore((s) => s.addPoint);
   const startRecording = useWalkStore((s) => s.startRecording);
   const finish = useWalkStore((s) => s.finish);
+  const requestCamera = useWalkStore((s) => s.requestCamera);
+  const params = useLocalSearchParams<{ action?: string }>();
 
   const { data: me } = useMe();
   const startWalk = useStartWalk();
@@ -50,6 +58,17 @@ export default function WalkScreen() {
     }
   }, [phase]);
 
+  // Live Activity の Camera ボタン (Link) からのディープリンク
+  // walking-dog://walk?action=camera を受けたら、撮影フローを起動する。
+  // setParams で action を null にして再来訪での連続発火を防ぐ。
+  useEffect(() => {
+    if (params.action !== 'camera') return;
+    if (phase === 'recording' && walkId) {
+      requestCamera();
+    }
+    router.setParams({ action: undefined });
+  }, [params.action, phase, walkId, requestCamera]);
+
   const handleStart = useCallback(async () => {
     const granted = await requestPermission();
     if (!granted) {
@@ -60,8 +79,20 @@ export default function WalkScreen() {
     try {
       const walk = await startWalk.mutateAsync(selectedDogIds);
       startRecording(walk.id);
+
+      const dogName =
+        selectedDogIds.length === 1 ? t('walk.liveActivity.walking') : t('walk.liveActivity.walkingWithDogs', { count: selectedDogIds.length });
+      await startLiveActivity({
+        walkId: walk.id,
+        dogId: selectedDogIds[0],
+        dogName,
+        startedAt: useWalkStore.getState().startedAt ?? new Date(),
+        distanceM: 0,
+      });
+
       const stop = await startTracking((point: WalkPoint) => {
         addPoint(point);
+        void updateLiveActivityDistance(useWalkStore.getState().totalDistanceM);
       });
       stopTrackingRef.current = stop;
 
@@ -132,6 +163,7 @@ export default function WalkScreen() {
         distanceM: Math.round(totalDistanceM),
       });
       finish();
+      void endLiveActivity();
     } catch {
       Alert.alert(t('common.error'), t('walk.error.finishFailed'));
     } finally {

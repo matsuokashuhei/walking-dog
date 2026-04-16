@@ -1,8 +1,9 @@
-mod common;
+#[allow(unused)]
+mod support;
 
 #[tokio::test]
 async fn test_create_dog() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
     let res = client
         .post("/graphql")
         .header("Authorization", "Bearer test-token")
@@ -33,7 +34,7 @@ async fn test_create_dog() {
 
 #[tokio::test]
 async fn test_update_dog() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
     // Create dog first
     let create_res = client
         .post("/graphql")
@@ -65,7 +66,7 @@ async fn test_update_dog() {
 
 #[tokio::test]
 async fn test_delete_dog() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
     let create_res = client
         .post("/graphql")
         .header("Authorization", "Bearer test-token")
@@ -93,7 +94,7 @@ async fn test_delete_dog() {
 
 #[tokio::test]
 async fn test_generate_dog_photo_upload_url() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
     // 犬を作成
     let create_res = client
         .post("/graphql")
@@ -141,7 +142,7 @@ async fn test_generate_dog_photo_upload_url() {
 
 #[tokio::test]
 async fn test_generate_dog_photo_upload_url_rejects_invalid_content_type() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
     // 犬を作成
     let create_res = client
         .post("/graphql")
@@ -182,7 +183,7 @@ async fn test_generate_dog_photo_upload_url_rejects_invalid_content_type() {
 
 #[tokio::test]
 async fn test_walk_stats() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
     // 犬を作成
     let create_res = client
         .post("/graphql")

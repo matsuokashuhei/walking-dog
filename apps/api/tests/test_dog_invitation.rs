@@ -1,8 +1,9 @@
-mod common;
-use common::{graphql_as, USER_A, USER_B};
+#[allow(unused)]
+mod support;
+use support::{graphql_as, USER_A, USER_B};
 
 /// Helper: create a dog and return its ID.
-async fn create_dog(client: &common::TestClient) -> String {
+async fn create_dog(client: &support::TestClient) -> String {
     let res = client
         .post("/graphql")
         .header("Authorization", "Bearer test-token")
@@ -21,7 +22,7 @@ async fn create_dog(client: &common::TestClient) -> String {
 
 #[tokio::test]
 async fn test_create_invitation() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
     let dog_id = create_dog(&client).await;
 
     let res = client
@@ -46,7 +47,7 @@ async fn test_create_invitation() {
 
 #[tokio::test]
 async fn test_invitation_token_length() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
     let dog_id = create_dog(&client).await;
 
     let res = client
@@ -71,7 +72,7 @@ async fn test_invitation_token_length() {
 
 #[tokio::test]
 async fn test_invitation_expires_within_24_hours() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
     let dog_id = create_dog(&client).await;
 
     let res = client
@@ -104,7 +105,7 @@ async fn test_invitation_expires_within_24_hours() {
 
 #[tokio::test]
 async fn test_accept_invitation_already_member() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
     let dog_id = create_dog(&client).await;
 
     // Generate invitation
@@ -154,7 +155,7 @@ async fn test_accept_invitation_already_member() {
 
 #[tokio::test]
 async fn test_accept_invitation_invalid_token() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
 
     // Try to accept with a non-existent token
     let body = graphql_as(
@@ -178,7 +179,7 @@ async fn test_accept_invitation_invalid_token() {
 
 #[tokio::test]
 async fn test_non_owner_cannot_generate_invitation() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
 
     // User A creates a dog
     let body = graphql_as(
@@ -233,7 +234,7 @@ async fn test_non_owner_cannot_generate_invitation() {
 
 #[tokio::test]
 async fn test_non_member_cannot_generate_invitation() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
 
     // User A creates a dog
     let body = graphql_as(

@@ -1,11 +1,12 @@
-mod common;
-use common::{graphql_as, USER_A, USER_B};
+#[allow(unused)]
+mod support;
+use support::{graphql_as, USER_A, USER_B};
 
 // ─── Fix 2: walk_by_id should return error when unauthorized ─────────────────
 
 #[tokio::test]
 async fn test_walk_by_id_returns_error_when_unauthorized() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
 
     // User A creates a dog and starts a walk
     let body = graphql_as(
@@ -53,7 +54,7 @@ async fn test_walk_by_id_returns_error_when_unauthorized() {
 
 #[tokio::test]
 async fn test_remove_last_owner_is_rejected() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
 
     // User A creates a dog (becomes the sole owner)
     let body = graphql_as(
@@ -136,7 +137,7 @@ async fn test_remove_last_owner_is_rejected() {
 
 #[tokio::test]
 async fn test_remove_member_service_rejects_last_owner() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
 
     // User A creates a dog (sole owner)
     let body = graphql_as(
@@ -198,7 +199,7 @@ async fn test_remove_member_service_rejects_last_owner() {
 
 #[tokio::test]
 async fn test_accept_invitation_cannot_be_used_twice() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
 
     // User A creates a dog
     let body = graphql_as(

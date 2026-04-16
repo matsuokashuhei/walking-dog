@@ -1,7 +1,8 @@
-mod common;
+#[allow(unused)]
+mod support;
 
 /// Helper: create a dog and return its ID.
-async fn create_dog(client: &common::TestClient) -> String {
+async fn create_dog(client: &support::TestClient) -> String {
     let res = client
         .post("/graphql")
         .header("Authorization", "Bearer test-token")
@@ -20,7 +21,7 @@ async fn create_dog(client: &common::TestClient) -> String {
 
 #[tokio::test]
 async fn test_create_dog_creates_owner_membership() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
     let dog_id = create_dog(&client).await;
 
     // The dog query should succeed (proves membership exists)
@@ -44,7 +45,7 @@ async fn test_create_dog_creates_owner_membership() {
 
 #[tokio::test]
 async fn test_get_dogs_by_member() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
     let dog_id = create_dog(&client).await;
 
     // me.dogs should include the created dog
@@ -65,7 +66,7 @@ async fn test_get_dogs_by_member() {
 
 #[tokio::test]
 async fn test_update_dog_by_member() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
     let dog_id = create_dog(&client).await;
 
     let res = client
@@ -90,7 +91,7 @@ async fn test_update_dog_by_member() {
 
 #[tokio::test]
 async fn test_delete_dog_owner_only() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
     let dog_id = create_dog(&client).await;
 
     // Owner can delete
@@ -124,7 +125,7 @@ async fn test_delete_dog_owner_only() {
 
 #[tokio::test]
 async fn test_dog_output_has_members_field() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
 
     // Create a dog (owner is auto-created)
     let res = client
@@ -154,7 +155,7 @@ async fn test_dog_output_has_members_field() {
 
 #[tokio::test]
 async fn test_dog_output_has_role_field_in_me_query() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
 
     // Create a dog
     let _dog_id = create_dog(&client).await;

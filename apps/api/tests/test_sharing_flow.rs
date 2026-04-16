@@ -1,9 +1,10 @@
-mod common;
-use common::{graphql_as, USER_A, USER_B};
+#[allow(unused)]
+mod support;
+use support::{graphql_as, USER_A, USER_B};
 
 #[tokio::test]
 async fn test_sharing_flow() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
 
     // 1. User A creates a dog -> auto-owner
     let body = graphql_as(

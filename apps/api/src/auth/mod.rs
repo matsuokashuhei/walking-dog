@@ -1,8 +1,14 @@
+pub mod jwt;
 pub mod service;
 
-use axum::{extract::Request, http::StatusCode, middleware::Next, response::Response};
-use jsonwebtoken::{decode, decode_header, Algorithm, DecodingKey, Validation};
-use serde::Deserialize;
+use axum::{
+    extract::{Request, State},
+    http::StatusCode,
+    middleware::Next,
+    response::Response,
+};
+use jwt::JwtVerifier;
+use std::sync::Arc;
 
 /// Axumのリクエスト拡張に認証済みユーザー情報を付与する
 #[derive(Clone, Debug)]
@@ -10,39 +16,13 @@ pub struct AuthUser {
     pub cognito_sub: String,
 }
 
-#[derive(Debug, Deserialize)]
-struct CognitoClaims {
-    sub: String,
-}
-
 /// JWT検証ミドルウェア
-/// TEST_MODE=true のとき、JWT検証をスキップして固定のcognito_subを返す
 /// Authorization ヘッダーがない場合は AuthUser を挿入せずに続行する（オプショナル認証）
-pub async fn auth_middleware(mut request: Request, next: Next) -> Result<Response, StatusCode> {
-    // TEST_MODE: JWT検証をスキップ
-    // Use the Bearer token value as cognito_sub to allow multi-user testing.
-    // Default: "test-user-cognito-sub" for backwards compatibility.
-    if std::env::var("TEST_MODE")
-        .map(|v| v == "true" || v == "1")
-        .unwrap_or(false)
-    {
-        let cognito_sub = request
-            .headers()
-            .get("Authorization")
-            .and_then(|v| v.to_str().ok())
-            .and_then(|v| v.strip_prefix("Bearer "))
-            .map(|token| {
-                if token == "test-token" {
-                    "test-user-cognito-sub".to_string()
-                } else {
-                    token.to_string()
-                }
-            })
-            .unwrap_or_else(|| "test-user-cognito-sub".to_string());
-        request.extensions_mut().insert(AuthUser { cognito_sub });
-        return Ok(next.run(request).await);
-    }
-
+pub async fn auth_middleware(
+    State(verifier): State<Arc<dyn JwtVerifier>>,
+    mut request: Request,
+    next: Next,
+) -> Result<Response, StatusCode> {
     let auth_header = request
         .headers()
         .get("Authorization")
@@ -54,8 +34,8 @@ pub async fn auth_middleware(mut request: Request, next: Next) -> Result<Respons
         None => return Ok(next.run(request).await),
     };
 
-    let cognito_sub = match verify_cognito_jwt(&token).await {
-        Ok(sub) => sub,
+    let cognito_sub = match verifier.verify(&token).await {
+        Ok(claims) => claims.sub,
         Err(_) => return Err(StatusCode::UNAUTHORIZED),
     };
 
@@ -71,53 +51,4 @@ pub fn require_auth(
     ctx.data::<Option<String>>()?
         .clone()
         .ok_or_else(|| async_graphql::Error::new("Unauthorized"))
-}
-
-async fn verify_cognito_jwt(token: &str) -> Result<String, String> {
-    let header = decode_header(token).map_err(|e| e.to_string())?;
-    let kid = header.kid.ok_or("missing kid")?;
-
-    let user_pool_id = std::env::var("COGNITO_USER_POOL_ID").map_err(|e| e.to_string())?;
-    let region = std::env::var("AWS_REGION").unwrap_or_else(|_| "ap-northeast-1".to_string());
-
-    // COGNITO_ENDPOINT_URL が設定されている場合は cognito-local を使う
-    let jwks_url = if let Ok(endpoint) = std::env::var("COGNITO_ENDPOINT_URL") {
-        format!("{}/{}/.well-known/jwks.json", endpoint, user_pool_id)
-    } else {
-        format!(
-            "https://cognito-idp.{}.amazonaws.com/{}/.well-known/jwks.json",
-            region, user_pool_id
-        )
-    };
-
-    let jwks: serde_json::Value = reqwest::get(&jwks_url)
-        .await
-        .map_err(|e| e.to_string())?
-        .json()
-        .await
-        .map_err(|e| e.to_string())?;
-
-    let key = jwks["keys"]
-        .as_array()
-        .and_then(|keys| keys.iter().find(|k| k["kid"] == kid))
-        .ok_or("key not found")?;
-
-    let n = key["n"].as_str().ok_or("missing n")?;
-    let e = key["e"].as_str().ok_or("missing e")?;
-    let decoding_key = DecodingKey::from_rsa_components(n, e).map_err(|e| e.to_string())?;
-
-    let mut validation = Validation::new(Algorithm::RS256);
-    // Skip issuer validation for local development (cognito-local uses 0.0.0.0 as issuer,
-    // which doesn't match the standard AWS Cognito issuer format)
-    if std::env::var("COGNITO_ENDPOINT_URL").is_err() {
-        validation.set_issuer(&[format!(
-            "https://cognito-idp.{}.amazonaws.com/{}",
-            region, user_pool_id
-        )]);
-    }
-
-    let token_data =
-        decode::<CognitoClaims>(token, &decoding_key, &validation).map_err(|e| e.to_string())?;
-
-    Ok(token_data.claims.sub)
 }

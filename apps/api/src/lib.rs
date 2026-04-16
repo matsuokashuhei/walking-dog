@@ -7,6 +7,7 @@ pub mod error;
 pub mod graphql;
 pub mod services;
 
+use crate::auth::jwt::JwtVerifier;
 use crate::config::Config;
 use crate::graphql::AppSchema;
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
@@ -27,6 +28,7 @@ pub struct AppState {
     pub s3: S3Client,
     pub cognito: aws_sdk_cognitoidentityprovider::Client,
     pub config: Config,
+    pub verifier: Arc<dyn JwtVerifier>,
 }
 
 pub fn build_app(
@@ -35,6 +37,7 @@ pub fn build_app(
     s3: S3Client,
     cognito: aws_sdk_cognitoidentityprovider::Client,
     config: Config,
+    verifier: Arc<dyn JwtVerifier>,
 ) -> Router {
     let state = Arc::new(AppState {
         db,
@@ -42,12 +45,16 @@ pub fn build_app(
         s3,
         cognito,
         config,
+        verifier: verifier.clone(),
     });
     let schema = graphql::build_schema(state);
 
     Router::new()
         .route("/graphql", post(graphql_handler))
-        .layer(middleware::from_fn(auth::auth_middleware))
+        .layer(middleware::from_fn_with_state(
+            verifier,
+            auth::auth_middleware,
+        ))
         .layer(CorsLayer::permissive())
         .route("/health", get(|| async { "ok" }))
         .with_state(schema)

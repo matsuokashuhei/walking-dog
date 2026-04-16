@@ -1,9 +1,10 @@
-mod common;
-use common::{graphql_as, USER_A, USER_B};
+#[allow(unused)]
+mod support;
+use support::{graphql_as, USER_A, USER_B};
 
 #[tokio::test]
 async fn test_non_member_cannot_access_dog() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
 
     // User A creates a dog
     let body = graphql_as(
@@ -31,7 +32,7 @@ async fn test_non_member_cannot_access_dog() {
 
 #[tokio::test]
 async fn test_non_member_cannot_start_walk_with_others_dog() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
 
     // User A creates a dog
     let body = graphql_as(
@@ -61,7 +62,7 @@ async fn test_non_member_cannot_start_walk_with_others_dog() {
 
 #[tokio::test]
 async fn test_non_member_cannot_view_dog_walk_stats() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
 
     // User A creates a dog
     let body = graphql_as(
@@ -91,7 +92,7 @@ async fn test_non_member_cannot_view_dog_walk_stats() {
 
 #[tokio::test]
 async fn test_owner_cannot_remove_self_via_remove_member() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
 
     // User A creates a dog
     let body = graphql_as(
@@ -131,7 +132,7 @@ async fn test_owner_cannot_remove_self_via_remove_member() {
 
 #[tokio::test]
 async fn test_member_can_leave_dog() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
 
     // User A creates a dog
     let body = graphql_as(
@@ -197,7 +198,7 @@ async fn test_member_can_leave_dog() {
 
 #[tokio::test]
 async fn test_non_member_cannot_leave_dog() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
 
     // User A creates a dog
     let body = graphql_as(
@@ -224,7 +225,7 @@ async fn test_non_member_cannot_leave_dog() {
 
 #[tokio::test]
 async fn test_member_can_update_dog() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
 
     // User A creates a dog
     let body = graphql_as(

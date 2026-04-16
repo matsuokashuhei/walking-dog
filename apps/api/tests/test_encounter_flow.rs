@@ -1,10 +1,11 @@
-mod common;
+#[allow(unused)]
+mod support;
 
 /// Helper: enable encounter detection for a user.
-async fn enable_detection(client: &common::TestClient, token: &'static str) {
-    let body = common::graphql_as(
+async fn enable_detection(client: &support::TestClient, token: &'static str) {
+    let body = support::graphql_as(
         client,
-        &common::UserToken(token),
+        &support::UserToken(token),
         r#"mutation { updateEncounterDetection(enabled: true) { encounterDetectionEnabled } }"#,
     )
     .await;
@@ -16,10 +17,10 @@ async fn enable_detection(client: &common::TestClient, token: &'static str) {
 }
 
 /// Helper: create a dog as user and return its ID.
-async fn create_dog(client: &common::TestClient, token: &'static str) -> String {
-    let body = common::graphql_as(
+async fn create_dog(client: &support::TestClient, token: &'static str) -> String {
+    let body = support::graphql_as(
         client,
-        &common::UserToken(token),
+        &support::UserToken(token),
         r#"mutation { createDog(input: { name: "FlowDog" }) { id } }"#,
     )
     .await;
@@ -30,10 +31,10 @@ async fn create_dog(client: &common::TestClient, token: &'static str) -> String 
 }
 
 /// Helper: start a walk and return walk ID.
-async fn start_walk(client: &common::TestClient, token: &'static str, dog_id: &str) -> String {
-    let body = common::graphql_as(
+async fn start_walk(client: &support::TestClient, token: &'static str, dog_id: &str) -> String {
+    let body = support::graphql_as(
         client,
-        &common::UserToken(token),
+        &support::UserToken(token),
         &format!(
             r#"mutation {{ startWalk(dogIds: ["{}"]) {{ id }} }}"#,
             dog_id
@@ -48,14 +49,14 @@ async fn start_walk(client: &common::TestClient, token: &'static str, dog_id: &s
 
 /// Helper: record encounter and return response body.
 async fn record_encounter(
-    client: &common::TestClient,
+    client: &support::TestClient,
     token: &'static str,
     my_walk: &str,
     their_walk: &str,
 ) -> serde_json::Value {
-    common::graphql_as(
+    support::graphql_as(
         client,
-        &common::UserToken(token),
+        &support::UserToken(token),
         &format!(
             r#"mutation {{ recordEncounter(myWalkId: "{}", theirWalkId: "{}") {{
                 id durationSec metAt dog1 {{ id }} dog2 {{ id }}
@@ -73,7 +74,7 @@ const FLOW_USER_B: &str = "flow-test-user-b";
 
 #[tokio::test]
 async fn test_full_encounter_flow() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
 
     // 1. Setup: ensure encounter detection is on for both users
     enable_detection(&client, FLOW_USER_A).await;
@@ -106,9 +107,9 @@ async fn test_full_encounter_flow() {
     );
 
     // 6. Verify friendship: encounter_count should be 1 (deduped)
-    let friends = common::graphql_as(
+    let friends = support::graphql_as(
         &client,
-        &common::UserToken(FLOW_USER_A),
+        &support::UserToken(FLOW_USER_A),
         &format!(
             r#"{{ dogFriends(dogId: "{}") {{ id encounterCount totalInteractionSec firstMetAt lastMetAt friend {{ id name }} }} }}"#,
             d1
@@ -136,9 +137,9 @@ async fn test_full_encounter_flow() {
     );
 
     // 8. Verify friendship: encounter_count should now be 2
-    let friends2 = common::graphql_as(
+    let friends2 = support::graphql_as(
         &client,
-        &common::UserToken(FLOW_USER_A),
+        &support::UserToken(FLOW_USER_A),
         &format!(
             r#"{{ dogFriends(dogId: "{}") {{ encounterCount totalInteractionSec }} }}"#,
             d1
@@ -150,9 +151,9 @@ async fn test_full_encounter_flow() {
     assert_eq!(f2["totalInteractionSec"].as_i64().unwrap(), 60); // 30 * 2
 
     // 9. Verify encounter history has 2 records
-    let history = common::graphql_as(
+    let history = support::graphql_as(
         &client,
-        &common::UserToken(FLOW_USER_A),
+        &support::UserToken(FLOW_USER_A),
         &format!(
             r#"{{ dogEncounters(dogId: "{}") {{ id durationSec metAt }} }}"#,
             d1
@@ -168,9 +169,9 @@ async fn test_full_encounter_flow() {
     assert_eq!(enc_list.len(), 2, "Expected 2 encounters in history");
 
     // 10. User B opts out
-    let opt_out = common::graphql_as(
+    let opt_out = support::graphql_as(
         &client,
-        &common::UserToken(FLOW_USER_B),
+        &support::UserToken(FLOW_USER_B),
         r#"mutation { updateEncounterDetection(enabled: false) { encounterDetectionEnabled } }"#,
     )
     .await;
@@ -187,9 +188,9 @@ async fn test_full_encounter_flow() {
     );
 
     // 12. Verify encounter_count stayed at 2
-    let friends3 = common::graphql_as(
+    let friends3 = support::graphql_as(
         &client,
-        &common::UserToken(FLOW_USER_A),
+        &support::UserToken(FLOW_USER_A),
         &format!(r#"{{ dogFriends(dogId: "{}") {{ encounterCount }} }}"#, d1),
     )
     .await;

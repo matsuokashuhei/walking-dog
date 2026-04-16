@@ -21,7 +21,7 @@ impl JwtVerifier for CognitoJwtVerifier {
     async fn verify(&self, token: &str) -> Result<Claims, AppError> {
         let sub = verify_cognito_jwt(token)
             .await
-            .map_err(|e| AppError::Unauthorized(e))?;
+            .map_err(AppError::Unauthorized)?;
         Ok(Claims { sub })
     }
 }
@@ -76,8 +76,8 @@ async fn verify_cognito_jwt(token: &str) -> Result<String, String> {
         sub: String,
     }
 
-    let token_data = decode::<CognitoClaims>(token, &decoding_key, &validation)
-        .map_err(|e| e.to_string())?;
+    let token_data =
+        decode::<CognitoClaims>(token, &decoding_key, &validation).map_err(|e| e.to_string())?;
 
     Ok(token_data.claims.sub)
 }
@@ -123,10 +123,7 @@ mod tests {
     #[tokio::test]
     async fn noop_verifier_uses_user_b_token_as_sub() {
         let verifier = NoOpJwtVerifier;
-        let claims = verifier
-            .verify("test-user-b-cognito-sub")
-            .await
-            .unwrap();
+        let claims = verifier.verify("test-user-b-cognito-sub").await.unwrap();
         assert_eq!(claims.sub, "test-user-b-cognito-sub");
     }
 }

@@ -1,4 +1,5 @@
-mod common;
+#[allow(unused)]
+mod support;
 
 // ─── T-A2: Entity Tests ───────────────────────────────────────────────────────
 
@@ -7,7 +8,7 @@ async fn find_by_walk_id_returns_empty_for_new_walk() {
     use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
     use walking_dog_api::entities::walk_events;
 
-    let client = common::test_client().await;
+    let client = support::test_client().await;
 
     // Create a dog and start a walk via GraphQL
     let dog_body = client
@@ -60,7 +61,7 @@ async fn find_by_walk_id_returns_empty_for_new_walk() {
 async fn record_event_pee_inserts_row() {
     use walking_dog_api::services::walk_event_service::{self, RecordEventInput};
 
-    let client = common::test_client().await;
+    let client = support::test_client().await;
 
     let dog_body = client
         .post("/graphql")
@@ -128,7 +129,7 @@ async fn record_event_pee_inserts_row() {
 async fn record_event_rejects_non_owner() {
     use walking_dog_api::services::walk_event_service::{self, RecordEventInput};
 
-    let client = common::test_client().await;
+    let client = support::test_client().await;
 
     let dog_body = client
         .post("/graphql")
@@ -190,7 +191,7 @@ async fn record_event_rejects_non_owner() {
 async fn record_event_without_gps_succeeds() {
     use walking_dog_api::services::walk_event_service::{self, RecordEventInput};
 
-    let client = common::test_client().await;
+    let client = support::test_client().await;
 
     let dog_body = client
         .post("/graphql")
@@ -254,7 +255,7 @@ async fn record_event_without_gps_succeeds() {
 async fn record_event_photo_requires_photo_key() {
     use walking_dog_api::services::walk_event_service::{self, RecordEventInput};
 
-    let client = common::test_client().await;
+    let client = support::test_client().await;
 
     let dog_body = client
         .post("/graphql")
@@ -313,7 +314,7 @@ async fn record_event_photo_requires_photo_key() {
 async fn list_events_returns_in_occurred_at_asc() {
     use walking_dog_api::services::walk_event_service::{self, RecordEventInput};
 
-    let client = common::test_client().await;
+    let client = support::test_client().await;
 
     let dog_body = client
         .post("/graphql")
@@ -462,7 +463,7 @@ async fn generate_walk_event_photo_upload_url_rejects_invalid_content_type() {
 
 #[tokio::test]
 async fn mutation_record_walk_event_pee_returns_event() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
 
     let dog_body = client
         .post("/graphql")
@@ -535,7 +536,7 @@ async fn mutation_record_walk_event_pee_returns_event() {
 
 #[tokio::test]
 async fn mutation_record_walk_event_photo_resolves_cloudfront_url() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
 
     let dog_body = client
         .post("/graphql")
@@ -615,7 +616,7 @@ async fn mutation_record_walk_event_photo_resolves_cloudfront_url() {
 
 #[tokio::test]
 async fn mutation_record_walk_event_unauthenticated_returns_error() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
 
     let body = client
         .post("/graphql")
@@ -646,7 +647,7 @@ async fn mutation_record_walk_event_unauthenticated_returns_error() {
 
 #[tokio::test]
 async fn mutation_generate_walk_event_photo_upload_url_returns_key() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
 
     let dog_body = client
         .post("/graphql")
@@ -719,7 +720,7 @@ async fn mutation_generate_walk_event_photo_upload_url_returns_key() {
 async fn query_walk_returns_events_sorted_by_occurred_at() {
     use walking_dog_api::services::walk_event_service::{self, RecordEventInput};
 
-    let client = common::test_client().await;
+    let client = support::test_client().await;
 
     let dog_body = client
         .post("/graphql")

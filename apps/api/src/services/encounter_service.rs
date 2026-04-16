@@ -302,4 +302,67 @@ mod tests {
              but the function was not found"
         );
     }
+
+    // ─── MockDatabase unit tests ─────────────────────────────────────────────
+
+    use sea_orm::{DatabaseBackend, MockDatabase};
+
+    fn make_encounter(id: Uuid, dog_id_1: Uuid, dog_id_2: Uuid) -> encounters::Model {
+        use chrono::Utc;
+        encounters::Model {
+            id,
+            walk_id: Uuid::new_v4(),
+            dog_id_1,
+            dog_id_2,
+            duration_sec: 30,
+            met_at: Utc::now().into(),
+            created_at: Utc::now().into(),
+        }
+    }
+
+    #[tokio::test]
+    async fn get_encounters_for_dog_returns_empty_when_no_encounters() {
+        let dog_id = Uuid::new_v4();
+        let db = MockDatabase::new(DatabaseBackend::Postgres)
+            .append_query_results([Vec::<encounters::Model>::new()])
+            .into_connection();
+
+        let result = get_encounters_for_dog(&db, dog_id, None, None)
+            .await
+            .unwrap();
+        assert!(result.is_empty());
+    }
+
+    #[tokio::test]
+    async fn get_encounters_for_dog_returns_single_encounter() {
+        let dog_id = Uuid::new_v4();
+        let other_dog = Uuid::new_v4();
+        let enc = make_encounter(Uuid::new_v4(), dog_id, other_dog);
+        let db = MockDatabase::new(DatabaseBackend::Postgres)
+            .append_query_results([vec![enc.clone()]])
+            .into_connection();
+
+        let result = get_encounters_for_dog(&db, dog_id, None, None)
+            .await
+            .unwrap();
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].id, enc.id);
+    }
+
+    #[tokio::test]
+    async fn get_encounters_for_dog_respects_limit() {
+        let dog_id = Uuid::new_v4();
+        let other = Uuid::new_v4();
+        let enc1 = make_encounter(Uuid::new_v4(), dog_id, other);
+        // MockDatabase returns exactly what is appended — simulate limit=1
+        let db = MockDatabase::new(DatabaseBackend::Postgres)
+            .append_query_results([vec![enc1.clone()]])
+            .into_connection();
+
+        let result = get_encounters_for_dog(&db, dog_id, Some(1), None)
+            .await
+            .unwrap();
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].id, enc1.id);
+    }
 }

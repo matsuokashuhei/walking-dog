@@ -27,7 +27,7 @@ Integration tests では `NoOpJwtVerifier` を注入することで、実際の 
 
 ### テスト環境での認証
 
-- Integration tests は `tests/common/mod.rs` の `test_client()` 関数が `NoOpJwtVerifier` を注入する
+- Integration tests は `tests/support/client.rs` の `test_client()` 関数が `NoOpJwtVerifier` を注入する
 - `NoOpJwtVerifier` は Bearer トークンの値をそのまま cognito_sub として扱う
 - `test-token` → `test-user-cognito-sub` にマップ (後方互換性のため)
 - `TEST_MODE` 環境変数は不要。Production binary に TEST_MODE 分岐は存在しない

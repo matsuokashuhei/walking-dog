@@ -1,9 +1,10 @@
-mod common;
-use common::USER_A;
+#[allow(unused)]
+mod support;
+use support::USER_A;
 
 #[tokio::test]
 async fn test_me_query() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
     let res = client
         .post("/graphql")
         .header("Authorization", "Bearer test-token")
@@ -24,7 +25,7 @@ async fn test_me_query() {
 
 #[tokio::test]
 async fn test_update_profile_mutation() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
 
     // Ensure the user exists first
     client
@@ -60,10 +61,10 @@ async fn test_update_profile_mutation() {
 /// and must still return the existing user row without error.
 #[tokio::test]
 async fn test_upsert_conflict_returns_existing_user() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
 
     // First call: inserts the user
-    let body1 = common::graphql_as(&client, &USER_A, "{ me { id } }").await;
+    let body1 = support::graphql_as(&client, &USER_A, "{ me { id } }").await;
     assert!(
         body1["data"]["me"]["id"].is_string(),
         "first call should succeed, got: {:?}",
@@ -72,7 +73,7 @@ async fn test_upsert_conflict_returns_existing_user() {
     let id1 = body1["data"]["me"]["id"].as_str().unwrap();
 
     // Second call: same cognito_sub — hits ON CONFLICT DO NOTHING, must still return user
-    let body2 = common::graphql_as(&client, &USER_A, "{ me { id } }").await;
+    let body2 = support::graphql_as(&client, &USER_A, "{ me { id } }").await;
     assert!(
         body2["errors"].is_null(),
         "second call should not error on conflict, got: {:?}",

@@ -254,4 +254,81 @@ mod tests {
             assert_eq!(back, period);
         }
     }
+
+    // ─── MockDatabase unit tests ─────────────────────────────────────────────
+
+    use sea_orm::{DatabaseBackend, MockDatabase};
+
+    fn make_walk_dog(walk_id: Uuid, dog_id: Uuid) -> crate::entities::walk_dogs::Model {
+        crate::entities::walk_dogs::Model { walk_id, dog_id }
+    }
+
+    fn make_finished_walk(
+        id: Uuid,
+        user_id: Uuid,
+        distance_m: Option<i32>,
+        duration_sec: Option<i32>,
+    ) -> crate::entities::walks::Model {
+        use crate::entities::walks::WalkStatus;
+        use chrono::Utc;
+        crate::entities::walks::Model {
+            id,
+            user_id,
+            status: WalkStatus::Finished,
+            distance_m,
+            duration_sec,
+            started_at: Utc::now().into(),
+            ended_at: Some(Utc::now().into()),
+        }
+    }
+
+    #[tokio::test]
+    async fn get_walk_stats_returns_zeros_when_no_walks() {
+        let dog_id = Uuid::new_v4();
+        let db = MockDatabase::new(DatabaseBackend::Postgres)
+            .append_query_results([Vec::<crate::entities::walk_dogs::Model>::new()])
+            .append_query_results([Vec::<crate::entities::walks::Model>::new()])
+            .into_connection();
+
+        let stats = get_walk_stats(&db, dog_id, "All").await.unwrap();
+        assert_eq!(stats.total_walks, 0);
+        assert_eq!(stats.total_distance_m, 0);
+        assert_eq!(stats.total_duration_sec, 0);
+    }
+
+    #[tokio::test]
+    async fn get_walk_stats_sums_distance_and_duration() {
+        let dog_id = Uuid::new_v4();
+        let user_id = Uuid::new_v4();
+        let walk_id = Uuid::new_v4();
+        let walk_dogs_row = make_walk_dog(walk_id, dog_id);
+        let walk = make_finished_walk(walk_id, user_id, Some(500), Some(1200));
+        let db = MockDatabase::new(DatabaseBackend::Postgres)
+            .append_query_results([vec![walk_dogs_row]])
+            .append_query_results([vec![walk]])
+            .into_connection();
+
+        let stats = get_walk_stats(&db, dog_id, "All").await.unwrap();
+        assert_eq!(stats.total_walks, 1);
+        assert_eq!(stats.total_distance_m, 500);
+        assert_eq!(stats.total_duration_sec, 1200);
+    }
+
+    #[tokio::test]
+    async fn get_walk_stats_handles_null_distance_and_duration() {
+        let dog_id = Uuid::new_v4();
+        let user_id = Uuid::new_v4();
+        let walk_id = Uuid::new_v4();
+        let walk_dogs_row = make_walk_dog(walk_id, dog_id);
+        let walk = make_finished_walk(walk_id, user_id, None, None);
+        let db = MockDatabase::new(DatabaseBackend::Postgres)
+            .append_query_results([vec![walk_dogs_row]])
+            .append_query_results([vec![walk]])
+            .into_connection();
+
+        let stats = get_walk_stats(&db, dog_id, "All").await.unwrap();
+        assert_eq!(stats.total_walks, 1);
+        assert_eq!(stats.total_distance_m, 0);
+        assert_eq!(stats.total_duration_sec, 0);
+    }
 }

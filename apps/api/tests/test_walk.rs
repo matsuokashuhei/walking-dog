@@ -1,6 +1,7 @@
-mod common;
+#[allow(unused)]
+mod support;
 
-async fn create_test_dog(client: &common::TestClient) -> String {
+async fn create_test_dog(client: &support::TestClient) -> String {
     let res = client
         .post("/graphql")
         .header("Authorization", "Bearer test-token")
@@ -19,7 +20,7 @@ async fn create_test_dog(client: &common::TestClient) -> String {
 
 #[tokio::test]
 async fn test_start_walk() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
     let dog_id = create_test_dog(&client).await;
 
     let res = client
@@ -41,7 +42,7 @@ async fn test_start_walk() {
 
 #[tokio::test]
 async fn test_start_walk_empty_dogs_returns_error() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
     let res = client
         .post("/graphql")
         .header("Authorization", "Bearer test-token")
@@ -67,7 +68,7 @@ async fn test_start_walk_empty_dogs_returns_error() {
 
 #[tokio::test]
 async fn test_finish_walk() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
     let dog_id = create_test_dog(&client).await;
 
     // 散歩開始
@@ -102,7 +103,7 @@ async fn test_finish_walk() {
 
 #[tokio::test]
 async fn test_my_walks_query() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
     let dog_id = create_test_dog(&client).await;
 
     // 散歩を2件作成
@@ -139,7 +140,7 @@ async fn test_my_walks_query() {
 
 #[tokio::test]
 async fn test_add_walk_points() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
     let dog_id = create_test_dog(&client).await;
 
     let start_res = client

@@ -1,7 +1,8 @@
-mod common;
+#[allow(unused)]
+mod support;
 
 /// Helper: enable encounter detection for a user (reset state between tests).
-async fn enable_encounter_detection(client: &common::TestClient, user_token: &str) {
+async fn enable_encounter_detection(client: &support::TestClient, user_token: &str) {
     let res = client
         .post("/graphql")
         .header("Authorization", format!("Bearer {}", user_token))
@@ -20,7 +21,7 @@ async fn enable_encounter_detection(client: &common::TestClient, user_token: &st
 }
 
 /// Helper: create a dog as user and return its ID.
-async fn create_dog(client: &common::TestClient, user_token: &str) -> String {
+async fn create_dog(client: &support::TestClient, user_token: &str) -> String {
     let res = client
         .post("/graphql")
         .header("Authorization", format!("Bearer {}", user_token))
@@ -38,7 +39,7 @@ async fn create_dog(client: &common::TestClient, user_token: &str) -> String {
 }
 
 /// Helper: start a walk as user and return walk ID.
-async fn start_walk(client: &common::TestClient, user_token: &str, dog_id: &str) -> String {
+async fn start_walk(client: &support::TestClient, user_token: &str, dog_id: &str) -> String {
     let res = client
         .post("/graphql")
         .header("Authorization", format!("Bearer {}", user_token))
@@ -57,7 +58,7 @@ async fn start_walk(client: &common::TestClient, user_token: &str, dog_id: &str)
 
 /// Helper: record encounter between two walks.
 async fn record_encounter(
-    client: &common::TestClient,
+    client: &support::TestClient,
     user_token: &str,
     my_walk_id: &str,
     their_walk_id: &str,
@@ -84,7 +85,7 @@ async fn record_encounter(
 
 #[tokio::test]
 async fn test_record_encounter_basic() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
 
     // Reset encounter detection to enabled for both users (test isolation)
     enable_encounter_detection(&client, "test-token").await;
@@ -127,7 +128,7 @@ async fn test_record_encounter_basic() {
 #[tokio::test]
 async fn test_record_encounter_dedup() {
     // If both devices call recordEncounter, the second call should UPSERT (not error).
-    let client = common::test_client().await;
+    let client = support::test_client().await;
 
     // Reset encounter detection to enabled for both users (test isolation)
     enable_encounter_detection(&client, "test-token").await;
@@ -147,9 +148,9 @@ async fn test_record_encounter_dedup() {
     assert!(body_b["errors"].is_null(), "B's call failed: {:?}", body_b);
 
     // Should still be 1 encounter (not duplicated)
-    let body_friends = common::graphql_as(
+    let body_friends = support::graphql_as(
         &client,
-        &common::USER_A,
+        &support::USER_A,
         &format!(
             r#"{{ dogFriends(dogId: "{}") {{ id encounterCount }} }}"#,
             d1
@@ -173,7 +174,7 @@ async fn test_record_encounter_dedup() {
 #[tokio::test]
 async fn test_record_encounter_multi_dog_walk() {
     // User A has 2 dogs in one walk, User B has 1 dog → should create 2 encounters
-    let client = common::test_client().await;
+    let client = support::test_client().await;
 
     // Reset encounter detection to enabled for both users (test isolation)
     enable_encounter_detection(&client, "test-token").await;
@@ -225,7 +226,7 @@ const USER_OPTOUT_B: &str = "test-optout-user-b";
 
 #[tokio::test]
 async fn test_encounter_detection_disabled() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
 
     // Reset encounter detection to enabled at start
     enable_encounter_detection(&client, USER_OPTOUT_A).await;
@@ -269,7 +270,7 @@ async fn test_encounter_detection_disabled() {
 
 #[tokio::test]
 async fn test_dog_friends_after_encounter() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
 
     // Reset encounter detection to enabled for both users (test isolation)
     enable_encounter_detection(&client, "test-token").await;
@@ -283,9 +284,9 @@ async fn test_dog_friends_after_encounter() {
     record_encounter(&client, "test-token", &w1, &w2).await;
 
     // D1 should now have D2 as a friend
-    let body = common::graphql_as(
+    let body = support::graphql_as(
         &client,
-        &common::USER_A,
+        &support::USER_A,
         &format!(
             r#"{{ dogFriends(dogId: "{}") {{
                 id encounterCount totalInteractionSec firstMetAt lastMetAt
@@ -308,7 +309,7 @@ async fn test_dog_friends_after_encounter() {
 
 #[tokio::test]
 async fn test_dog_encounters_history() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
 
     // Reset encounter detection to enabled for both users (test isolation)
     enable_encounter_detection(&client, "test-token").await;
@@ -321,9 +322,9 @@ async fn test_dog_encounters_history() {
 
     record_encounter(&client, "test-token", &w1, &w2).await;
 
-    let body = common::graphql_as(
+    let body = support::graphql_as(
         &client,
-        &common::USER_A,
+        &support::USER_A,
         &format!(
             r#"{{ dogEncounters(dogId: "{}") {{
                 id durationSec metAt
@@ -344,7 +345,7 @@ async fn test_dog_encounters_history() {
 /// extensions.fields with 2 entries (myWalkId + theirWalkId), not just the first.
 #[tokio::test]
 async fn test_record_encounter_invalid_both_uuids_returns_field_errors() {
-    let client = common::test_client().await;
+    let client = support::test_client().await;
 
     let res = client
         .post("/graphql")

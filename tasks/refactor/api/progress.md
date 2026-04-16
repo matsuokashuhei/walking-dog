@@ -14,7 +14,7 @@
 - [x] Phase 10: TEST_MODE → trait JwtVerifier 抽象化 — 2026-04-15 — RED: 3f558a6 / GREEN: 1cb07e2 — JwtVerifier trait + CognitoJwtVerifier + NoOpJwtVerifier in auth/jwt.rs; TEST_MODE branch removed from middleware; tests inject NoOpJwtVerifier; production binary: TEST_MODE 0 hits
 - [x] Phase 11: テスト基盤整備 tests/support/ 分離 + MockDatabase (依存: Phase 3, 7) — 2026-04-16 — REFACTOR: 9e25fe8 / RED: 74ddb92 / GREEN: 1f4732d — tests/common/mod.rs → tests/support/{mod.rs,client.rs,tokens.rs,fixtures.rs}; #[allow(dead_code)] 0 hits; 6 new MockDatabase tests (encounter×3, walk×3); cargo test --lib: 60 passed
 - [x] Phase 12: sign_up facade 化 (依存: Phase 4) — 2026-04-16 — RED: 8efa063 / GREEN: 44f8081 — sign_up_with_profile in auth::service (Cognito sign_up + create_user_with_profile); sign_up_field slim 34→28 lines (inner async body 19 lines); create_user_with_profile kept (now called from auth::service); clippy redundant-closure in jwt.rs fixed; test_user + test_sharing_flow PASS
-- [ ] Phase 13: custom_mutations.rs ファイル分割 (依存: Phase 6,7,8,9,10,12)
+- [x] Phase 13: custom_mutations.rs ファイル分割 (依存: Phase 6,7,8,9,10,12) — 2026-04-15 — GREEN step1: f8c39d5 (rename → mutations/mod.rs) / GREEN step2: 22fc72f (split into 7 domain modules) — mutations/{auth,dog,dog_member,encounter,photo,walk,walk_event}.rs all ≤500L; cargo test --lib: 61/61; all integration tests: 61/61 pass
 
 ## 推奨順
 

@@ -43,6 +43,9 @@ pub async fn record_encounter(
     // Verify acting user ownership + encounter detection enabled
     walk_event_service::verify_encounter_detection(db, my_walk_id, acting_user_id).await?;
 
+    // Verify all counterparty users have encounter detection enabled (fixed 2-3 queries)
+    walk_event_service::verify_counterparty_encounter_detection(db, their_walk_id).await?;
+
     // Fetch all dog IDs in each walk
     let my_dog_ids: Vec<Uuid> = WalkDogEntity::find()
         .filter(walk_dogs::Column::WalkId.eq(my_walk_id))
@@ -287,4 +290,17 @@ mod tests {
             "encounter_service must call walk_event_service::verify_encounter_detection"
         );
     }
+
+    /// Static guard: walk_event_service must expose verify_counterparty_encounter_detection.
+    /// References a separate file to avoid self-referential trap.
+    #[test]
+    fn walk_event_service_exposes_verify_counterparty_encounter_detection() {
+        let src = include_str!("walk_event_service.rs");
+        assert!(
+            src.contains("pub async fn verify_counterparty_encounter_detection"),
+            "walk_event_service must expose verify_counterparty_encounter_detection, \
+             but the function was not found"
+        );
+    }
+
 }

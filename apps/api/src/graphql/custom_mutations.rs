@@ -1704,13 +1704,6 @@ fn record_encounter_field(state: Arc<AppState>) -> Field {
         move |ctx| {
             let state = state.clone();
             FieldFuture::new(async move {
-                use crate::entities::{
-                    dog_members::{self, Entity as DogMemberEntity},
-                    users::Entity as UserEntity,
-                    walk_dogs::{self, Entity as WalkDogEntity},
-                };
-                use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
-
                 // Input parse
                 let my_walk_id_str = ctx.args.try_get("myWalkId")?.string()?;
                 let their_walk_id_str = ctx.args.try_get("theirWalkId")?.string()?;
@@ -1719,42 +1712,10 @@ fn record_encounter_field(state: Arc<AppState>) -> Field {
                 let their_walk_id = Uuid::parse_str(their_walk_id_str)
                     .map_err(|_| async_graphql::Error::new("Invalid theirWalkId"))?;
 
-                // Auth (includes walk ownership + encounter detection check via service)
+                // Auth
                 let user = auth_helpers::resolve_user(&ctx, &state).await?;
 
-                // Check encounter_detection_enabled for all users of theirWalk
-                // (Phase 8: will be moved into service with JOIN optimization)
-                let their_walk_dogs = WalkDogEntity::find()
-                    .filter(walk_dogs::Column::WalkId.eq(their_walk_id))
-                    .all(&state.db)
-                    .await
-                    .map_err(|e| AppError::Database(e).into_graphql_error())?;
-
-                for wd in &their_walk_dogs {
-                    let members = DogMemberEntity::find()
-                        .filter(dog_members::Column::DogId.eq(wd.dog_id))
-                        .all(&state.db)
-                        .await
-                        .map_err(|e| AppError::Database(e).into_graphql_error())?;
-
-                    for member in &members {
-                        let u = UserEntity::find_by_id(member.user_id)
-                            .one(&state.db)
-                            .await
-                            .map_err(|e| AppError::Database(e).into_graphql_error())?;
-                        if let Some(u) = u {
-                            if !u.encounter_detection_enabled {
-                                return Err(AppError::Unauthorized(
-                                    "Encounter detection is disabled for the other user"
-                                        .to_string(),
-                                )
-                                .into_graphql_error());
-                            }
-                        }
-                    }
-                }
-
-                // Service call (authorization delegated to service)
+                // Service call — authorization + counterparty opt-out check delegated to service
                 let encounters = encounter_service::record_encounter(
                     &state.db,
                     my_walk_id,

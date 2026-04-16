@@ -1,11 +1,12 @@
 use chrono::Utc;
-use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set};
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect, Set};
 use std::fmt;
 use std::str::FromStr;
 use uuid::Uuid;
 
 use crate::entities::{
-    users::Entity as UserEntity,
+    dog_members::{self, Entity as DogMemberEntity},
+    users::{self, Entity as UserEntity},
     walk_dogs::{self, Entity as WalkDogEntity},
     walk_events::{
         ActiveModel as WalkEventActiveModel, Column as WalkEventColumn, Entity as WalkEventEntity,
@@ -93,6 +94,61 @@ pub async fn verify_encounter_detection(
     if !user.encounter_detection_enabled {
         return Err(AppError::Unauthorized(
             "Encounter detection is disabled for your account".to_string(),
+        ));
+    }
+
+    Ok(())
+}
+
+/// Verify that all users associated with the counterparty walk have encounter detection enabled.
+///
+/// This replaces the N+M nested loop in the resolver with 2 fixed queries:
+/// 1. Walk_dogs WHERE walk_id = their_walk_id → dog_ids (all at once via IN)
+/// 2. Dog_members WHERE dog_id IN (dog_ids) → user_ids, then users WHERE id IN (user_ids)
+///    + filter encounter_detection_enabled = false
+///
+/// If any associated user has encounter detection disabled, returns `Unauthorized`.
+pub async fn verify_counterparty_encounter_detection(
+    db: &sea_orm::DatabaseConnection,
+    their_walk_id: Uuid,
+) -> Result<(), AppError> {
+    // Query 1: get all dog_ids in the counterparty walk
+    let dog_ids: Vec<Uuid> = WalkDogEntity::find()
+        .filter(walk_dogs::Column::WalkId.eq(their_walk_id))
+        .select_only()
+        .column(walk_dogs::Column::DogId)
+        .into_tuple()
+        .all(db)
+        .await?;
+
+    if dog_ids.is_empty() {
+        // No dogs in the counterparty walk — nothing to check
+        return Ok(());
+    }
+
+    // Query 2: get user_ids of all members of those dogs
+    let user_ids: Vec<Uuid> = DogMemberEntity::find()
+        .filter(dog_members::Column::DogId.is_in(dog_ids))
+        .select_only()
+        .column(dog_members::Column::UserId)
+        .into_tuple()
+        .all(db)
+        .await?;
+
+    if user_ids.is_empty() {
+        return Ok(());
+    }
+
+    // Query 3 (still fixed): check if any of those users has encounter detection disabled
+    let opted_out = UserEntity::find()
+        .filter(users::Column::Id.is_in(user_ids))
+        .filter(users::Column::EncounterDetectionEnabled.eq(false))
+        .one(db)
+        .await?;
+
+    if opted_out.is_some() {
+        return Err(AppError::Unauthorized(
+            "Encounter detection is disabled for the other user".to_string(),
         ));
     }
 

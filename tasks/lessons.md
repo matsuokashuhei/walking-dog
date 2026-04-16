@@ -63,3 +63,19 @@
 - PR merge 後 `gh pr merge --delete-branch` が `fatal: 'main' is already used by worktree` で失敗するが remote merge 自体は成功する — `git ls-remote` で確認、手動で worktree/branch cleanup
 
 **関連**: Phase 7 失敗 → PR #91 close → local main sync → PR #92 で redo
+
+---
+
+## 2026-04-16 — テスト用 fake/NoOp 実装は feature gate で本番バイナリから排除する
+
+**パターン**: テスト注入用の fake/NoOp 実装 (例: `NoOpJwtVerifier`) を production code に `pub` のまま置くと、本番バイナリに含まれ攻撃面を無駄に拡大する。`#[cfg(any(test, feature = "test-utils"))]` gate で排除し、integration test は `--features test-utils` で有効化するのが正解。
+
+**なぜ**: Phase 10 (PR #97) で `JwtVerifier` trait + `NoOpJwtVerifier` を導入し `TEST_MODE` 環境変数を除去。production binary から `TEST_MODE` 文字列は消えたが、`NoOpJwtVerifier` 自体は `pub struct` で含まれている。DI 経由でしか使われないので実害は低いが、「production に test 用コードを含めない」という防御線が弱まる。
+
+**どう適用するか**:
+- test-only な fake / NoOp / mock 構造体は `#[cfg(any(test, feature = "test-utils"))]` で gate する
+- `Cargo.toml` に `test-utils` feature を定義し、integration test ランナー側で `--features test-utils` を指定
+- production バイナリのビルド (`cargo build --release`) には feature を付けない → 該当シンボルが消える
+- 検証: `strings target/release/<binary> | grep -i NoOp` で 0 hits 確認
+
+**関連**: `apps/api/src/auth/jwt.rs::NoOpJwtVerifier` (現状 gate なし)、`tasks/refactor/api/04-followup.md` 項目 #3

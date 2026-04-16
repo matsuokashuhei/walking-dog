@@ -35,3 +35,39 @@ impl AppError {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn validation_errors_with_three_fields_produces_three_extensions_fields() {
+        let errors = vec![
+            FieldError { field: "myWalkId".to_string(), message: "Invalid UUID format".to_string() },
+            FieldError { field: "theirWalkId".to_string(), message: "Invalid UUID format".to_string() },
+            FieldError { field: "recordedAt".to_string(), message: "Invalid RFC3339 format".to_string() },
+        ];
+        let gql_err = AppError::ValidationErrors(errors).into_graphql_error();
+
+        let ext = gql_err.extensions.expect("extensions must be set");
+        let fields = ext.get("fields").expect("fields key must be in extensions");
+        let fields_arr = fields.as_array().expect("fields must be a JSON array");
+        assert_eq!(fields_arr.len(), 3, "expected 3 field errors, got: {:?}", fields_arr);
+
+        // Verify first field has correct structure
+        assert_eq!(fields_arr[0]["field"], "myWalkId");
+        assert_eq!(fields_arr[0]["message"], "Invalid UUID format");
+    }
+
+    #[test]
+    fn validation_errors_sets_bad_user_input_code() {
+        let errors = vec![
+            FieldError { field: "walkId".to_string(), message: "Invalid UUID".to_string() },
+        ];
+        let gql_err = AppError::ValidationErrors(errors).into_graphql_error();
+
+        let ext = gql_err.extensions.expect("extensions must be set");
+        let code = ext.get("code").expect("code must be in extensions");
+        assert_eq!(code, "BAD_USER_INPUT");
+    }
+}

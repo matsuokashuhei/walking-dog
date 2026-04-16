@@ -4,9 +4,9 @@ use seaography::BuilderContext;
 use std::sync::Arc;
 
 pub mod auth_helpers;
-pub mod custom_mutations;
 pub mod custom_queries;
 pub mod input;
+pub mod mutations;
 
 /// GraphQL enum type for walk lifecycle status.
 fn walk_status_enum() -> Enum {
@@ -54,7 +54,7 @@ pub fn build_schema(state: Arc<AppState>) -> AppSchema {
     }
 
     // Add custom mutation fields to the root mutation object.
-    for field in custom_mutations::mutation_fields(state.clone()) {
+    for field in mutations::mutation_fields(state.clone()) {
         builder.mutation = builder.mutation.field(field);
     }
 
@@ -71,29 +71,29 @@ pub fn build_schema(state: Arc<AppState>) -> AppSchema {
         .register(custom_queries::encounter_output_type())
         .register(custom_queries::friendship_output_type())
         // Mutation output types
-        .register(custom_mutations::birth_date_type())
-        .register(custom_mutations::dog_output_type())
-        .register(custom_mutations::walk_output_type())
-        .register(custom_mutations::walker_output_type())
-        .register(custom_mutations::walk_point_output_type())
-        .register(custom_mutations::user_output_type())
-        .register(custom_mutations::walk_event_output_type())
-        .register(custom_mutations::presigned_url_type())
-        .register(custom_mutations::dog_invitation_output_type())
-        .register(custom_mutations::dog_member_output_type())
-        .register(custom_mutations::sign_up_output_type())
-        .register(custom_mutations::sign_in_output_type())
+        .register(mutations::birth_date_type())
+        .register(mutations::dog_output_type())
+        .register(mutations::walk_output_type())
+        .register(mutations::walker_output_type())
+        .register(mutations::walk_point_output_type())
+        .register(mutations::user_output_type())
+        .register(mutations::walk_event_output_type())
+        .register(mutations::presigned_url_type())
+        .register(mutations::dog_invitation_output_type())
+        .register(mutations::dog_member_output_type())
+        .register(mutations::sign_up_output_type())
+        .register(mutations::sign_in_output_type())
         // Mutation input types
-        .register(custom_mutations::birth_date_input_type())
-        .register(custom_mutations::create_dog_input_type())
-        .register(custom_mutations::update_dog_input_type())
-        .register(custom_mutations::walk_point_input_type())
-        .register(custom_mutations::update_profile_input_type())
-        .register(custom_mutations::sign_up_input_type())
-        .register(custom_mutations::confirm_sign_up_input_type())
-        .register(custom_mutations::sign_in_input_type())
-        .register(custom_mutations::refresh_token_input_type())
-        .register(custom_mutations::record_walk_event_input_type());
+        .register(mutations::birth_date_input_type())
+        .register(mutations::create_dog_input_type())
+        .register(mutations::update_dog_input_type())
+        .register(mutations::walk_point_input_type())
+        .register(mutations::update_profile_input_type())
+        .register(mutations::sign_up_input_type())
+        .register(mutations::confirm_sign_up_input_type())
+        .register(mutations::sign_in_input_type())
+        .register(mutations::refresh_token_input_type())
+        .register(mutations::record_walk_event_input_type());
 
     // schema_builder() registers builder.query and builder.mutation as root
     // Query/Mutation types, then returns the completed SchemaBuilder.

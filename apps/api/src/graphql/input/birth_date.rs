@@ -1,6 +1,6 @@
 use async_graphql::dynamic::ValueAccessor;
 
-use crate::graphql::custom_mutations::BirthDate;
+use crate::graphql::mutations::BirthDate;
 
 /// Parse the optional `BirthDateInput` object from GraphQL input into a JSON value
 /// suitable for storage in the `birth_date` column.

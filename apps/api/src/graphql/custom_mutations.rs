@@ -1,5 +1,5 @@
 use crate::auth;
-use crate::error::AppError;
+use crate::error::{AppError, FieldError};
 use crate::graphql::auth_helpers;
 use crate::graphql::custom_queries::{EncounterOutput, WalkPointOutput};
 use crate::graphql::input::birth_date::parse_birth_date_input;
@@ -1431,8 +1431,19 @@ fn add_walk_points_field(state: Arc<AppState>) -> Field {
                 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 
                 let walk_id_str = ctx.args.try_get("walkId")?.string()?;
-                let walk_id = Uuid::parse_str(walk_id_str)
-                    .map_err(|_| async_graphql::Error::new("Invalid walk ID"))?;
+
+                let mut field_errors: Vec<FieldError> = Vec::new();
+                let walk_id_opt = Uuid::parse_str(walk_id_str).ok().or_else(|| {
+                    field_errors.push(FieldError {
+                        field: "walkId".to_string(),
+                        message: "Invalid UUID format".to_string(),
+                    });
+                    None
+                });
+                if !field_errors.is_empty() {
+                    return Err(AppError::ValidationErrors(field_errors).into_graphql_error());
+                }
+                let walk_id = walk_id_opt.unwrap();
 
                 let user = auth_helpers::resolve_user(&ctx, &state).await?;
                 // Only the walk owner can add points (walks.user_id check)
@@ -1704,13 +1715,34 @@ fn record_encounter_field(state: Arc<AppState>) -> Field {
         move |ctx| {
             let state = state.clone();
             FieldFuture::new(async move {
-                // Input parse
+                // Input parse — accumulate all field errors before returning
                 let my_walk_id_str = ctx.args.try_get("myWalkId")?.string()?;
                 let their_walk_id_str = ctx.args.try_get("theirWalkId")?.string()?;
-                let my_walk_id = Uuid::parse_str(my_walk_id_str)
-                    .map_err(|_| async_graphql::Error::new("Invalid myWalkId"))?;
-                let their_walk_id = Uuid::parse_str(their_walk_id_str)
-                    .map_err(|_| async_graphql::Error::new("Invalid theirWalkId"))?;
+
+                let mut field_errors: Vec<FieldError> = Vec::new();
+
+                let my_walk_id = Uuid::parse_str(my_walk_id_str).ok().or_else(|| {
+                    field_errors.push(FieldError {
+                        field: "myWalkId".to_string(),
+                        message: "Invalid UUID format".to_string(),
+                    });
+                    None
+                });
+                let their_walk_id = Uuid::parse_str(their_walk_id_str).ok().or_else(|| {
+                    field_errors.push(FieldError {
+                        field: "theirWalkId".to_string(),
+                        message: "Invalid UUID format".to_string(),
+                    });
+                    None
+                });
+
+                if !field_errors.is_empty() {
+                    return Err(AppError::ValidationErrors(field_errors).into_graphql_error());
+                }
+
+                // Both values are Some since field_errors is empty
+                let my_walk_id = my_walk_id.unwrap();
+                let their_walk_id = their_walk_id.unwrap();
 
                 // Auth
                 let user = auth_helpers::resolve_user(&ctx, &state).await?;

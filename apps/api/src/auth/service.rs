@@ -219,4 +219,21 @@ mod tests {
         let result = map_error_code(Some("SomeUnknownException"));
         assert!(matches!(result, AppError::Internal(msg) if msg == "AUTH_ERROR"));
     }
+
+    /// Verify that sign_up_with_profile exists and is callable as a facade.
+    /// This test exercises the public API signature of the facade function.
+    /// RED: compile error until sign_up_with_profile is implemented.
+    #[test]
+    fn sign_up_with_profile_facade_exists() {
+        // Type-checking: confirm the function signature matches the facade contract.
+        // We use a function pointer cast to verify the signature without calling it.
+        let _: fn(
+            &aws_sdk_cognitoidentityprovider::Client,
+            &str,
+            &sea_orm::DatabaseConnection,
+            &str,
+            &str,
+            &str,
+        ) -> _ = sign_up_with_profile;
+    }
 }

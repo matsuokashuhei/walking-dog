@@ -1160,22 +1160,16 @@ fn sign_up_field(state: Arc<AppState>) -> Field {
             let password = input.try_get("password")?.string()?.to_string();
             let display_name = input.try_get("displayName")?.string()?.to_string();
 
-            let result = auth::service::sign_up(
+            let result = auth::service::sign_up_with_profile(
                 &state.cognito,
                 &state.config.cognito_client_id,
+                &state.db,
                 &email,
                 &password,
                 &display_name,
             )
             .await
             .map_err(AppError::into_graphql_error)?;
-
-            // display_name 付きで DB ユーザーレコードを即時作成する。
-            if !result.user_sub.is_empty() {
-                user_service::create_user_with_profile(&state.db, &result.user_sub, &display_name)
-                    .await
-                    .map_err(AppError::into_graphql_error)?;
-            }
 
             Ok(Some(FieldValue::owned_any(SignUpOutput {
                 success: true,

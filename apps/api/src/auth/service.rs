@@ -3,6 +3,7 @@ use aws_sdk_cognitoidentityprovider::Client;
 use aws_smithy_types::error::metadata::ProvideErrorMetadata;
 
 use crate::error::AppError;
+use crate::services::user_service;
 
 pub struct SignUpResult {
     pub user_confirmed: bool,
@@ -62,6 +63,23 @@ pub async fn sign_up(
         user_confirmed: result.user_confirmed,
         user_sub: result.user_sub().to_string(),
     })
+}
+
+/// Facade: Cognito sign_up followed by immediate DB user profile creation.
+/// Combines auth registration with display_name profile in one call.
+pub async fn sign_up_with_profile(
+    client: &Client,
+    client_id: &str,
+    db: &sea_orm::DatabaseConnection,
+    email: &str,
+    password: &str,
+    display_name: &str,
+) -> Result<SignUpResult, AppError> {
+    let result = sign_up(client, client_id, email, password, display_name).await?;
+    if !result.user_sub.is_empty() {
+        user_service::create_user_with_profile(db, &result.user_sub, display_name).await?;
+    }
+    Ok(result)
 }
 
 pub async fn confirm_sign_up(
@@ -218,5 +236,16 @@ mod tests {
     fn map_error_code_unrecognized() {
         let result = map_error_code(Some("SomeUnknownException"));
         assert!(matches!(result, AppError::Internal(msg) if msg == "AUTH_ERROR"));
+    }
+
+    /// Verify that sign_up_with_profile exists as a public facade.
+    /// Confirmed at compile time: this test module references the function,
+    /// so any removal or rename will cause a compile error (RED).
+    #[test]
+    fn sign_up_with_profile_facade_exists() {
+        // Use `as *const ()` to get a raw pointer from the function item,
+        // which works for async fn without lifetime annotation issues.
+        let _ptr = super::sign_up_with_profile as *const ();
+        assert!(!_ptr.is_null());
     }
 }

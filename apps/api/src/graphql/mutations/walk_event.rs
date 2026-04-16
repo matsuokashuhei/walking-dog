@@ -2,7 +2,9 @@ use crate::error::AppError;
 use crate::graphql::auth_helpers;
 use crate::services::walk_event_service;
 use crate::AppState;
-use async_graphql::dynamic::{Field, FieldFuture, FieldValue, InputObject, InputValue, Object, TypeRef};
+use async_graphql::dynamic::{
+    Field, FieldFuture, FieldValue, InputObject, InputValue, Object, TypeRef,
+};
 use std::sync::Arc;
 use uuid::Uuid;
 

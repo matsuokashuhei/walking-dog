@@ -211,18 +211,13 @@ pub fn walk_output_type() -> Object {
                     let walk_id = w.id;
                     let state = ctx.data::<Arc<crate::AppState>>()?;
 
-                    let events =
-                        walk_event_service::list_events(&state.db, walk_id)
-                            .await
-                            .map_err(AppError::into_graphql_error)?;
+                    let events = walk_event_service::list_events(&state.db, walk_id)
+                        .await
+                        .map_err(AppError::into_graphql_error)?;
 
                     let values: Vec<FieldValue> = events
                         .into_iter()
-                        .map(|e| {
-                            FieldValue::owned_any(
-                                super::walk_event::WalkEventOutput::from(e),
-                            )
-                        })
+                        .map(|e| FieldValue::owned_any(super::walk_event::WalkEventOutput::from(e)))
                         .collect();
                     Ok(Some(FieldValue::list(values)))
                 })

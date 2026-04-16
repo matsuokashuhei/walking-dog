@@ -80,7 +80,7 @@ mod tests {
         // resolve_user_and_dog should not call get_or_create_user directly (it goes via resolve_user)
         assert!(
             !src[src.find("fn resolve_user_and_dog").unwrap()..]
-                .splitn(2, "fn resolve_user_and_walk")
+                .split("fn resolve_user_and_walk")
                 .next()
                 .unwrap_or("")
                 .contains("get_or_create_user"),

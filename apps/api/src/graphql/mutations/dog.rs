@@ -228,9 +228,9 @@ pub fn dog_output_type() -> Object {
                     let values: Vec<FieldValue> = members
                         .into_iter()
                         .map(|(member, user)| {
-                            FieldValue::owned_any(
-                                super::dog_member::DogMemberOutput::from((member, user)),
-                            )
+                            FieldValue::owned_any(super::dog_member::DogMemberOutput::from((
+                                member, user,
+                            )))
                         })
                         .collect();
                     Ok(Some(FieldValue::list(values)))

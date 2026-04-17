@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Alert, ScrollView, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useDog } from '@/hooks/use-dog';
 import { useUpdateDog, useGeneratePhotoUploadUrl } from '@/hooks/use-dog-mutations';
+import { useMutationWithAlert } from '@/hooks/use-mutation-with-alert';
 import { DogForm, type DogFormValues } from '@/components/dogs/DogForm';
 import { PhotoPicker } from '@/components/dogs/PhotoPicker';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
@@ -20,6 +21,7 @@ export default function EditDogScreen() {
   const { data: dog, isLoading } = useDog(id, 'ALL');
   const { mutateAsync: updateDog } = useUpdateDog();
   const { mutateAsync: generateUploadUrl } = useGeneratePhotoUploadUrl();
+  const runWithAlert = useMutationWithAlert();
   const [photoLoading, setPhotoLoading] = useState(false);
   const [previewUri, setPreviewUri] = useState<string | null>(null);
 
@@ -28,17 +30,13 @@ export default function EditDogScreen() {
   async function handlePhotoChange(uri: string, contentType: string) {
     setPreviewUri(uri);
     setPhotoLoading(true);
-    try {
+    await runWithAlert(async () => {
       const { url, key } = await generateUploadUrl({ dogId: id, contentType });
       await uploadToPresignedUrl(url, uri, contentType);
       await updateDog({ id, input: { photoUrl: key } });
-      setPreviewUri(null);
-    } catch {
-      setPreviewUri(null);
-      Alert.alert(t('common.error'), t('dogs.edit.photoUploadError'));
-    } finally {
-      setPhotoLoading(false);
-    }
+    }, 'dogs.edit.photoUploadError');
+    setPreviewUri(null);
+    setPhotoLoading(false);
   }
 
   async function handleSubmit(values: DogFormValues) {

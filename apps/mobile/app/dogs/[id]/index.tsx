@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Image } from 'expo-image';
 import { useDog } from '@/hooks/use-dog';
 import { useDeleteDog } from '@/hooks/use-dog-mutations';
 import { useMe } from '@/hooks/use-me';
+import { useMutationWithAlert } from '@/hooks/use-mutation-with-alert';
 import { DogStatsCard } from '@/components/dogs/DogStatsCard';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { Button } from '@/components/ui/Button';
@@ -22,6 +23,7 @@ export default function DogDetailScreen() {
   const { data: dog, isLoading } = useDog(id, 'ALL');
   const { data: me } = useMe();
   const { mutateAsync: deleteDog } = useDeleteDog();
+  const runWithAlert = useMutationWithAlert();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   if (isLoading || !dog) return <LoadingScreen />;
@@ -30,12 +32,8 @@ export default function DogDetailScreen() {
   const isOwner = currentMember?.role === 'owner';
 
   async function handleDelete() {
-    try {
-      await deleteDog(id);
-      router.replace('/(tabs)/dogs');
-    } catch {
-      Alert.alert(t('common.error'), t('dogs.detail.deleteError'));
-    }
+    const ok = await runWithAlert(() => deleteDog(id), 'dogs.detail.deleteError');
+    if (ok) router.replace('/(tabs)/dogs');
   }
 
   return (

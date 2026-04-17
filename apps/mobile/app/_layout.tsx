@@ -15,7 +15,7 @@ import { ErrorScreen } from '@/components/ui/ErrorScreen';
 import {
   getPendingInviteToken,
   deletePendingInviteToken,
-} from '@/app/invite/[token]';
+} from '@/lib/auth/pending-invite-token';
 
 function NavigationGuard() {
   const { isAuthenticated, isLoading } = useAuthStore();

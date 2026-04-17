@@ -3,13 +3,19 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as SecureStore from 'expo-secure-store';
 import AcceptInviteScreen from '../../../app/invite/[token]';
 
-const mockReplace = jest.fn();
-const mockBack = jest.fn();
-
-jest.mock('expo-router', () => ({
-  useLocalSearchParams: () => ({ token: 'test-token' }),
-  useRouter: () => ({ replace: mockReplace, back: mockBack }),
-}));
+jest.mock('expo-router', () => {
+  const router = { replace: jest.fn(), back: jest.fn() };
+  return {
+    useLocalSearchParams: () => ({ token: 'test-token' }),
+    useRouter: () => router,
+    __router: router,
+  };
+});
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { __router } = require('expo-router') as {
+  __router: { replace: jest.Mock; back: jest.Mock };
+};
+const mockReplace = __router.replace;
 
 jest.mock('expo-secure-store', () => ({
   setItemAsync: jest.fn(),
@@ -17,13 +23,18 @@ jest.mock('expo-secure-store', () => ({
   deleteItemAsync: jest.fn(),
 }));
 
-const mockMutateAsync = jest.fn();
-jest.mock('@/hooks/use-accept-invitation', () => ({
-  useAcceptInvitation: () => ({
-    mutateAsync: mockMutateAsync,
-    isPending: false,
-  }),
-}));
+jest.mock('@/hooks/use-accept-invitation', () => {
+  const mutation = { mutateAsync: jest.fn(), isPending: false };
+  return {
+    useAcceptInvitation: () => mutation,
+    __mutation: mutation,
+  };
+});
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { __mutation } = require('@/hooks/use-accept-invitation') as {
+  __mutation: { mutateAsync: jest.Mock; isPending: boolean };
+};
+const mockMutateAsync = __mutation.mutateAsync;
 
 let mockIsAuthenticated = true;
 jest.mock('@/stores/auth-store', () => ({

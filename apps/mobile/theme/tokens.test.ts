@@ -32,6 +32,14 @@ describe('ColorTokens interface', () => {
     const token: ColorTokens = colors.light;
     expect(token.primaryContainer).toBeDefined();
   });
+
+  it('has cardBorder in light tokens with 20% alpha suffix', () => {
+    expect(colors.light.cardBorder).toBe('#c6c6c633');
+  });
+
+  it('has cardBorder in dark tokens with 20% alpha suffix', () => {
+    expect(colors.dark.cardBorder).toBe('#3a3a3a33');
+  });
 });
 
 describe('radius', () => {

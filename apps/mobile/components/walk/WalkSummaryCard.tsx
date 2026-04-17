@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { useColors } from '@/hooks/use-colors';
 import { spacing, radius, typography } from '@/theme/tokens';
 import { useWalkStore } from '@/stores/walk-store';
+import { OutlinedCard } from '@/components/ui/OutlinedCard';
 import { formatTime, formatDistance } from '@/lib/walk/format';
 
 export function WalkSummaryCard() {
@@ -23,15 +24,7 @@ export function WalkSummaryCard() {
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <Text style={[styles.title, { color: theme.onSurface }]}>{t('walk.finished.title')}</Text>
 
-      <View
-        style={[
-          styles.card,
-          {
-            backgroundColor: theme.surfaceContainerLowest,
-            borderColor: theme.border + '33',
-          },
-        ]}
-      >
+      <OutlinedCard padding="lg">
         <View style={styles.stats}>
           <View style={styles.stat}>
             <Text style={[styles.statValue, { color: theme.onSurface }]}>
@@ -50,7 +43,7 @@ export function WalkSummaryCard() {
             </Text>
           </View>
         </View>
-      </View>
+      </OutlinedCard>
 
       <View style={styles.buttons}>
         <Pressable
@@ -63,7 +56,7 @@ export function WalkSummaryCard() {
             styles.button,
             {
               backgroundColor: theme.surfaceContainerLowest,
-              borderColor: theme.border + '33',
+              borderColor: theme.cardBorder,
               borderWidth: 1,
             },
           ]}
@@ -90,11 +83,6 @@ export function WalkSummaryCard() {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: spacing.lg, justifyContent: 'center' },
   title: { ...typography.h2, textAlign: 'center', marginBottom: spacing.lg },
-  card: {
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    padding: spacing.lg,
-  },
   stats: { flexDirection: 'row', justifyContent: 'space-around' },
   stat: { alignItems: 'center' },
   statValue: { fontSize: 24, fontWeight: '700' },

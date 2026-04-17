@@ -3,6 +3,7 @@ import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
 import { spacing, radius, typography } from '@/theme/tokens';
+import { OutlinedCard } from '@/components/ui/OutlinedCard';
 import type { Encounter } from '@/types/graphql';
 
 interface EncounterCardProps {
@@ -26,15 +27,7 @@ export function EncounterCard({ encounter, myDogId }: EncounterCardProps) {
   const metDate = new Date(encounter.metAt);
 
   return (
-    <View
-      style={[
-        styles.card,
-        {
-          backgroundColor: theme.surfaceContainerLowest,
-          borderColor: theme.border + '33',
-        },
-      ]}
-    >
+    <OutlinedCard style={styles.card}>
       <Image
         source={otherDog.photoUrl ?? require('@/assets/images/icon.png')}
         style={styles.avatar}
@@ -55,7 +48,7 @@ export function EncounterCard({ encounter, myDogId }: EncounterCardProps) {
           {t('dogs.encounters.duration', 'duration')}
         </Text>
       </View>
-    </View>
+    </OutlinedCard>
   );
 }
 
@@ -63,9 +56,6 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: spacing.md,
-    borderWidth: 1,
-    borderRadius: radius.lg,
     marginBottom: spacing.sm,
   },
   avatar: {

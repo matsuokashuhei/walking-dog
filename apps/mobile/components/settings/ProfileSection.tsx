@@ -5,7 +5,8 @@ import { useUpdateProfile } from '@/hooks/use-profile-mutation';
 import { Button } from '@/components/ui/Button';
 import { TextInput } from '@/components/ui/TextInput';
 import { useColors } from '@/hooks/use-colors';
-import { spacing, radius, typography } from '@/theme/tokens';
+import { spacing, typography } from '@/theme/tokens';
+import { SettingsSection } from './SettingsSection';
 
 interface ProfileSectionProps {
   displayName: string | null;
@@ -38,18 +39,7 @@ export function ProfileSection({ displayName }: ProfileSectionProps) {
   }
 
   return (
-    <View
-      style={[
-        styles.card,
-        {
-          backgroundColor: theme.surfaceContainerLowest,
-          borderColor: theme.border + '33',
-        },
-      ]}
-    >
-      <Text style={[styles.sectionTitle, { color: theme.onSurfaceVariant }]}>
-        {t('settings.profile').toUpperCase()}
-      </Text>
+    <SettingsSection title={t('settings.profile')}>
       {isEditing ? (
         <View>
           <TextInput
@@ -94,21 +84,11 @@ export function ProfileSection({ displayName }: ProfileSectionProps) {
           />
         </View>
       )}
-    </View>
+    </SettingsSection>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-  },
-  sectionTitle: {
-    ...typography.label,
-    marginBottom: spacing.md,
-  },
   displayRow: {
     flexDirection: 'row',
     alignItems: 'center',

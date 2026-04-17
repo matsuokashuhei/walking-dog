@@ -1,14 +1,18 @@
 import { View, StyleSheet, type ViewProps } from 'react-native';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { colors, spacing, radius } from '@/theme/tokens';
+import { useColors } from '@/hooks/use-colors';
+import { spacing, radius } from '@/theme/tokens';
 
-interface CardProps extends ViewProps {
+interface OutlinedCardProps extends ViewProps {
   padding?: keyof typeof spacing;
 }
 
-export function Card({ style, padding = 'md', children, ...rest }: CardProps) {
-  const colorScheme = useColorScheme();
-  const theme = colors[colorScheme ?? 'light'];
+export function OutlinedCard({
+  style,
+  padding = 'md',
+  children,
+  ...rest
+}: OutlinedCardProps) {
+  const theme = useColors();
 
   return (
     <View
@@ -16,7 +20,7 @@ export function Card({ style, padding = 'md', children, ...rest }: CardProps) {
         styles.base,
         {
           backgroundColor: theme.surfaceContainerLowest,
-          borderColor: theme.border + '33', // 20% opacity ghost border
+          borderColor: theme.cardBorder,
           padding: spacing[padding],
         },
         style,

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Image } from 'expo-image';
 import { useFriendship } from '@/hooks/use-friendship';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
-import { Card } from '@/components/ui/Card';
+import { OutlinedCard } from '@/components/ui/OutlinedCard';
 import { Button } from '@/components/ui/Button';
 import { useColors } from '@/hooks/use-colors';
 import { spacing, radius, typography } from '@/theme/tokens';
@@ -48,41 +48,41 @@ export default function FriendDogDetailScreen() {
       </View>
 
       <View style={styles.statsGrid}>
-        <Card padding="md">
+        <OutlinedCard padding="md">
           <Text style={[styles.statLabel, { color: theme.onSurfaceVariant }]}>
             {t('dogs.friends.encounters', 'Encounters').toUpperCase()}
           </Text>
           <Text style={[styles.statValue, { color: theme.onSurface }]}>
             {friendship.encounterCount}
           </Text>
-        </Card>
-        <Card padding="md">
+        </OutlinedCard>
+        <OutlinedCard padding="md">
           <Text style={[styles.statLabel, { color: theme.onSurfaceVariant }]}>
             {t('dogs.friends.totalTime', 'Total Time').toUpperCase()}
           </Text>
           <Text style={[styles.statValue, { color: theme.onSurface }]}>
             {formatDuration(friendship.totalInteractionSec)}
           </Text>
-        </Card>
+        </OutlinedCard>
       </View>
 
       <View style={styles.statsGrid}>
-        <Card padding="md">
+        <OutlinedCard padding="md">
           <Text style={[styles.statLabel, { color: theme.onSurfaceVariant }]}>
             {t('dogs.friends.firstMet', 'First Met').toUpperCase()}
           </Text>
           <Text style={[styles.statValue, { color: theme.onSurface }]}>
             {new Date(friendship.firstMetAt).toLocaleDateString()}
           </Text>
-        </Card>
-        <Card padding="md">
+        </OutlinedCard>
+        <OutlinedCard padding="md">
           <Text style={[styles.statLabel, { color: theme.onSurfaceVariant }]}>
             {t('dogs.friends.lastMet', 'Last Met').toUpperCase()}
           </Text>
           <Text style={[styles.statValue, { color: theme.onSurface }]}>
             {new Date(friendship.lastMetAt).toLocaleDateString()}
           </Text>
-        </Card>
+        </OutlinedCard>
       </View>
 
       <View style={styles.actions}>

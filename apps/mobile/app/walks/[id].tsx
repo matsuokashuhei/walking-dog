@@ -8,13 +8,7 @@ import { spacing, radius, typography } from '@/theme/tokens';
 import { useWalk } from '@/hooks/use-walks';
 import { formatClockTime } from '@/lib/walk/format';
 import { WalkEventTimeline } from '@/components/walk/WalkEventTimeline';
-import type { WalkEventType } from '@/types/graphql';
-
-const EVENT_EMOJIS: Record<WalkEventType, string> = {
-  pee: '🚽',
-  poo: '💩',
-  photo: '📷',
-};
+import { EVENT_EMOJIS } from '@/lib/walk/event-emojis';
 
 export default function WalkDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();

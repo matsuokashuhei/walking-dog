@@ -110,10 +110,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dogName: {
-    fontSize: 40,
-    fontWeight: '900',
-    letterSpacing: -0.8,
-    lineHeight: 44,
+    ...typography.hero,
     textAlign: 'center',
   },
   breed: {

@@ -1,11 +1,11 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { authenticatedRequest } from '@/lib/graphql/client';
 import {
   GENERATE_DOG_INVITATION_MUTATION,
   REMOVE_DOG_MEMBER_MUTATION,
   LEAVE_DOG_MUTATION,
 } from '@/lib/graphql/mutations';
-import { meKeys, dogKeys } from '@/lib/graphql/keys';
+import { useInvalidateUserQueries } from './use-invalidate-user-queries';
 import type {
   DogInvitation,
   GenerateDogInvitationResponse,
@@ -26,7 +26,7 @@ export function useGenerateInvitation() {
 }
 
 export function useRemoveMember() {
-  const queryClient = useQueryClient();
+  const invalidateUserQueries = useInvalidateUserQueries();
   return useMutation<boolean, Error, { dogId: string; userId: string }>({
     mutationFn: async ({ dogId, userId }) => {
       const data = await authenticatedRequest<RemoveDogMemberResponse>(
@@ -35,15 +35,12 @@ export function useRemoveMember() {
       );
       return data.removeDogMember;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: dogKeys.all });
-      queryClient.invalidateQueries({ queryKey: meKeys.all });
-    },
+    onSuccess: invalidateUserQueries,
   });
 }
 
 export function useLeaveDog() {
-  const queryClient = useQueryClient();
+  const invalidateUserQueries = useInvalidateUserQueries();
   return useMutation<boolean, Error, string>({
     mutationFn: async (dogId) => {
       const data = await authenticatedRequest<LeaveDogResponse>(
@@ -52,9 +49,6 @@ export function useLeaveDog() {
       );
       return data.leaveDog;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: dogKeys.all });
-      queryClient.invalidateQueries({ queryKey: meKeys.all });
-    },
+    onSuccess: invalidateUserQueries,
   });
 }

@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useColors } from '@/hooks/use-colors';
 import { spacing, typography } from '@/theme/tokens';
-import { useAuthStore } from '@/stores/auth-store';
+import { useIsAuthenticated } from '@/hooks/use-is-authenticated';
 import { useAcceptInvitation } from '@/hooks/use-accept-invitation';
 import { extractGraphQLErrorMessage } from '@/lib/graphql/errors';
 import { Button } from '@/components/ui/Button';
@@ -56,7 +56,7 @@ export default function AcceptInviteScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const theme = useColors();
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isAuthenticated = useIsAuthenticated();
   const acceptInvitation = useAcceptInvitation();
 
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');

@@ -85,10 +85,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   heroText: {
-    fontSize: 40,
-    fontWeight: '900',
-    letterSpacing: -0.8,
-    lineHeight: 44,
+    ...typography.hero,
   },
   subText: {
     ...typography.body,

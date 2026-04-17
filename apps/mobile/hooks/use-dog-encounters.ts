@@ -2,11 +2,11 @@ import { useQuery } from '@tanstack/react-query';
 import { authenticatedRequest } from '@/lib/graphql/client';
 import { DOG_ENCOUNTERS_QUERY } from '@/lib/graphql/queries';
 import { encounterKeys } from '@/lib/graphql/keys';
-import { useAuthStore } from '@/stores/auth-store';
+import { useIsAuthenticated } from './use-is-authenticated';
 import type { DogEncountersResponse, Encounter } from '@/types/graphql';
 
 export function useDogEncounters(dogId: string, limit = 20, offset = 0) {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isAuthenticated = useIsAuthenticated();
   return useQuery<Encounter[]>({
     queryKey: [...encounterKeys.byDog(dogId), limit, offset],
     queryFn: async () => {

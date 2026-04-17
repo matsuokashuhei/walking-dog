@@ -4,13 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
 import { spacing, radius } from '@/theme/tokens';
 import { useWalkStore } from '@/stores/walk-store';
-import type { WalkEvent, WalkEventType } from '@/types/graphql';
-
-const EVENT_EMOJIS: Record<WalkEventType, string> = {
-  pee: '🚽',
-  poo: '💩',
-  photo: '📷',
-};
+import { EVENT_EMOJIS } from '@/lib/walk/event-emojis';
+import type { WalkEvent } from '@/types/graphql';
 
 interface WalkMapProps {
   followUser?: boolean;

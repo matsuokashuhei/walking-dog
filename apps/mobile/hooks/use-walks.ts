@@ -2,11 +2,11 @@ import { useQuery } from '@tanstack/react-query';
 import { authenticatedRequest } from '@/lib/graphql/client';
 import { WALK_QUERY, MY_WALKS_QUERY } from '@/lib/graphql/queries';
 import { walkKeys } from '@/lib/graphql/keys';
-import { useAuthStore } from '@/stores/auth-store';
+import { useIsAuthenticated } from './use-is-authenticated';
 import type { Walk, WalkResponse, MyWalksResponse } from '@/types/graphql';
 
 export function useWalk(id: string) {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isAuthenticated = useIsAuthenticated();
   return useQuery<Walk | null>({
     queryKey: walkKeys.detail(id),
     queryFn: async () => {
@@ -18,7 +18,7 @@ export function useWalk(id: string) {
 }
 
 export function useMyWalks(limit = 20) {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isAuthenticated = useIsAuthenticated();
   return useQuery<Walk[]>({
     queryKey: walkKeys.list(),
     queryFn: async () => {

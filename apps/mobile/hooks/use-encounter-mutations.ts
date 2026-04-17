@@ -6,22 +6,20 @@ import {
 } from '@/lib/graphql/mutations';
 import { friendshipKeys, encounterKeys } from '@/lib/graphql/keys';
 import type {
+  Encounter,
   RecordEncounterResponse,
   UpdateEncounterDurationResponse,
 } from '@/types/graphql';
 
 export function useRecordEncounter() {
   const queryClient = useQueryClient();
-  return useMutation<
-    RecordEncounterResponse,
-    Error,
-    { myWalkId: string; theirWalkId: string }
-  >({
+  return useMutation<Encounter[], Error, { myWalkId: string; theirWalkId: string }>({
     mutationFn: async ({ myWalkId, theirWalkId }) => {
-      return authenticatedRequest<RecordEncounterResponse>(
+      const data = await authenticatedRequest<RecordEncounterResponse>(
         RECORD_ENCOUNTER_MUTATION,
         { myWalkId, theirWalkId },
       );
+      return data.recordEncounter;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: friendshipKeys.all });
@@ -32,15 +30,16 @@ export function useRecordEncounter() {
 
 export function useUpdateEncounterDuration() {
   return useMutation<
-    UpdateEncounterDurationResponse,
+    boolean,
     Error,
     { myWalkId: string; theirWalkId: string; durationSec: number }
   >({
     mutationFn: async ({ myWalkId, theirWalkId, durationSec }) => {
-      return authenticatedRequest<UpdateEncounterDurationResponse>(
+      const data = await authenticatedRequest<UpdateEncounterDurationResponse>(
         UPDATE_ENCOUNTER_DURATION_MUTATION,
         { myWalkId, theirWalkId, durationSec },
       );
+      return data.updateEncounterDuration;
     },
   });
 }

@@ -53,15 +53,6 @@ export function WalkControls({ onStop, isStopping }: WalkControlsProps) {
       <View style={styles.buttonRow}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Pause"
-          disabled
-          accessibilityState={{ disabled: true }}
-          style={[styles.pauseButton, { borderColor: theme.interactive }]}
-        >
-          <Text style={[styles.pauseText, { color: theme.interactive }]}>Pause</Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
           accessibilityLabel="Finish"
           onPress={onStop}
           disabled={isStopping}
@@ -112,15 +103,6 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     width: '100%',
   },
-  pauseButton: {
-    flex: 1,
-    paddingVertical: spacing.md,
-    borderRadius: radius.lg,
-    alignItems: 'center',
-    borderWidth: 1,
-    opacity: 0.5,
-  },
-  pauseText: { ...typography.button },
   finishButton: {
     flex: 1,
     paddingVertical: spacing.md,

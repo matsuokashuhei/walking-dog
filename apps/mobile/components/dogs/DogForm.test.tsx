@@ -12,12 +12,35 @@ describe('DogForm', () => {
     expect(screen.getByRole('button', { name: 'Register' })).toBeDisabled();
   });
 
+  it('disables submit when gender is empty', () => {
+    render(
+      <DogForm
+        onSubmit={jest.fn()}
+        submitLabel="Register"
+        initialValues={{ name: 'Hana' }}
+      />
+    );
+    expect(screen.getByRole('button', { name: 'Register' })).toBeDisabled();
+  });
+
+  it('enables submit when both name and gender are filled', () => {
+    render(
+      <DogForm
+        onSubmit={jest.fn()}
+        submitLabel="Register"
+        initialValues={{ name: 'Hana', gender: 'male' }}
+      />
+    );
+    expect(screen.getByRole('button', { name: 'Register' })).not.toBeDisabled();
+  });
+
   it('calls onSubmit with form values', async () => {
     const onSubmit = jest.fn().mockResolvedValue(undefined);
     render(<DogForm onSubmit={onSubmit} submitLabel="Register" />);
 
     fireEvent.changeText(screen.getByLabelText('Name'), 'Hana');
     fireEvent.changeText(screen.getByLabelText('Breed'), 'Poodle');
+    fireEvent.changeText(screen.getByLabelText('Gender'), 'male');
     fireEvent.press(screen.getByRole('button', { name: 'Register' }));
 
     await waitFor(() => {

@@ -13,11 +13,10 @@ const EVENT_EMOJIS: Record<WalkEventType, string> = {
 };
 
 interface WalkMapProps {
-  followUser?: boolean;
   events?: WalkEvent[];
 }
 
-export function WalkMap({ followUser = true, events = [] }: WalkMapProps) {
+export function WalkMap({ events = [] }: WalkMapProps) {
   const { t } = useTranslation();
   const theme = useColors();
   const points = useWalkStore((s) => s.points);
@@ -29,8 +28,8 @@ export function WalkMap({ followUser = true, events = [] }: WalkMapProps) {
     <View style={[styles.container, { borderColor: theme.border + '33' }]}>
       <MapView
         style={styles.map}
-        showsUserLocation={followUser}
-        followsUserLocation={followUser}
+        showsUserLocation
+        followsUserLocation
         initialRegion={
           lastPoint
             ? {

@@ -5,6 +5,7 @@ import { useColors } from '@/hooks/use-colors';
 import { spacing, radius } from '@/theme/tokens';
 import { useWalkStore } from '@/stores/walk-store';
 import { EVENT_EMOJIS } from '@/lib/walk/event-emojis';
+import { TOKYO_STATION_COORDINATE } from '@/lib/walk/constants';
 import type { WalkEvent } from '@/types/graphql';
 
 interface WalkMapProps {
@@ -34,8 +35,8 @@ export function WalkMap({ events = [] }: WalkMapProps) {
                 longitudeDelta: 0.005,
               }
             : {
-                latitude: 35.6812,
-                longitude: 139.7671,
+                latitude: TOKYO_STATION_COORDINATE.latitude,
+                longitude: TOKYO_STATION_COORDINATE.longitude,
                 latitudeDelta: 0.01,
                 longitudeDelta: 0.01,
               }

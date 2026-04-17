@@ -7,6 +7,7 @@ import { useDog } from '@/hooks/use-dog';
 import { useDeleteDog } from '@/hooks/use-dog-mutations';
 import { useMe } from '@/hooks/use-me';
 import { useMutationWithAlert } from '@/hooks/use-mutation-with-alert';
+import { useDogDetailAuthorization } from '@/hooks/use-dog-detail-authorization';
 import { DogStatsCard } from '@/components/dogs/DogStatsCard';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { Button } from '@/components/ui/Button';
@@ -25,11 +26,9 @@ export default function DogDetailScreen() {
   const { mutateAsync: deleteDog } = useDeleteDog();
   const runWithAlert = useMutationWithAlert();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const { isOwner } = useDogDetailAuthorization(dog ?? undefined, me ?? undefined);
 
   if (isLoading || !dog) return <LoadingScreen />;
-
-  const currentMember = dog.members?.find((m) => m.userId === me?.id);
-  const isOwner = currentMember?.role === 'owner';
 
   async function handleDelete() {
     const ok = await runWithAlert(() => deleteDog(id), 'dogs.detail.deleteError');

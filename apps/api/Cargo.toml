@@ -48,3 +48,10 @@ tokio = { version = "1", features = ["full"] }
 serde_json = "1"
 aws-smithy-mocks-experimental = "0.2"
 sea-orm = { version = "~2.0.0-rc", features = ["mock"] }
+
+# Reduce debug symbol size in test builds to lower linker peak disk usage
+# on CI runners (ubuntu-latest has ~14GB free). Full `debug = 2` is not needed
+# for pass/fail signal; line tables still give file:line in backtraces.
+# See: tasks/refactor/api/04-followup.md #2
+[profile.test]
+debug = "line-tables-only"

@@ -21,6 +21,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: true
+          android: false
+          dotnet: false
+          haskell: false
+          large-packages: false
+          swap-storage: false
+
       - name: Create DynamoDB table and S3 bucket
         run: |
           docker compose -f apps/compose.yml up -d dynamodb-local localstack

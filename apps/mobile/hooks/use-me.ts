@@ -2,11 +2,11 @@ import { useQuery } from '@tanstack/react-query';
 import { authenticatedRequest } from '@/lib/graphql/client';
 import { ME_QUERY } from '@/lib/graphql/queries';
 import { meKeys } from '@/lib/graphql/keys';
-import { useAuthStore } from '@/stores/auth-store';
+import { useIsAuthenticated } from './use-is-authenticated';
 import type { MeResponse, User } from '@/types/graphql';
 
 export function useMe() {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isAuthenticated = useIsAuthenticated();
   return useQuery<User>({
     queryKey: meKeys.all,
     queryFn: async () => {

@@ -1,11 +1,11 @@
 import { StyleSheet, Switch, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { useColors } from '@/hooks/use-colors';
 import { spacing, radius, typography } from '@/theme/tokens';
 import { authenticatedRequest } from '@/lib/graphql/client';
 import { UPDATE_ENCOUNTER_DETECTION_MUTATION } from '@/lib/graphql/mutations';
-import { meKeys } from '@/lib/graphql/keys';
+import { useInvalidateUserQueries } from '@/hooks/use-invalidate-user-queries';
 import type { UpdateEncounterDetectionResponse } from '@/types/graphql';
 
 interface EncounterDetectionSectionProps {
@@ -15,7 +15,7 @@ interface EncounterDetectionSectionProps {
 export function EncounterDetectionSection({ enabled }: EncounterDetectionSectionProps) {
   const { t } = useTranslation();
   const theme = useColors();
-  const queryClient = useQueryClient();
+  const invalidateUserQueries = useInvalidateUserQueries();
 
   const mutation = useMutation<UpdateEncounterDetectionResponse, Error, boolean>({
     mutationFn: async (newEnabled) => {
@@ -24,9 +24,7 @@ export function EncounterDetectionSection({ enabled }: EncounterDetectionSection
         { enabled: newEnabled },
       );
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: meKeys.all });
-    },
+    onSuccess: invalidateUserQueries,
   });
 
   return (

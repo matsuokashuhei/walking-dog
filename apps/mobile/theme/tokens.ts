@@ -70,6 +70,7 @@ export const radius = {
 
 export const typography = {
   display: { fontSize: 48, fontWeight: '900' as const, lineHeight: 52, letterSpacing: -0.96 },
+  hero: { fontSize: 40, fontWeight: '900' as const, lineHeight: 44, letterSpacing: -0.8 },
   h1: { fontSize: 32, fontWeight: '900' as const, lineHeight: 40, letterSpacing: -0.64 },
   h2: { fontSize: 24, fontWeight: '600' as const, lineHeight: 32 },
   h3: { fontSize: 20, fontWeight: '600' as const, lineHeight: 28 },

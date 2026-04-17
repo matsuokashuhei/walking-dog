@@ -71,4 +71,11 @@ describe('typography', () => {
   it('label has textTransform uppercase', () => {
     expect(typography.label.textTransform).toBe('uppercase');
   });
+
+  it('has hero token with fontSize 40, fontWeight 900, lineHeight 44, letterSpacing -0.8', () => {
+    expect(typography.hero.fontSize).toBe(40);
+    expect(typography.hero.fontWeight).toBe('900');
+    expect(typography.hero.lineHeight).toBe(44);
+    expect(typography.hero.letterSpacing).toBe(-0.8);
+  });
 });

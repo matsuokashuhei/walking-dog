@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { authenticatedRequest } from '@/lib/graphql/client';
 import {
   CREATE_DOG_MUTATION,
@@ -6,7 +6,7 @@ import {
   DELETE_DOG_MUTATION,
   GENERATE_DOG_PHOTO_UPLOAD_URL_MUTATION,
 } from '@/lib/graphql/mutations';
-import { meKeys, dogKeys } from '@/lib/graphql/keys';
+import { useInvalidateUserQueries } from './use-invalidate-user-queries';
 import type {
   CreateDogInput,
   UpdateDogInput,
@@ -19,20 +19,18 @@ import type {
 } from '@/types/graphql';
 
 export function useCreateDog() {
-  const queryClient = useQueryClient();
+  const invalidateUserQueries = useInvalidateUserQueries();
   return useMutation<Dog, Error, CreateDogInput>({
     mutationFn: async (input) => {
       const data = await authenticatedRequest<CreateDogResponse>(CREATE_DOG_MUTATION, { input });
       return data.createDog;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: meKeys.all });
-    },
+    onSuccess: invalidateUserQueries,
   });
 }
 
 export function useUpdateDog() {
-  const queryClient = useQueryClient();
+  const invalidateUserQueries = useInvalidateUserQueries();
   return useMutation<Dog, Error, { id: string; input: UpdateDogInput }>({
     mutationFn: async ({ id, input }) => {
       const data = await authenticatedRequest<UpdateDogResponse>(UPDATE_DOG_MUTATION, {
@@ -41,24 +39,18 @@ export function useUpdateDog() {
       });
       return data.updateDog;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: meKeys.all });
-      queryClient.invalidateQueries({ queryKey: dogKeys.all });
-    },
+    onSuccess: invalidateUserQueries,
   });
 }
 
 export function useDeleteDog() {
-  const queryClient = useQueryClient();
+  const invalidateUserQueries = useInvalidateUserQueries();
   return useMutation<boolean, Error, string>({
     mutationFn: async (id) => {
       const data = await authenticatedRequest<DeleteDogResponse>(DELETE_DOG_MUTATION, { id });
       return data.deleteDog;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: meKeys.all });
-      queryClient.invalidateQueries({ queryKey: dogKeys.all });
-    },
+    onSuccess: invalidateUserQueries,
   });
 }
 

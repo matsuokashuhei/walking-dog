@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, ScrollView, Share, StyleSheet, View } from 'react-native';
+import { ScrollView, Share, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useDog } from '@/hooks/use-dog';
@@ -9,6 +9,7 @@ import {
   useLeaveDog,
 } from '@/hooks/use-dog-member-mutations';
 import { useMe } from '@/hooks/use-me';
+import { useMutationWithAlert } from '@/hooks/use-mutation-with-alert';
 import { DogMembersList } from '@/components/dogs/DogMembersList';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -27,6 +28,7 @@ export default function DogMembersScreen() {
   const generateInvitation = useGenerateInvitation();
   const removeMember = useRemoveMember();
   const leaveDog = useLeaveDog();
+  const runWithAlert = useMutationWithAlert();
 
   const [confirmRemove, setConfirmRemove] = useState<{
     userId: string;
@@ -43,35 +45,30 @@ export default function DogMembersScreen() {
   );
 
   async function handleInvite() {
-    try {
-      const invitation = await generateInvitation.mutateAsync(id);
-      const url = `walking-dog://invite/${invitation.token}`;
-      await Share.share({ message: url });
-    } catch {
-      Alert.alert(t('common.error'), t('dogs.members.inviteError'));
+    const invitation = await runWithAlert(
+      () => generateInvitation.mutateAsync(id),
+      'dogs.members.inviteError',
+    );
+    if (invitation) {
+      await Share.share({ message: `walking-dog://invite/${invitation.token}` });
     }
   }
 
   async function handleRemove() {
     if (!confirmRemove) return;
-    try {
-      await removeMember.mutateAsync({
-        dogId: id,
-        userId: confirmRemove.userId,
-      });
-      setConfirmRemove(null);
-    } catch {
-      Alert.alert(t('common.error'), t('dogs.members.removeError'));
-    }
+    const ok = await runWithAlert(
+      () => removeMember.mutateAsync({ dogId: id, userId: confirmRemove.userId }),
+      'dogs.members.removeError',
+    );
+    if (ok) setConfirmRemove(null);
   }
 
   async function handleLeave() {
-    try {
-      await leaveDog.mutateAsync(id);
-      router.replace('/(tabs)/dogs');
-    } catch {
-      Alert.alert(t('common.error'), t('dogs.members.leaveError'));
-    }
+    const ok = await runWithAlert(
+      () => leaveDog.mutateAsync(id),
+      'dogs.members.leaveError',
+    );
+    if (ok) router.replace('/(tabs)/dogs');
   }
 
   return (

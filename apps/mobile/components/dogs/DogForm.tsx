@@ -24,7 +24,7 @@ export function DogForm({ onSubmit, submitLabel, initialValues }: DogFormProps) 
   const [gender, setGender] = useState(initialValues?.gender ?? '');
   const [loading, setLoading] = useState(false);
 
-  const isValid = name.trim().length > 0;
+  const isValid = name.trim().length > 0 && gender.trim().length > 0;
 
   async function handleSubmit() {
     if (!isValid) return;

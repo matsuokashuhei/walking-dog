@@ -79,3 +79,8 @@
 - 検証: `strings target/release/<binary> | grep -i NoOp` で 0 hits 確認
 
 **関連**: `apps/api/src/auth/jwt.rs::NoOpJwtVerifier` (現状 gate なし)、`tasks/refactor/api/04-followup.md` 項目 #3
+
+**規約として適用** (PR #102 で実施):
+- `apps/api/Cargo.toml` に `test-utils` feature 定義済み
+- `apps/api/src/auth/jwt.rs::NoOpJwtVerifier` に `#[cfg(any(test, feature = "test-utils"))]` 付与済み
+- 以降の test-only 実装はすべて同規約を適用する

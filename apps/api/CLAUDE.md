@@ -6,12 +6,13 @@
 - Docker Compose の `api` サービス経由で実行する:
   ```bash
   docker compose -f apps/compose.yml run --rm api cargo build
-  docker compose -f apps/compose.yml run --rm api cargo test
+  docker compose -f apps/compose.yml run --rm api cargo test --features test-utils
   ```
 - または既存コンテナで実行:
   ```bash
-  docker compose -f apps/compose.yml exec api cargo test
+  docker compose -f apps/compose.yml exec api cargo test --features test-utils
   ```
+- **注**: `cargo test --lib` (unit test のみ) は feature 不要。integration test を含む `cargo test` 系は `--features test-utils` 必須 (詳細は下の「Test Execution / Feature Flags」節)
 
 ## JWT 検証の仕組み
 
@@ -31,3 +32,13 @@ Integration tests では `NoOpJwtVerifier` を注入することで、実際の 
 - `NoOpJwtVerifier` は Bearer トークンの値をそのまま cognito_sub として扱う
 - `test-token` → `test-user-cognito-sub` にマップ (後方互換性のため)
 - `TEST_MODE` 環境変数は不要。Production binary に TEST_MODE 分岐は存在しない
+
+## Test Execution / Feature Flags
+
+- Integration test 実行時は `--features test-utils` が必須:
+  ```bash
+  docker compose -f apps/compose.yml run --rm api cargo test --features test-utils -- --test-threads=1
+  ```
+- `cargo test --lib` は feature 指定不要 (unit test は `#[cfg(test)]` 経由で解決)
+- Production build (`cargo build --release`) には `--features test-utils` を **付けない**
+- test-only 実装 (fake / NoOp / mock 構造体) は `#[cfg(any(test, feature = "test-utils"))]` で gate する規約

@@ -32,13 +32,13 @@ docker compose -f apps/compose.yml exec api <command>
 **1. テスト作成 (RED)**
 - Rustテストを作成（`#[cfg(test)]` モジュール内、または `tests/` ディレクトリ）
 - 実行して失敗を確認:
-  `docker compose -f apps/compose.yml run --rm api cargo test <テスト名>`
+  `docker compose -f apps/compose.yml run --rm api cargo test --features test-utils <テスト名>`
 
 **2. 実装 (GREEN)**
 - テストを通す最小限のコードを書く
 - 既存のコードベースパターンに従う
 - 実行して成功を確認:
-  `docker compose -f apps/compose.yml run --rm api cargo test <テスト名>`
+  `docker compose -f apps/compose.yml run --rm api cargo test --features test-utils <テスト名>`
 
 **3. 品質チェック**
 - フォーマット: `docker compose -f apps/compose.yml run --rm api cargo fmt --check`

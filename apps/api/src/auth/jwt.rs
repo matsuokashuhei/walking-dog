@@ -82,6 +82,7 @@ async fn verify_cognito_jwt(token: &str) -> Result<String, String> {
     Ok(token_data.claims.sub)
 }
 
+#[cfg(any(test, feature = "test-utils"))]
 /// Test-only verifier: treats the token value as the cognito_sub directly.
 /// Replicates the previous TEST_MODE behavior:
 /// - "test-token" maps to "test-user-cognito-sub"
@@ -90,6 +91,7 @@ async fn verify_cognito_jwt(token: &str) -> Result<String, String> {
 /// Use this in integration tests by passing `Arc::new(NoOpJwtVerifier)` to `build_app`.
 pub struct NoOpJwtVerifier;
 
+#[cfg(any(test, feature = "test-utils"))]
 #[async_trait]
 impl JwtVerifier for NoOpJwtVerifier {
     async fn verify(&self, token: &str) -> Result<Claims, AppError> {

@@ -59,8 +59,8 @@ color: yellow
 - 既存のテストパターン（テストヘルパー、フィクスチャ等）に従う
 
 **テスト実行:**
-- 個別: `docker compose -f apps/compose.yml run --rm api cargo test <テスト名>`
-- 全体: `docker compose -f apps/compose.yml run --rm api cargo test`
+- 個別: `docker compose -f apps/compose.yml run --rm api cargo test --features test-utils <テスト名>`
+- 全体: `docker compose -f apps/compose.yml run --rm api cargo test --features test-utils`
 
 ### Mobile（React Native）
 

@@ -6,8 +6,8 @@ import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
 import { spacing, radius } from '@/theme/tokens';
 import { useWalkStore } from '@/stores/walk-store';
-import { useRecordWalkEvent, useGenerateWalkEventPhotoUploadUrl } from '@/hooks/use-walk-event-mutations';
-import { uploadToPresignedUrl } from '@/lib/upload';
+import { useRecordWalkEvent } from '@/hooks/use-walk-event-mutations';
+import { usePhotoUpload, PhotoUploadError } from '@/hooks/use-photo-upload';
 import type { WalkEventType } from '@/types/graphql';
 
 const EVENT_BUTTONS: { type: WalkEventType; emoji: string }[] = [
@@ -27,12 +27,12 @@ export function WalkEventActions() {
   const clearCameraRequest = useWalkStore((s) => s.clearCameraRequest);
 
   const recordWalkEvent = useRecordWalkEvent();
-  const generatePhotoUploadUrl = useGenerateWalkEventPhotoUploadUrl();
+  const photoUpload = usePhotoUpload();
 
   const dogId = selectedDogIds.length === 1 ? selectedDogIds[0] : undefined;
   const latestPoint = points[points.length - 1];
 
-  const isDisabled = !walkId || recordWalkEvent.isPending || generatePhotoUploadUrl.isPending;
+  const isDisabled = !walkId || recordWalkEvent.isPending || photoUpload.isPending;
 
   const handlePeeOrPoo = async (eventType: 'pee' | 'poo') => {
     if (!walkId) return;
@@ -64,8 +64,6 @@ export function WalkEventActions() {
       return;
     }
 
-    let phase: 'presign' | 'upload' | 'record' = 'presign';
-
     try {
       const result = await ImagePicker.launchCameraAsync({
         allowsEditing: false,
@@ -75,30 +73,20 @@ export function WalkEventActions() {
       if (result.canceled || !result.assets[0]) return;
 
       const asset = result.assets[0];
-      const contentType = asset.mimeType ?? 'image/jpeg';
-
-      const { url, key } = await generatePhotoUploadUrl.mutateAsync({
-        walkId,
-        contentType,
-      });
-
-      phase = 'upload';
-      await uploadToPresignedUrl(url, asset.uri, contentType);
-
-      phase = 'record';
-      const event = await recordWalkEvent.mutateAsync({
+      const event = await photoUpload.uploadPhoto({
         walkId,
         dogId,
-        eventType: 'photo',
-        occurredAt: new Date().toISOString(),
-        ...(latestPoint ? { lat: latestPoint.lat, lng: latestPoint.lng } : {}),
-        photoKey: key,
+        asset: { uri: asset.uri, mimeType: asset.mimeType },
+        ...(latestPoint
+          ? { latestPoint: { lat: latestPoint.lat, lng: latestPoint.lng } }
+          : {}),
       });
 
       addEvent(event);
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } catch (err) {
       console.error('walk event record failed', err);
+      const phase = err instanceof PhotoUploadError ? err.phase : 'record';
       const messageKey = {
         presign: 'walk.event.photoPresignError' as const,
         upload: 'walk.event.photoUploadError' as const,
@@ -106,7 +94,7 @@ export function WalkEventActions() {
       }[phase];
       Alert.alert(t('common.error'), t(messageKey));
     }
-  }, [walkId, dogId, latestPoint, t, generatePhotoUploadUrl, recordWalkEvent, addEvent]);
+  }, [walkId, dogId, latestPoint, t, photoUpload, addEvent]);
 
   // Live Activity の Camera ボタン (deep link 経由) で walk-store の
   // cameraRequestedAt が更新されたら、アプリ内 Pee/Poo/Photo ボタンを

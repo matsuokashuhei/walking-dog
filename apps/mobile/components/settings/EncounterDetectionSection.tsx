@@ -2,10 +2,11 @@ import { StyleSheet, Switch, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useMutation } from '@tanstack/react-query';
 import { useColors } from '@/hooks/use-colors';
-import { spacing, radius, typography } from '@/theme/tokens';
+import { spacing, typography } from '@/theme/tokens';
 import { authenticatedRequest } from '@/lib/graphql/client';
 import { UPDATE_ENCOUNTER_DETECTION_MUTATION } from '@/lib/graphql/mutations';
 import { useInvalidateUserQueries } from '@/hooks/use-invalidate-user-queries';
+import { SettingsSection } from './SettingsSection';
 import type { UpdateEncounterDetectionResponse } from '@/types/graphql';
 
 interface EncounterDetectionSectionProps {
@@ -28,19 +29,9 @@ export function EncounterDetectionSection({ enabled }: EncounterDetectionSection
   });
 
   return (
-    <View
-      style={[
-        styles.card,
-        {
-          backgroundColor: theme.surfaceContainerLowest,
-          borderColor: theme.border + '33',
-        },
-      ]}
+    <SettingsSection
+      title={t('settings.encounterDetection', 'ENCOUNTER DETECTION')}
     >
-      <Text style={[styles.sectionTitle, { color: theme.onSurfaceVariant }]}>
-        {t('settings.encounterDetection', 'ENCOUNTER DETECTION').toUpperCase()}
-      </Text>
-
       <View style={styles.row}>
         <View style={styles.labelContainer}>
           <Text style={[styles.rowLabel, { color: theme.onSurface }]}>
@@ -63,21 +54,11 @@ export function EncounterDetectionSection({ enabled }: EncounterDetectionSection
           trackColor={{ false: theme.border, true: theme.interactive }}
         />
       </View>
-    </View>
+    </SettingsSection>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-  },
-  sectionTitle: {
-    ...typography.label,
-    marginBottom: spacing.md,
-  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -4,6 +4,7 @@ import { useColors } from '@/hooks/use-colors';
 import { spacing, radius, typography } from '@/theme/tokens';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { useSettingsStore } from '@/stores/settings-store';
+import { SettingsSection } from './SettingsSection';
 
 const LANGUAGES = [
   { label: '日本語', value: 'ja' },
@@ -48,19 +49,7 @@ export function AppearanceSection() {
   }
 
   return (
-    <View
-      style={[
-        styles.card,
-        {
-          backgroundColor: theme.surfaceContainerLowest,
-          borderColor: theme.border + '33',
-        },
-      ]}
-    >
-      <Text style={[styles.sectionTitle, { color: theme.onSurfaceVariant }]}>
-        {t('settings.appearance').toUpperCase()}
-      </Text>
-
+    <SettingsSection title={t('settings.appearance')}>
       <View style={styles.row}>
         <Text style={[styles.rowLabel, { color: theme.onSurface }]}>
           {t('settings.theme')}
@@ -82,7 +71,7 @@ export function AppearanceSection() {
           accessibilityRole="button"
           accessibilityLabel={`${t('settings.language')}: ${currentLanguageLabel}`}
           onPress={handleLanguagePress}
-          style={[styles.dropdown, { borderColor: theme.border + '33' }]}
+          style={[styles.dropdown, { borderColor: theme.cardBorder }]}
         >
           <Text style={[styles.dropdownText, { color: theme.onSurface }]}>
             {currentLanguageLabel}
@@ -90,21 +79,11 @@ export function AppearanceSection() {
           <Text style={[styles.dropdownArrow, { color: theme.onSurfaceVariant }]}>&#9660;</Text>
         </Pressable>
       </View>
-    </View>
+    </SettingsSection>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-  },
-  sectionTitle: {
-    ...typography.label,
-    marginBottom: spacing.md,
-  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

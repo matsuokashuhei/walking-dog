@@ -3,6 +3,7 @@ import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
 import { spacing, radius, typography } from '@/theme/tokens';
+import { OutlinedCard } from '@/components/ui/OutlinedCard';
 import type { DogMember } from '@/types/graphql';
 
 interface DogMembersListProps {
@@ -27,15 +28,7 @@ export function DogMembersList({ members, currentUserId, isOwner, onRemove }: Do
         const canRemove = isOwner && item.userId !== currentUserId;
 
         return (
-          <View
-            style={[
-              styles.row,
-              {
-                backgroundColor: theme.surfaceContainerLowest,
-                borderColor: theme.border + '33',
-              },
-            ]}
-          >
+          <OutlinedCard style={styles.row}>
             {item.user.avatarUrl ? (
               <Image
                 source={{ uri: item.user.avatarUrl }}
@@ -71,7 +64,7 @@ export function DogMembersList({ members, currentUserId, isOwner, onRemove }: Do
                 </Text>
               </Pressable>
             ) : null}
-          </View>
+          </OutlinedCard>
         );
       }}
       ItemSeparatorComponent={() => <View style={styles.separator} />}
@@ -83,10 +76,6 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
-    borderWidth: 1,
-    borderRadius: radius.lg,
   },
   separator: { height: spacing.sm },
   avatar: { width: 40, height: 40, borderRadius: radius.full },

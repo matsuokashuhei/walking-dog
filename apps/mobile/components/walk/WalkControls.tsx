@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useColors } from '@/hooks/use-colors';
 import { spacing, radius, typography } from '@/theme/tokens';
 import { useWalkStore } from '@/stores/walk-store';
+import { OutlinedCard } from '@/components/ui/OutlinedCard';
 import { formatTime, formatDistance } from '@/lib/walk/format';
 
 interface WalkControlsProps {
@@ -34,20 +35,12 @@ export function WalkControls({ onStop, isStopping }: WalkControlsProps) {
       </View>
 
       <View style={styles.metrics}>
-        <View
-          style={[
-            styles.metricCard,
-            {
-              backgroundColor: theme.surfaceContainerLowest,
-              borderColor: theme.border + '33',
-            },
-          ]}
-        >
+        <OutlinedCard style={styles.metricCard}>
           <Text style={[styles.metricValue, { color: theme.onSurface }]}>
             {formatDistance(totalDistanceM)}
           </Text>
           <Text style={[styles.metricLabel, { color: theme.onSurfaceVariant }]}>Distance</Text>
-        </View>
+        </OutlinedCard>
       </View>
 
       <View style={styles.buttonRow}>
@@ -92,9 +85,6 @@ const styles = StyleSheet.create({
   metricCard: {
     flex: 1,
     alignItems: 'center',
-    padding: spacing.md,
-    borderRadius: radius.lg,
-    borderWidth: 1,
   },
   metricValue: { ...typography.h2 },
   metricLabel: { ...typography.label, marginTop: spacing.xs },

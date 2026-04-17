@@ -1,7 +1,8 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
-import { spacing, radius, typography } from '@/theme/tokens';
+import { spacing, typography } from '@/theme/tokens';
+import { OutlinedCard } from '@/components/ui/OutlinedCard';
 import type { WalkStats } from '@/types/graphql';
 
 interface DogStatsCardProps {
@@ -25,15 +26,7 @@ export function DogStatsCard({ stats }: DogStatsCardProps) {
     : t('dogs.stats.minutes', { count: minutes });
 
   return (
-    <View
-      style={[
-        styles.card,
-        {
-          backgroundColor: theme.surfaceContainerLowest,
-          borderColor: theme.border + '33',
-        },
-      ]}
-    >
+    <OutlinedCard style={styles.card}>
       <View style={styles.stat}>
         <Text style={[styles.value, { color: theme.onSurface }]}>{stats.totalWalks}</Text>
         <Text style={[styles.label, { color: theme.onSurfaceVariant }]}>{t('dogs.stats.walks')}</Text>
@@ -50,16 +43,13 @@ export function DogStatsCard({ stats }: DogStatsCardProps) {
         </Text>
         <Text style={[styles.label, { color: theme.onSurfaceVariant }]}>{t('dogs.stats.duration')}</Text>
       </View>
-    </View>
+    </OutlinedCard>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    padding: spacing.md,
     marginBottom: spacing.md,
   },
   stat: {

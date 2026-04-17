@@ -11,6 +11,7 @@ export const colors = {
     interactive: '#000000',
     onInteractive: '#ffffff',
     border: '#c6c6c6',
+    cardBorder: '#c6c6c633',
     error: '#ba1a1a',
     overlay: 'rgba(0,0,0,0.4)',
     primaryContainer: '#3c3b3b',
@@ -27,6 +28,7 @@ export const colors = {
     interactive: '#f0f0f0',
     onInteractive: '#111111',
     border: '#3a3a3a',
+    cardBorder: '#3a3a3a33',
     error: '#ffb4ab',
     overlay: 'rgba(0,0,0,0.6)',
     primaryContainer: '#d4d4d4',
@@ -47,6 +49,7 @@ export interface ColorTokens {
   interactive: string;
   onInteractive: string;
   border: string;
+  cardBorder: string;
   error: string;
   overlay: string;
   primaryContainer: string;

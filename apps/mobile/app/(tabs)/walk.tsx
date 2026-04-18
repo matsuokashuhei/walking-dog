@@ -108,8 +108,9 @@ export default function WalkScreen() {
       {phase === 'recording' && (
         <>
           <WalkMap />
-          <WalkEventActions />
-          <WalkControls onStop={handleStop} isStopping={isStopping} />
+          <WalkControls onStop={handleStop} isStopping={isStopping}>
+            <WalkEventActions />
+          </WalkControls>
         </>
       )}
       {phase === 'finished' && <WalkSummaryCard />}

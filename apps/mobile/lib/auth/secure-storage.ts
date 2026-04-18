@@ -16,9 +16,8 @@ const extras = (Constants.expoConfig?.extra ?? {}) as {
   keychainService?: string;
 };
 
-// When running on iOS with the shared keychain extras wired up, all reads and
-// writes go through the App Group / keychain service pair so the Widget
-// extension can read the same items via SecItemCopyMatching.
+// Tokens read/write through the App Group + keychain service so the Live
+// Activity widget can SecItemCopyMatching the same items via SharedKeychain.
 const sharedOptions: SecureStore.SecureStoreOptions | undefined =
   Platform.OS === 'ios' && extras.appGroup && extras.keychainService
     ? { accessGroup: extras.appGroup, keychainService: extras.keychainService }

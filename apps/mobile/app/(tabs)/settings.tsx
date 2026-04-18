@@ -2,7 +2,7 @@ import { ScrollView, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
-import { spacing, typography } from '@/theme/tokens';
+import { spacing } from '@/theme/tokens';
 import { useMe } from '@/hooks/use-me';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { ErrorScreen } from '@/components/ui/ErrorScreen';
@@ -30,9 +30,6 @@ export default function SettingsScreen() {
         style={styles.container}
         contentContainerStyle={styles.content}
       >
-        <Text style={[styles.sectionLabel, { color: theme.onSurfaceVariant }]}>
-          {t('settings.sectionLabel')}
-        </Text>
         <Text style={[styles.heroTitle, { color: theme.onSurface }]}>
           {t('settings.title')}
         </Text>
@@ -63,16 +60,15 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     paddingBottom: spacing.xxl,
   },
-  sectionLabel: {
-    ...typography.label,
-    marginBottom: spacing.xs,
-  },
   heroTitle: {
-    ...typography.hero,
+    fontSize: 34,
+    fontWeight: '700',
+    letterSpacing: -0.6,
+    lineHeight: 41,
     marginBottom: spacing.lg,
   },
   version: {
-    ...typography.caption,
+    fontSize: 12,
     textAlign: 'center',
     marginTop: spacing.xl,
   },

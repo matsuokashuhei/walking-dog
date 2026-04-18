@@ -3,6 +3,11 @@
     "error": "Error",
     "retry": "Retry"
   },
+  "tabs": {
+    "dogs": "Dogs",
+    "walk": "Walk",
+    "me": "Me"
+  },
   "auth": {
     "login": {
       "title": "Walking Dog",
@@ -130,8 +135,8 @@
       "saving": "Saving walk data..."
     },
     "home": {
-      "hero": "Ready for the morning run?",
-      "startWalk": "Start Walk →"
+      "hero": "Tap to begin. We'll follow your route.",
+      "startWalk": "START"
     },
     "history": {
       "title": "Recent Walks",
@@ -190,7 +195,7 @@
     "badge": "Shared"
   },
   "settings": {
-    "title": "Settings",
+    "title": "Me",
     "sectionLabel": "PREFERENCES",
     "profile": "Profile",
     "displayName": "Display Name",

@@ -3,6 +3,11 @@
     "error": "エラー",
     "retry": "再試行"
   },
+  "tabs": {
+    "dogs": "愛犬",
+    "walk": "散歩",
+    "me": "マイページ"
+  },
   "auth": {
     "login": {
       "title": "Walking Dog",
@@ -130,8 +135,8 @@
       "saving": "散歩データを保存中..."
     },
     "home": {
-      "hero": "今日の散歩、準備はいい？",
-      "startWalk": "散歩を始める →"
+      "hero": "タップで開始。道のりはこちらで記録します。",
+      "startWalk": "START"
     },
     "history": {
       "title": "最近の散歩",
@@ -190,7 +195,7 @@
     "badge": "共有"
   },
   "settings": {
-    "title": "設定",
+    "title": "マイページ",
     "sectionLabel": "PREFERENCES",
     "profile": "プロフィール",
     "displayName": "表示名",

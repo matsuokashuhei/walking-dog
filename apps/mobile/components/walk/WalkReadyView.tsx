@@ -1,7 +1,9 @@
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Button } from '@/components/ui/Button';
+import { SectionHeader } from '@/components/ui/SectionHeader';
 import { useColors } from '@/hooks/use-colors';
-import { spacing, typography, radius } from '@/theme/tokens';
+import { spacing, typography } from '@/theme/tokens';
 import { useMyWalks } from '@/hooks/use-walks';
 import { WalkHistoryItem } from '@/components/walk/WalkHistoryItem';
 import type { Walk } from '@/types/graphql';
@@ -17,22 +19,21 @@ export function WalkReadyView({ onStartPress }: WalkReadyViewProps) {
 
   const ListHeader = (
     <View style={styles.hero}>
-      <Text style={[styles.heroText, { color: theme.onSurface }]}>
-        {t('walk.home.hero')}
-      </Text>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={t('walk.home.startWalk')}
-        onPress={onStartPress}
-        style={[styles.heroCta, { backgroundColor: theme.interactive }]}
-      >
-        <Text style={[styles.heroCtaText, { color: theme.onInteractive }]}>
-          {t('walk.home.startWalk')}
+      <View style={styles.ctaColumn}>
+        <Button
+          label="START"
+          variant="success"
+          size="circle"
+          onPress={onStartPress}
+        />
+        <Text style={[styles.hint, { color: theme.onSurfaceVariant }]}>
+          {t('walk.home.hero')}
         </Text>
-      </Pressable>
-      <Text style={[styles.sectionLabel, { color: theme.onSurfaceVariant }]}>
-        {t('walk.history.title')}
-      </Text>
+      </View>
+      <SectionHeader
+        label={t('walk.history.title')}
+        style={styles.sectionHeader}
+      />
     </View>
   );
 
@@ -62,27 +63,21 @@ export function WalkReadyView({ onStartPress }: WalkReadyViewProps) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   hero: {
+    paddingTop: spacing.xxl,
+  },
+  ctaColumn: {
+    alignItems: 'center',
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.md,
+    paddingBottom: spacing.xl,
   },
-  heroText: {
-    ...typography.hero,
-    marginBottom: spacing.md,
+  hint: {
+    ...typography.footnote,
+    textAlign: 'center',
+    marginTop: spacing.lg,
+    maxWidth: 260,
   },
-  heroCta: {
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    borderRadius: radius.full,
-    alignSelf: 'flex-start',
-    marginBottom: spacing.lg,
-  },
-  heroCtaText: {
-    ...typography.button,
-  },
-  sectionLabel: {
-    ...typography.label,
-    marginBottom: spacing.sm,
+  sectionHeader: {
+    marginTop: spacing.md,
   },
   empty: {
     ...typography.body,

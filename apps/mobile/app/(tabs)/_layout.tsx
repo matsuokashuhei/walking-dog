@@ -1,51 +1,55 @@
 import { Tabs } from 'expo-router';
+import { useTranslation } from 'react-i18next';
+import { StyleSheet } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useColors } from '@/hooks/use-colors';
-import { typography } from '@/theme/tokens';
 
 export default function TabLayout() {
   const theme = useColors();
+  const { t } = useTranslation();
 
   return (
     <Tabs
-      initialRouteName="walk"
+      initialRouteName="dogs"
       screenOptions={{
         tabBarActiveTintColor: theme.interactive,
-        tabBarInactiveTintColor: theme.border,
+        tabBarInactiveTintColor: theme.onSurfaceVariant,
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarLabelStyle: {
-          fontSize: typography.label.fontSize,
-          fontWeight: typography.label.fontWeight,
-          letterSpacing: typography.label.letterSpacing,
-          textTransform: typography.label.textTransform,
+          fontSize: 10,
+          fontWeight: '500',
+          letterSpacing: 0.1,
         },
         tabBarStyle: {
-          backgroundColor: theme.background,
-          borderTopWidth: 0,
+          backgroundColor: theme.material,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: theme.border,
         },
       }}>
       <Tabs.Screen
-        name="walk"
+        name="dogs"
         options={{
-          title: 'Walk',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="figure.walk" color={color} />,
+          title: t('tabs.dogs'),
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="pawprint.fill" color={color} />,
         }}
       />
       <Tabs.Screen
-        name="dogs"
+        name="walk"
         options={{
-          title: 'Dogs',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="pawprint.fill" color={color} />,
+          title: t('tabs.walk'),
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="figure.walk" color={color} />,
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
-          title: 'Settings',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="gearshape.fill" color={color} />,
+          title: t('tabs.me'),
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="person.crop.circle" color={color} />
+          ),
         }}
       />
     </Tabs>

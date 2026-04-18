@@ -3,6 +3,11 @@
     "error": "エラー",
     "retry": "再試行"
   },
+  "tabs": {
+    "dogs": "愛犬",
+    "walk": "散歩",
+    "me": "マイページ"
+  },
   "auth": {
     "login": {
       "title": "Walking Dog",
@@ -190,7 +195,7 @@
     "badge": "共有"
   },
   "settings": {
-    "title": "設定",
+    "title": "マイページ",
     "sectionLabel": "PREFERENCES",
     "profile": "プロフィール",
     "displayName": "表示名",

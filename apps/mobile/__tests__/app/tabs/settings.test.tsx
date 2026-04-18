@@ -52,8 +52,8 @@ jest.mock('@/components/settings/LogoutButton', () => ({
 }));
 
 describe('SettingsScreen', () => {
-  it('renders editorial hero heading with large style', () => {
+  it('renders the Me large-title heading', () => {
     render(<SettingsScreen />);
-    expect(screen.getByText('Settings')).toBeTruthy();
+    expect(screen.getByText('Me')).toBeTruthy();
   });
 });

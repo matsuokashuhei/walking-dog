@@ -3,6 +3,11 @@
     "error": "Error",
     "retry": "Retry"
   },
+  "tabs": {
+    "dogs": "Dogs",
+    "walk": "Walk",
+    "me": "Me"
+  },
   "auth": {
     "login": {
       "title": "Walking Dog",
@@ -190,7 +195,7 @@
     "badge": "Shared"
   },
   "settings": {
-    "title": "Settings",
+    "title": "Me",
     "sectionLabel": "PREFERENCES",
     "profile": "Profile",
     "displayName": "Display Name",

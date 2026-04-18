@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Image } from 'expo-image';
@@ -12,8 +12,10 @@ import { DogStatsCard } from '@/components/dogs/DogStatsCard';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { GroupedCard } from '@/components/ui/GroupedCard';
+import { GroupedRow } from '@/components/ui/GroupedRow';
 import { useColors } from '@/hooks/use-colors';
-import { spacing, radius, typography } from '@/theme/tokens';
+import { radius, spacing } from '@/theme/tokens';
 
 export default function DogDetailScreen() {
   const { t } = useTranslation();
@@ -35,9 +37,13 @@ export default function DogDetailScreen() {
     if (ok) router.replace('/(tabs)/dogs');
   }
 
+  const subtitle = [dog.breed, dog.gender].filter(Boolean).join(' · ');
+  const memberCount = dog.members?.length ?? 0;
+
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={styles.photoSection}>
+      {/* Hero — photo centered on a soft accent-gradient background */}
+      <View style={[styles.hero, { backgroundColor: theme.surfaceContainer }]}>
         <Image
           source={dog.photoUrl ?? require('@/assets/images/icon.png')}
           style={styles.photo}
@@ -46,86 +52,53 @@ export default function DogDetailScreen() {
         />
       </View>
 
-      <View style={styles.heroSection}>
+      {/* Name + breed/gender metadata */}
+      <View style={styles.heroInfo}>
         <Text style={[styles.dogName, { color: theme.onSurface }]}>{dog.name}</Text>
-      </View>
-
-      <View style={[styles.dataTable, { borderTopColor: theme.border + '33' }]}>
-        {dog.breed ? (
-          <View style={[styles.dataRow, { borderBottomColor: theme.border + '33' }]}>
-            <Text style={[styles.dataLabel, { color: theme.onSurfaceVariant }]}>
-              {t('dogs.detail.breed')}
-            </Text>
-            <Text style={[styles.dataValue, { color: theme.onSurface }]}>{dog.breed}</Text>
-          </View>
-        ) : null}
-        {dog.gender ? (
-          <View style={[styles.dataRow, { borderBottomColor: theme.border + '33' }]}>
-            <Text style={[styles.dataLabel, { color: theme.onSurfaceVariant }]}>
-              {t('dogs.detail.gender')}
-            </Text>
-            <Text style={[styles.dataValue, { color: theme.onSurface }]}>{dog.gender}</Text>
-          </View>
+        {subtitle ? (
+          <Text style={[styles.dogMeta, { color: theme.onSurfaceVariant }]}>{subtitle}</Text>
         ) : null}
       </View>
 
-      {dog.members && dog.members.length > 0 ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('dogs.detail.manageMembers')}
-          style={[styles.membersRow, { borderColor: theme.border + '33' }]}
-          onPress={() => router.push(`/dogs/${id}/members`)}
-        >
-          <View>
-            <Text style={[styles.membersLabel, { color: theme.onSurface }]}>
-              {t('dogs.detail.members')}
-            </Text>
-            <Text style={[styles.membersCount, { color: theme.onSurfaceVariant }]}>
-              {t('dogs.detail.membersCount', { count: dog.members.length })}
-            </Text>
-          </View>
-          <Text style={{ color: theme.onSurfaceVariant, fontSize: 20 }}>{'>'}</Text>
-        </Pressable>
-      ) : null}
-
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={t('dogs.detail.viewFriends', 'View friends')}
-        style={[styles.membersRow, { borderColor: theme.border + '33' }]}
-        onPress={() => router.push(`/dogs/${id}/friends`)}
-      >
-        <View>
-          <Text style={[styles.membersLabel, { color: theme.onSurface }]}>
-            {t('dogs.detail.friends', 'Friends')}
-          </Text>
-          <Text style={[styles.membersCount, { color: theme.onSurfaceVariant }]}>
-            {t('dogs.detail.viewFriendsList', 'View encounter history')}
-          </Text>
-        </View>
-        <Text style={{ color: theme.onSurfaceVariant, fontSize: 20 }}>{'>'}</Text>
-      </Pressable>
-
+      {/* Stats card */}
       {dog.walkStats ? (
         <View style={styles.statsSection}>
           <DogStatsCard stats={dog.walkStats} />
         </View>
       ) : null}
 
+      {/* Grouped navigation rows — Members (if any) + Friends */}
+      <GroupedCard style={styles.group}>
+        {memberCount > 0 ? (
+          <GroupedRow
+            label={t('dogs.detail.members')}
+            value={t('dogs.detail.membersCount', { count: memberCount })}
+            onPress={() => router.push(`/dogs/${id}/members`)}
+          />
+        ) : null}
+        <GroupedRow
+          label={t('dogs.detail.friends', 'Friends')}
+          value={t('dogs.detail.viewFriendsList', 'View encounter history')}
+          separator={false}
+          onPress={() => router.push(`/dogs/${id}/friends`)}
+        />
+      </GroupedCard>
+
+      {/* Actions */}
       <View style={styles.actions}>
         <Button
           label={t('dogs.detail.edit')}
           variant="secondary"
           onPress={() => router.push(`/dogs/${id}/edit`)}
+          style={styles.actionButton}
         />
         {isOwner ? (
-          <>
-            <View style={{ width: spacing.sm }} />
-            <Button
-              label={t('dogs.detail.delete')}
-              variant="destructive"
-              onPress={() => setShowDeleteConfirm(true)}
-            />
-          </>
+          <Button
+            label={t('dogs.detail.delete')}
+            variant="destructive"
+            onPress={() => setShowDeleteConfirm(true)}
+            style={styles.actionButton}
+          />
         ) : null}
       </View>
 
@@ -146,63 +119,48 @@ export default function DogDetailScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  photoSection: { alignItems: 'center', paddingVertical: spacing.xl },
+  hero: {
+    height: 280,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    paddingBottom: spacing.xl,
+  },
   photo: {
     width: 160,
     height: 160,
     borderRadius: radius.full,
   },
-  heroSection: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.lg,
+  heroInfo: {
     alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.md,
   },
   dogName: {
-    fontSize: 48,
-    fontWeight: '900',
-    letterSpacing: -0.96,
+    fontSize: 28,
+    fontWeight: '700',
+    letterSpacing: -0.5,
+    lineHeight: 34,
     textAlign: 'center',
   },
-  dataTable: {
+  dogMeta: {
+    fontSize: 14,
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  statsSection: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.lg,
+  },
+  group: {
     marginHorizontal: spacing.lg,
-    borderTopWidth: 1,
-    marginBottom: spacing.md,
+    marginBottom: spacing.lg,
   },
-  dataRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-  },
-  dataLabel: {
-    ...typography.label,
-  },
-  dataValue: {
-    ...typography.body,
-  },
-  membersRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
-    borderWidth: 1,
-    borderRadius: radius.md,
-    marginBottom: spacing.md,
-  },
-  membersLabel: {
-    ...typography.bodyMedium,
-  },
-  membersCount: {
-    ...typography.caption,
-    marginTop: 2,
-  },
-  statsSection: { padding: spacing.md },
   actions: {
     flexDirection: 'row',
-    padding: spacing.lg,
-    paddingTop: 0,
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xl,
   },
+  actionButton: { flex: 1 },
 });

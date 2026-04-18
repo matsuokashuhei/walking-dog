@@ -1,4 +1,7 @@
 import Foundation
+import os
+
+private let clientLogger = Logger(subsystem: "com.walkingdog.liveactivity", category: "Network")
 
 enum WalkEventClientError: Error {
     case missingContext
@@ -8,6 +11,18 @@ enum WalkEventClientError: Error {
     case network(Error)
     case graphQLError(String)
     case invalidResponse
+
+    var description: String {
+        switch self {
+        case .missingContext: return "missingContext"
+        case .missingToken: return "missingToken"
+        case .invalidURL: return "invalidURL"
+        case .unauthorized: return "unauthorized"
+        case .network(let e): return "network(\((e as NSError).code))"
+        case .graphQLError(let msg): return "graphQL(\(msg.prefix(50)))"
+        case .invalidResponse: return "invalidResponse"
+        }
+    }
 }
 
 // Minimal GraphQL client for the Live Activity AppIntents. Only speaks the one
@@ -59,16 +74,21 @@ enum WalkEventClient {
         do {
             (data, response) = try await URLSession.shared.data(for: request)
         } catch {
+            clientLogger.error("Network error for \(kind): \(error.localizedDescription)")
             throw WalkEventClientError.network(error)
         }
 
         guard let http = response as? HTTPURLResponse else {
+            clientLogger.error("Invalid response for \(kind)")
             throw WalkEventClientError.invalidResponse
         }
+        clientLogger.info("Response for \(kind): HTTP \(http.statusCode)")
         if http.statusCode == 401 {
             throw WalkEventClientError.unauthorized
         }
         guard (200...299).contains(http.statusCode) else {
+            let body = String(data: data, encoding: .utf8) ?? ""
+            clientLogger.error("HTTP \(http.statusCode) for \(kind): \(body.prefix(200))")
             throw WalkEventClientError.graphQLError("HTTP \(http.statusCode)")
         }
 
@@ -76,6 +96,7 @@ enum WalkEventClient {
            let errors = payload["errors"] as? [[String: Any]],
            let first = errors.first,
            let message = first["message"] as? String {
+            clientLogger.error("GraphQL error for \(kind): \(message)")
             throw WalkEventClientError.graphQLError(message)
         }
     }

@@ -18,13 +18,17 @@ interface WalkState {
   // distinct value per request so repeat taps fire even if the previous one
   // wasn't acknowledged yet.
   cameraRequestedAt: number | null;
+  /** Recording bottom sheet collapsed to the compact pill variant. */
+  isMinimized: boolean;
   selectDog: (dogId: string) => void;
+  setSelectedDogs: (dogIds: string[]) => void;
   startRecording: (walkId: string) => void;
   addPoint: (point: WalkPoint) => void;
   addEvent: (event: WalkEvent) => void;
   removeEvent: (eventId: string) => void;
   requestCamera: () => void;
   clearCameraRequest: () => void;
+  setMinimized: (value: boolean) => void;
   finish: () => void;
   reset: () => void;
 }
@@ -38,6 +42,7 @@ export const useWalkStore = create<WalkState>((set, get) => ({
   startedAt: null,
   events: [],
   cameraRequestedAt: null,
+  isMinimized: false,
 
   selectDog: (dogId) =>
     set((state) => ({
@@ -45,6 +50,8 @@ export const useWalkStore = create<WalkState>((set, get) => ({
         ? state.selectedDogIds.filter((id) => id !== dogId)
         : [...state.selectedDogIds, dogId],
     })),
+
+  setSelectedDogs: (dogIds) => set({ selectedDogIds: dogIds }),
 
   startRecording: (walkId) =>
     set({ phase: 'recording', walkId, startedAt: new Date() }),
@@ -69,7 +76,9 @@ export const useWalkStore = create<WalkState>((set, get) => ({
 
   clearCameraRequest: () => set({ cameraRequestedAt: null }),
 
-  finish: () => set({ phase: 'finished', cameraRequestedAt: null }),
+  setMinimized: (value) => set({ isMinimized: value }),
+
+  finish: () => set({ phase: 'finished', cameraRequestedAt: null, isMinimized: false }),
 
   reset: () =>
     set({
@@ -81,5 +90,6 @@ export const useWalkStore = create<WalkState>((set, get) => ({
       startedAt: null,
       events: [],
       cameraRequestedAt: null,
+      isMinimized: false,
     }),
 }));

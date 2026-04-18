@@ -1,240 +1,229 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { useMemo } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui/Button';
-import { GroupedCard } from '@/components/ui/GroupedCard';
 import { useColors } from '@/hooks/use-colors';
-import { spacing } from '@/theme/tokens';
+import { useMe } from '@/hooks/use-me';
 import { useWalkStore } from '@/stores/walk-store';
-import { formatDistance, formatTime } from '@/lib/walk/format';
-import type { WalkEvent } from '@/types/graphql';
+import { spacing, typography } from '@/theme/tokens';
+import { PerDogSummaryCard } from './PerDogSummaryCard';
+import { WalkRoutePreview } from './WalkRoutePreview';
+import type { Dog } from '@/types/graphql';
+
+const AVATAR = 22;
 
 export function WalkSummaryCard() {
   const router = useRouter();
+  const { t } = useTranslation();
   const theme = useColors();
+  const insets = useSafeAreaInsets();
+
   const walkId = useWalkStore((s) => s.walkId);
   const startedAt = useWalkStore((s) => s.startedAt);
   const totalDistanceM = useWalkStore((s) => s.totalDistanceM);
+  const points = useWalkStore((s) => s.points);
   const events = useWalkStore((s) => s.events);
+  const selectedDogIds = useWalkStore((s) => s.selectedDogIds);
   const reset = useWalkStore((s) => s.reset);
+
+  const { data: me } = useMe();
+  const dogs = useMemo<Dog[]>(
+    () => (me?.dogs ?? []).filter((d) => selectedDogIds.includes(d.id)),
+    [me?.dogs, selectedDogIds],
+  );
 
   const elapsedSec = startedAt
     ? Math.floor((Date.now() - startedAt.getTime()) / 1000)
     : 0;
-  const pace = formatPace(elapsedSec, totalDistanceM);
-  const counts = countEvents(events);
+  const elapsedMin = Math.max(1, Math.round(elapsedSec / 60));
 
-  // "Save walk" commits the in-memory store to history and returns to the
-  // Walk Ready state so the user can start a new session without being stuck
-  // on this screen (regression from commit 625c688).
+  const isSingle = dogs.length <= 1;
+  const firstDog = dogs[0];
+  const title = isSingle
+    ? t('walk.finished.titleSingle', { name: firstDog?.name ?? '' })
+    : t('walk.finished.titleMulti');
+
+  const subtitle = isSingle
+    ? firstDog
+      ? t('walk.finished.minSolo', { name: firstDog.name, min: elapsedMin })
+      : ''
+    : t('walk.finished.minTogether', {
+        names: joinNames(dogs, t),
+        min: elapsedMin,
+      });
+
+  const savedNote = isSingle
+    ? firstDog
+      ? t('walk.finished.savedToHistorySingle', { name: firstDog.name })
+      : ''
+    : t('walk.finished.savedToHistoryMulti', {
+        a: dogs[0]?.name ?? '',
+        b: dogs[1]?.name ?? '',
+      });
+
   const handleSave = () => {
     const id = walkId;
     reset();
     if (id) router.push(`/walks/${id}`);
   };
 
+  const handleViewEach = walkId
+    ? () => router.push(`/walks/${walkId}`)
+    : undefined;
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={styles.hero}>
-        <Text style={[styles.caption, { color: theme.success }]}>WALK COMPLETE</Text>
-        <Text style={[styles.title, { color: theme.onSurface }]}>Nice walk!</Text>
-      </View>
+      <ScrollView
+        contentContainerStyle={[
+          styles.scroll,
+          { paddingBottom: spacing.md + insets.bottom },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.hero}>
+          <Text style={[styles.caption, { color: theme.success }]}>
+            {t('walk.finished.walkComplete')}
+          </Text>
+          <Text style={[styles.title, { color: theme.onSurface }]}>{title}</Text>
+          {subtitle ? (
+            <View style={styles.subtitleRow}>
+              <AvatarStack dogs={dogs} borderColor={theme.surface} />
+              <Text
+                style={[styles.subtitle, { color: theme.onSurfaceVariant }]}
+                numberOfLines={1}
+              >
+                {subtitle}
+              </Text>
+            </View>
+          ) : null}
+        </View>
 
-      <GroupedCard padding="lg" style={styles.metrics}>
-        <MetricRow
-          label="Distance"
-          value={formatDistance(totalDistanceM).trim()}
-          dot={theme.success}
-          labelColor={theme.onSurfaceVariant}
-          valueColor={theme.onSurface}
+        <WalkRoutePreview
+          points={points}
+          totalDistanceM={totalDistanceM}
+          elapsedSec={elapsedSec}
         />
-        <View style={[styles.separator, { backgroundColor: theme.border }]} />
-        <MetricRow
-          label="Time"
-          value={formatTime(elapsedSec)}
-          dot={theme.warning}
-          labelColor={theme.onSurfaceVariant}
-          valueColor={theme.onSurface}
-        />
-        <View style={[styles.separator, { backgroundColor: theme.border }]} />
-        <MetricRow
-          label="Pace"
-          value={pace}
-          dot={theme.error}
-          labelColor={theme.onSurfaceVariant}
-          valueColor={theme.onSurface}
-        />
-      </GroupedCard>
 
-      <View style={styles.tagRow}>
-        {counts.poo > 0 ? (
-          <TagChip
-            label={`💩 ${counts.poo}`}
-            background={theme.surfaceContainer}
-            color={theme.onSurface}
+        {!isSingle ? (
+          <PerDogSummaryCard
+            dogs={dogs}
+            events={events}
+            onViewEach={handleViewEach}
           />
         ) : null}
-        {counts.pee > 0 ? (
-          <TagChip
-            label={`💧 ${counts.pee}`}
-            background={theme.surfaceContainer}
-            color={theme.onSurface}
-          />
-        ) : null}
-        {counts.photo > 0 ? (
-          <TagChip
-            label={`📷 ${counts.photo}`}
-            background={theme.surfaceContainer}
-            color={theme.onSurface}
-          />
-        ) : null}
-      </View>
 
-      <View style={styles.actions}>
-        <Button label="Add note" variant="ghost" style={styles.addNote} />
-        <Button
-          label="Save walk"
-          variant="primary"
-          onPress={handleSave}
-          style={styles.save}
-        />
-      </View>
+        {savedNote ? (
+          <Text style={[styles.savedNote, { color: theme.onSurfaceVariant }]}>
+            {savedNote}
+          </Text>
+        ) : null}
+
+        <View style={styles.actions}>
+          <Button
+            label={t('walk.finished.addNote')}
+            variant="ghost"
+            style={styles.addNote}
+          />
+          <Button
+            label={t('walk.finished.saveWalk')}
+            variant="primary"
+            onPress={handleSave}
+            style={styles.save}
+          />
+        </View>
+      </ScrollView>
     </View>
   );
 }
 
-function MetricRow({
-  label,
-  value,
-  dot,
-  labelColor,
-  valueColor,
-}: {
-  label: string;
-  value: string;
-  dot: string;
-  labelColor: string;
-  valueColor: string;
-}) {
+interface AvatarStackProps {
+  dogs: Dog[];
+  borderColor: string;
+}
+
+function AvatarStack({ dogs, borderColor }: AvatarStackProps) {
+  if (dogs.length === 0) return null;
   return (
-    <View style={styles.metricRow}>
-      <View style={[styles.metricDot, { backgroundColor: dot }]} />
-      <Text style={[styles.metricLabel, { color: labelColor }]}>{label}</Text>
-      <Text style={[styles.metricValue, { color: valueColor }]}>{value}</Text>
+    <View style={styles.avatars}>
+      {dogs.slice(0, 2).map((dog, i) => (
+        <Image
+          key={dog.id}
+          source={dog.photoUrl ?? require('@/assets/images/icon.png')}
+          style={[
+            styles.avatar,
+            { borderColor },
+            i > 0 && styles.avatarOverlap,
+          ]}
+          contentFit="cover"
+        />
+      ))}
     </View>
   );
 }
 
-function TagChip({
-  label,
-  background,
-  color,
-}: {
-  label: string;
-  background: string;
-  color: string;
-}) {
-  return (
-    <View style={[styles.chip, { backgroundColor: background }]}>
-      <Text style={[styles.chipText, { color }]}>{label}</Text>
-    </View>
-  );
-}
-
-function countEvents(events: WalkEvent[]): {
-  pee: number;
-  poo: number;
-  photo: number;
-} {
-  const counts = { pee: 0, poo: 0, photo: 0 };
-  for (const e of events) {
-    if (e.eventType === 'pee') counts.pee += 1;
-    else if (e.eventType === 'poo') counts.poo += 1;
-    else if (e.eventType === 'photo') counts.photo += 1;
-  }
-  return counts;
-}
-
-function formatPace(elapsedSec: number, totalM: number): string {
-  if (totalM < 100 || elapsedSec === 0) return "—'—\"/km";
-  const secPerKm = (elapsedSec / totalM) * 1000;
-  const mm = Math.floor(secPerKm / 60);
-  const ss = Math.floor(secPerKm % 60);
-  return `${mm}'${ss.toString().padStart(2, '0')}"/km`;
+function joinNames(dogs: Dog[], t: (key: string) => string): string {
+  if (dogs.length === 0) return '';
+  if (dogs.length === 1) return dogs[0].name;
+  const joiner = t('walk.finished.joinerAnd');
+  if (dogs.length === 2) return `${dogs[0].name} ${joiner} ${dogs[1].name}`;
+  const head = dogs
+    .slice(0, -1)
+    .map((d) => d.name)
+    .join(', ');
+  const tail = dogs[dogs.length - 1].name;
+  return `${head} ${joiner} ${tail}`;
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: spacing.lg,
-    paddingTop: spacing.xl * 2,
+  container: { flex: 1 },
+  scroll: {
+    gap: spacing.lg,
+    paddingTop: spacing.md,
   },
   hero: {
-    marginBottom: spacing.xl,
+    paddingHorizontal: spacing.lg,
   },
   caption: {
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 1,
     textTransform: 'uppercase',
+    marginBottom: spacing.xs,
   },
   title: {
-    fontSize: 36,
-    fontWeight: '700',
-    letterSpacing: -0.8,
-    lineHeight: 40,
-    marginTop: spacing.xs,
+    ...typography.largeTitle,
   },
-  metrics: {
-    marginBottom: spacing.lg,
-  },
-  separator: {
-    height: StyleSheet.hairlineWidth,
-    marginLeft: spacing.lg,
-  },
-  metricRow: {
+  subtitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
-    paddingVertical: spacing.md,
+    gap: spacing.xs + 2,
+    marginTop: spacing.sm,
   },
-  metricDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  metricLabel: {
+  subtitle: {
+    ...typography.subheadline,
     flex: 1,
-    fontSize: 13,
   },
-  metricValue: {
-    fontSize: 17,
-    fontWeight: '600',
-    fontVariant: ['tabular-nums'],
+  avatars: { flexDirection: 'row' },
+  avatar: {
+    width: AVATAR,
+    height: AVATAR,
+    borderRadius: AVATAR / 2,
+    borderWidth: 1.5,
   },
-  tagRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-    marginBottom: spacing.lg,
-  },
-  chip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: 8,
-    borderRadius: 100,
-  },
-  chipText: {
-    fontSize: 13,
-    fontWeight: '500',
+  avatarOverlap: { marginLeft: -8 },
+  savedNote: {
+    ...typography.footnote,
+    textAlign: 'center',
+    paddingHorizontal: spacing.lg,
   },
   actions: {
     flexDirection: 'row',
     gap: spacing.sm,
-    marginTop: 'auto',
+    paddingHorizontal: spacing.lg,
   },
-  addNote: {
-    flex: 1,
-  },
-  save: {
-    flex: 1.4,
-  },
+  addNote: { flex: 1 },
+  save: { flex: 1.4 },
 });

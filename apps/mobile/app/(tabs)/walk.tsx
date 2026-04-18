@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Alert, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert, StyleSheet, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
 import { useWalkStore } from '@/stores/walk-store';
@@ -11,11 +11,15 @@ import { useBleSession } from '@/hooks/use-ble-session';
 import { useEncounterSession } from '@/hooks/use-encounter-session';
 import { useWalkPermissions } from '@/hooks/use-walk-permissions';
 import { WalkReadyView } from '@/components/walk/WalkReadyView';
-import { DogSelectorSheet } from '@/components/walk/DogSelectorSheet';
 import { WalkMap } from '@/components/walk/WalkMap';
 import { WalkControls } from '@/components/walk/WalkControls';
 import { WalkEventActions } from '@/components/walk/WalkEventActions';
+import { WalkMinimizedControls } from '@/components/walk/WalkMinimizedControls';
+import { WalkQuickActions } from '@/components/walk/WalkQuickActions';
+import { WalkTopChip } from '@/components/walk/WalkTopChip';
 import { WalkSummaryCard } from '@/components/walk/WalkSummaryCard';
+import { spacing } from '@/theme/tokens';
+import type { Dog } from '@/types/graphql';
 
 export default function WalkScreen() {
   const { t } = useTranslation();
@@ -23,6 +27,7 @@ export default function WalkScreen() {
   const phase = useWalkStore((s) => s.phase);
   const walkId = useWalkStore((s) => s.walkId);
   const selectedDogIds = useWalkStore((s) => s.selectedDogIds);
+  const isMinimized = useWalkStore((s) => s.isMinimized);
   const requestCamera = useWalkStore((s) => s.requestCamera);
   const params = useLocalSearchParams<{ action?: string }>();
 
@@ -31,12 +36,21 @@ export default function WalkScreen() {
   const bleSession = useBleSession();
   const encounterSession = useEncounterSession();
   const permissions = useWalkPermissions();
+  const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
   const [isStopping, setIsStopping] = useState(false);
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
+  // Hide the bottom tab bar while a walk is being recorded so the map can go full-bleed.
   useEffect(() => {
-    if (phase !== 'ready') setIsSheetOpen(false);
-  }, [phase]);
+    navigation.setOptions({
+      tabBarStyle: phase === 'recording' ? { display: 'none' } : undefined,
+    });
+  }, [phase, navigation]);
+
+  const selectedDogs = useMemo<Dog[]>(
+    () => (me?.dogs ?? []).filter((d) => selectedDogIds.includes(d.id)),
+    [me?.dogs, selectedDogIds],
+  );
 
   // Live Activity の Camera ボタン (Link) からのディープリンク
   // walking-dog://walk?action=camera を受けたら、撮影フローを起動する。
@@ -92,26 +106,33 @@ export default function WalkScreen() {
     }
   }, [walkId, walkSession, bleSession, encounterSession, t]);
 
+  if (phase === 'recording') {
+    return (
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <WalkMap />
+        <View style={[styles.topOverlay, { top: insets.top + spacing.xs }]}>
+          <WalkTopChip dogs={selectedDogs} />
+        </View>
+        <View style={styles.bottomOverlay} pointerEvents="box-none">
+          {isMinimized ? (
+            <>
+              <WalkQuickActions dogs={selectedDogs} />
+              <WalkMinimizedControls dogs={selectedDogs} />
+            </>
+          ) : (
+            <WalkControls dogs={selectedDogs} onStop={handleStop} isStopping={isStopping}>
+              <WalkEventActions dogs={selectedDogs} />
+            </WalkControls>
+          )}
+        </View>
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: theme.background }]}>
       {phase === 'ready' && (
-        <>
-          <WalkReadyView onStartPress={() => setIsSheetOpen(true)} />
-          <DogSelectorSheet
-            visible={isSheetOpen}
-            onClose={() => setIsSheetOpen(false)}
-            onStart={handleStart}
-            isStarting={walkSession.isStarting}
-          />
-        </>
-      )}
-      {phase === 'recording' && (
-        <>
-          <WalkMap />
-          <WalkControls onStop={handleStop} isStopping={isStopping}>
-            <WalkEventActions />
-          </WalkControls>
-        </>
+        <WalkReadyView onStart={handleStart} isStarting={walkSession.isStarting} />
       )}
       {phase === 'finished' && <WalkSummaryCard />}
     </SafeAreaView>
@@ -120,4 +141,16 @@ export default function WalkScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  topOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  bottomOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
 });

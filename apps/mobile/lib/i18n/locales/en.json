@@ -133,26 +133,59 @@
   },
   "walk": {
     "ready": {
-      "title": "Let's go for a walk!",
-      "subtitle": "Select dogs to walk with",
-      "start": "Start Walk",
-      "noDogs": "Register a dog first"
+      "largeTitle": "Walk",
+      "walkingWith": "Walking with",
+      "selectAll": "Select all",
+      "deselectAll": "Deselect all",
+      "hint": "Tap to begin. We'll follow your route and log everything gently.",
+      "start": "START",
+      "noDogs": "Register a dog first",
+      "lastWalk": {
+        "never": "Ready for the first walk",
+        "justNow": "Last walk just now",
+        "minutesAgo": "Last walk {{count}} min ago",
+        "hoursAgo_one": "Last walk {{count}} hour ago",
+        "hoursAgo_other": "Last walk {{count}} hours ago",
+        "yesterday": "Last walk yesterday",
+        "daysAgo": "Last walk {{count}} days ago"
+      }
     },
     "recording": {
       "time": "Time",
       "distance": "Distance",
+      "pace": "Pace",
       "stop": "Stop",
-      "recording": "Recording"
+      "recording": "Recording",
+      "walkWith": "Walk with {{name}}",
+      "groupWalk": "Group walk",
+      "together": "together",
+      "morningWalk": "Morning walk",
+      "afternoonWalk": "Afternoon walk",
+      "eveningWalk": "Evening walk",
+      "pause": "Pause",
+      "resume": "Resume",
+      "endWalk": "End Walk",
+      "minimize": "Minimize",
+      "expand": "Expand",
+      "expandHint": "Tap to expand for controls"
     },
     "finished": {
       "title": "Walk Complete!",
       "details": "View Details",
       "done": "Done",
-      "saving": "Saving walk data..."
-    },
-    "home": {
-      "hero": "Tap to begin. We'll follow your route.",
-      "startWalk": "START"
+      "saving": "Saving walk data...",
+      "walkComplete": "WALK COMPLETE",
+      "titleSingle": "Nice walk, {{name}}!",
+      "titleMulti": "Nice walk, everyone.",
+      "perDog": "Per dog",
+      "viewEach": "View each",
+      "minTogether": "{{names}} · {{min}} min together",
+      "minSolo": "{{name}} · {{min}} min",
+      "savedToHistoryMulti": "Saved to both {{a}}'s and {{b}}'s history",
+      "savedToHistorySingle": "Saved to {{name}}'s history",
+      "addNote": "Add note",
+      "saveWalk": "Save walk",
+      "joinerAnd": "and"
     },
     "history": {
       "title": "Recent Walks",
@@ -181,7 +214,7 @@
     },
     "event": {
       "pee": "Pee",
-      "poo": "Poo",
+      "poo": "Poop",
       "photo": "Photo",
       "recordError": "Failed to record. Please try again.",
       "photoPresignError": "Failed to prepare photo upload. Please try again.",

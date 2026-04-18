@@ -10,6 +10,20 @@ describe('walk-store', () => {
     expect(useWalkStore.getState().phase).toBe('ready');
   });
 
+  it('isMinimized defaults to false and toggles via setMinimized', () => {
+    expect(useWalkStore.getState().isMinimized).toBe(false);
+    useWalkStore.getState().setMinimized(true);
+    expect(useWalkStore.getState().isMinimized).toBe(true);
+    useWalkStore.getState().setMinimized(false);
+    expect(useWalkStore.getState().isMinimized).toBe(false);
+  });
+
+  it('reset clears isMinimized back to false', () => {
+    useWalkStore.getState().setMinimized(true);
+    useWalkStore.getState().reset();
+    expect(useWalkStore.getState().isMinimized).toBe(false);
+  });
+
   it('selectDog toggles dog selection', () => {
     const { selectDog } = useWalkStore.getState();
     selectDog('dog-1');

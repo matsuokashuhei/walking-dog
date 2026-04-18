@@ -16,6 +16,7 @@ export const ME_QUERY = gql`
         photoUrl
         role
         createdAt
+        latestWalk { endedAt }
       }
       createdAt
     }

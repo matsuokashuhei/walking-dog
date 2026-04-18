@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react-native';
+import { Text } from 'react-native';
 import { SectionHeader } from './SectionHeader';
 
 jest.mock('@/hooks/use-color-scheme', () => ({
@@ -17,6 +18,17 @@ describe('SectionHeader', () => {
     const flat = flatten(node.props.style);
     expect(flat.textTransform).toBe('uppercase');
     expect(flat.fontSize).toBe(12);
+  });
+
+  it('renders trailing slot next to the label', () => {
+    render(
+      <SectionHeader
+        label="Who's coming?"
+        trailing={<Text>Select all</Text>}
+      />,
+    );
+    expect(screen.getByText("Who's coming?")).toBeTruthy();
+    expect(screen.getByText('Select all')).toBeTruthy();
   });
 });
 

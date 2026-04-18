@@ -133,26 +133,59 @@
   },
   "walk": {
     "ready": {
-      "title": "散歩に行こう！",
-      "subtitle": "一緒に行く犬を選んでください",
-      "start": "散歩を始める",
-      "noDogs": "先に犬を登録してください"
+      "largeTitle": "散歩",
+      "walkingWith": "一緒に散歩する犬",
+      "selectAll": "すべて選択",
+      "deselectAll": "すべて解除",
+      "hint": "タップして開始。ルートを追跡し、そっと記録します。",
+      "start": "START",
+      "noDogs": "先に犬を登録してください",
+      "lastWalk": {
+        "never": "はじめての散歩",
+        "justNow": "今さっき散歩しました",
+        "minutesAgo": "{{count}}分前に散歩",
+        "hoursAgo_one": "{{count}}時間前に散歩",
+        "hoursAgo_other": "{{count}}時間前に散歩",
+        "yesterday": "昨日散歩",
+        "daysAgo": "{{count}}日前に散歩"
+      }
     },
     "recording": {
       "time": "時間",
       "distance": "距離",
+      "pace": "ペース",
       "stop": "停止",
-      "recording": "記録中"
+      "recording": "記録中",
+      "walkWith": "{{name}}と散歩中",
+      "groupWalk": "グループ散歩",
+      "together": "みんなで",
+      "morningWalk": "朝の散歩",
+      "afternoonWalk": "昼の散歩",
+      "eveningWalk": "夜の散歩",
+      "pause": "一時停止",
+      "resume": "再開",
+      "endWalk": "散歩を終了",
+      "minimize": "縮小表示",
+      "expand": "展開",
+      "expandHint": "タップして操作を展開"
     },
     "finished": {
       "title": "散歩完了！",
       "details": "詳細を見る",
       "done": "閉じる",
-      "saving": "散歩データを保存中..."
-    },
-    "home": {
-      "hero": "タップで開始。道のりはこちらで記録します。",
-      "startWalk": "START"
+      "saving": "散歩データを保存中...",
+      "walkComplete": "散歩おわり",
+      "titleSingle": "{{name}}、いい散歩だったね！",
+      "titleMulti": "みんな、いい散歩だったね。",
+      "perDog": "犬ごと",
+      "viewEach": "個別に見る",
+      "minTogether": "{{names}} · {{min}}分いっしょに",
+      "minSolo": "{{name}} · {{min}}分",
+      "savedToHistoryMulti": "{{a}}と{{b}}の散歩履歴に保存します",
+      "savedToHistorySingle": "{{name}}の散歩履歴に保存します",
+      "addNote": "メモを追加",
+      "saveWalk": "散歩を保存",
+      "joinerAnd": "と"
     },
     "history": {
       "title": "最近の散歩",

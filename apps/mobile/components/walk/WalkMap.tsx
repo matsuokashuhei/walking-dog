@@ -1,8 +1,6 @@
 import { StyleSheet, View, Text } from 'react-native';
 import MapView, { Polyline, Marker } from 'react-native-maps';
-import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
-import { spacing, radius } from '@/theme/tokens';
 import { useWalkStore } from '@/stores/walk-store';
 import { EVENT_EMOJIS } from '@/lib/walk/event-emojis';
 import { TOKYO_STATION_COORDINATE } from '@/lib/walk/constants';
@@ -13,7 +11,6 @@ interface WalkMapProps {
 }
 
 export function WalkMap({ events = [] }: WalkMapProps) {
-  const { t } = useTranslation();
   const theme = useColors();
   const points = useWalkStore((s) => s.points);
 
@@ -21,7 +18,7 @@ export function WalkMap({ events = [] }: WalkMapProps) {
   const lastPoint = coordinates[coordinates.length - 1];
 
   return (
-    <View style={[styles.container, { borderColor: theme.border + '33' }]}>
+    <View style={styles.container}>
       <MapView
         style={styles.map}
         showsUserLocation
@@ -63,30 +60,12 @@ export function WalkMap({ events = [] }: WalkMapProps) {
             </Marker>
           ))}
       </MapView>
-      <View style={[styles.badge, { backgroundColor: 'rgba(239,68,68,0.9)' }]}>
-        <Text style={styles.badgeText}>{t('walk.recording.recording')}</Text>
-      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    position: 'relative',
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    overflow: 'hidden',
-  },
+  container: { flex: 1, overflow: 'hidden' },
   map: { flex: 1 },
-  badge: {
-    position: 'absolute',
-    bottom: spacing.sm,
-    left: spacing.sm,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.sm,
-  },
-  badgeText: { color: '#fff', fontSize: 11, fontWeight: '600' },
   eventMarker: { fontSize: 20 },
 });

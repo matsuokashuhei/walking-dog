@@ -134,15 +134,21 @@
   "walk": {
     "ready": {
       "largeTitle": "Walk",
-      "whosComing": "Who's coming?",
+      "walkingWith": "Walking with",
       "selectAll": "Select all",
       "deselectAll": "Deselect all",
-      "dogsWalkingBold": "{{count}} dogs",
-      "dogsWalkingTail": "walking together",
-      "groupWalk": "Group walk",
-      "hint": "We'll log pees, poops and photos for each dog separately.",
+      "hint": "Tap to begin. We'll follow your route and log everything gently.",
       "start": "START",
-      "noDogs": "Register a dog first"
+      "noDogs": "Register a dog first",
+      "lastWalk": {
+        "never": "Ready for the first walk",
+        "justNow": "Last walk just now",
+        "minutesAgo": "Last walk {{count}} min ago",
+        "hoursAgo_one": "Last walk {{count}} hour ago",
+        "hoursAgo_other": "Last walk {{count}} hours ago",
+        "yesterday": "Last walk yesterday",
+        "daysAgo": "Last walk {{count}} days ago"
+      }
     },
     "recording": {
       "time": "Time",

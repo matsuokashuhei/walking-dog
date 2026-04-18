@@ -215,6 +215,28 @@ pub fn dog_output_type() -> Object {
             .argument(InputValue::new("period", TypeRef::named(TypeRef::STRING))),
         )
         .field(Field::new(
+            "latestWalk",
+            TypeRef::named("WalkOutput"),
+            |ctx| {
+                FieldFuture::new(async move {
+                    let d = ctx.parent_value.try_downcast_ref::<DogOutput>()?;
+                    let dog_id = d.id;
+                    let state = ctx.data::<Arc<crate::AppState>>()?;
+                    let walk =
+                        crate::services::walk_service::get_latest_finished_walk_for_dog(
+                            &state.db, dog_id,
+                        )
+                        .await
+                        .map_err(AppError::into_graphql_error)?;
+                    Ok(walk.map(|w| {
+                        FieldValue::owned_any(
+                            crate::graphql::mutations::WalkOutput::from(w),
+                        )
+                    }))
+                })
+            },
+        ))
+        .field(Field::new(
             "members",
             TypeRef::named_nn_list_nn("DogMemberOutput"),
             |ctx| {

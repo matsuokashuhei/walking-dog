@@ -20,6 +20,10 @@ export interface WalkStats {
   totalDurationSec: number;
 }
 
+export interface LatestWalk {
+  endedAt: string | null;
+}
+
 export interface Dog {
   id: string;
   name: string;
@@ -29,6 +33,7 @@ export interface Dog {
   photoUrl: string | null;
   role?: DogMemberRole;
   createdAt: string;
+  latestWalk?: LatestWalk | null;
 }
 
 export interface DogMemberUser {

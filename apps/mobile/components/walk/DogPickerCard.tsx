@@ -1,8 +1,10 @@
-import { Fragment } from 'react';
+import { Fragment, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
+import { useTranslation } from 'react-i18next';
 import { GroupedCard } from '@/components/ui/GroupedCard';
 import { useColors } from '@/hooks/use-colors';
+import { formatLastWalk } from '@/lib/walk/lastWalk';
 import { radius, spacing, typography } from '@/theme/tokens';
 import type { Dog } from '@/types/graphql';
 
@@ -10,47 +12,49 @@ interface DogPickerCardProps {
   dogs: Dog[];
   selectedIds: string[];
   onToggle: (dogId: string) => void;
+  variant?: 'multi' | 'single';
 }
 
 const AVATAR_SIZE = 44;
 const SEPARATOR_INSET = AVATAR_SIZE + spacing.md + spacing.md;
 
-export function DogPickerCard({ dogs, selectedIds, onToggle }: DogPickerCardProps) {
+export function DogPickerCard({
+  dogs,
+  selectedIds,
+  onToggle,
+  variant = 'multi',
+}: DogPickerCardProps) {
   const theme = useColors();
+  const { t } = useTranslation();
+  const now = useMemo(() => new Date(), []);
+  const showCheckbox = variant === 'multi';
 
   return (
     <GroupedCard>
       {dogs.map((dog, index) => {
         const isSelected = selectedIds.includes(dog.id);
         const isLast = index === dogs.length - 1;
-        return (
-          <Fragment key={dog.id}>
-            <Pressable
-              accessibilityRole="checkbox"
-              accessibilityLabel={dog.name}
-              accessibilityState={{ checked: isSelected }}
-              onPress={() => onToggle(dog.id)}
-              style={styles.row}
-            >
-              <Image
-                source={dog.photoUrl ?? require('@/assets/images/icon.png')}
-                style={styles.avatar}
-                contentFit="cover"
-              />
-              <View style={styles.textCol}>
-                <Text style={[styles.name, { color: theme.onSurface }]} numberOfLines={1}>
-                  {dog.name}
-                </Text>
-                {dog.breed ? (
-                  <Text
-                    style={[styles.breed, { color: theme.onSurfaceVariant }]}
-                    numberOfLines={1}
-                  >
-                    {dog.breed}
-                  </Text>
-                ) : null}
-              </View>
-              {isSelected ? (
+        const lastWalkText = formatLastWalk(dog.latestWalk?.endedAt, now, t);
+        const rowContent = (
+          <>
+            <Image
+              source={dog.photoUrl ?? require('@/assets/images/icon.png')}
+              style={styles.avatar}
+              contentFit="cover"
+            />
+            <View style={styles.textCol}>
+              <Text style={[styles.name, { color: theme.onSurface }]} numberOfLines={1}>
+                {dog.name}
+              </Text>
+              <Text
+                style={[styles.lastWalk, { color: theme.onSurfaceVariant }]}
+                numberOfLines={1}
+              >
+                {lastWalkText}
+              </Text>
+            </View>
+            {showCheckbox ? (
+              isSelected ? (
                 <View style={[styles.check, { backgroundColor: theme.interactive }]}>
                   <Text style={styles.checkMark}>✓</Text>
                 </View>
@@ -62,8 +66,27 @@ export function DogPickerCard({ dogs, selectedIds, onToggle }: DogPickerCardProp
                     { borderColor: theme.textDisabled },
                   ]}
                 />
-              )}
-            </Pressable>
+              )
+            ) : null}
+          </>
+        );
+        return (
+          <Fragment key={dog.id}>
+            {showCheckbox ? (
+              <Pressable
+                accessibilityRole="checkbox"
+                accessibilityLabel={dog.name}
+                accessibilityState={{ checked: isSelected }}
+                onPress={() => onToggle(dog.id)}
+                style={styles.row}
+              >
+                {rowContent}
+              </Pressable>
+            ) : (
+              <View accessibilityLabel={dog.name} style={styles.row}>
+                {rowContent}
+              </View>
+            )}
             {!isLast ? (
               <View
                 style={[
@@ -102,7 +125,7 @@ const styles = StyleSheet.create({
     ...typography.body,
     fontWeight: '600',
   },
-  breed: {
+  lastWalk: {
     ...typography.caption,
     marginTop: 2,
   },

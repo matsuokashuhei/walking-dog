@@ -14,6 +14,17 @@ jest.mock('expo-image', () => ({
   Image: 'Image',
 }));
 
+const FIXED_NOW = new Date('2026-04-19T12:00:00Z');
+
+beforeAll(() => {
+  jest.useFakeTimers();
+  jest.setSystemTime(FIXED_NOW);
+});
+
+afterAll(() => {
+  jest.useRealTimers();
+});
+
 const coco: Dog = {
   id: 'dog-1',
   name: 'Coco',
@@ -22,6 +33,9 @@ const coco: Dog = {
   birthDate: null,
   photoUrl: null,
   createdAt: '2026-01-01',
+  latestWalk: {
+    endedAt: new Date(FIXED_NOW.getTime() - 14 * 60 * 60 * 1000).toISOString(),
+  },
 };
 
 const momo: Dog = {
@@ -32,6 +46,9 @@ const momo: Dog = {
   birthDate: null,
   photoUrl: null,
   createdAt: '2026-01-02',
+  latestWalk: {
+    endedAt: new Date(FIXED_NOW.getTime() - 2 * 60 * 60 * 1000).toISOString(),
+  },
 };
 
 type StoreState = {
@@ -81,9 +98,9 @@ describe('WalkReadyView', () => {
     expect(screen.getByText('Walk')).toBeTruthy();
   });
 
-  it("renders the Who's coming? section with Select all action", () => {
+  it('renders the Walking with section with Select all action when 2+ dogs', () => {
     render(<WalkReadyView onStart={jest.fn()} isStarting={false} />);
-    expect(screen.getByText("Who's coming?")).toBeTruthy();
+    expect(screen.getByText('Walking with')).toBeTruthy();
     expect(screen.getByText('Select all')).toBeTruthy();
   });
 
@@ -121,31 +138,44 @@ describe('WalkReadyView', () => {
     render(<WalkReadyView onStart={jest.fn()} isStarting={false} />);
     expect(
       screen.getByText(
-        "We'll log pees, poops and photos for each dog separately.",
+        "Tap to begin. We'll follow your route and log everything gently.",
       ),
     ).toBeTruthy();
   });
 
-  it('does not render a Recent Walks section anymore', () => {
-    render(<WalkReadyView onStart={jest.fn()} isStarting={false} />);
-    expect(screen.queryByText('Recent Walks')).toBeNull();
-  });
-
-  it('shows the Group walk summary only when 2+ dogs are selected', () => {
-    mockStore = buildStore(['dog-1']);
-    const { rerender } = render(
-      <WalkReadyView onStart={jest.fn()} isStarting={false} />,
-    );
-    expect(screen.queryByText('Group walk')).toBeNull();
-
+  it('does not render a Group walk summary anymore', () => {
     mockStore = buildStore(['dog-1', 'dog-2']);
-    rerender(<WalkReadyView onStart={jest.fn()} isStarting={false} />);
-    expect(screen.getByText('Group walk')).toBeTruthy();
+    render(<WalkReadyView onStart={jest.fn()} isStarting={false} />);
+    expect(screen.queryByText('Group walk')).toBeNull();
   });
 
   it('shows the noDogs empty state when user has zero dogs', () => {
     mockDogs = [];
     render(<WalkReadyView onStart={jest.fn()} isStarting={false} />);
     expect(screen.getByText('Register a dog first')).toBeTruthy();
+  });
+
+  describe('single-dog variant', () => {
+    beforeEach(() => {
+      mockDogs = [coco];
+      mockStore = buildStore();
+    });
+
+    it('hides the Select all action', () => {
+      render(<WalkReadyView onStart={jest.fn()} isStarting={false} />);
+      expect(screen.queryByText('Select all')).toBeNull();
+    });
+
+    it('hides the checkbox but still renders the dog', () => {
+      render(<WalkReadyView onStart={jest.fn()} isStarting={false} />);
+      expect(screen.queryByRole('checkbox', { name: 'Coco' })).toBeNull();
+      expect(screen.getByText('Coco')).toBeTruthy();
+      expect(screen.getByText('Last walk 14 hours ago')).toBeTruthy();
+    });
+
+    it('auto-selects the only dog so START is enabled', () => {
+      render(<WalkReadyView onStart={jest.fn()} isStarting={false} />);
+      expect(mockStore.setSelectedDogs).toHaveBeenCalledWith(['dog-1']);
+    });
   });
 });

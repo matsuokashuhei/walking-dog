@@ -1,11 +1,10 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { GroupedCard } from '@/components/ui/GroupedCard';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { DogPickerCard } from '@/components/walk/DogPickerCard';
-import { GroupWalkSummaryCard } from '@/components/walk/GroupWalkSummaryCard';
 import { useColors } from '@/hooks/use-colors';
 import { useMe } from '@/hooks/use-me';
 import { useWalkStore } from '@/stores/walk-store';
@@ -26,9 +25,17 @@ export function WalkReadyView({ onStart, isStarting }: WalkReadyViewProps) {
   const selectDog = useWalkStore((s) => s.selectDog);
   const setSelectedDogs = useWalkStore((s) => s.setSelectedDogs);
 
+  const isSingleDog = dogs.length === 1;
+
+  // With a single dog, there is no picker — keep the selection in sync so START works.
+  useEffect(() => {
+    if (isSingleDog && selectedDogIds.length === 0) {
+      setSelectedDogs([dogs[0].id]);
+    }
+  }, [isSingleDog, dogs, selectedDogIds.length, setSelectedDogs]);
+
   const allSelected =
     dogs.length > 0 && dogs.every((d) => selectedDogIds.includes(d.id));
-  const selectedDogs = dogs.filter((d) => selectedDogIds.includes(d.id));
 
   const handleSelectAll = useCallback(() => {
     if (allSelected) {
@@ -42,6 +49,7 @@ export function WalkReadyView({ onStart, isStarting }: WalkReadyViewProps) {
   const selectAllLabel = allSelected
     ? t('walk.ready.deselectAll')
     : t('walk.ready.selectAll');
+  const showSelectAll = dogs.length >= 2;
 
   return (
     <ScrollView
@@ -53,11 +61,11 @@ export function WalkReadyView({ onStart, isStarting }: WalkReadyViewProps) {
         {t('walk.ready.largeTitle')}
       </Text>
 
-      <View style={styles.whosComing}>
+      <View style={styles.walkingWith}>
         <SectionHeader
-          label={t('walk.ready.whosComing')}
+          label={t('walk.ready.walkingWith')}
           trailing={
-            dogs.length > 0 ? (
+            showSelectAll ? (
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={selectAllLabel}
@@ -83,15 +91,10 @@ export function WalkReadyView({ onStart, isStarting }: WalkReadyViewProps) {
             dogs={dogs}
             selectedIds={selectedDogIds}
             onToggle={selectDog}
+            variant={isSingleDog ? 'single' : 'multi'}
           />
         )}
       </View>
-
-      {selectedDogs.length >= 2 ? (
-        <View style={styles.groupCard}>
-          <GroupWalkSummaryCard dogs={selectedDogs} />
-        </View>
-      ) : null}
 
       <View style={styles.ctaColumn}>
         <Button
@@ -121,7 +124,7 @@ const styles = StyleSheet.create({
     paddingTop: spacing.md,
     paddingBottom: spacing.sm,
   },
-  whosComing: {
+  walkingWith: {
     marginTop: spacing.md,
     paddingHorizontal: spacing.sm,
   },
@@ -132,10 +135,6 @@ const styles = StyleSheet.create({
   emptyText: {
     ...typography.body,
     textAlign: 'center',
-  },
-  groupCard: {
-    marginTop: spacing.md,
-    paddingHorizontal: spacing.sm,
   },
   ctaColumn: {
     alignItems: 'center',

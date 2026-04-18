@@ -169,6 +169,35 @@ pub async fn get_walk_stats(
     })
 }
 
+/// Get the most recent finished walk for a given dog, or `None` when the dog
+/// has no completed walks yet. Drives `DogOutput.latestWalk` for the
+/// "Last walk Xh ago" label on the Walk Ready screen.
+pub async fn get_latest_finished_walk_for_dog(
+    db: &sea_orm::DatabaseConnection,
+    dog_id: Uuid,
+) -> Result<Option<WalkModel>, AppError> {
+    let walk_ids: Vec<Uuid> = WalkDogEntity::find()
+        .filter(walk_dogs::Column::DogId.eq(dog_id))
+        .select_only()
+        .column(walk_dogs::Column::WalkId)
+        .into_tuple()
+        .all(db)
+        .await?;
+
+    if walk_ids.is_empty() {
+        return Ok(None);
+    }
+
+    let walk = WalkEntity::find()
+        .filter(walks::Column::Id.is_in(walk_ids))
+        .filter(walks::Column::Status.eq(WalkStatus::Finished))
+        .order_by_desc(walks::Column::EndedAt)
+        .one(db)
+        .await?;
+
+    Ok(walk)
+}
+
 /// Get walks for a user. Returns walks the user recorded (walks.user_id)
 /// plus walks by other members of the user's shared dogs.
 pub async fn get_walks_for_user(
@@ -312,6 +341,34 @@ mod tests {
         assert_eq!(stats.total_walks, 1);
         assert_eq!(stats.total_distance_m, 500);
         assert_eq!(stats.total_duration_sec, 1200);
+    }
+
+    #[tokio::test]
+    async fn get_latest_finished_walk_for_dog_returns_none_when_no_walks() {
+        let dog_id = Uuid::new_v4();
+        let db = MockDatabase::new(DatabaseBackend::Postgres)
+            .append_query_results([Vec::<crate::entities::walk_dogs::Model>::new()])
+            .into_connection();
+
+        let walk = get_latest_finished_walk_for_dog(&db, dog_id).await.unwrap();
+        assert!(walk.is_none());
+    }
+
+    #[tokio::test]
+    async fn get_latest_finished_walk_for_dog_returns_most_recent() {
+        let dog_id = Uuid::new_v4();
+        let user_id = Uuid::new_v4();
+        let walk_id = Uuid::new_v4();
+        let walk_dogs_row = make_walk_dog(walk_id, dog_id);
+        let walk = make_finished_walk(walk_id, user_id, Some(1000), Some(1800));
+        let db = MockDatabase::new(DatabaseBackend::Postgres)
+            .append_query_results([vec![walk_dogs_row]])
+            .append_query_results([vec![walk.clone()]])
+            .into_connection();
+
+        let result = get_latest_finished_walk_for_dog(&db, dog_id).await.unwrap();
+        assert!(result.is_some());
+        assert_eq!(result.unwrap().id, walk_id);
     }
 
     #[tokio::test]

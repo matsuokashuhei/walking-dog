@@ -10,6 +10,17 @@ jest.mock('expo-image', () => ({
   Image: 'Image',
 }));
 
+const FIXED_NOW = new Date('2026-04-18T12:00:00Z');
+
+beforeAll(() => {
+  jest.useFakeTimers();
+  jest.setSystemTime(FIXED_NOW);
+});
+
+afterAll(() => {
+  jest.useRealTimers();
+});
+
 const coco: Dog = {
   id: 'dog-1',
   name: 'Coco',
@@ -18,6 +29,9 @@ const coco: Dog = {
   birthDate: null,
   photoUrl: null,
   createdAt: '2026-01-01',
+  latestWalk: {
+    endedAt: new Date(FIXED_NOW.getTime() - 2 * 60 * 60 * 1000).toISOString(),
+  },
 };
 
 const momo: Dog = {
@@ -28,10 +42,11 @@ const momo: Dog = {
   birthDate: null,
   photoUrl: null,
   createdAt: '2026-01-02',
+  latestWalk: { endedAt: '2026-04-17T06:00:00Z' },
 };
 
 describe('DogPickerCard', () => {
-  it('renders each dog name and breed', () => {
+  it('renders each dog name and the last walk label', () => {
     render(
       <DogPickerCard
         dogs={[coco, momo]}
@@ -40,9 +55,9 @@ describe('DogPickerCard', () => {
       />,
     );
     expect(screen.getByText('Coco')).toBeTruthy();
-    expect(screen.getByText('Toy Poodle')).toBeTruthy();
+    expect(screen.getByText('Last walk 2 hours ago')).toBeTruthy();
     expect(screen.getByText('Momo')).toBeTruthy();
-    expect(screen.getByText('Shiba Inu')).toBeTruthy();
+    expect(screen.getByText('Last walk yesterday')).toBeTruthy();
   });
 
   it('marks selected rows with accessibilityState.checked = true', () => {
@@ -72,8 +87,8 @@ describe('DogPickerCard', () => {
     expect(onToggle).toHaveBeenCalledWith('dog-2');
   });
 
-  it('omits breed text when breed is null', () => {
-    const mystery: Dog = { ...coco, id: 'dog-3', name: 'Mystery', breed: null };
+  it('renders never-walked copy when latestWalk is missing', () => {
+    const mystery: Dog = { ...coco, id: 'dog-3', name: 'Mystery', latestWalk: null };
     render(
       <DogPickerCard
         dogs={[mystery]}
@@ -82,6 +97,20 @@ describe('DogPickerCard', () => {
       />,
     );
     expect(screen.getByText('Mystery')).toBeTruthy();
-    expect(screen.queryByText('Toy Poodle')).toBeNull();
+    expect(screen.getByText('Ready for the first walk')).toBeTruthy();
+  });
+
+  it('hides the checkbox when variant is single', () => {
+    render(
+      <DogPickerCard
+        dogs={[coco]}
+        selectedIds={['dog-1']}
+        onToggle={jest.fn()}
+        variant="single"
+      />,
+    );
+    expect(screen.queryByRole('checkbox', { name: 'Coco' })).toBeNull();
+    expect(screen.getByText('Coco')).toBeTruthy();
+    expect(screen.getByText('Last walk 2 hours ago')).toBeTruthy();
   });
 });

@@ -135,8 +135,8 @@
       "saving": "Saving walk data..."
     },
     "home": {
-      "hero": "Ready for the morning run?",
-      "startWalk": "Start Walk →"
+      "hero": "Tap to begin. We'll follow your route.",
+      "startWalk": "START"
     },
     "history": {
       "title": "Recent Walks",

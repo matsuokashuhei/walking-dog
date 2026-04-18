@@ -135,8 +135,8 @@
       "saving": "散歩データを保存中..."
     },
     "home": {
-      "hero": "今日の散歩、準備はいい？",
-      "startWalk": "散歩を始める →"
+      "hero": "タップで開始。道のりはこちらで記録します。",
+      "startWalk": "START"
     },
     "history": {
       "title": "最近の散歩",

@@ -18,14 +18,16 @@ jest.mock('@/components/walk/WalkHistoryItem', () => ({
 }));
 
 describe('WalkReadyView', () => {
-  it('renders hero heading', () => {
+  it('renders the Precise start hint', () => {
     render(<WalkReadyView onStartPress={jest.fn()} />);
-    expect(screen.getByText('Ready for the morning run?')).toBeTruthy();
+    expect(
+      screen.getByText("Tap to begin. We'll follow your route."),
+    ).toBeTruthy();
   });
 
-  it('renders Start Walk CTA button', () => {
+  it('renders the 200×200 circular START button', () => {
     render(<WalkReadyView onStartPress={jest.fn()} />);
-    expect(screen.getByRole('button', { name: 'Start Walk →' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'START' })).toBeTruthy();
   });
 
   it('renders walk history section title', () => {
@@ -38,10 +40,10 @@ describe('WalkReadyView', () => {
     expect(screen.getByText('No walks yet. Start your first walk!')).toBeTruthy();
   });
 
-  it('invokes onStartPress when CTA is pressed', () => {
+  it('invokes onStartPress when START is pressed', () => {
     const onStartPress = jest.fn();
     render(<WalkReadyView onStartPress={onStartPress} />);
-    fireEvent.press(screen.getByRole('button', { name: 'Start Walk →' }));
+    fireEvent.press(screen.getByRole('button', { name: 'START' }));
     expect(onStartPress).toHaveBeenCalledTimes(1);
   });
 });

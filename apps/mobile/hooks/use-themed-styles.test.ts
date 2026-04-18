@@ -16,7 +16,7 @@ describe('useThemedStyles', () => {
 
     expect(result.current.container).toBeDefined();
     expect(factory).toHaveBeenCalledWith(
-      expect.objectContaining({ background: '#fcf9f8' }),
+      expect.objectContaining({ background: '#f2f2f7' }),
     );
   });
 
@@ -32,7 +32,7 @@ describe('useThemedStyles', () => {
 
     expect(result.current.container).toBeDefined();
     expect(factory).toHaveBeenCalledWith(
-      expect.objectContaining({ background: '#111111' }),
+      expect.objectContaining({ background: '#000000' }),
     );
   });
 

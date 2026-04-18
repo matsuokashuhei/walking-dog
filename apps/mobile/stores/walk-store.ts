@@ -19,6 +19,7 @@ interface WalkState {
   // wasn't acknowledged yet.
   cameraRequestedAt: number | null;
   selectDog: (dogId: string) => void;
+  setSelectedDogs: (dogIds: string[]) => void;
   startRecording: (walkId: string) => void;
   addPoint: (point: WalkPoint) => void;
   addEvent: (event: WalkEvent) => void;
@@ -45,6 +46,8 @@ export const useWalkStore = create<WalkState>((set, get) => ({
         ? state.selectedDogIds.filter((id) => id !== dogId)
         : [...state.selectedDogIds, dogId],
     })),
+
+  setSelectedDogs: (dogIds) => set({ selectedDogIds: dogIds }),
 
   startRecording: (walkId) =>
     set({ phase: 'recording', walkId, startedAt: new Date() }),

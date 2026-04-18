@@ -133,9 +133,15 @@
   },
   "walk": {
     "ready": {
-      "title": "Let's go for a walk!",
-      "subtitle": "Select dogs to walk with",
-      "start": "Start Walk",
+      "largeTitle": "Walk",
+      "whosComing": "Who's coming?",
+      "selectAll": "Select all",
+      "deselectAll": "Deselect all",
+      "dogsWalkingBold": "{{count}} dogs",
+      "dogsWalkingTail": "walking together",
+      "groupWalk": "Group walk",
+      "hint": "We'll log pees, poops and photos for each dog separately.",
+      "start": "START",
       "noDogs": "Register a dog first"
     },
     "recording": {
@@ -149,10 +155,6 @@
       "details": "View Details",
       "done": "Done",
       "saving": "Saving walk data..."
-    },
-    "home": {
-      "hero": "Tap to begin. We'll follow your route.",
-      "startWalk": "START"
     },
     "history": {
       "title": "Recent Walks",

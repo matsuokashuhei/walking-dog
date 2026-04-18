@@ -11,7 +11,6 @@ import { useBleSession } from '@/hooks/use-ble-session';
 import { useEncounterSession } from '@/hooks/use-encounter-session';
 import { useWalkPermissions } from '@/hooks/use-walk-permissions';
 import { WalkReadyView } from '@/components/walk/WalkReadyView';
-import { DogSelectorSheet } from '@/components/walk/DogSelectorSheet';
 import { WalkMap } from '@/components/walk/WalkMap';
 import { WalkControls } from '@/components/walk/WalkControls';
 import { WalkEventActions } from '@/components/walk/WalkEventActions';
@@ -32,11 +31,6 @@ export default function WalkScreen() {
   const encounterSession = useEncounterSession();
   const permissions = useWalkPermissions();
   const [isStopping, setIsStopping] = useState(false);
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
-
-  useEffect(() => {
-    if (phase !== 'ready') setIsSheetOpen(false);
-  }, [phase]);
 
   // Live Activity の Camera ボタン (Link) からのディープリンク
   // walking-dog://walk?action=camera を受けたら、撮影フローを起動する。
@@ -95,15 +89,7 @@ export default function WalkScreen() {
   return (
     <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: theme.background }]}>
       {phase === 'ready' && (
-        <>
-          <WalkReadyView onStartPress={() => setIsSheetOpen(true)} />
-          <DogSelectorSheet
-            visible={isSheetOpen}
-            onClose={() => setIsSheetOpen(false)}
-            onStart={handleStart}
-            isStarting={walkSession.isStarting}
-          />
-        </>
+        <WalkReadyView onStart={handleStart} isStarting={walkSession.isStarting} />
       )}
       {phase === 'recording' && (
         <>

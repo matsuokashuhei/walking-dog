@@ -133,9 +133,15 @@
   },
   "walk": {
     "ready": {
-      "title": "散歩に行こう！",
-      "subtitle": "一緒に行く犬を選んでください",
-      "start": "散歩を始める",
+      "largeTitle": "散歩",
+      "whosComing": "今日の散歩メンバー",
+      "selectAll": "すべて選択",
+      "deselectAll": "すべて解除",
+      "dogsWalkingBold": "{{count}}頭",
+      "dogsWalkingTail": "でおでかけ",
+      "groupWalk": "グループ散歩",
+      "hint": "おしっこ・うんち・写真は犬ごとに記録されます",
+      "start": "START",
       "noDogs": "先に犬を登録してください"
     },
     "recording": {
@@ -149,10 +155,6 @@
       "details": "詳細を見る",
       "done": "閉じる",
       "saving": "散歩データを保存中..."
-    },
-    "home": {
-      "hero": "タップで開始。道のりはこちらで記録します。",
-      "startWalk": "START"
     },
     "history": {
       "title": "最近の散歩",

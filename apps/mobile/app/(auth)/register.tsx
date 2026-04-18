@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { RegisterForm } from '@/components/auth/RegisterForm';
 import { ConfirmForm } from '@/components/auth/ConfirmForm';
 import { useColors } from '@/hooks/use-colors';
-import { spacing, typography } from '@/theme/tokens';
+import { spacing } from '@/theme/tokens';
 
 type Step = 'register' | 'confirm';
 
@@ -38,14 +38,14 @@ export default function RegisterScreen() {
       {step === 'register' ? (
         <>
           <View style={styles.hero}>
-            <Text style={[styles.brandLabel, { color: theme.onSurfaceVariant }]}>
-              WALKING DOG
-            </Text>
             <Text style={[styles.heroText, { color: theme.onSurface }]}>
-              {t('auth.register.title', { defaultValue: 'Create Account' })}
+              {t('auth.register.title', { defaultValue: "Let's meet\nyour dog." })}
             </Text>
             <Text style={[styles.subText, { color: theme.onSurfaceVariant }]}>
-              {t('auth.register.subtitle', { defaultValue: "Join the archive of your dog's journeys." })}
+              {t('auth.register.subtitle', {
+                defaultValue:
+                  "A few quick details and you'll be walking in a minute.",
+              })}
             </Text>
           </View>
           <RegisterForm
@@ -60,7 +60,10 @@ export default function RegisterScreen() {
               {t('auth.confirm.title', { defaultValue: 'Check your email' })}
             </Text>
             <Text style={[styles.subText, { color: theme.onSurfaceVariant }]}>
-              {t('auth.confirm.subtitle', { defaultValue: 'We sent a code to your email. Enter it below to verify your account.' })}
+              {t('auth.confirm.subtitle', {
+                defaultValue:
+                  'We sent a code to your email. Enter it below to verify your account.',
+              })}
             </Text>
           </View>
           <ConfirmForm email={pendingEmail} onSuccess={handleConfirmSuccess} />
@@ -73,22 +76,23 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: 32,
     paddingTop: spacing.xxl,
     justifyContent: 'center',
   },
   hero: {
     marginBottom: spacing.xl,
   },
-  brandLabel: {
-    ...typography.label,
-    marginBottom: spacing.sm,
-  },
   heroText: {
-    ...typography.hero,
+    fontSize: 34,
+    fontWeight: '700',
+    letterSpacing: -0.8,
+    lineHeight: 38,
+    marginBottom: 8,
   },
   subText: {
-    ...typography.body,
-    marginTop: spacing.sm,
+    fontSize: 15,
+    fontWeight: '400',
+    lineHeight: 21,
   },
 });

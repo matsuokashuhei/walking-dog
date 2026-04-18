@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { RegisterForm } from '@/components/auth/RegisterForm';
 import { ConfirmForm } from '@/components/auth/ConfirmForm';
 import { useColors } from '@/hooks/use-colors';
-import { spacing } from '@/theme/tokens';
+import { spacing, typography } from '@/theme/tokens';
 
 type Step = 'register' | 'confirm';
 
@@ -37,21 +37,26 @@ export default function RegisterScreen() {
     >
       {step === 'register' ? (
         <>
+          <Pressable
+            onPress={() => router.back()}
+            accessibilityRole="link"
+            accessibilityLabel={t('auth.register.back')}
+            style={styles.back}
+            hitSlop={12}
+          >
+            <Text style={[styles.backText, { color: theme.interactive }]}>
+              ‹ {t('auth.register.back')}
+            </Text>
+          </Pressable>
           <View style={styles.hero}>
             <Text style={[styles.heroText, { color: theme.onSurface }]}>
               {t('auth.register.title', { defaultValue: "Let's meet\nyour dog." })}
             </Text>
             <Text style={[styles.subText, { color: theme.onSurfaceVariant }]}>
-              {t('auth.register.subtitle', {
-                defaultValue:
-                  "A few quick details and you'll be walking in a minute.",
-              })}
+              {t('auth.register.subtitle')}
             </Text>
           </View>
-          <RegisterForm
-            onSuccess={handleRegisterSuccess}
-            onLoginPress={() => router.back()}
-          />
+          <RegisterForm onSuccess={handleRegisterSuccess} />
         </>
       ) : (
         <>
@@ -77,22 +82,24 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     paddingHorizontal: 32,
-    paddingTop: spacing.xxl,
-    justifyContent: 'center',
+    paddingTop: 60,
+  },
+  back: {
+    alignSelf: 'flex-start',
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  backText: {
+    ...typography.body,
   },
   hero: {
     marginBottom: spacing.xl,
   },
   heroText: {
-    fontSize: 34,
-    fontWeight: '700',
-    letterSpacing: -0.8,
-    lineHeight: 38,
-    marginBottom: 8,
+    ...typography.largeTitle,
+    marginBottom: spacing.xs,
   },
   subText: {
-    fontSize: 15,
-    fontWeight: '400',
-    lineHeight: 21,
+    ...typography.subheadline,
   },
 });

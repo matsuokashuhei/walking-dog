@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
-import { StyleSheet, Text } from 'react-native';
-import { useColors } from '@/hooks/use-colors';
-import { spacing, typography } from '@/theme/tokens';
-import { OutlinedCard } from '@/components/ui/OutlinedCard';
+import { StyleSheet, View } from 'react-native';
+import { GroupedCard } from '@/components/ui/GroupedCard';
+import { SectionHeader } from '@/components/ui/SectionHeader';
+import { spacing } from '@/theme/tokens';
 
 interface SettingsSectionProps {
   title: string;
@@ -10,21 +10,18 @@ interface SettingsSectionProps {
 }
 
 export function SettingsSection({ title, children }: SettingsSectionProps) {
-  const theme = useColors();
+  // Precise pattern: SectionHeader above the grouped card, not inside it.
+  // Uppercase the string (not just textTransform) so existing getByText
+  // matchers — including SettingsSection.test.tsx — keep matching "PROFILE".
   return (
-    <OutlinedCard style={styles.section}>
-      <Text style={[styles.title, { color: theme.onSurfaceVariant }]}>
-        {title.toUpperCase()}
-      </Text>
-      {children}
-    </OutlinedCard>
+    <View style={styles.wrapper}>
+      <SectionHeader label={title.toUpperCase()} style={styles.header} />
+      <GroupedCard padding="lg">{children}</GroupedCard>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  section: { marginBottom: spacing.md },
-  title: {
-    ...typography.label,
-    marginBottom: spacing.md,
-  },
+  wrapper: { marginBottom: spacing.lg },
+  header: { paddingHorizontal: 0 },
 });

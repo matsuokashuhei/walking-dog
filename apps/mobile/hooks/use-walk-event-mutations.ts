@@ -3,7 +3,7 @@ import { authenticatedRequest } from '@/lib/graphql/client';
 import {
   RECORD_WALK_EVENT_MUTATION,
   GENERATE_WALK_EVENT_PHOTO_UPLOAD_URL_MUTATION,
-} from '@/lib/graphql/mutations';
+} from '@/lib/graphql/mutations/walk';
 import type {
   RecordWalkEventInput,
   WalkEvent,

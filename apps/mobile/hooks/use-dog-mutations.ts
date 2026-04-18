@@ -5,7 +5,7 @@ import {
   UPDATE_DOG_MUTATION,
   DELETE_DOG_MUTATION,
   GENERATE_DOG_PHOTO_UPLOAD_URL_MUTATION,
-} from '@/lib/graphql/mutations';
+} from '@/lib/graphql/mutations/dog';
 import { useInvalidateUserQueries } from './use-invalidate-user-queries';
 import type {
   CreateDogInput,

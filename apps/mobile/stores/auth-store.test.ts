@@ -2,7 +2,11 @@ import { act, renderHook } from '@testing-library/react-native';
 import { ClientError } from 'graphql-request';
 import { useAuthStore } from './auth-store';
 import * as secureStorage from '@/lib/auth/secure-storage';
-import { setAuthToken, authenticatedRequest } from '@/lib/graphql/client';
+import {
+  setAuthToken,
+  authenticatedRequest,
+  setRefreshHandler,
+} from '@/lib/graphql/client';
 import * as authApi from '@/lib/auth/api';
 
 jest.mock('@/lib/auth/secure-storage');
@@ -12,6 +16,7 @@ jest.mock('@/lib/auth/api');
 const mockSecureStorage = secureStorage as jest.Mocked<typeof secureStorage>;
 const mockSetAuthToken = setAuthToken as jest.Mock;
 const mockAuthenticatedRequest = authenticatedRequest as jest.Mock;
+const mockSetRefreshHandler = setRefreshHandler as jest.Mock;
 const mockAuthApi = authApi as jest.Mocked<typeof authApi>;
 
 describe('auth-store', () => {
@@ -26,6 +31,37 @@ describe('auth-store', () => {
   });
 
   describe('initialize', () => {
+    it('runs legacy-token migration before reading tokens', async () => {
+      const order: string[] = [];
+      mockSecureStorage.migrateLegacyTokens.mockImplementation(async () => {
+        order.push('migrate');
+      });
+      mockSecureStorage.getToken.mockImplementation(async () => {
+        order.push('getToken');
+        return null;
+      });
+
+      const { result } = renderHook(() => useAuthStore());
+      await act(async () => {
+        await result.current.initialize();
+      });
+
+      expect(order).toEqual(['migrate', 'getToken']);
+    });
+
+    it('registers refresh handler with graphql client', async () => {
+      mockSecureStorage.getToken.mockResolvedValue(null);
+
+      const { result } = renderHook(() => useAuthStore());
+      await act(async () => {
+        await result.current.initialize();
+      });
+
+      expect(mockSetRefreshHandler).toHaveBeenCalledTimes(1);
+      const handler = mockSetRefreshHandler.mock.calls[0][0];
+      expect(typeof handler).toBe('function');
+    });
+
     it('sets accessToken from SecureStore and calls setAuthToken', async () => {
       mockSecureStorage.getToken.mockResolvedValue({
         accessToken: 'test-access-token',

@@ -4,7 +4,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useColors } from '@/hooks/use-colors';
 import { spacing, typography } from '@/theme/tokens';
 import { authenticatedRequest } from '@/lib/graphql/client';
-import { UPDATE_ENCOUNTER_DETECTION_MUTATION } from '@/lib/graphql/mutations';
+import { UPDATE_ENCOUNTER_DETECTION_MUTATION } from '@/lib/graphql/mutations/me';
 import { useInvalidateUserQueries } from '@/hooks/use-invalidate-user-queries';
 import { SettingsSection } from './SettingsSection';
 import type { UpdateEncounterDetectionResponse } from '@/types/graphql';

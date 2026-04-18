@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { authenticatedRequest } from '@/lib/graphql/client';
-import { WALK_QUERY, MY_WALKS_QUERY } from '@/lib/graphql/queries';
+import { WALK_QUERY, MY_WALKS_QUERY } from '@/lib/graphql/queries/walk';
 import { walkKeys } from '@/lib/graphql/keys';
 import { useIsAuthenticated } from './use-is-authenticated';
 import type { Walk, WalkResponse, MyWalksResponse } from '@/types/graphql';

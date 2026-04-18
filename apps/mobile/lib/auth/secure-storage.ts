@@ -50,7 +50,8 @@ const storage = {
 // One-time migration from the app's default keychain scope into the shared
 // App Group scope. Tokens stored before this change are invisible to the new
 // scope — without migration every user would get logged out on upgrade.
-async function migrateLegacyTokensIfNeeded(): Promise<void> {
+// Must run before the first getToken() call in auth-store.initialize.
+export async function migrateLegacyTokens(): Promise<void> {
   if (Platform.OS !== 'ios' || !sharedOptions) return;
   const alreadyMigrated = await SecureStore.getItemAsync(MIGRATION_DONE_KEY, sharedOptions);
   if (alreadyMigrated === '1') return;
@@ -72,7 +73,6 @@ export async function setToken(accessToken: string, refreshToken: string): Promi
 }
 
 export async function getToken(): Promise<StoredTokens | null> {
-  await migrateLegacyTokensIfNeeded();
   const accessToken = await storage.getItem(ACCESS_TOKEN_KEY);
   const refreshToken = await storage.getItem(REFRESH_TOKEN_KEY);
   if (!accessToken || !refreshToken) return null;

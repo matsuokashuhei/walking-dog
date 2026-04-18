@@ -1,9 +1,18 @@
 import { create } from 'zustand';
-import { getToken, setToken, deleteToken } from '@/lib/auth/secure-storage';
+import {
+  getToken,
+  setToken,
+  deleteToken,
+  migrateLegacyTokens,
+} from '@/lib/auth/secure-storage';
 import { refreshToken } from '@/lib/auth/api';
-import { setAuthToken, authenticatedRequest } from '@/lib/graphql/client';
+import {
+  setAuthToken,
+  authenticatedRequest,
+  setRefreshHandler,
+} from '@/lib/graphql/client';
 import { isNetworkError } from '@/lib/graphql/errors';
-import { ME_QUERY } from '@/lib/graphql/queries';
+import { ME_QUERY } from '@/lib/graphql/queries/me';
 
 interface AuthState {
   accessToken: string | null;
@@ -24,7 +33,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   initialize: async () => {
     set({ isLoading: true, networkError: false });
+    // Wire refresh middleware before any network call so 401s get retried.
+    setRefreshHandler(() => get().refreshAuth());
     try {
+      // Must run before the first getToken(): legacy tokens live in the
+      // default keychain scope and are invisible to the shared App Group.
+      await migrateLegacyTokens();
       const stored = await getToken();
       if (!stored) return;
 

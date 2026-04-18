@@ -1,5 +1,9 @@
-import { GraphQLClient, ClientError } from 'graphql-request';
+import { GraphQLClient } from 'graphql-request';
 import Constants from 'expo-constants';
+import {
+  createRefreshMiddleware,
+  type RefreshHandler,
+} from './middleware/refresh-on-401';
 
 const API_URL = Constants.expoConfig?.extra?.apiUrl ?? 'http://localhost:3000';
 
@@ -13,30 +17,16 @@ export function setAuthToken(token: string | null): void {
   }
 }
 
-let refreshPromise: Promise<boolean> | null = null;
+let wrap: ReturnType<typeof createRefreshMiddleware> | null = null;
+
+export function setRefreshHandler(handler: RefreshHandler): void {
+  wrap = createRefreshMiddleware(handler);
+}
 
 export async function authenticatedRequest<T>(
   document: string,
   variables?: Record<string, unknown>,
 ): Promise<T> {
-  try {
-    return await graphqlClient.request<T>(document, variables);
-  } catch (error) {
-    if (!(error instanceof ClientError) || error.response.status !== 401) {
-      throw error;
-    }
-
-    const { useAuthStore } = await import('@/stores/auth-store');
-
-    if (!refreshPromise) {
-      refreshPromise = useAuthStore.getState().refreshAuth().finally(() => {
-        refreshPromise = null;
-      });
-    }
-
-    const refreshed = await refreshPromise;
-    if (!refreshed) throw error;
-
-    return await graphqlClient.request<T>(document, variables);
-  }
+  const request = () => graphqlClient.request<T>(document, variables);
+  return wrap ? wrap(request) : request();
 }

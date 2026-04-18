@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { authenticatedRequest } from '@/lib/graphql/client';
-import { DOG_ENCOUNTERS_QUERY } from '@/lib/graphql/queries';
+import { DOG_ENCOUNTERS_QUERY } from '@/lib/graphql/queries/encounter';
 import { encounterKeys } from '@/lib/graphql/keys';
 import { useIsAuthenticated } from './use-is-authenticated';
 import type { DogEncountersResponse, Encounter } from '@/types/graphql';

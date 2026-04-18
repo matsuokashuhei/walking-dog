@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { authenticatedRequest } from '@/lib/graphql/client';
-import { DOG_FRIENDS_QUERY } from '@/lib/graphql/queries';
+import { DOG_FRIENDS_QUERY } from '@/lib/graphql/queries/friendship';
 import { friendshipKeys } from '@/lib/graphql/keys';
 import { useIsAuthenticated } from './use-is-authenticated';
 import type { DogFriendsResponse, Friendship } from '@/types/graphql';

@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { authenticatedRequest } from '@/lib/graphql/client';
-import { UPDATE_PROFILE_MUTATION } from '@/lib/graphql/mutations';
+import { UPDATE_PROFILE_MUTATION } from '@/lib/graphql/mutations/me';
 import { useInvalidateUserQueries } from './use-invalidate-user-queries';
 import type { UpdateProfileInput, UpdateProfileResponse, User } from '@/types/graphql';
 

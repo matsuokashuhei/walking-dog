@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { authenticatedRequest } from '@/lib/graphql/client';
-import { ACCEPT_DOG_INVITATION_MUTATION } from '@/lib/graphql/mutations';
+import { ACCEPT_DOG_INVITATION_MUTATION } from '@/lib/graphql/mutations/dog';
 import { useInvalidateUserQueries } from './use-invalidate-user-queries';
 import type { Dog, AcceptDogInvitationResponse } from '@/types/graphql';
 

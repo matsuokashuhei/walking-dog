@@ -1,5 +1,10 @@
 import * as SecureStore from 'expo-secure-store';
-import { getToken, setToken, deleteToken } from './secure-storage';
+import {
+  getToken,
+  setToken,
+  deleteToken,
+  migrateLegacyTokens,
+} from './secure-storage';
 
 jest.mock('expo-secure-store');
 jest.mock('expo-constants', () => ({
@@ -38,9 +43,8 @@ describe('secure-storage', () => {
     );
   });
 
-  it('getToken retrieves stored tokens with shared options (migration already done)', async () => {
+  it('getToken retrieves stored tokens with shared options', async () => {
     mockSecureStore.getItemAsync.mockImplementation((key) => {
-      if (key === 'auth_migration_v1_done') return Promise.resolve('1');
       if (key === 'auth_access_token') return Promise.resolve('stored-access');
       if (key === 'auth_refresh_token') return Promise.resolve('stored-refresh');
       return Promise.resolve(null);
@@ -50,39 +54,62 @@ describe('secure-storage', () => {
   });
 
   it('getToken returns null when no token stored', async () => {
-    mockSecureStore.getItemAsync.mockImplementation((key) =>
-      Promise.resolve(key === 'auth_migration_v1_done' ? '1' : null),
-    );
+    mockSecureStore.getItemAsync.mockResolvedValue(null);
     const result = await getToken();
     expect(result).toBeNull();
   });
 
-  it('getToken migrates legacy tokens from default scope on first run', async () => {
-    // Migration flag absent → migration runs.
-    // Legacy reads (no options) return tokens; shared reads initially return nothing.
+  it('getToken does not attempt legacy migration', async () => {
+    mockSecureStore.getItemAsync.mockResolvedValue(null);
+    await getToken();
+    // Migration flag should never be read from getToken
+    const flagReads = mockSecureStore.getItemAsync.mock.calls.filter(
+      ([key]) => key === 'auth_migration_v1_done',
+    );
+    expect(flagReads).toHaveLength(0);
+  });
+
+  it('migrateLegacyTokens copies legacy tokens into shared scope on first run', async () => {
     mockSecureStore.getItemAsync.mockImplementation((key, options) => {
       if (key === 'auth_migration_v1_done') return Promise.resolve(null);
       if (!options && key === 'auth_access_token') return Promise.resolve('legacy-access');
       if (!options && key === 'auth_refresh_token') return Promise.resolve('legacy-refresh');
-      if (options && key === 'auth_access_token') return Promise.resolve('legacy-access');
-      if (options && key === 'auth_refresh_token') return Promise.resolve('legacy-refresh');
       return Promise.resolve(null);
     });
 
-    const result = await getToken();
+    await migrateLegacyTokens();
 
     expect(mockSecureStore.setItemAsync).toHaveBeenCalledWith(
       'auth_access_token',
       'legacy-access',
       sharedOptions,
     );
+    expect(mockSecureStore.setItemAsync).toHaveBeenCalledWith(
+      'auth_refresh_token',
+      'legacy-refresh',
+      sharedOptions,
+    );
     expect(mockSecureStore.deleteItemAsync).toHaveBeenCalledWith('auth_access_token');
+    expect(mockSecureStore.deleteItemAsync).toHaveBeenCalledWith('auth_refresh_token');
     expect(mockSecureStore.setItemAsync).toHaveBeenCalledWith(
       'auth_migration_v1_done',
       '1',
       sharedOptions,
     );
-    expect(result).toEqual({ accessToken: 'legacy-access', refreshToken: 'legacy-refresh' });
+  });
+
+  it('migrateLegacyTokens is a no-op once the flag is set', async () => {
+    mockSecureStore.getItemAsync.mockImplementation((key) =>
+      Promise.resolve(key === 'auth_migration_v1_done' ? '1' : null),
+    );
+
+    await migrateLegacyTokens();
+
+    // No writes to token keys
+    const tokenWrites = mockSecureStore.setItemAsync.mock.calls.filter(
+      ([key]) => key === 'auth_access_token' || key === 'auth_refresh_token',
+    );
+    expect(tokenWrites).toHaveLength(0);
   });
 
   it('deleteToken removes both keys with shared options', async () => {

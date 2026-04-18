@@ -3,7 +3,7 @@ import { authenticatedRequest } from '@/lib/graphql/client';
 import {
   RECORD_ENCOUNTER_MUTATION,
   UPDATE_ENCOUNTER_DURATION_MUTATION,
-} from '@/lib/graphql/mutations';
+} from '@/lib/graphql/mutations/encounter';
 import { friendshipKeys, encounterKeys } from '@/lib/graphql/keys';
 import type {
   Encounter,

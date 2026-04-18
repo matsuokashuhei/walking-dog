@@ -5,7 +5,7 @@ import {
   SIGN_IN_MUTATION,
   SIGN_OUT_MUTATION,
   REFRESH_TOKEN_MUTATION,
-} from '../graphql/mutations';
+} from '../graphql/mutations/auth';
 
 export interface SignUpResult {
   success: boolean;

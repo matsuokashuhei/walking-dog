@@ -4,7 +4,7 @@ import {
   GENERATE_DOG_INVITATION_MUTATION,
   REMOVE_DOG_MEMBER_MUTATION,
   LEAVE_DOG_MUTATION,
-} from '@/lib/graphql/mutations';
+} from '@/lib/graphql/mutations/dog';
 import { useInvalidateUserQueries } from './use-invalidate-user-queries';
 import type {
   DogInvitation,

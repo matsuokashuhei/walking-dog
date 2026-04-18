@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { authenticatedRequest } from '@/lib/graphql/client';
-import { ME_QUERY } from '@/lib/graphql/queries';
+import { ME_QUERY } from '@/lib/graphql/queries/me';
 import { meKeys } from '@/lib/graphql/keys';
 import { useIsAuthenticated } from './use-is-authenticated';
 import type { MeResponse, User } from '@/types/graphql';

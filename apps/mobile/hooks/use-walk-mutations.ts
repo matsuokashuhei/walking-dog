@@ -4,7 +4,7 @@ import {
   START_WALK_MUTATION,
   FINISH_WALK_MUTATION,
   ADD_WALK_POINTS_MUTATION,
-} from '@/lib/graphql/mutations';
+} from '@/lib/graphql/mutations/walk';
 import { walkKeys } from '@/lib/graphql/keys';
 import type {
   Walk,

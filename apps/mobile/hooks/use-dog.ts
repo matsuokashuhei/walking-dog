@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { authenticatedRequest } from '@/lib/graphql/client';
-import { DOG_QUERY } from '@/lib/graphql/queries';
+import { DOG_QUERY } from '@/lib/graphql/queries/dog';
 import { dogKeys } from '@/lib/graphql/keys';
 import type { DogResponse, DogWithStats, StatsPeriod } from '@/types/graphql';
 

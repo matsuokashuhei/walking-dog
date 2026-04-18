@@ -32,6 +32,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
     entitlements: {
       'com.apple.security.application-groups': [APP_GROUP],
+      'keychain-access-groups': [`$(AppIdentifierPrefix)${APP_GROUP}`],
     },
   },
   android: {

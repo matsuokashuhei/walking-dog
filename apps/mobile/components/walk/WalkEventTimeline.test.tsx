@@ -66,8 +66,8 @@ describe('WalkEventTimeline', () => {
   it('renders poo event with emoji and translated label', () => {
     render(<WalkEventTimeline events={[pooEvent]} />);
     expect(screen.getByText('💩')).toBeTruthy();
-    // i18n en locale returns 'Poo' for walk.event.poo
-    expect(screen.getByText('Poo')).toBeTruthy();
+    // i18n en locale returns 'Poop' for walk.event.poo
+    expect(screen.getByText('Poop')).toBeTruthy();
   });
 
   it('renders photo event with camera emoji and thumbnail', () => {

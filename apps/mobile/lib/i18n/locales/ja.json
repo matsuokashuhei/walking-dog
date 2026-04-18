@@ -153,8 +153,18 @@
     "recording": {
       "time": "時間",
       "distance": "距離",
+      "pace": "ペース",
       "stop": "停止",
-      "recording": "記録中"
+      "recording": "記録中",
+      "walkWith": "{{name}}と散歩中",
+      "groupWalk": "グループ散歩",
+      "together": "みんなで",
+      "morningWalk": "朝の散歩",
+      "afternoonWalk": "昼の散歩",
+      "eveningWalk": "夜の散歩",
+      "pause": "一時停止",
+      "resume": "再開",
+      "endWalk": "散歩を終了"
     },
     "finished": {
       "title": "散歩完了！",

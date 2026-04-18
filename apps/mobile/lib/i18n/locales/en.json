@@ -153,8 +153,18 @@
     "recording": {
       "time": "Time",
       "distance": "Distance",
+      "pace": "Pace",
       "stop": "Stop",
-      "recording": "Recording"
+      "recording": "Recording",
+      "walkWith": "Walk with {{name}}",
+      "groupWalk": "Group walk",
+      "together": "together",
+      "morningWalk": "Morning walk",
+      "afternoonWalk": "Afternoon walk",
+      "eveningWalk": "Evening walk",
+      "pause": "Pause",
+      "resume": "Resume",
+      "endWalk": "End Walk"
     },
     "finished": {
       "title": "Walk Complete!",
@@ -189,7 +199,7 @@
     },
     "event": {
       "pee": "Pee",
-      "poo": "Poo",
+      "poo": "Poop",
       "photo": "Photo",
       "recordError": "Failed to record. Please try again.",
       "photoPresignError": "Failed to prepare photo upload. Please try again.",

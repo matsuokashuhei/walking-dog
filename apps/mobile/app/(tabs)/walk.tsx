@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
 import { useWalkStore } from '@/stores/walk-store';
@@ -34,7 +34,15 @@ export default function WalkScreen() {
   const encounterSession = useEncounterSession();
   const permissions = useWalkPermissions();
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
   const [isStopping, setIsStopping] = useState(false);
+
+  // Hide the bottom tab bar while a walk is being recorded so the map can go full-bleed.
+  useEffect(() => {
+    navigation.setOptions({
+      tabBarStyle: phase === 'recording' ? { display: 'none' } : undefined,
+    });
+  }, [phase, navigation]);
 
   const selectedDogs = useMemo<Dog[]>(
     () => (me?.dogs ?? []).filter((d) => selectedDogIds.includes(d.id)),

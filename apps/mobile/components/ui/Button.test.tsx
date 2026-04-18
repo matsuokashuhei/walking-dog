@@ -65,6 +65,13 @@ describe('Button', () => {
     const flat = flattenStyle(node.props.style);
     expect(flat.height).toBe(50);
   });
+
+  it('renders apple variant with black fill in light mode', () => {
+    render(<Button label="Continue with Apple" variant="apple" />);
+    const node = screen.getByRole('button', { name: 'Continue with Apple' });
+    const flat = flattenStyle(node.props.style);
+    expect(flat.backgroundColor).toBe('#000000');
+  });
 });
 
 type Flat = Record<string, unknown>;

@@ -32,4 +32,26 @@ describe('TextInput', () => {
     render(<TextInput label="Email" value="initial" />);
     expect(screen.getByLabelText('Email').props.value).toBe('initial');
   });
+
+  it('renders inline labelPosition with label and input accessible', () => {
+    render(
+      <TextInput label="Email" labelPosition="inline" value="coco@walk.app" />,
+    );
+    expect(screen.getByText('Email')).toBeTruthy();
+    expect(screen.getByLabelText('Email').props.value).toBe('coco@walk.app');
+  });
+
+  it('inline variant renders separator when separator prop is true', () => {
+    render(
+      <TextInput label="Email" labelPosition="inline" separator testID="email-row" />,
+    );
+    expect(screen.getByTestId('email-row-separator')).toBeTruthy();
+  });
+
+  it('inline variant does not render separator when separator prop is false', () => {
+    render(
+      <TextInput label="Password" labelPosition="inline" testID="pwd-row" />,
+    );
+    expect(screen.queryByTestId('pwd-row-separator')).toBeNull();
+  });
 });

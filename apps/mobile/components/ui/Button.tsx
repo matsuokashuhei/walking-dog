@@ -15,7 +15,8 @@ type ButtonVariant =
   | 'secondary'
   | 'ghost'
   | 'destructive'
-  | 'success';
+  | 'success'
+  | 'apple';
 
 type ButtonSize = 'default' | 'circle';
 
@@ -65,6 +66,11 @@ export function Button({
       backgroundColor: theme.success,
       borderColor: 'transparent',
       textColor: theme.onInteractive,
+    },
+    apple: {
+      backgroundColor: colorScheme === 'dark' ? '#ffffff' : '#000000',
+      borderColor: 'transparent',
+      textColor: colorScheme === 'dark' ? '#000000' : '#ffffff',
     },
   }[variant];
 

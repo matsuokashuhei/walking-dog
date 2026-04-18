@@ -7,7 +7,7 @@ import { Tag } from '@/components/ui/Tag';
 import { useColors } from '@/hooks/use-colors';
 import { elevation, radius, spacing, typography } from '@/theme/tokens';
 import { useWalkStore } from '@/stores/walk-store';
-import { formatDistance, formatTime } from '@/lib/walk/format';
+import { formatDistance, formatPace, formatTime } from '@/lib/walk/format';
 import type { Dog } from '@/types/graphql';
 
 interface WalkControlsProps {
@@ -206,14 +206,6 @@ function splitDistance(totalM: number): { distanceValue: string; distanceUnit: s
     distanceValue: match?.[1] ?? formatted,
     distanceUnit: match?.[2] ?? '',
   };
-}
-
-function formatPace(elapsedSec: number, totalM: number): { value: string; unit: string } {
-  if (totalM < 100 || elapsedSec === 0) return { value: '—', unit: '/km' };
-  const secPerKm = (elapsedSec / totalM) * 1000;
-  const mm = Math.floor(secPerKm / 60);
-  const ss = Math.floor(secPerKm % 60);
-  return { value: `${mm}'${ss.toString().padStart(2, '0')}"`, unit: '/km' };
 }
 
 function contextualWalkLabel(startedAt: Date | null, t: (key: string) => string) {

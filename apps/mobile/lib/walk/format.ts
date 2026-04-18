@@ -11,6 +11,22 @@ export function formatDistance(meters: number): string {
   return `${(meters / 1000).toFixed(2)} km`;
 }
 
+export function formatPace(
+  elapsedSec: number,
+  totalM: number,
+): { value: string; unit: string } {
+  if (totalM < 100 || elapsedSec === 0) return { value: '—', unit: '/km' };
+  const secPerKm = (elapsedSec / totalM) * 1000;
+  const mm = Math.floor(secPerKm / 60);
+  const ss = Math.floor(secPerKm % 60);
+  return { value: `${mm}'${ss.toString().padStart(2, '0')}"`, unit: '/km' };
+}
+
+export function formatPaceString(elapsedSec: number, totalM: number): string {
+  const { value, unit } = formatPace(elapsedSec, totalM);
+  return `${value}${unit}`;
+}
+
 export function formatClockTime(isoString: string, locale?: string): string {
   const date = new Date(isoString);
   if (isNaN(date.getTime())) {

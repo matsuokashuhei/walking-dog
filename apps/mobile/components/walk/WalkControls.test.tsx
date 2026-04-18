@@ -16,6 +16,8 @@ jest.mock('@/stores/walk-store', () => ({
 jest.mock('@/lib/walk/format', () => ({
   formatTime: (sec: number) => `${sec}s`,
   formatDistance: (m: number) => `${m}m`,
+  formatPace: () => ({ value: '—', unit: '/km' }),
+  formatPaceString: () => "—/km",
 }));
 
 const coco: Dog = {

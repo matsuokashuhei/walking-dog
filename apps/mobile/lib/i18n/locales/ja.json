@@ -173,7 +173,19 @@
       "title": "散歩完了！",
       "details": "詳細を見る",
       "done": "閉じる",
-      "saving": "散歩データを保存中..."
+      "saving": "散歩データを保存中...",
+      "walkComplete": "散歩おわり",
+      "titleSingle": "{{name}}、いい散歩だったね！",
+      "titleMulti": "みんな、いい散歩だったね。",
+      "perDog": "犬ごと",
+      "viewEach": "個別に見る",
+      "minTogether": "{{names}} · {{min}}分いっしょに",
+      "minSolo": "{{name}} · {{min}}分",
+      "savedToHistoryMulti": "{{a}}と{{b}}の散歩履歴に保存します",
+      "savedToHistorySingle": "{{name}}の散歩履歴に保存します",
+      "addNote": "メモを追加",
+      "saveWalk": "散歩を保存",
+      "joinerAnd": "と"
     },
     "history": {
       "title": "最近の散歩",

@@ -173,7 +173,19 @@
       "title": "Walk Complete!",
       "details": "View Details",
       "done": "Done",
-      "saving": "Saving walk data..."
+      "saving": "Saving walk data...",
+      "walkComplete": "WALK COMPLETE",
+      "titleSingle": "Nice walk, {{name}}!",
+      "titleMulti": "Nice walk, everyone.",
+      "perDog": "Per dog",
+      "viewEach": "View each",
+      "minTogether": "{{names}} · {{min}} min together",
+      "minSolo": "{{name}} · {{min}} min",
+      "savedToHistoryMulti": "Saved to both {{a}}'s and {{b}}'s history",
+      "savedToHistorySingle": "Saved to {{name}}'s history",
+      "addNote": "Add note",
+      "saveWalk": "Save walk",
+      "joinerAnd": "and"
     },
     "history": {
       "title": "Recent Walks",

@@ -5,9 +5,11 @@ import { useTranslation } from 'react-i18next';
 import { useMe } from '@/hooks/use-me';
 import { DogListItem } from '@/components/dogs/DogListItem';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { GroupedCard } from '@/components/ui/GroupedCard';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
+import { SectionHeader } from '@/components/ui/SectionHeader';
 import { useColors } from '@/hooks/use-colors';
-import { spacing, typography, radius } from '@/theme/tokens';
+import { spacing } from '@/theme/tokens';
 
 export default function DogsScreen() {
   const { t } = useTranslation();
@@ -21,31 +23,43 @@ export default function DogsScreen() {
 
   const ListHeader = (
     <View style={styles.headerContainer}>
-      <Text style={[styles.sectionLabel, { color: theme.onSurfaceVariant }]}>
-        {t('dogs.list.sectionLabel')}
-      </Text>
       <Text style={[styles.heroTitle, { color: theme.onSurface }]}>
         {t('dogs.list.title')}
       </Text>
 
-      <View style={styles.bentoRow}>
-        <View
-          style={[
-            styles.bentoCard,
-            {
-              backgroundColor: theme.surfaceContainerLowest,
-              borderColor: theme.border + '33',
-            },
-          ]}
-        >
-          <Text style={[styles.bentoValue, { color: theme.onSurface }]}>
-            {dogCount}
-          </Text>
-          <Text style={[styles.bentoLabel, { color: theme.onSurfaceVariant }]}>
-            Dogs
-          </Text>
+      {/* Today's roll-up — placeholder until goal-tracking lands. The dog
+          count is shown as the immediate indicator; "›" hints at a future
+          drill-down to a per-pack goal screen. */}
+      <GroupedCard style={styles.rollup}>
+        <View style={styles.rollupRow}>
+          <View
+            style={[
+              styles.rollupAvatar,
+              { backgroundColor: theme.surfaceContainer },
+            ]}
+          >
+            <Text style={[styles.rollupAvatarText, { color: theme.success }]}>
+              {dogCount}
+            </Text>
+          </View>
+          <View style={styles.rollupInfo}>
+            <Text style={[styles.rollupTitle, { color: theme.onSurface }]}>
+              Today&apos;s walking goal
+            </Text>
+            <Text
+              style={[styles.rollupSubtitle, { color: theme.onSurfaceVariant }]}
+            >
+              {dogCount} across your pack
+            </Text>
+          </View>
+          <Text style={[styles.chevron, { color: theme.textDisabled }]}>›</Text>
         </View>
-      </View>
+      </GroupedCard>
+
+      <SectionHeader
+        label={t('dogs.list.sectionLabel')}
+        style={styles.sectionHeader}
+      />
     </View>
   );
 
@@ -92,32 +106,48 @@ const styles = StyleSheet.create({
     paddingTop: spacing.lg,
     paddingBottom: spacing.md,
   },
-  sectionLabel: {
-    ...typography.label,
-    marginBottom: spacing.xs,
-  },
   heroTitle: {
-    ...typography.hero,
-    marginBottom: spacing.md,
+    fontSize: 34,
+    fontWeight: '700',
+    letterSpacing: -0.6,
+    lineHeight: 41,
+    marginBottom: spacing.lg,
   },
-  bentoRow: {
+  rollup: {
+    marginBottom: spacing.xl,
+  },
+  rollupRow: {
     flexDirection: 'row',
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  bentoCard: {
-    flex: 1,
-    padding: spacing.md,
-    borderRadius: radius.lg,
-    borderWidth: 1,
     alignItems: 'center',
+    padding: 14,
+    gap: 14,
   },
-  bentoValue: {
-    ...typography.display,
-    marginBottom: spacing.xs,
+  rollupAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  bentoLabel: {
-    ...typography.label,
+  rollupAvatarText: {
+    fontSize: 17,
+    fontWeight: '700',
+  },
+  rollupInfo: { flex: 1 },
+  rollupTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  rollupSubtitle: {
+    fontSize: 13,
+    marginTop: 2,
+  },
+  sectionHeader: {
+    paddingHorizontal: 0,
+  },
+  chevron: {
+    fontSize: 22,
+    marginLeft: spacing.xs,
   },
   list: {
     paddingHorizontal: spacing.md,

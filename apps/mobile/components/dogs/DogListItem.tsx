@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
-import { spacing, radius, typography } from '@/theme/tokens';
+import { elevation, radius, spacing, typography } from '@/theme/tokens';
 import type { Dog } from '@/types/graphql';
 
 interface DogListItemProps {
@@ -22,11 +22,8 @@ export function DogListItem({ dog, onPress }: DogListItemProps) {
       onPress={() => onPress(dog.id)}
       style={({ pressed }) => [
         styles.container,
-        {
-          backgroundColor: theme.surfaceContainerLowest,
-          borderColor: theme.border + '33',
-          opacity: pressed ? 0.7 : 1,
-        },
+        { backgroundColor: theme.surface, opacity: pressed ? 0.7 : 1 },
+        elevation.low,
       ]}
     >
       <Image
@@ -47,9 +44,12 @@ export function DogListItem({ dog, onPress }: DogListItemProps) {
           ) : null}
         </View>
         {dog.breed ? (
-          <Text style={[styles.breed, { color: theme.onSurfaceVariant }]}>{dog.breed}</Text>
+          <Text style={[styles.breed, { color: theme.onSurfaceVariant }]}>
+            {dog.breed}
+          </Text>
         ) : null}
       </View>
+      <Text style={[styles.chevron, { color: theme.textDisabled }]}>›</Text>
     </Pressable>
   );
 }
@@ -58,10 +58,9 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: spacing.md,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    marginBottom: spacing.sm,
+    padding: 14,
+    borderRadius: radius.xl,
+    marginBottom: spacing.md,
   },
   photo: {
     width: 56,
@@ -78,7 +77,8 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   name: {
-    ...typography.h3,
+    ...typography.headline,
+    fontWeight: '600' as const,
   },
   badge: {
     paddingHorizontal: spacing.sm,
@@ -90,7 +90,11 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
   },
   breed: {
-    ...typography.caption,
-    marginTop: spacing.xs,
+    ...typography.footnote,
+    marginTop: 2,
+  },
+  chevron: {
+    fontSize: 22,
+    marginLeft: spacing.sm,
   },
 });

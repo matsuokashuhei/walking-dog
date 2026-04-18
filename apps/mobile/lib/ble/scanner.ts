@@ -18,16 +18,45 @@
 
 import { WALKING_DOG_SERVICE_UUID } from './constants';
 
-// Lazy import BLE scanner to avoid crash when library is not installed.
-let BleManager: any = null;
-let bleManagerInstance: any = null;
+// Local structural types for the lazy-loaded BLE libraries. We deliberately
+// don't import types from `react-native-ble-plx` / `ble-advertiser` so this
+// module keeps compiling when those native modules aren't built.
+interface BleDevice {
+  serviceUUIDs?: string[] | null;
+}
 
-async function getBleManager(): Promise<any> {
+interface BleScanError {
+  message: string;
+}
+
+type BleScanListener = (error: BleScanError | null, device: BleDevice | null) => void;
+
+interface BleManagerLike {
+  state(): Promise<string>;
+  startDeviceScan(
+    uuids: string[] | null,
+    options: { allowDuplicates?: boolean } | null,
+    listener: BleScanListener,
+  ): void;
+  stopDeviceScan(): void;
+  destroy(): void;
+}
+
+interface BleAdvertiserLike {
+  startAdvertising(serviceUuid: string, walkId: string): Promise<void>;
+  stopAdvertising(): Promise<void>;
+}
+
+// Lazy import BLE scanner to avoid crash when library is not installed.
+let bleManagerInstance: BleManagerLike | null = null;
+
+async function getBleManager(): Promise<BleManagerLike | null> {
   if (bleManagerInstance) return bleManagerInstance;
   try {
-    const mod = require('react-native-ble-plx');
-    BleManager = mod.BleManager;
-    bleManagerInstance = new BleManager();
+    const mod = require('react-native-ble-plx') as {
+      BleManager: new () => BleManagerLike;
+    };
+    bleManagerInstance = new mod.BleManager();
     return bleManagerInstance;
   } catch {
     console.warn('[BLE] react-native-ble-plx not available');
@@ -36,9 +65,9 @@ async function getBleManager(): Promise<any> {
 }
 
 // Lazy import BLE advertiser to avoid crash when native module is not built.
-function getBleAdvertiser(): { startAdvertising: any; stopAdvertising: any } | null {
+function getBleAdvertiser(): BleAdvertiserLike | null {
   try {
-    return require('../../modules/ble-advertiser');
+    return require('../../modules/ble-advertiser') as BleAdvertiserLike;
   } catch {
     console.warn('[BLE] ble-advertiser module not available');
     return null;
@@ -71,7 +100,7 @@ export async function startScanning(
   manager.startDeviceScan(
     [WALKING_DOG_SERVICE_UUID],
     { allowDuplicates: true },
-    (error: any, device: any) => {
+    (error, device) => {
       if (error) {
         console.warn('[BLE] Scan error:', error.message);
         return;
@@ -80,7 +109,7 @@ export async function startScanning(
 
       // Extract Walk ID: find the service UUID that is NOT our fixed filter UUID
       const walkId = device.serviceUUIDs.find(
-        (uuid: string) => uuid.toUpperCase() !== serviceUuidUpper,
+        (uuid) => uuid.toUpperCase() !== serviceUuidUpper,
       );
       if (walkId) {
         onWalkIdDetected(walkId);
@@ -112,7 +141,7 @@ export async function startAdvertising(
     await advertiser.startAdvertising(WALKING_DOG_SERVICE_UUID, walkId);
     return {
       stop: () => {
-        advertiser.stopAdvertising().catch((err: any) =>
+        advertiser.stopAdvertising().catch((err: unknown) =>
           console.warn('[BLE] Stop advertising error:', err),
         );
       },

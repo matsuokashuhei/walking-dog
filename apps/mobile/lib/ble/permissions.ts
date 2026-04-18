@@ -18,9 +18,9 @@ export async function requestBluetoothPermission(): Promise<boolean> {
     // Android 12+ requires these runtime permissions for BLE.
     if (Platform.Version >= 31) {
       const result = await PermissionsAndroid.requestMultiple([
-        'android.permission.BLUETOOTH_SCAN' as PermissionsAndroid.Permission,
-        'android.permission.BLUETOOTH_ADVERTISE' as PermissionsAndroid.Permission,
-        'android.permission.BLUETOOTH_CONNECT' as PermissionsAndroid.Permission,
+        'android.permission.BLUETOOTH_SCAN',
+        'android.permission.BLUETOOTH_ADVERTISE',
+        'android.permission.BLUETOOTH_CONNECT',
       ]);
       return Object.values(result).every(
         (status) => status === PermissionsAndroid.RESULTS.GRANTED,

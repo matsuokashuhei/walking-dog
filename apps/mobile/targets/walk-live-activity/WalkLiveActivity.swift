@@ -34,7 +34,7 @@ struct WalkLiveActivity: Widget {
                         .foregroundStyle(.white)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
-                    WalkEventButtons(lastEventKind: context.state.lastEventKind)
+                    WalkEventButtons(lastEventKind: context.state.lastEventKind, lastEventError: context.state.lastEventError)
                 }
             } compactLeading: {
                 Image(systemName: "pawprint.fill")
@@ -79,7 +79,7 @@ struct WalkLockScreenView: View {
                         .foregroundStyle(.white)
                 }
             }
-            WalkEventButtons(lastEventKind: context.state.lastEventKind)
+            WalkEventButtons(lastEventKind: context.state.lastEventKind, lastEventError: context.state.lastEventError)
         }
     }
 }
@@ -91,24 +91,33 @@ private let cameraDeepLink = URL(string: "walking-dog://walk?action=camera")!
 
 struct WalkEventButtons: View {
     let lastEventKind: String?
+    let lastEventError: String?
 
     var body: some View {
-        HStack(spacing: 8) {
-            Button(intent: PeeIntent()) {
-                eventLabel(emoji: "🚽", text: "Pee", highlighted: lastEventKind == "pee")
+        VStack(spacing: 4) {
+            if let error = lastEventError {
+                Text("⚠ \(error)")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.red)
+                    .lineLimit(1)
             }
-            .buttonStyle(.plain)
+            HStack(spacing: 8) {
+                Button(intent: PeeIntent()) {
+                    eventLabel(emoji: "🚽", text: "Pee", highlighted: lastEventKind == "pee")
+                }
+                .buttonStyle(.plain)
 
-            Button(intent: PooIntent()) {
-                eventLabel(emoji: "💩", text: "Poo", highlighted: lastEventKind == "poo")
-            }
-            .buttonStyle(.plain)
+                Button(intent: PooIntent()) {
+                    eventLabel(emoji: "💩", text: "Poo", highlighted: lastEventKind == "poo")
+                }
+                .buttonStyle(.plain)
 
-            // Camera intentionally uses Link, not AppIntent — opening the
-            // camera UI requires the host app process. Tapping triggers Face
-            // ID unlock if the device is locked.
-            Link(destination: cameraDeepLink) {
-                eventLabel(emoji: "📷", text: "Camera", highlighted: false)
+                // Camera intentionally uses Link, not AppIntent — opening the
+                // camera UI requires the host app process. Tapping triggers Face
+                // ID unlock if the device is locked.
+                Link(destination: cameraDeepLink) {
+                    eventLabel(emoji: "📷", text: "Camera", highlighted: false)
+                }
             }
         }
     }

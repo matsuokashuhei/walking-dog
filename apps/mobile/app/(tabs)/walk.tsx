@@ -40,11 +40,14 @@ export default function WalkScreen() {
 
   // Live Activity の Camera ボタン (Link) からのディープリンク
   // walking-dog://walk?action=camera を受けたら、撮影フローを起動する。
-  // setParams で action を null にして再来訪での連続発火を防ぐ。
+  // cold start 直後は walk-store の hydrate 前で phase === 'ready' / walkId === null
+  // になっているため、条件を満たすまで setParams しないで待機し取りこぼしを防ぐ。
   useEffect(() => {
     if (params.action !== 'camera') return;
-    if (phase === 'recording' && walkId) requestCamera();
-    router.setParams({ action: undefined });
+    if (phase === 'recording' && walkId) {
+      requestCamera();
+      router.setParams({ action: undefined });
+    }
   }, [params.action, phase, walkId, requestCamera]);
 
   const handleStart = useCallback(async () => {

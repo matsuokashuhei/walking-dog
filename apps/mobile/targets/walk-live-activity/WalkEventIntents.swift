@@ -20,7 +20,22 @@ private func performWalkEvent(kind: String) async throws {
         throw WalkEventClientError.missingToken
     }
 
-    try await WalkEventClient.recordEvent(kind: kind, context: context, token: token)
+    do {
+        try await WalkEventClient.recordEvent(kind: kind, context: context, token: token)
+    } catch let clientError as WalkEventClientError {
+        intentLogger.error("recordEvent failed for \(kind): \(clientError.description)")
+        if let activity = Activity<WalkAttributes>.activities.first(where: { $0.attributes.walkId == context.walkId }) {
+            let current = activity.content.state
+            let errorState = WalkAttributes.ContentState(
+                distanceM: current.distanceM,
+                lastEventKind: current.lastEventKind,
+                lastEventAt: current.lastEventAt,
+                lastEventError: clientError.description
+            )
+            await activity.update(.init(state: errorState, staleDate: nil))
+        }
+        throw clientError
+    }
 
     // Reflect the event in the Live Activity so the user gets visual feedback.
     if let activity = Activity<WalkAttributes>.activities.first(where: { $0.attributes.walkId == context.walkId }) {
@@ -28,7 +43,8 @@ private func performWalkEvent(kind: String) async throws {
         let nextState = WalkAttributes.ContentState(
             distanceM: current.distanceM,
             lastEventKind: kind,
-            lastEventAt: Date()
+            lastEventAt: Date(),
+            lastEventError: nil
         )
         await activity.update(.init(state: nextState, staleDate: nil))
     }

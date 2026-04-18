@@ -1,5 +1,5 @@
-import { useCallback, useEffect } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useRef } from 'react';
+import { Alert, AppState, Pressable, StyleSheet, Text, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 import { useTranslation } from 'react-i18next';
@@ -96,13 +96,43 @@ export function WalkEventActions() {
     }
   }, [walkId, dogId, latestPoint, t, photoUpload, addEvent]);
 
+  const cameraTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Live Activity の Camera ボタン (deep link 経由) で walk-store の
   // cameraRequestedAt が更新されたら、アプリ内 Pee/Poo/Photo ボタンを
   // 押されたときと同じ handlePhoto を実行する。
+  // Deep link はアプリが background → foreground に遷移した直後に届くため、
+  // UIKit のウィンドウ遷移が完了する前に launchCameraAsync を呼ぶと
+  // シャッターのタッチが届かなくなる。AppState が active になった後に
+  // 150ms の遅延を挟んで起動することで UIKit の遷移完了を待つ。
   useEffect(() => {
     if (!cameraRequestedAt || !walkId) return;
-    void handlePhoto();
     clearCameraRequest();
+
+    const launchAfterDelay = () => {
+      cameraTimerRef.current = setTimeout(() => {
+        void handlePhoto();
+      }, 150);
+    };
+
+    const currentState = AppState.currentState;
+    if (currentState === 'active') {
+      launchAfterDelay();
+    } else {
+      const sub = AppState.addEventListener('change', (next) => {
+        if (next === 'active') {
+          sub.remove();
+          launchAfterDelay();
+        }
+      });
+    }
+
+    return () => {
+      if (cameraTimerRef.current !== null) {
+        clearTimeout(cameraTimerRef.current);
+        cameraTimerRef.current = null;
+      }
+    };
   }, [cameraRequestedAt, walkId, handlePhoto, clearCameraRequest]);
 
   const handlePress = (type: WalkEventType) => {

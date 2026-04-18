@@ -13,11 +13,18 @@ public struct WalkAttributes: ActivityAttributes {
         public var distanceM: Double
         public var lastEventKind: String?
         public var lastEventAt: Date?
+        public var lastEventError: String?
 
-        public init(distanceM: Double, lastEventKind: String? = nil, lastEventAt: Date? = nil) {
+        public init(
+            distanceM: Double,
+            lastEventKind: String? = nil,
+            lastEventAt: Date? = nil,
+            lastEventError: String? = nil
+        ) {
             self.distanceM = distanceM
             self.lastEventKind = lastEventKind
             self.lastEventAt = lastEventAt
+            self.lastEventError = lastEventError
         }
     }
 

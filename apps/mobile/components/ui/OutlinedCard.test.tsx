@@ -34,7 +34,7 @@ describe('OutlinedCard', () => {
       {},
     );
     expect(flat.backgroundColor).toBe('#ffffff');
-    expect(flat.borderColor).toBe('#c6c6c633');
+    expect(flat.borderColor).toBe('rgba(60,60,67,0.12)');
     expect(flat.borderWidth).toBe(1);
   });
 

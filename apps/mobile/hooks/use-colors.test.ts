@@ -12,8 +12,8 @@ describe('useColors', () => {
 
     const { result } = renderHook(() => useColors());
 
-    expect(result.current.background).toBe('#fcf9f8');
-    expect(result.current.onSurface).toBe('#1c1b1b');
+    expect(result.current.background).toBe('#f2f2f7');
+    expect(result.current.onSurface).toBe('#000000');
   });
 
   it('returns dark color tokens when scheme is dark', () => {
@@ -22,8 +22,8 @@ describe('useColors', () => {
 
     const { result } = renderHook(() => useColors());
 
-    expect(result.current.background).toBe('#111111');
-    expect(result.current.onSurface).toBe('#f0f0f0');
+    expect(result.current.background).toBe('#000000');
+    expect(result.current.onSurface).toBe('#ffffff');
   });
 
   it('returns tokens including new surfaceContainerLowest', () => {
@@ -41,6 +41,6 @@ describe('useColors', () => {
 
     const { result } = renderHook(() => useColors());
 
-    expect(result.current.primaryContainer).toBe('#3c3b3b');
+    expect(result.current.primaryContainer).toBe('#0a84ff');
   });
 });

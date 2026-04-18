@@ -11,11 +11,18 @@
   "auth": {
     "login": {
       "title": "Walking Dog",
+      "heading": "おかえりなさい",
       "subtitle": "散歩の記録と犬の友情を大切に",
-      "email": "メールアドレス",
+      "email": "メール",
       "password": "パスワード",
-      "submit": "ログイン",
+      "submit": "サインイン",
       "register": "アカウントを作成",
+      "forgotPassword": "パスワードを忘れた場合",
+      "or": "または",
+      "continueWithApple": "Apple でサインイン",
+      "newHere": "はじめての方は",
+      "createAccountLink": "アカウント作成",
+      "comingSoonApple": "Apple でサインインは近日対応予定です",
       "error": {
         "invalidCredentials": "メールアドレスまたはパスワードが正しくありません",
         "generic": "ログインに失敗しました"

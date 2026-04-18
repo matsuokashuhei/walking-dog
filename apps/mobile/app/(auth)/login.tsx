@@ -1,9 +1,10 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { AppMark } from '@/components/auth/AppMark';
 import { LoginForm } from '@/components/auth/LoginForm';
 import { useColors } from '@/hooks/use-colors';
-import { spacing } from '@/theme/tokens';
+import { spacing, typography } from '@/theme/tokens';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -12,31 +13,35 @@ export default function LoginScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={styles.hero}>
-        {/* 68 px accent-colored app mark — the bright visual anchor per Precise SignIn */}
-        <View
-          style={[
-            styles.mark,
-            { backgroundColor: theme.interactive, shadowColor: theme.interactive },
-          ]}
-        >
-          <Text style={styles.markGlyph}>🐾</Text>
+      <View style={styles.content}>
+        <View style={styles.hero}>
+          <AppMark />
+          <Text style={[styles.heading, { color: theme.onSurface }]}>
+            {t('auth.login.heading')}
+          </Text>
+          <Text style={[styles.sub, { color: theme.onSurfaceVariant }]}>
+            {t('auth.login.subtitle')}
+          </Text>
         </View>
-        <Text style={[styles.heroText, { color: theme.onSurface }]}>
-          Welcome back
-        </Text>
-        <Text style={[styles.subText, { color: theme.onSurfaceVariant }]}>
-          {t('auth.login.subtitle', {
-            defaultValue: 'Sign in to keep walking with your companion.',
-          })}
-        </Text>
+        <LoginForm
+          onSuccess={() => {
+            // Navigation guard in _layout.tsx handles redirect to (tabs)
+          }}
+        />
       </View>
-      <LoginForm
-        onSuccess={() => {
-          // Navigation guard in _layout.tsx handles redirect to (tabs)
-        }}
-        onRegisterPress={() => router.push('/(auth)/register')}
-      />
+      <Pressable
+        onPress={() => router.push('/(auth)/register')}
+        accessibilityRole="link"
+        accessibilityLabel={t('auth.login.createAccountLink')}
+        style={styles.footer}
+      >
+        <Text style={[styles.footerText, { color: theme.onSurfaceVariant }]}>
+          {t('auth.login.newHere')}{' '}
+          <Text style={[styles.footerLink, { color: theme.interactive }]}>
+            {t('auth.login.createAccountLink')}
+          </Text>
+        </Text>
+      </Pressable>
     </View>
   );
 }
@@ -45,37 +50,31 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 32,
-    paddingTop: spacing.xxl,
+  },
+  content: {
+    flex: 1,
     justifyContent: 'center',
   },
   hero: {
     marginBottom: spacing.xl,
   },
-  mark: {
-    width: 68,
-    height: 68,
-    borderRadius: 22,
+  heading: {
+    ...typography.largeTitle,
+    marginTop: spacing.lg,
+    marginBottom: spacing.xs,
+  },
+  sub: {
+    ...typography.subheadline,
+  },
+  footer: {
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 24,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 30,
-    elevation: 10,
+    paddingBottom: 50,
+    paddingTop: spacing.md,
   },
-  markGlyph: {
-    fontSize: 36,
+  footerText: {
+    ...typography.subheadline,
   },
-  heroText: {
-    fontSize: 34,
-    fontWeight: '700',
-    letterSpacing: -0.8,
-    lineHeight: 38,
-    marginBottom: 8,
-  },
-  subText: {
-    fontSize: 15,
-    fontWeight: '400',
-    lineHeight: 21,
+  footerLink: {
+    fontWeight: '500',
   },
 });

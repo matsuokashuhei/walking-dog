@@ -11,11 +11,18 @@
   "auth": {
     "login": {
       "title": "Walking Dog",
-      "subtitle": "Cherish your dog walks and friendships",
+      "heading": "Welcome back",
+      "subtitle": "Sign in to keep walking with your companion.",
       "email": "Email",
       "password": "Password",
-      "submit": "Login",
+      "submit": "Sign in",
       "register": "Create Account",
+      "forgotPassword": "Forgot password?",
+      "or": "or",
+      "continueWithApple": "Continue with Apple",
+      "newHere": "New here?",
+      "createAccountLink": "Create an account",
+      "comingSoonApple": "Apple Sign-In is coming soon.",
       "error": {
         "invalidCredentials": "Invalid email or password",
         "generic": "Login failed"

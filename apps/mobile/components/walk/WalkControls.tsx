@@ -23,6 +23,7 @@ export function WalkControls({ dogs, onStop, isStopping, children }: WalkControl
   const theme = useColors();
   const startedAt = useWalkStore((s) => s.startedAt);
   const totalDistanceM = useWalkStore((s) => s.totalDistanceM);
+  const setMinimized = useWalkStore((s) => s.setMinimized);
 
   const [isPaused, setIsPaused] = useState(false);
   const [pausedAt, setPausedAt] = useState<number | null>(null);
@@ -68,7 +69,15 @@ export function WalkControls({ dogs, onStop, isStopping, children }: WalkControl
         elevation.mid,
       ]}
     >
-      <View style={[styles.grabber, { backgroundColor: theme.textDisabled }]} />
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t('walk.recording.minimize')}
+        onPress={() => setMinimized(true)}
+        hitSlop={12}
+        style={styles.grabberHit}
+      >
+        <View style={[styles.grabber, { backgroundColor: theme.textDisabled }]} />
+      </Pressable>
 
       <View style={styles.header}>
         <View style={styles.identity}>
@@ -226,13 +235,16 @@ const styles = StyleSheet.create({
     borderRadius: radius.xxl + 4,
     borderWidth: StyleSheet.hairlineWidth,
   },
-  grabber: {
+  grabberHit: {
     alignSelf: 'center',
+    paddingVertical: 6,
+    marginBottom: spacing.md,
+  },
+  grabber: {
     width: 36,
     height: 5,
     borderRadius: 3,
     opacity: 0.4,
-    marginBottom: spacing.md,
   },
   header: {
     flexDirection: 'row',

@@ -164,7 +164,10 @@
       "eveningWalk": "夜の散歩",
       "pause": "一時停止",
       "resume": "再開",
-      "endWalk": "散歩を終了"
+      "endWalk": "散歩を終了",
+      "minimize": "縮小表示",
+      "expand": "展開",
+      "expandHint": "タップして操作を展開"
     },
     "finished": {
       "title": "散歩完了！",

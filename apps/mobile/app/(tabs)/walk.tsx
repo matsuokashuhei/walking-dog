@@ -14,6 +14,8 @@ import { WalkReadyView } from '@/components/walk/WalkReadyView';
 import { WalkMap } from '@/components/walk/WalkMap';
 import { WalkControls } from '@/components/walk/WalkControls';
 import { WalkEventActions } from '@/components/walk/WalkEventActions';
+import { WalkMinimizedControls } from '@/components/walk/WalkMinimizedControls';
+import { WalkQuickActions } from '@/components/walk/WalkQuickActions';
 import { WalkTopChip } from '@/components/walk/WalkTopChip';
 import { WalkSummaryCard } from '@/components/walk/WalkSummaryCard';
 import { spacing } from '@/theme/tokens';
@@ -25,6 +27,7 @@ export default function WalkScreen() {
   const phase = useWalkStore((s) => s.phase);
   const walkId = useWalkStore((s) => s.walkId);
   const selectedDogIds = useWalkStore((s) => s.selectedDogIds);
+  const isMinimized = useWalkStore((s) => s.isMinimized);
   const requestCamera = useWalkStore((s) => s.requestCamera);
   const params = useLocalSearchParams<{ action?: string }>();
 
@@ -111,9 +114,16 @@ export default function WalkScreen() {
           <WalkTopChip dogs={selectedDogs} />
         </View>
         <View style={styles.bottomOverlay} pointerEvents="box-none">
-          <WalkControls dogs={selectedDogs} onStop={handleStop} isStopping={isStopping}>
-            <WalkEventActions dogs={selectedDogs} />
-          </WalkControls>
+          {isMinimized ? (
+            <>
+              <WalkQuickActions dogs={selectedDogs} />
+              <WalkMinimizedControls dogs={selectedDogs} />
+            </>
+          ) : (
+            <WalkControls dogs={selectedDogs} onStop={handleStop} isStopping={isStopping}>
+              <WalkEventActions dogs={selectedDogs} />
+            </WalkControls>
+          )}
         </View>
       </View>
     );

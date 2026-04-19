@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Tag } from '@/components/ui/Tag';
 import { useColors } from '@/hooks/use-colors';
-import { elevation, radius, spacing, typography } from '@/theme/tokens';
+import { radius, spacing, typography } from '@/theme/tokens';
 import { useSettingsStore } from '@/stores/settings-store';
 import { useWalkStore } from '@/stores/walk-store';
 import { formatDistance, formatPace, formatTime } from '@/lib/walk/format';
@@ -24,7 +24,6 @@ export function WalkControls({ dogs, onStop, isStopping, children }: WalkControl
   const theme = useColors();
   const startedAt = useWalkStore((s) => s.startedAt);
   const totalDistanceM = useWalkStore((s) => s.totalDistanceM);
-  const setMinimized = useWalkStore((s) => s.setMinimized);
   const units = useSettingsStore((s) => s.units);
 
   const [isPaused, setIsPaused] = useState(false);
@@ -64,23 +63,7 @@ export function WalkControls({ dogs, onStop, isStopping, children }: WalkControl
     : `${t('walk.recording.groupWalk')} · ${t('walk.recording.together')}`;
 
   return (
-    <View
-      style={[
-        styles.sheet,
-        { backgroundColor: theme.surface, borderColor: theme.border },
-        elevation.mid,
-      ]}
-    >
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={t('walk.recording.minimize')}
-        onPress={() => setMinimized(true)}
-        hitSlop={12}
-        style={styles.grabberHit}
-      >
-        <View style={[styles.grabber, { backgroundColor: theme.textDisabled }]} />
-      </Pressable>
-
+    <View style={styles.sheet}>
       <View style={styles.header}>
         <View style={styles.identity}>
           <View style={styles.avatars}>
@@ -224,24 +207,7 @@ const AVATAR = 32;
 
 const styles = StyleSheet.create({
   sheet: {
-    marginHorizontal: spacing.sm + 2,
-    marginBottom: spacing.lg,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.lg,
-    borderRadius: radius.xxl + 4,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  grabberHit: {
-    alignSelf: 'center',
-    paddingVertical: 6,
-    marginBottom: spacing.md,
-  },
-  grabber: {
-    width: 36,
-    height: 5,
-    borderRadius: 3,
-    opacity: 0.4,
+    paddingTop: spacing.md,
   },
   header: {
     flexDirection: 'row',

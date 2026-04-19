@@ -1,40 +1,36 @@
-import { Tabs } from 'expo-router';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { Icon, Label, NativeTabs, VectorIcon } from 'expo-router/unstable-native-tabs';
 import { useTranslation } from 'react-i18next';
 
-import { LiquidGlassTabBar } from '@/components/navigation/liquid-glass-tab-bar';
-import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useColors } from '@/hooks/use-colors';
 
 export default function TabLayout() {
   const { t } = useTranslation();
+  const theme = useColors();
 
   return (
-    <Tabs
-      initialRouteName="dogs"
-      screenOptions={{ headerShown: false }}
-      tabBar={(props) => <LiquidGlassTabBar {...props} />}>
-      <Tabs.Screen
-        name="dogs"
-        options={{
-          title: t('tabs.dogs'),
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="pawprint.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="walk"
-        options={{
-          title: t('tabs.walk'),
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="figure.walk" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="settings"
-        options={{
-          title: t('tabs.me'),
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={24} name="person.crop.circle" color={color} />
-          ),
-        }}
-      />
-    </Tabs>
+    <NativeTabs tintColor={theme.interactive} minimizeBehavior="onScrollDown">
+      <NativeTabs.Trigger name="dogs">
+        <Icon
+          sf="pawprint.fill"
+          androidSrc={<VectorIcon family={MaterialIcons} name="pets" />}
+        />
+        <Label>{t('tabs.dogs')}</Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="walk">
+        <Icon
+          sf="figure.walk"
+          androidSrc={<VectorIcon family={MaterialIcons} name="directions-walk" />}
+        />
+        <Label>{t('tabs.walk')}</Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="settings">
+        <Icon
+          sf="person.crop.circle"
+          androidSrc={<VectorIcon family={MaterialIcons} name="account-circle" />}
+        />
+        <Label>{t('tabs.me')}</Label>
+      </NativeTabs.Trigger>
+    </NativeTabs>
   );
 }

@@ -259,22 +259,29 @@
   },
   "settings": {
     "title": "Me",
-    "sectionLabel": "PREFERENCES",
-    "profile": "Profile",
-    "displayName": "Display Name",
-    "edit": "Edit",
-    "save": "Save",
+    "sectionLabel": {
+      "preferences": "PREFERENCES",
+      "legal": "LEGAL"
+    },
     "cancel": "Cancel",
-    "updateError": "Failed to update",
     "appearance": "Appearance",
     "theme": "Theme",
     "themeLight": "Light",
     "themeDark": "Dark",
     "themeAuto": "Auto",
     "language": "Language",
+    "units": "Units",
+    "unitsKm": "Kilometers",
+    "unitsMile": "Miles",
+    "notifications": "Notifications",
+    "notificationsValue": "On",
+    "viewProfile": "View profile",
+    "emailPlaceholder": "mio@walk.app",
+    "terms": "Terms of Service",
+    "privacy": "Privacy Policy",
+    "about": "About",
     "signOut": "Sign Out",
     "signOutConfirm": "Are you sure you want to sign out?",
-    "version": "Version {{version}}",
     "loadError": "Failed to load data"
   }
 }

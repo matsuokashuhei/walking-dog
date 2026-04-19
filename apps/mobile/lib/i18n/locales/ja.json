@@ -259,22 +259,29 @@
   },
   "settings": {
     "title": "マイページ",
-    "sectionLabel": "PREFERENCES",
-    "profile": "プロフィール",
-    "displayName": "表示名",
-    "edit": "編集",
-    "save": "保存",
+    "sectionLabel": {
+      "preferences": "環境設定",
+      "legal": "法的情報"
+    },
     "cancel": "キャンセル",
-    "updateError": "更新に失敗しました",
     "appearance": "外観",
     "theme": "テーマ",
     "themeLight": "ライト",
     "themeDark": "ダーク",
     "themeAuto": "自動",
     "language": "言語",
+    "units": "単位",
+    "unitsKm": "キロメートル",
+    "unitsMile": "マイル",
+    "notifications": "通知",
+    "notificationsValue": "オン",
+    "viewProfile": "プロフィールを見る",
+    "emailPlaceholder": "mio@walk.app",
+    "terms": "利用規約",
+    "privacy": "プライバシーポリシー",
+    "about": "このアプリについて",
     "signOut": "サインアウト",
     "signOutConfirm": "サインアウトしますか？",
-    "version": "バージョン {{version}}",
     "loadError": "データの読み込みに失敗しました"
   }
 }

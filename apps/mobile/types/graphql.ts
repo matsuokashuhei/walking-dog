@@ -152,7 +152,6 @@ export interface MeResponse { me: User; }
 export interface DogResponse { dog: DogWithStats | null; }
 export interface WalkResponse { walk: Walk | null; }
 export interface MyWalksResponse { myWalks: Walk[]; }
-export interface UpdateProfileResponse { updateProfile: User; }
 export interface CreateDogResponse { createDog: Dog; }
 export interface UpdateDogResponse { updateDog: Dog; }
 export interface DeleteDogResponse { deleteDog: boolean; }
@@ -161,7 +160,6 @@ export interface GenerateDogInvitationResponse { generateDogInvitation: DogInvit
 export interface AcceptDogInvitationResponse { acceptDogInvitation: Dog; }
 export interface RemoveDogMemberResponse { removeDogMember: boolean; }
 export interface LeaveDogResponse { leaveDog: boolean; }
-export interface UpdateEncounterDetectionResponse { updateEncounterDetection: User; }
 export interface RecordEncounterResponse { recordEncounter: Encounter[]; }
 export interface UpdateEncounterDurationResponse { updateEncounterDuration: boolean; }
 

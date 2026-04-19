@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Tag } from '@/components/ui/Tag';
 import { useColors } from '@/hooks/use-colors';
 import { elevation, radius, spacing, typography } from '@/theme/tokens';
+import { useSettingsStore } from '@/stores/settings-store';
 import { useWalkStore } from '@/stores/walk-store';
 import { formatDistance, formatPace, formatTime } from '@/lib/walk/format';
 import type { Dog } from '@/types/graphql';
@@ -24,6 +25,7 @@ export function WalkControls({ dogs, onStop, isStopping, children }: WalkControl
   const startedAt = useWalkStore((s) => s.startedAt);
   const totalDistanceM = useWalkStore((s) => s.totalDistanceM);
   const setMinimized = useWalkStore((s) => s.setMinimized);
+  const units = useSettingsStore((s) => s.units);
 
   const [isPaused, setIsPaused] = useState(false);
   const [pausedAt, setPausedAt] = useState<number | null>(null);
@@ -52,8 +54,8 @@ export function WalkControls({ dogs, onStop, isStopping, children }: WalkControl
     }
   };
 
-  const { distanceValue, distanceUnit } = splitDistance(totalDistanceM);
-  const pace = formatPace(elapsedSec, totalDistanceM);
+  const { distanceValue, distanceUnit } = splitDistance(totalDistanceM, units);
+  const pace = formatPace(elapsedSec, totalDistanceM, units);
 
   const isSingleDog = dogs.length === 1;
   const title = isSingleDog ? dogs[0].name : dogs.map((d) => d.name).join(' + ');
@@ -199,8 +201,11 @@ function Metric({
   );
 }
 
-function splitDistance(totalM: number): { distanceValue: string; distanceUnit: string } {
-  const formatted = formatDistance(totalM).trim();
+function splitDistance(
+  totalM: number,
+  units: 'km' | 'mile',
+): { distanceValue: string; distanceUnit: string } {
+  const formatted = formatDistance(totalM, units).trim();
   const match = formatted.match(/^([\d.]+)\s*(\S+)?$/);
   return {
     distanceValue: match?.[1] ?? formatted,

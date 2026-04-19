@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { Tag } from '@/components/ui/Tag';
 import { useColors } from '@/hooks/use-colors';
+import { useSettingsStore } from '@/stores/settings-store';
 import { useWalkStore } from '@/stores/walk-store';
 import { elevation, radius, spacing, typography } from '@/theme/tokens';
 import { formatDistance, formatTime } from '@/lib/walk/format';
@@ -21,6 +22,7 @@ export function WalkMinimizedControls({ dogs }: WalkMinimizedControlsProps) {
   const startedAt = useWalkStore((s) => s.startedAt);
   const totalDistanceM = useWalkStore((s) => s.totalDistanceM);
   const setMinimized = useWalkStore((s) => s.setMinimized);
+  const units = useSettingsStore((s) => s.units);
   const [elapsedSec, setElapsedSec] = useState(0);
 
   useEffect(() => {
@@ -66,7 +68,7 @@ export function WalkMinimizedControls({ dogs }: WalkMinimizedControlsProps) {
           {formatTime(elapsedSec)}
         </Text>
         <Text style={[styles.distance, { color: theme.onSurfaceVariant }]}>
-          {` · ${formatDistance(totalDistanceM)}`}
+          {` · ${formatDistance(totalDistanceM, units)}`}
         </Text>
         <View style={styles.tagWrap}>
           <Tag label="LIVE" tone="live" />

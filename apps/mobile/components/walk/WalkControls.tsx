@@ -1,10 +1,11 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Tag } from '@/components/ui/Tag';
 import { useColors } from '@/hooks/use-colors';
+import { useWalkElapsed } from '@/hooks/use-walk-elapsed';
 import { radius, spacing, typography } from '@/theme/tokens';
 import { useSettingsStore } from '@/stores/settings-store';
 import { useWalkStore } from '@/stores/walk-store';
@@ -23,32 +24,28 @@ export function WalkControls({ dogs, onStop, isStopping, children }: WalkControl
   const { t } = useTranslation();
   const theme = useColors();
   const startedAt = useWalkStore((s) => s.startedAt);
+  const startedAtMs = startedAt?.getTime() ?? null;
   const totalDistanceM = useWalkStore((s) => s.totalDistanceM);
   const units = useSettingsStore((s) => s.units);
 
   const [isPaused, setIsPaused] = useState(false);
-  const [pausedAt, setPausedAt] = useState<number | null>(null);
   const [totalPausedMs, setTotalPausedMs] = useState(0);
-  const [elapsedSec, setElapsedSec] = useState(0);
+  const pausedAtMsRef = useRef<number | null>(null);
+  const elapsedSec = useWalkElapsed({ startedAt, isPaused, totalPausedMs });
 
   useEffect(() => {
-    if (!startedAt) return;
-    const tick = () => {
-      const frozen = isPaused && pausedAt ? pausedAt : Date.now();
-      setElapsedSec(Math.floor((frozen - startedAt.getTime() - totalPausedMs) / 1000));
-    };
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, [startedAt, isPaused, pausedAt, totalPausedMs]);
+    pausedAtMsRef.current = null;
+    setIsPaused(false);
+    setTotalPausedMs(0);
+  }, [startedAtMs]);
 
   const togglePause = () => {
-    if (isPaused && pausedAt !== null) {
-      setTotalPausedMs((ms) => ms + (Date.now() - pausedAt));
-      setPausedAt(null);
+    if (isPaused && pausedAtMsRef.current !== null) {
+      setTotalPausedMs((ms) => ms + (Date.now() - pausedAtMsRef.current!));
+      pausedAtMsRef.current = null;
       setIsPaused(false);
     } else {
-      setPausedAt(Date.now());
+      pausedAtMsRef.current = Date.now();
       setIsPaused(true);
     }
   };

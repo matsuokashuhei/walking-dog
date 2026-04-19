@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { WalkControls } from './WalkControls';
 import type { Dog } from '@/types/graphql';
 
@@ -8,9 +8,14 @@ jest.mock('@/hooks/use-color-scheme', () => ({
 
 jest.mock('expo-image', () => ({ Image: 'Image' }));
 
+const mockWalkStoreState = {
+  startedAt: null as Date | null,
+  totalDistanceM: 0,
+};
+
 jest.mock('@/stores/walk-store', () => ({
-  useWalkStore: (selector: (s: object) => unknown) =>
-    selector({ startedAt: null, totalDistanceM: 0 }),
+  useWalkStore: (selector: (s: typeof mockWalkStoreState) => unknown) =>
+    selector(mockWalkStoreState),
 }));
 
 jest.mock('@/lib/walk/format', () => ({
@@ -42,6 +47,16 @@ const momo: Dog = {
 };
 
 describe('WalkControls', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+    mockWalkStoreState.startedAt = null;
+    mockWalkStoreState.totalDistanceM = 0;
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   it('renders the three Precise metric labels: Time, Distance, Pace', () => {
     render(<WalkControls dogs={[coco]} onStop={jest.fn()} isStopping={false} />);
     expect(screen.getByText('Time')).toBeTruthy();
@@ -86,5 +101,19 @@ describe('WalkControls', () => {
     const pause = screen.getByRole('button', { name: 'Pause' });
     fireEvent.press(pause);
     expect(screen.getByRole('button', { name: 'Resume' })).toBeTruthy();
+  });
+
+  it('updates the elapsed metric while the walk is active', () => {
+    jest.setSystemTime(new Date('2026-04-20T10:00:00.000Z'));
+    mockWalkStoreState.startedAt = new Date('2026-04-20T09:59:54.000Z');
+
+    render(<WalkControls dogs={[coco]} onStop={jest.fn()} isStopping={false} />);
+    expect(screen.getByText('6s')).toBeTruthy();
+
+    act(() => {
+      jest.advanceTimersByTime(2_000);
+    });
+
+    expect(screen.getByText('8s')).toBeTruthy();
   });
 });

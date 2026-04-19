@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { GroupedCard } from '@/components/ui/GroupedCard';
 import { TextInput } from '@/components/ui/TextInput';
 import { useColors } from '@/hooks/use-colors';
+import { toAuthError } from '@/lib/auth/errors';
 import { spacing, typography } from '@/theme/tokens';
 
 interface LoginFormProps {
@@ -32,16 +33,16 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
       await signIn(email, password);
       onSuccess();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : '';
-      if (
-        message.includes('INVALID_CREDENTIALS') ||
-        message.includes('AUTH_ERROR') ||
-        message.includes('UserNotFoundException') ||
-        message.includes('NotAuthorizedException')
-      ) {
-        setError(t('auth.login.error.invalidCredentials'));
-      } else {
-        setError(t('auth.login.error.generic'));
+      const authError = toAuthError(err);
+      switch (authError.kind) {
+        case 'invalid-credentials':
+          setError(t('auth.login.error.invalidCredentials'));
+          break;
+        case 'network':
+          setError(t('auth.error.networkError'));
+          break;
+        default:
+          setError(t('auth.login.error.generic'));
       }
     } finally {
       setLoading(false);

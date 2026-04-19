@@ -16,6 +16,7 @@ jest.mock('@/stores/walk-store', () => ({
 jest.mock('@/lib/walk/format', () => ({
   formatTime: (sec: number) => `${sec}s`,
   formatDistance: (m: number) => `${m}m`,
+  formatDistanceParts: (m: number) => ({ value: `${m}`, unit: 'm' }),
   formatPace: () => ({ value: '—', unit: '/km' }),
   formatPaceString: () => "—/km",
 }));

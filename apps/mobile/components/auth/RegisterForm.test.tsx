@@ -43,6 +43,48 @@ describe('RegisterForm', () => {
     });
   });
 
+  it('shows user exists error from typed auth errors', async () => {
+    mockSignUp.mockRejectedValue({ kind: 'user-exists' });
+    render(<RegisterForm onSuccess={jest.fn()} />);
+
+    fireEvent.changeText(screen.getByLabelText('Your name'), 'Taro');
+    fireEvent.changeText(screen.getByLabelText('Email'), 'new@example.com');
+    fireEvent.changeText(screen.getByLabelText('Password'), 'password123');
+    fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('This email is already registered')).toBeTruthy();
+    });
+  });
+
+  it('shows invalid password error from typed auth errors', async () => {
+    mockSignUp.mockRejectedValue({ kind: 'invalid-password' });
+    render(<RegisterForm onSuccess={jest.fn()} />);
+
+    fireEvent.changeText(screen.getByLabelText('Your name'), 'Taro');
+    fireEvent.changeText(screen.getByLabelText('Email'), 'new@example.com');
+    fireEvent.changeText(screen.getByLabelText('Password'), 'password123');
+    fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Password does not meet requirements')).toBeTruthy();
+    });
+  });
+
+  it('shows network error from typed auth errors', async () => {
+    mockSignUp.mockRejectedValue({ kind: 'network' });
+    render(<RegisterForm onSuccess={jest.fn()} />);
+
+    fireEvent.changeText(screen.getByLabelText('Your name'), 'Taro');
+    fireEvent.changeText(screen.getByLabelText('Email'), 'new@example.com');
+    fireEvent.changeText(screen.getByLabelText('Password'), 'password123');
+    fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Please check your network connection')).toBeTruthy();
+    });
+  });
+
   it('renders Terms and Privacy Policy links', () => {
     render(<RegisterForm onSuccess={jest.fn()} />);
     expect(screen.getByText('Terms')).toBeTruthy();

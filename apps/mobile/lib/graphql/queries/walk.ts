@@ -28,6 +28,7 @@ export const MY_WALKS_QUERY = gql`
       durationSec
       startedAt
       endedAt
+      events { id eventType }
     }
   }
 `;

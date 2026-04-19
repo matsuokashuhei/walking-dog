@@ -7,6 +7,7 @@ import type { WalkStats } from '@/types/graphql';
 
 interface DogStatsCardProps {
   stats: WalkStats;
+  streakDays?: number;
 }
 
 function formatDistance(meters: number): string {
@@ -15,15 +16,9 @@ function formatDistance(meters: number): string {
     : `${meters} m`;
 }
 
-export function DogStatsCard({ stats }: DogStatsCardProps) {
+export function DogStatsCard({ stats, streakDays = 0 }: DogStatsCardProps) {
   const { t } = useTranslation();
   const theme = useColors();
-
-  const minutes = Math.floor(stats.totalDurationSec / 60);
-  const hours = Math.floor(minutes / 60);
-  const durationText = hours > 0
-    ? t('dogs.stats.hours', { hours, minutes: minutes % 60 })
-    : t('dogs.stats.minutes', { count: minutes });
 
   return (
     <OutlinedCard style={styles.card}>
@@ -39,9 +34,11 @@ export function DogStatsCard({ stats }: DogStatsCardProps) {
       </View>
       <View style={styles.stat}>
         <Text style={[styles.value, { color: theme.onSurface }]}>
-          {durationText}
+          {t('dogs.detail.streakDays', { days: streakDays })}
         </Text>
-        <Text style={[styles.label, { color: theme.onSurfaceVariant }]}>{t('dogs.stats.duration')}</Text>
+        <Text style={[styles.label, { color: theme.onSurfaceVariant }]}>
+          {t('dogs.detail.streakLabel')}
+        </Text>
       </View>
     </OutlinedCard>
   );

@@ -22,6 +22,16 @@ jest.mock('@/hooks/use-me', () => ({
   }),
 }));
 
+jest.mock('@/hooks/use-pack-progress', () => ({
+  usePackProgress: () => ({
+    todayKm: 0,
+    goalKm: 5,
+    progressPct: 0,
+    perDog: {},
+    isLoading: false,
+  }),
+}));
+
 jest.mock('@/components/dogs/DogListItem', () => {
   const { Text } = jest.requireActual('react-native');
   return {
@@ -36,6 +46,11 @@ jest.mock('@/components/ui/EmptyState', () => ({
 jest.mock('@/components/ui/LoadingScreen', () => ({
   LoadingScreen: () => null,
 }));
+
+jest.mock('@/components/ui/RingProgress', () => {
+  const { View } = jest.requireActual('react-native');
+  return { RingProgress: () => <View /> };
+});
 
 jest.mock('@/components/themed-text', () => {
   const { Text } = jest.requireActual('react-native');
@@ -55,12 +70,12 @@ describe('DogsScreen', () => {
     expect(screen.getByText('My Dogs')).toBeTruthy();
   });
 
-  it('renders dog count stat', () => {
+  it('renders Today walking goal rollup title', () => {
     render(<DogsScreen />);
-    expect(screen.getByText('2')).toBeTruthy();
+    expect(screen.getByText("Today's walking goal")).toBeTruthy();
   });
 
-  it('renders add dog FAB', () => {
+  it('renders header + Add CTA', () => {
     render(<DogsScreen />);
     expect(screen.getByRole('button', { name: 'Add Dog' })).toBeTruthy();
   });

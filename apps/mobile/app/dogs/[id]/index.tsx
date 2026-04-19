@@ -2,20 +2,44 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Image } from 'expo-image';
 import { useDog } from '@/hooks/use-dog';
+import { useMyWalks } from '@/hooks/use-walks';
+import { usePackProgress } from '@/hooks/use-pack-progress';
 import { useDeleteDog } from '@/hooks/use-dog-mutations';
 import { useMe } from '@/hooks/use-me';
 import { useMutationWithAlert } from '@/hooks/use-mutation-with-alert';
 import { useDogDetailAuthorization } from '@/hooks/use-dog-detail-authorization';
+import { DogHero } from '@/components/dogs/DogHero';
 import { DogStatsCard } from '@/components/dogs/DogStatsCard';
+import { DogWalksList } from '@/components/dogs/DogWalksList';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { GroupedCard } from '@/components/ui/GroupedCard';
 import { GroupedRow } from '@/components/ui/GroupedRow';
 import { useColors } from '@/hooks/use-colors';
-import { radius, spacing } from '@/theme/tokens';
+import { spacing, typography } from '@/theme/tokens';
+import type { Dog, Walk } from '@/types/graphql';
+
+function computeAgeLabel(birthDate: Dog['birthDate'], now: Date = new Date()): string | null {
+  if (!birthDate?.year) return null;
+  const month = birthDate.month ?? 1;
+  const day = birthDate.day ?? 1;
+  const birth = new Date(birthDate.year, month - 1, day);
+  let age = now.getFullYear() - birth.getFullYear();
+  const md = now.getMonth() - birth.getMonth();
+  if (md < 0 || (md === 0 && now.getDate() < birth.getDate())) age -= 1;
+  return age >= 0 ? `${age}y` : null;
+}
+
+function buildMeta(dog: Dog): string {
+  const parts: string[] = [];
+  const age = computeAgeLabel(dog.birthDate);
+  if (age) parts.push(age);
+  if (dog.breed) parts.push(dog.breed);
+  else if (dog.gender) parts.push(dog.gender);
+  return parts.join(' · ');
+}
 
 export default function DogDetailScreen() {
   const { t } = useTranslation();
@@ -25,6 +49,8 @@ export default function DogDetailScreen() {
 
   const { data: dog, isLoading } = useDog(id, 'ALL');
   const { data: me } = useMe();
+  const { data: walks = [] } = useMyWalks(100);
+  const pack = usePackProgress();
   const { mutateAsync: deleteDog } = useDeleteDog();
   const runWithAlert = useMutationWithAlert();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -37,37 +63,41 @@ export default function DogDetailScreen() {
     if (ok) router.replace('/(tabs)/dogs');
   }
 
-  const subtitle = [dog.breed, dog.gender].filter(Boolean).join(' · ');
+  const dogWalks: Walk[] = walks.filter((walk) =>
+    walk.dogs.some((walkDog) => walkDog.id === dog.id),
+  );
+  const streakDays = pack.perDog[dog.id]?.streakDays ?? 0;
+  const meta = buildMeta(dog);
   const memberCount = dog.members?.length ?? 0;
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
-      {/* Hero — photo centered on a soft accent-gradient background */}
-      <View style={[styles.hero, { backgroundColor: theme.surfaceContainer }]}>
-        <Image
-          source={dog.photoUrl ?? require('@/assets/images/icon.png')}
-          style={styles.photo}
-          contentFit="cover"
-          cachePolicy="memory-disk"
-        />
-      </View>
+    <ScrollView
+      style={[styles.container, { backgroundColor: theme.background }]}
+      contentContainerStyle={styles.content}
+      contentInsetAdjustmentBehavior="never"
+    >
+      <DogHero photoUrl={dog.photoUrl} />
 
-      {/* Name + breed/gender metadata */}
-      <View style={styles.heroInfo}>
+      <View style={styles.nameBlock}>
         <Text style={[styles.dogName, { color: theme.onSurface }]}>{dog.name}</Text>
-        {subtitle ? (
-          <Text style={[styles.dogMeta, { color: theme.onSurfaceVariant }]}>{subtitle}</Text>
+        {meta ? (
+          <Text style={[styles.dogMeta, { color: theme.onSurfaceVariant }]}>{meta}</Text>
         ) : null}
       </View>
 
-      {/* Stats card */}
       {dog.walkStats ? (
         <View style={styles.statsSection}>
-          <DogStatsCard stats={dog.walkStats} />
+          <DogStatsCard stats={dog.walkStats} streakDays={streakDays} />
         </View>
       ) : null}
 
-      {/* Grouped navigation rows — Members (if any) + Friends */}
+      <View style={styles.walksSection}>
+        <DogWalksList
+          walks={dogWalks}
+          onPressWalk={(walkId) => router.push(`/walks/${walkId}`)}
+        />
+      </View>
+
       <GroupedCard style={styles.group}>
         {memberCount > 0 ? (
           <GroupedRow
@@ -84,23 +114,16 @@ export default function DogDetailScreen() {
         />
       </GroupedCard>
 
-      {/* Actions */}
-      <View style={styles.actions}>
-        <Button
-          label={t('dogs.detail.edit')}
-          variant="secondary"
-          onPress={() => router.push(`/dogs/${id}/edit`)}
-          style={styles.actionButton}
-        />
-        {isOwner ? (
+      {isOwner ? (
+        <View style={styles.actions}>
           <Button
             label={t('dogs.detail.delete')}
             variant="destructive"
             onPress={() => setShowDeleteConfirm(true)}
             style={styles.actionButton}
           />
-        ) : null}
-      </View>
+        </View>
+      ) : null}
 
       {isOwner ? (
         <ConfirmDialog
@@ -119,48 +142,38 @@ export default function DogDetailScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  hero: {
-    height: 280,
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    paddingBottom: spacing.xl,
+  content: {
+    paddingBottom: spacing.xxl,
   },
-  photo: {
-    width: 160,
-    height: 160,
-    borderRadius: radius.full,
-  },
-  heroInfo: {
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.md,
+  nameBlock: {
+    paddingHorizontal: spacing.step20,
+    paddingTop: spacing.sm,
   },
   dogName: {
-    fontSize: 28,
-    fontWeight: '700',
-    letterSpacing: -0.5,
-    lineHeight: 34,
-    textAlign: 'center',
+    ...typography.title1,
+    fontSize: 32,
+    letterSpacing: -0.6,
   },
   dogMeta: {
     fontSize: 14,
-    marginTop: 4,
-    textAlign: 'center',
+    marginTop: 2,
   },
   statsSection: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.lg,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.lg,
+  },
+  walksSection: {
+    paddingHorizontal: spacing.xs,
   },
   group: {
     marginHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
+    marginTop: spacing.lg,
   },
   actions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xl,
+    paddingTop: spacing.lg,
   },
-  actionButton: { flex: 1 },
+  actionButton: {
+    width: '100%',
+  },
 });

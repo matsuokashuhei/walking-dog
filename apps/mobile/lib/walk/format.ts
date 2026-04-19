@@ -42,3 +42,44 @@ export function formatClockTime(isoString: string, locale?: string): string {
     return `${h}:${m}`;
   }
 }
+
+const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
+
+function startOfLocalDay(date: Date): number {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+}
+
+export function formatWalkDateLabel(
+  isoString: string,
+  now: Date = new Date(),
+  labels?: { today?: string; yesterday?: string },
+): string {
+  const d = new Date(isoString);
+  if (isNaN(d.getTime())) return '--';
+  const today = startOfLocalDay(now);
+  const target = startOfLocalDay(d);
+  const diffDays = Math.round((today - target) / 86_400_000);
+  let prefix: string;
+  if (diffDays === 0) prefix = labels?.today ?? 'Today';
+  else if (diffDays === 1) prefix = labels?.yesterday ?? 'Yesterday';
+  else prefix = WEEKDAY_LABELS[d.getDay()];
+  return `${prefix} · ${formatClockTime(isoString)}`;
+}
+
+interface CountableEvent {
+  eventType: 'pee' | 'poo' | 'photo';
+}
+
+export function countWalkEvents(events?: CountableEvent[] | null): {
+  pee: number;
+  poo: number;
+} {
+  if (!events || events.length === 0) return { pee: 0, poo: 0 };
+  let pee = 0;
+  let poo = 0;
+  for (const event of events) {
+    if (event.eventType === 'pee') pee += 1;
+    else if (event.eventType === 'poo') poo += 1;
+  }
+  return { pee, poo };
+}

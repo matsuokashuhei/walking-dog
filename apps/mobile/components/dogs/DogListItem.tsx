@@ -5,15 +5,29 @@ import { useColors } from '@/hooks/use-colors';
 import { elevation, radius, spacing, typography } from '@/theme/tokens';
 import type { Dog } from '@/types/graphql';
 
+interface DogProgressSummary {
+  todayKm: number;
+  totalWalks: number;
+  streakDays: number;
+}
+
 interface DogListItemProps {
   dog: Dog;
   onPress: (id: string) => void;
+  progress?: DogProgressSummary;
 }
 
-export function DogListItem({ dog, onPress }: DogListItemProps) {
+export function DogListItem({ dog, onPress, progress }: DogListItemProps) {
   const { t } = useTranslation();
   const theme = useColors();
   const isShared = dog.role === 'member';
+  const showStreak = progress !== undefined && progress.streakDays > 0;
+  const metaLine = progress
+    ? t('dogs.list.todayStats', {
+        km: progress.todayKm.toFixed(2),
+        count: progress.totalWalks,
+      })
+    : dog.breed;
 
   return (
     <Pressable
@@ -35,6 +49,15 @@ export function DogListItem({ dog, onPress }: DogListItemProps) {
       <View style={styles.info}>
         <View style={styles.nameRow}>
           <Text style={[styles.name, { color: theme.onSurface }]}>{dog.name}</Text>
+          {showStreak ? (
+            <View
+              style={[styles.streakBadge, { backgroundColor: theme.surfaceContainer }]}
+            >
+              <Text style={[styles.streakText, { color: theme.warning }]}>
+                {t('dogs.list.streak', { days: progress!.streakDays })}
+              </Text>
+            </View>
+          ) : null}
           {isShared ? (
             <View style={[styles.badge, { backgroundColor: theme.surfaceContainer }]}>
               <Text style={[styles.badgeText, { color: theme.onSurfaceVariant }]}>
@@ -43,9 +66,9 @@ export function DogListItem({ dog, onPress }: DogListItemProps) {
             </View>
           ) : null}
         </View>
-        {dog.breed ? (
+        {metaLine ? (
           <Text style={[styles.breed, { color: theme.onSurfaceVariant }]}>
-            {dog.breed}
+            {metaLine}
           </Text>
         ) : null}
       </View>
@@ -88,6 +111,15 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 10,
     fontWeight: '600' as const,
+  },
+  streakBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: radius.sm,
+  },
+  streakText: {
+    fontSize: 10,
+    fontWeight: '700' as const,
   },
   breed: {
     ...typography.footnote,

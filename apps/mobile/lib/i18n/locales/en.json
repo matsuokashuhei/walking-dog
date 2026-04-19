@@ -72,7 +72,12 @@
       "title": "My Dogs",
       "sectionLabel": "YOUR PACK",
       "empty": "No dogs registered yet",
-      "addDog": "Add Dog"
+      "addDog": "Add Dog",
+      "addCta": "+ Add",
+      "todayGoal": "Today's walking goal",
+      "acrossPack": "{{km}} / {{goal}} km across your pack",
+      "streak": "🔥 {{days}}d",
+      "todayStats": "{{km}} km today · {{count}} walks"
     },
     "new": {
       "title": "Register New Dog",
@@ -87,7 +92,12 @@
       "deleteError": "Failed to delete dog. Please try again.",
       "members": "Members",
       "membersCount": "{{count}} members",
-      "manageMembers": "Manage Members"
+      "manageMembers": "Manage Members",
+      "walks": "Walks",
+      "seeAll": "See all",
+      "streakLabel": "Streak",
+      "streakDays": "{{days}}d",
+      "back": "Dogs"
     },
     "members": {
       "title": "Members",
@@ -224,6 +234,10 @@
     "liveActivity": {
       "walking": "Walking",
       "walkingWithDogs": "Walking {{count}} dogs"
+    },
+    "date": {
+      "today": "Today",
+      "yesterday": "Yesterday"
     }
   },
   "invite": {

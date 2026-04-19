@@ -90,10 +90,10 @@ describe('DogDetailScreen', () => {
     expect(screen.queryByText('Delete')).toBeNull();
   });
 
-  it('shows edit button for both owner and member', () => {
+  it('does not render edit button inside screen body (moved to nav header)', () => {
     mockMeData = { id: 'user-2' }; // member, not owner
     renderWithProviders(<DogDetailScreen />);
-    expect(screen.getByText('Edit')).toBeTruthy();
+    expect(screen.queryByText('Edit')).toBeNull();
   });
 
   it('hides delete button when user is not in members list', () => {

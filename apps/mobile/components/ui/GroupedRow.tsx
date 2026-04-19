@@ -19,6 +19,8 @@ interface GroupedRowProps extends Omit<PressableProps, 'style' | 'children'> {
   separator?: boolean;
   /** Insets applied to the separator so it starts after the leading tile. */
   separatorInset?: number;
+  /** Force chevron visibility. Defaults to pressable rows only. */
+  showChevron?: boolean;
   style?: ViewStyle;
 }
 
@@ -28,6 +30,7 @@ export function GroupedRow({
   leading,
   separator = true,
   separatorInset = 58,
+  showChevron,
   onPress,
   style,
   ...rest
@@ -35,6 +38,7 @@ export function GroupedRow({
   const theme = useColors();
   const isPressable = typeof onPress === 'function';
   const Container = isPressable ? Pressable : View;
+  const renderChevron = showChevron ?? isPressable;
 
   return (
     <>
@@ -58,7 +62,7 @@ export function GroupedRow({
             {value}
           </Text>
         ) : null}
-        {isPressable ? (
+        {renderChevron ? (
           <Text style={[styles.chevron, { color: theme.textDisabled }]}>›</Text>
         ) : null}
       </Container>

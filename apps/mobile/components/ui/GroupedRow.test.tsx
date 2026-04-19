@@ -23,6 +23,11 @@ describe('GroupedRow', () => {
     expect(screen.queryByText('›')).toBeNull();
   });
 
+  it('renders a chevron on a non-pressable row when showChevron is true', () => {
+    render(<GroupedRow label="Units" value="km, min" showChevron />);
+    expect(screen.getByText('›')).toBeTruthy();
+  });
+
   it('fires onPress on tap', () => {
     const onPress = jest.fn();
     render(<GroupedRow label="Units" onPress={onPress} />);

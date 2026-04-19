@@ -28,27 +28,20 @@ jest.mock('@/components/ui/ErrorScreen', () => ({
   ErrorScreen: () => null,
 }));
 
-jest.mock('@/components/themed-text', () => {
-  const { Text } = jest.requireActual('react-native');
-  return {
-    ThemedText: ({ children }: { children: React.ReactNode }) => <Text>{children}</Text>,
-  };
-});
-
-jest.mock('@/components/settings/ProfileSection', () => ({
-  ProfileSection: () => null,
+jest.mock('@/components/settings/ProfileCard', () => ({
+  ProfileCard: () => null,
 }));
 
-jest.mock('@/components/settings/AppearanceSection', () => ({
-  AppearanceSection: () => null,
+jest.mock('@/components/settings/PreferencesSection', () => ({
+  PreferencesSection: () => null,
 }));
 
-jest.mock('@/components/settings/EncounterDetectionSection', () => ({
-  EncounterDetectionSection: () => null,
+jest.mock('@/components/settings/LegalSection', () => ({
+  LegalSection: () => null,
 }));
 
-jest.mock('@/components/settings/LogoutButton', () => ({
-  LogoutButton: () => null,
+jest.mock('@/components/settings/SignOutRow', () => ({
+  SignOutRow: () => null,
 }));
 
 describe('SettingsScreen', () => {

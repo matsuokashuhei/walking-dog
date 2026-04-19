@@ -6,7 +6,20 @@ export function formatTime(seconds: number): string {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-export function formatDistance(meters: number): string {
+export type DistanceUnit = 'km' | 'mile';
+
+const METERS_PER_MILE = 1609.344;
+const METERS_PER_FOOT = 0.3048;
+
+export function formatDistance(meters: number, units: DistanceUnit = 'km'): string {
+  if (units === 'mile') {
+    const miles = meters / METERS_PER_MILE;
+    if (miles < 1) {
+      const feet = meters / METERS_PER_FOOT;
+      return `${Math.round(feet)} ft`;
+    }
+    return `${miles.toFixed(2)} mi`;
+  }
   if (meters < 1000) return `${Math.round(meters)} m`;
   return `${(meters / 1000).toFixed(2)} km`;
 }
@@ -14,16 +27,23 @@ export function formatDistance(meters: number): string {
 export function formatPace(
   elapsedSec: number,
   totalM: number,
+  units: DistanceUnit = 'km',
 ): { value: string; unit: string } {
-  if (totalM < 100 || elapsedSec === 0) return { value: '—', unit: '/km' };
-  const secPerKm = (elapsedSec / totalM) * 1000;
-  const mm = Math.floor(secPerKm / 60);
-  const ss = Math.floor(secPerKm % 60);
-  return { value: `${mm}'${ss.toString().padStart(2, '0')}"`, unit: '/km' };
+  const unitLabel = units === 'mile' ? '/mi' : '/km';
+  if (totalM < 100 || elapsedSec === 0) return { value: '—', unit: unitLabel };
+  const denomMeters = units === 'mile' ? METERS_PER_MILE : 1000;
+  const secPerUnit = (elapsedSec / totalM) * denomMeters;
+  const mm = Math.floor(secPerUnit / 60);
+  const ss = Math.floor(secPerUnit % 60);
+  return { value: `${mm}'${ss.toString().padStart(2, '0')}"`, unit: unitLabel };
 }
 
-export function formatPaceString(elapsedSec: number, totalM: number): string {
-  const { value, unit } = formatPace(elapsedSec, totalM);
+export function formatPaceString(
+  elapsedSec: number,
+  totalM: number,
+  units: DistanceUnit = 'km',
+): string {
+  const { value, unit } = formatPace(elapsedSec, totalM, units);
   return `${value}${unit}`;
 }
 

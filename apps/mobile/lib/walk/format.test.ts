@@ -1,6 +1,7 @@
 import {
   formatTime,
   formatDistance,
+  formatPace,
   formatClockTime,
   formatWalkDateLabel,
   countWalkEvents,
@@ -27,6 +28,30 @@ describe('formatDistance', () => {
 
   it('formats km for 1000m or more', () => {
     expect(formatDistance(1500)).toBe('1.50 km');
+  });
+
+  it('formats feet under 1 mile when units is mile', () => {
+    expect(formatDistance(500, 'mile')).toBe('1640 ft');
+  });
+
+  it('formats miles for 1 mile or more', () => {
+    expect(formatDistance(3218.688, 'mile')).toBe('2.00 mi');
+  });
+});
+
+describe('formatPace', () => {
+  it('returns /km label by default', () => {
+    expect(formatPace(600, 1000)).toEqual({ value: "10'00\"", unit: '/km' });
+  });
+
+  it('returns /mi label when units is mile', () => {
+    const result = formatPace(600, 1609.344, 'mile');
+    expect(result.unit).toBe('/mi');
+    expect(result.value).toBe("10'00\"");
+  });
+
+  it('returns em-dash when distance is insufficient', () => {
+    expect(formatPace(60, 50, 'mile')).toEqual({ value: '—', unit: '/mi' });
   });
 });
 

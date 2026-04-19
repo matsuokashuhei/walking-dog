@@ -32,3 +32,10 @@
 - `grep -REn "^function format(Duration|Distance|Pace)" apps/mobile/app apps/mobile/components` returned no matches.
 - `docker compose -f compose.yml -f mobile.yml run --rm mobile npm run typecheck` passed after aligning test typings in `hooks/use-walk-session.test.ts` and `lib/graphql/errors.test.ts`.
 - `docker compose -f compose.yml -f mobile.yml run --rm mobile npm run lint` completed with pre-existing warnings only.
+
+## mobile-cleanup Phase C
+
+- [x] Remove `app-example` references from mobile config/docs
+- [x] Delete Expo starter leftovers (`app-example/`, `reset-project` script)
+- [x] Run Phase C verification (`rg`, typecheck)
+- [x] Update progress notes

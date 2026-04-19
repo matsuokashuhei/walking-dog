@@ -39,3 +39,18 @@
 - [x] Delete Expo starter leftovers (`app-example/`, `reset-project` script)
 - [x] Run Phase C verification (`rg`, typecheck)
 - [x] Update progress notes
+
+## mobile-cleanup Phase E
+
+- [x] Add RED tests for shared elapsed timer hook
+- [x] Refactor `WalkControls` and `WalkMinimizedControls` to use the shared hook
+- [x] Run Phase E verification (`npm test`, `typecheck`, grep guard)
+- [x] Update `tasks/refactor/mobile-cleanup/progress.md` and review notes
+
+## mobile-cleanup Phase F
+
+- [x] Add RED tests for `use-walk-event-recorder` and `use-camera-event-trigger`
+- [x] Extract `EventPill`, `use-walk-event-recorder`, and `use-camera-event-trigger`
+- [x] Refactor `WalkEventActions` to UI orchestration only
+- [x] Run Phase F verification (`npm test`, `typecheck`, `lint`)
+- [x] Update `tasks/refactor/mobile-cleanup/progress.md` and review notes

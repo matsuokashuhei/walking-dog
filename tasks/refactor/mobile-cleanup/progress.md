@@ -8,8 +8,8 @@
 - [x] Phase B: 認証エラー型化 (2026-04-19, uncommitted, typed auth error normalization added at the auth API boundary and auth form string matching removed)
 - [x] Phase C: app-example/ 削除 (2026-04-19, uncommitted, Expo starter leftovers removed and active-tree app-example/reset-project references cleared)
 - [x] Phase D: walk event エラーハンドリング統一 (2026-04-19, uncommitted, walk event mutations now flow through the shared alert helper with Sentry reporting and quick-actions regression coverage)
-- [ ] Phase E: タイマー hook 共通化
-- [ ] Phase F: WalkEventActions.tsx 分解
+- [x] Phase E: タイマー hook 共通化 (2026-04-20, uncommitted, shared elapsed timer hook now drives both WalkControls variants with pause/resume coverage)
+- [x] Phase F: WalkEventActions.tsx 分解 (2026-04-20, uncommitted, WalkEventActions now composes extracted event/camera hooks plus presentational action rows while preserving existing behavior)
 - [ ] Phase G: walk-session グローバル除去
 - [ ] Phase H: WalkControls.tsx 分解
 - [ ] Phase I: stores の責務分離
@@ -22,10 +22,19 @@ Notes:
 - 2026-04-19: Phase C completed on `refactor/mobile-cleanup` by deleting `apps/mobile/app-example/`, removing the Expo starter `reset-project` helper, and cleaning related config/doc references. Scoped `rg "app-example" apps/mobile` and `rg "reset-project" apps/mobile` returned no active-tree matches.
 - 2026-04-19: Phase D completed on `refactor/mobile-cleanup` by extending `apps/mobile/hooks/use-mutation-with-alert.ts` to support error-to-message resolution and Sentry reporting, then routing `apps/mobile/components/walk/WalkEventActions.tsx` and `apps/mobile/components/walk/WalkQuickActions.tsx` through the shared helper instead of per-component `console.error` branches.
 - 2026-04-19: Added `apps/mobile/components/walk/WalkQuickActions.test.tsx` and expanded walk alert-hook coverage to lock record/photo failure behavior before refactoring `WalkEventActions` further in Phase F.
+- 2026-04-20: Phase E completed on `refactor/mobile-cleanup` by adding `apps/mobile/hooks/use-walk-elapsed.ts`, covering pause/resume behavior in `apps/mobile/hooks/use-walk-elapsed.test.ts`, and moving elapsed-timer updates out of `apps/mobile/components/walk/WalkControls.tsx` and `apps/mobile/components/walk/WalkMinimizedControls.tsx`.
 - `docker compose -f compose.yml -f mobile.yml run --rm mobile npm run typecheck` passed.
 - `docker compose -f compose.yml -f mobile.yml run --rm mobile npm test -- lib/walk/format` passed.
 - `docker compose -f compose.yml -f mobile.yml run --rm mobile npm run lint` completed with pre-existing warnings only.
 - `docker compose -f compose.yml -f mobile.yml run --rm mobile npm test` passed.
 - `docker compose -f compose.yml -f mobile.yml run --rm mobile npm test -- hooks/use-mutation-with-alert.test.ts components/walk/WalkEventActions.test.tsx components/walk/WalkQuickActions.test.tsx` passed.
+- `docker compose -f compose.yml -f mobile.yml run --rm mobile npm test -- hooks/use-walk-elapsed.test.ts components/walk/WalkControls.test.tsx components/walk/WalkMinimizedControls.test.tsx` passed.
+- 2026-04-20: Phase F completed on `refactor/mobile-cleanup` by extracting `apps/mobile/hooks/use-walk-event-recorder.ts`, `apps/mobile/hooks/use-camera-event-trigger.ts`, `apps/mobile/components/walk/EventPill.tsx`, and `apps/mobile/components/walk/DogEventActionRow.tsx`, then reducing `apps/mobile/components/walk/WalkEventActions.tsx` to UI orchestration plus permission/camera launch wiring.
+- `docker compose -f compose.yml -f mobile.yml run --rm mobile npm test -- hooks/use-walk-event-recorder.test.ts hooks/use-camera-event-trigger.test.ts components/walk/WalkEventActions.test.tsx` passed after aligning the photo-upload payload back to `lat`/`lng` only.
+- `docker compose -f compose.yml -f mobile.yml run --rm mobile npm test` passed after Phase F; Jest still reports the pre-existing React Query `act(...)` warnings and worker teardown warning, but no failing suites.
+- `docker compose -f compose.yml -f mobile.yml run --rm mobile npm run typecheck` passed after Phase F.
+- `docker compose -f compose.yml -f mobile.yml run --rm mobile npm run lint` returned the existing 7 warnings only after removing the temporary unused import introduced in `apps/mobile/components/walk/DogEventActionRow.tsx`.
 - Scoped active-tree search confirmed `walk event record failed` no longer appears under `apps/mobile/components/walk`.
+- `docker compose -f compose.yml -f mobile.yml run --rm mobile npm test` passed after Phase E; Jest still reports pre-existing React Query `act(...)` warnings and a worker teardown warning, but no failing suites.
+- `docker compose -f compose.yml -f mobile.yml run --rm mobile npm run lint` returned the existing 7 warnings only after removing the new `WalkControls.tsx` dependency warning introduced during Phase E.
 - Manual iOS Simulator verification for offline alert display was not run in this session.

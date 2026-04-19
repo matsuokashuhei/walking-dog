@@ -8,7 +8,7 @@ import { useColors } from '@/hooks/use-colors';
 import { radius, spacing, typography } from '@/theme/tokens';
 import { useSettingsStore } from '@/stores/settings-store';
 import { useWalkStore } from '@/stores/walk-store';
-import { formatDistance, formatPace, formatTime } from '@/lib/walk/format';
+import { formatDistanceParts, formatPace, formatTime } from '@/lib/walk/format';
 import type { Dog } from '@/types/graphql';
 
 interface WalkControlsProps {
@@ -53,7 +53,7 @@ export function WalkControls({ dogs, onStop, isStopping, children }: WalkControl
     }
   };
 
-  const { distanceValue, distanceUnit } = splitDistance(totalDistanceM, units);
+  const { value: distanceValue, unit: distanceUnit } = formatDistanceParts(totalDistanceM, units);
   const pace = formatPace(elapsedSec, totalDistanceM, units);
 
   const isSingleDog = dogs.length === 1;
@@ -182,18 +182,6 @@ function Metric({
       </View>
     </View>
   );
-}
-
-function splitDistance(
-  totalM: number,
-  units: 'km' | 'mile',
-): { distanceValue: string; distanceUnit: string } {
-  const formatted = formatDistance(totalM, units).trim();
-  const match = formatted.match(/^([\d.]+)\s*(\S+)?$/);
-  return {
-    distanceValue: match?.[1] ?? formatted,
-    distanceUnit: match?.[2] ?? '',
-  };
 }
 
 function contextualWalkLabel(startedAt: Date | null, t: (key: string) => string) {

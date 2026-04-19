@@ -67,6 +67,15 @@ const mockFinishWalkMutateAsync = jest.fn();
 const mockAddPointsMutateAsync = jest.fn();
 const mockStopTracking = jest.fn();
 
+function requireCapturedOnPoint(
+  callback: ((point: WalkPoint) => void) | null,
+): (point: WalkPoint) => void {
+  if (!callback) {
+    throw new Error('Expected GPS callback to be captured');
+  }
+  return callback;
+}
+
 beforeEach(() => {
   jest.clearAllMocks();
   resetWalkSessionTrackingState();
@@ -225,7 +234,8 @@ describe('useWalkSession.stop', () => {
     mockStoreAddPoint.mockClear();
     (liveActivity.updateLiveActivityDistance as jest.Mock).mockClear();
 
-    capturedOnPoint?.({ lat: 35.68, lng: 139.76, recordedAt: '2026-04-01T00:01:00Z' });
+    const onPoint = requireCapturedOnPoint(capturedOnPoint);
+    onPoint({ lat: 35.68, lng: 139.76, recordedAt: '2026-04-01T00:01:00Z' });
 
     expect(mockStoreAddPoint).not.toHaveBeenCalled();
     expect(liveActivity.updateLiveActivityDistance).not.toHaveBeenCalled();

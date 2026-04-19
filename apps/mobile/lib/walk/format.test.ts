@@ -1,8 +1,12 @@
 import {
   formatTime,
+  formatDuration,
   formatDistance,
+  formatDistanceParts,
   formatPace,
   formatClockTime,
+  formatShortDate,
+  formatDateTime,
   formatWalkDateLabel,
   countWalkEvents,
 } from './format';
@@ -30,12 +34,44 @@ describe('formatDistance', () => {
     expect(formatDistance(1500)).toBe('1.50 km');
   });
 
+  it('supports custom precision for kilometers', () => {
+    expect(formatDistance(1500, 'km', 1)).toBe('1.5 km');
+  });
+
   it('formats feet under 1 mile when units is mile', () => {
     expect(formatDistance(500, 'mile')).toBe('1640 ft');
   });
 
   it('formats miles for 1 mile or more', () => {
     expect(formatDistance(3218.688, 'mile')).toBe('2.00 mi');
+  });
+
+  it('supports custom precision for miles', () => {
+    expect(formatDistance(3218.688, 'mile', 1)).toBe('2.0 mi');
+  });
+});
+
+describe('formatDistanceParts', () => {
+  it('splits formatted metric distance into value and unit', () => {
+    expect(formatDistanceParts(1500, 'km', 1)).toEqual({ value: '1.5', unit: 'km' });
+  });
+
+  it('splits formatted imperial distance into value and unit', () => {
+    expect(formatDistanceParts(500, 'mile')).toEqual({ value: '1640', unit: 'ft' });
+  });
+});
+
+describe('formatDuration', () => {
+  it('formats sub-hour durations as mm:ss', () => {
+    expect(formatDuration(125)).toBe('02:05');
+  });
+
+  it('formats hour-plus durations in English', () => {
+    expect(formatDuration(3660, 'en-US')).toBe('1h 1m');
+  });
+
+  it('formats hour-plus durations in Japanese', () => {
+    expect(formatDuration(3660, 'ja-JP')).toBe('1時間1分');
   });
 });
 
@@ -91,6 +127,41 @@ describe('formatClockTime', () => {
     } finally {
       Date.prototype.toLocaleTimeString = original;
     }
+  });
+});
+
+describe('formatShortDate', () => {
+  const date = new Date('2026-04-19T14:30:00Z');
+
+  it('formats a localized date string', () => {
+    expect(formatShortDate(date, 'en-US')).toBe(
+      new Intl.DateTimeFormat('en-US', {
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+      }).format(date),
+    );
+  });
+
+  it('returns fallback for invalid date input', () => {
+    expect(formatShortDate('not-a-date', 'en-US')).toBe('--');
+  });
+});
+
+describe('formatDateTime', () => {
+  const date = new Date('2026-04-19T14:30:00Z');
+
+  it('formats a localized date-time string', () => {
+    expect(formatDateTime(date, 'en-US')).toBe(
+      new Intl.DateTimeFormat('en-US', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      }).format(date),
+    );
+  });
+
+  it('returns fallback for invalid date-time input', () => {
+    expect(formatDateTime('not-a-date', 'en-US')).toBe('--');
   });
 });
 

@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
+import { formatDistance, formatShortDate } from '@/lib/walk/format';
 import { spacing, radius, typography } from '@/theme/tokens';
 import type { Walk } from '@/types/graphql';
 
@@ -11,14 +12,13 @@ interface WalkHistoryItemProps {
 }
 
 export function WalkHistoryItem({ walk }: WalkHistoryItemProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   const theme = useColors();
 
-  const date = new Date(walk.startedAt);
-  const dateStr = date.toLocaleDateString();
+  const dateStr = formatShortDate(walk.startedAt, i18n.language);
   const durationMin = walk.durationSec ? Math.round(walk.durationSec / 60) : 0;
-  const distanceKm = walk.distanceM ? (walk.distanceM / 1000).toFixed(1) : '0';
+  const distanceLabel = formatDistance(walk.distanceM ?? 0, 'km', 1);
   const dogNames = walk.dogs.map((d) => d.name).join(', ');
 
   const walker = walk.walker;
@@ -75,7 +75,7 @@ export function WalkHistoryItem({ walk }: WalkHistoryItemProps) {
           {t('walk.history.minutes', { count: durationMin })}
         </Text>
         <Text style={[styles.distanceStat, { color: theme.onSurface }]}>
-          {t('walk.history.km', { value: distanceKm })}
+          {distanceLabel}
         </Text>
       </View>
     </Pressable>

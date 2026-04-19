@@ -1,16 +1,17 @@
 import { ClientError } from 'graphql-request';
+import { GraphQLError } from 'graphql';
 import { isNetworkError, extractGraphQLErrorMessage } from './errors';
 
 function makeClientError(status: number): ClientError {
   return new ClientError(
-    { status, headers: new Headers(), errors: [] },
+    { status, headers: new Headers(), errors: [], body: '' },
     { query: '' },
   );
 }
 
 function makeClientErrorWithMessage(message: string): ClientError {
   return new ClientError(
-    { status: 200, headers: new Headers(), errors: [{ message }] },
+    { status: 200, headers: new Headers(), errors: [new GraphQLError(message)], body: '' },
     { query: '' },
   );
 }

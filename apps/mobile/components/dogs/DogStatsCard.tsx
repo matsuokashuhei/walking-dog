@@ -3,17 +3,12 @@ import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
 import { spacing, typography } from '@/theme/tokens';
 import { OutlinedCard } from '@/components/ui/OutlinedCard';
+import { formatDistance } from '@/lib/walk/format';
 import type { WalkStats } from '@/types/graphql';
 
 interface DogStatsCardProps {
   stats: WalkStats;
   streakDays?: number;
-}
-
-function formatDistance(meters: number): string {
-  return meters >= 1000
-    ? `${(meters / 1000).toFixed(1)} km`
-    : `${meters} m`;
 }
 
 export function DogStatsCard({ stats, streakDays = 0 }: DogStatsCardProps) {
@@ -28,7 +23,7 @@ export function DogStatsCard({ stats, streakDays = 0 }: DogStatsCardProps) {
       </View>
       <View style={styles.stat}>
         <Text style={[styles.value, { color: theme.onSurface }]}>
-          {formatDistance(stats.totalDistanceM)}
+          {formatDistance(stats.totalDistanceM, 'km', 1)}
         </Text>
         <Text style={[styles.label, { color: theme.onSurfaceVariant }]}>{t('dogs.stats.distance')}</Text>
       </View>

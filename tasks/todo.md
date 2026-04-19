@@ -1,0 +1,34 @@
+# End Walk post-stop tracking investigation
+
+- [completed] Trace summary map motion on the finished walk screen
+- [completed] Fix shared tracking cleanup across walk screens
+- [completed] Add regression tests for cross-screen stop behavior
+- [completed] Verify the fix with tests and iOS simulator repro
+
+## Review
+
+- Root cause: `useWalkSession()` stored the GPS cleanup function in a hook-local `useRef`, but walk start and walk stop run from different screens and therefore different hook instances. `stop()` could not reach the active `watchPositionAsync` subscription, so location updates continued after End Walk.
+- Fix: move tracking cleanup to module-shared state in [apps/mobile/hooks/use-walk-session.ts](/Users/matsuokashuhei/Development/walking-dog/apps/mobile/hooks/use-walk-session.ts) and invalidate late callbacks with a generation guard before flushing points and finishing the walk.
+- Verification: targeted Jest suites passed, and two simulator screenshots of the finished summary taken about one minute apart stayed identical aside from the status-bar clock.
+
+## mobile-cleanup kickoff
+
+- [completed] Confirm Phase A-K plan source in `.claude/plans/apps-mobile-ticklish-rossum.md`
+- [completed] Create branch `refactor/mobile-cleanup`
+- [completed] Initialize `tasks/refactor/mobile-cleanup/progress.md`
+- [completed] Prepare next-session handoff for Phase A via tdd-workflow
+
+## Phase A execution
+
+- [completed] Add RED tests for shared walk formatters
+- [completed] Replace local duration/distance/date formatters with shared helpers
+- [completed] Run Phase A verification commands and grep guards
+- [completed] Update `tasks/refactor/mobile-cleanup/progress.md`
+
+## Phase A verification notes
+
+- `docker compose -f compose.yml -f mobile.yml run --rm mobile npm test -- lib/walk/format` passed after shared formatter extraction.
+- `grep -REn "toLocaleDateString|toLocaleString\(" apps/mobile/app apps/mobile/components apps/mobile/hooks` returned no matches.
+- `grep -REn "^function format(Duration|Distance|Pace)" apps/mobile/app apps/mobile/components` returned no matches.
+- `docker compose -f compose.yml -f mobile.yml run --rm mobile npm run typecheck` passed after aligning test typings in `hooks/use-walk-session.test.ts` and `lib/graphql/errors.test.ts`.
+- `docker compose -f compose.yml -f mobile.yml run --rm mobile npm run lint` completed with pre-existing warnings only.

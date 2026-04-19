@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { TOKYO_STATION_COORDINATE } from '@/lib/walk/constants';
-import { formatClockTime } from '@/lib/walk/format';
+import { formatClockTime, formatDistanceParts, formatShortDate } from '@/lib/walk/format';
 import type { Walk, WalkEvent } from '@/types/graphql';
 
 export interface WalkDetailViewModel {
@@ -25,8 +25,8 @@ export function useWalkDetailViewModel(walk: Walk | null | undefined): WalkDetai
     }));
     const events = walk.events ?? [];
     const durationMin = walk.durationSec ? Math.round(walk.durationSec / 60) : 0;
-    const distanceKm = walk.distanceM ? (walk.distanceM / 1000).toFixed(2) : '0';
-    const date = new Date(walk.startedAt).toLocaleDateString();
+    const distanceKm = formatDistanceParts(walk.distanceM ?? 0, 'km', 2).value;
+    const date = formatShortDate(walk.startedAt);
     const dogNames = walk.dogs.map((d) => d.name).join(', ');
     const startTime = formatClockTime(walk.startedAt);
     const endTime = walk.endedAt ? formatClockTime(walk.endedAt) : null;

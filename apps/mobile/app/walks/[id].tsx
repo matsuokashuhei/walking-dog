@@ -10,10 +10,11 @@ import { useWalk } from '@/hooks/use-walks';
 import { useWalkDetailViewModel } from '@/hooks/use-walk-detail-view-model';
 import { WalkEventTimeline } from '@/components/walk/WalkEventTimeline';
 import { EVENT_EMOJIS } from '@/lib/walk/event-emojis';
+import { formatDistanceParts, formatDuration, formatPace } from '@/lib/walk/format';
 
 export default function WalkDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const theme = useColors();
   const { data: walk, isLoading } = useWalk(id ?? '');
   const vm = useWalkDetailViewModel(walk);
@@ -31,8 +32,9 @@ export default function WalkDetailScreen() {
     ? `${t('walk.detail.startTime')} ${vm.startTime}${separator}${t('walk.detail.endTime')} ${vm.endTime}`
     : `${t('walk.detail.startTime')} ${vm.startTime}`;
 
-  const pace = formatPace(vm.durationMin, vm.distanceKm);
-  const durationDisplay = formatDuration(vm.durationMin);
+  const pace = formatPace(walk.durationSec ?? 0, walk.distanceM ?? 0);
+  const distanceDisplay = formatDistanceParts(walk.distanceM ?? 0, 'km', 2);
+  const durationDisplay = formatDuration(walk.durationSec ?? 0, i18n.language);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -94,15 +96,14 @@ export default function WalkDetailScreen() {
         <GroupedCard padding="lg" style={styles.metrics}>
           <Metric
             label={t('walk.recording.distance')}
-            value={vm.distanceKm}
-            unit="km"
+            value={distanceDisplay.value}
+            unit={distanceDisplay.unit}
             labelColor={theme.onSurfaceVariant}
             valueColor={theme.onSurface}
           />
           <Metric
             label={t('walk.recording.time')}
-            value={durationDisplay.value}
-            unit={durationDisplay.unit}
+            value={durationDisplay}
             labelColor={theme.onSurfaceVariant}
             valueColor={theme.onSurface}
           />
@@ -181,24 +182,6 @@ function Metric({
       </View>
     </View>
   );
-}
-
-function formatDuration(durationMin: number): { value: string; unit: string } {
-  if (durationMin < 60) return { value: `${durationMin}`, unit: 'min' };
-  const hh = Math.floor(durationMin / 60);
-  const mm = durationMin % 60;
-  return { value: `${hh}:${mm.toString().padStart(2, '0')}`, unit: 'hr' };
-}
-
-function formatPace(durationMin: number, distanceKm: string): { value: string; unit: string } {
-  const km = Number(distanceKm);
-  if (!Number.isFinite(km) || km < 0.1 || durationMin === 0) {
-    return { value: '—', unit: '/km' };
-  }
-  const secPerKm = (durationMin * 60) / km;
-  const mm = Math.floor(secPerKm / 60);
-  const ss = Math.floor(secPerKm % 60);
-  return { value: `${mm}'${ss.toString().padStart(2, '0')}"`, unit: '/km' };
 }
 
 const styles = StyleSheet.create({

@@ -5,7 +5,7 @@ import { captureGraphQLError, redactSensitive, setSentryUser } from './sentry';
 jest.mock('@sentry/react-native', () => ({
   setUser: jest.fn(),
   captureException: jest.fn(),
-}));
+}), { virtual: true });
 
 const setUserMock = Sentry.setUser as jest.MockedFunction<typeof Sentry.setUser>;
 const captureExceptionMock = Sentry.captureException as jest.MockedFunction<typeof Sentry.captureException>;

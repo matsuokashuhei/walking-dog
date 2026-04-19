@@ -7,7 +7,7 @@ jest.mock('@sentry/react-native', () => ({
   captureException: jest.fn(),
   captureMessage: jest.fn(),
   ErrorBoundary: ({ children }: { children: unknown }) => children,
-}));
+}), { virtual: true });
 
 // Workaround for Jest 30 + jest-expo 55 + Expo SDK 54 compatibility.
 //

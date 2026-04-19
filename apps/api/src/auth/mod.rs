@@ -39,6 +39,13 @@ pub async fn auth_middleware(
         Err(_) => return Err(StatusCode::UNAUTHORIZED),
     };
 
+    sentry::configure_scope(|scope| {
+        scope.set_user(Some(sentry::User {
+            id: Some(cognito_sub.clone()),
+            ..Default::default()
+        }));
+    });
+
     request.extensions_mut().insert(AuthUser { cognito_sub });
     Ok(next.run(request).await)
 }

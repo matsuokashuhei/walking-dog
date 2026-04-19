@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback } from 'react';
 import { startTracking } from '@/lib/walk/gps-tracker';
 import {
   endLiveActivity,
@@ -12,6 +12,20 @@ import { useAddWalkPoints, useFinishWalk, useStartWalk } from './use-walk-mutati
 // call (request size cap). Keep batches under this ceiling when flushing on stop.
 export const MAX_POINTS_PER_BATCH = 200;
 
+let activeTrackingCleanup: (() => void) | null = null;
+let activeTrackingGeneration = 0;
+
+function stopActiveTracking() {
+  activeTrackingGeneration += 1;
+  activeTrackingCleanup?.();
+  activeTrackingCleanup = null;
+}
+
+export function resetWalkSessionTrackingState() {
+  activeTrackingCleanup = null;
+  activeTrackingGeneration = 0;
+}
+
 export interface WalkSessionStartOptions {
   selectedDogIds: string[];
   liveActivityDogName: string;
@@ -22,12 +36,12 @@ export function useWalkSession() {
   const finishWalkMutation = useFinishWalk();
   const addWalkPointsMutation = useAddWalkPoints();
   const startRecording = useWalkStore((s) => s.startRecording);
-  const addPoint = useWalkStore((s) => s.addPoint);
   const finish = useWalkStore((s) => s.finish);
-  const stopTrackingRef = useRef<(() => void) | null>(null);
 
   const start = useCallback(
     async ({ selectedDogIds, liveActivityDogName }: WalkSessionStartOptions): Promise<string> => {
+      stopActiveTracking();
+
       const walk = await startWalkMutation.mutateAsync(selectedDogIds);
       startRecording(walk.id);
 
@@ -39,21 +53,30 @@ export function useWalkSession() {
         distanceM: 0,
       });
 
+      const trackingGeneration = activeTrackingGeneration;
       const stopTracking = await startTracking((point) => {
-        addPoint(point);
+        if (trackingGeneration !== activeTrackingGeneration) return;
+        if (useWalkStore.getState().phase !== 'recording') return;
+
+        useWalkStore.getState().addPoint(point);
         void updateLiveActivityDistance(useWalkStore.getState().totalDistanceM);
       });
-      stopTrackingRef.current = stopTracking;
+
+      if (trackingGeneration !== activeTrackingGeneration) {
+        stopTracking();
+        return walk.id;
+      }
+
+      activeTrackingCleanup = stopTracking;
 
       return walk.id;
     },
-    [startWalkMutation, startRecording, addPoint],
+    [startWalkMutation, startRecording],
   );
 
   const stop = useCallback(
     async (walkId: string) => {
-      stopTrackingRef.current?.();
-      stopTrackingRef.current = null;
+      stopActiveTracking();
 
       const currentPoints = useWalkStore.getState().points;
       for (let i = 0; i < currentPoints.length; i += MAX_POINTS_PER_BATCH) {

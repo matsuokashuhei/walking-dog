@@ -1,5 +1,9 @@
 import { act, renderHook } from '@testing-library/react-native';
-import { useWalkSession, MAX_POINTS_PER_BATCH } from './use-walk-session';
+import {
+  useWalkSession,
+  MAX_POINTS_PER_BATCH,
+  resetWalkSessionTrackingState,
+} from './use-walk-session';
 import * as walkMutations from './use-walk-mutations';
 import * as gpsTracker from '@/lib/walk/gps-tracker';
 import * as liveActivity from '@/lib/walk/live-activity';
@@ -27,12 +31,22 @@ const mockStoreFinish = jest.fn();
 let mockStorePoints: WalkPoint[] = [];
 let mockStoreTotalDistanceM = 0;
 let mockStoreStartedAt: Date | null = null;
+let mockStorePhase: 'ready' | 'recording' | 'finished' = 'ready';
 
 jest.mock('@/stores/walk-store', () => {
   const state = {
-    startRecording: (...args: unknown[]) => mockStoreStartRecording(...args),
+    get phase() {
+      return mockStorePhase;
+    },
+    startRecording: (...args: unknown[]) => {
+      mockStorePhase = 'recording';
+      return mockStoreStartRecording(...args);
+    },
     addPoint: (...args: unknown[]) => mockStoreAddPoint(...args),
-    finish: () => mockStoreFinish(),
+    finish: () => {
+      mockStorePhase = 'finished';
+      return mockStoreFinish();
+    },
     get points() {
       return mockStorePoints;
     },
@@ -55,9 +69,11 @@ const mockStopTracking = jest.fn();
 
 beforeEach(() => {
   jest.clearAllMocks();
+  resetWalkSessionTrackingState();
   mockStorePoints = [];
   mockStoreTotalDistanceM = 0;
   mockStoreStartedAt = new Date('2026-04-01T00:00:00Z');
+  mockStorePhase = 'ready';
 
   (walkMutations.useStartWalk as jest.Mock).mockReturnValue({
     mutateAsync: mockStartWalkMutateAsync,
@@ -168,6 +184,51 @@ describe('useWalkSession.stop', () => {
     });
 
     expect(mockStopTracking).toHaveBeenCalledTimes(1);
+  });
+
+  it('stops the active GPS subscription even when stop is called from another hook instance', async () => {
+    mockStartWalkMutateAsync.mockResolvedValue({ id: 'walk-1' });
+
+    const starter = renderHook(() => useWalkSession());
+    const stopper = renderHook(() => useWalkSession());
+
+    await act(async () => {
+      await starter.result.current.start({ selectedDogIds: ['dog-1'], liveActivityDogName: 'Rex' });
+    });
+    await act(async () => {
+      await stopper.result.current.stop('walk-1');
+    });
+
+    expect(mockStopTracking).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores late GPS callbacks after stop begins', async () => {
+    mockStartWalkMutateAsync.mockResolvedValue({ id: 'walk-1' });
+    let capturedOnPoint: ((point: WalkPoint) => void) | null = null;
+    (gpsTracker.startTracking as jest.Mock).mockImplementation(
+      async (cb: (p: WalkPoint) => void) => {
+        capturedOnPoint = cb;
+        return mockStopTracking;
+      },
+    );
+
+    const starter = renderHook(() => useWalkSession());
+    const stopper = renderHook(() => useWalkSession());
+
+    await act(async () => {
+      await starter.result.current.start({ selectedDogIds: ['dog-1'], liveActivityDogName: 'Rex' });
+    });
+    await act(async () => {
+      await stopper.result.current.stop('walk-1');
+    });
+
+    mockStoreAddPoint.mockClear();
+    (liveActivity.updateLiveActivityDistance as jest.Mock).mockClear();
+
+    capturedOnPoint?.({ lat: 35.68, lng: 139.76, recordedAt: '2026-04-01T00:01:00Z' });
+
+    expect(mockStoreAddPoint).not.toHaveBeenCalled();
+    expect(liveActivity.updateLiveActivityDistance).not.toHaveBeenCalled();
   });
 
   it('batches points by MAX_POINTS_PER_BATCH and calls addWalkPoints per batch', async () => {

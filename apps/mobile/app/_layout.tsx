@@ -86,6 +86,23 @@ function RootLayout() {
           <Stack.Screen name="dogs" options={{ headerShown: false }} />
           <Stack.Screen name="walks" options={{ headerShown: false }} />
           <Stack.Screen name="invite" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="walk-recording"
+            options={{ headerShown: false, animation: 'fade', gestureEnabled: false }}
+          />
+          <Stack.Screen
+            name="walk-recording-controls"
+            options={{
+              headerShown: false,
+              presentation: 'formSheet',
+              sheetAllowedDetents: [0.15, 0.45],
+              sheetInitialDetentIndex: 1,
+              sheetGrabberVisible: true,
+              sheetCornerRadius: 24,
+              gestureEnabled: false,
+              contentStyle: { backgroundColor: 'transparent' },
+            }}
+          />
         </Stack>
         <StatusBar style="auto" />
       </ThemeProvider>

@@ -13,6 +13,7 @@ jest.mock('expo-haptics', () => ({
   ImpactFeedbackStyle: { Light: 'Light' },
 }));
 jest.mock('@/hooks/use-color-scheme', () => ({ useColorScheme: () => 'light' }));
+jest.mock('@/lib/monitoring/sentry', () => ({ captureGraphQLError: jest.fn() }));
 jest.mock('expo-image', () => ({ Image: 'Image' }));
 jest.mock('@/stores/walk-store', () => ({ useWalkStore: jest.fn() }));
 jest.mock('@/hooks/use-walk-event-mutations', () => ({
@@ -141,7 +142,7 @@ describe('WalkEventActions — single dog', () => {
     await waitFor(() => {
       expect(Alert.alert).toHaveBeenCalled();
       expect(defaultStoreState.addEvent).not.toHaveBeenCalled();
-      expect(consoleErrorSpy).toHaveBeenCalledWith('walk event record failed', expect.any(Error));
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
     });
   });
 

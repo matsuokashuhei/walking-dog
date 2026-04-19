@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
 import { radius, spacing, typography } from '@/theme/tokens';
 import { useWalkStore } from '@/stores/walk-store';
+import { useMutationWithAlert } from '@/hooks/use-mutation-with-alert';
 import { useRecordWalkEvent } from '@/hooks/use-walk-event-mutations';
 import { usePhotoUpload, PhotoUploadError } from '@/hooks/use-photo-upload';
 import type { Dog, WalkEvent, WalkEventType } from '@/types/graphql';
@@ -33,6 +34,7 @@ export function WalkEventActions({ dogs }: WalkEventActionsProps) {
 
   const recordWalkEvent = useRecordWalkEvent();
   const photoUpload = usePhotoUpload();
+  const runWithAlert = useMutationWithAlert();
 
   const isSingleDog = dogs.length === 1;
   const singleDogId = isSingleDog ? dogs[0].id : undefined;
@@ -48,53 +50,69 @@ export function WalkEventActions({ dogs }: WalkEventActionsProps) {
       occurredAt: new Date().toISOString(),
       ...(latestPoint ? { lat: latestPoint.lat, lng: latestPoint.lng } : {}),
     };
-    try {
-      const event = await recordWalkEvent.mutateAsync(input);
-      addEvent(event);
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    } catch (err) {
-      console.error('walk event record failed', err);
-      Alert.alert(t('common.error'), t('walk.event.recordError'));
-    }
+    const event = await runWithAlert(
+      () => recordWalkEvent.mutateAsync(input),
+      'walk.event.recordError',
+      { action: 'recordWalkEvent', eventType, dogId, source: 'WalkEventActions' },
+    );
+    if (!event) return;
+
+    addEvent(event);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
   const handlePhoto = useCallback(
     async (dogId?: string) => {
       if (!walkId) return;
-      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      const permission = await runWithAlert(
+        () => ImagePicker.requestCameraPermissionsAsync(),
+        'walk.event.cameraPermissionError',
+        { action: 'requestCameraPermission', dogId, source: 'WalkEventActions' },
+      );
+      if (!permission) return;
       if (!permission.granted) {
         Alert.alert(t('common.error'), t('walk.event.cameraPermissionError'));
         return;
       }
-      try {
-        const result = await ImagePicker.launchCameraAsync({
-          allowsEditing: false,
-          quality: 0.8,
-        });
-        if (result.canceled || !result.assets[0]) return;
-        const asset = result.assets[0];
-        const event = await photoUpload.uploadPhoto({
-          walkId,
-          dogId,
-          asset: { uri: asset.uri, mimeType: asset.mimeType },
-          ...(latestPoint
-            ? { latestPoint: { lat: latestPoint.lat, lng: latestPoint.lng } }
-            : {}),
-        });
-        addEvent(event);
-        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      } catch (err) {
-        console.error('walk event record failed', err);
-        const phase = err instanceof PhotoUploadError ? err.phase : 'record';
-        const messageKey = {
-          presign: 'walk.event.photoPresignError' as const,
-          upload: 'walk.event.photoUploadError' as const,
-          record: 'walk.event.recordError' as const,
-        }[phase];
-        Alert.alert(t('common.error'), t(messageKey));
-      }
+
+      const result = await runWithAlert(
+        () =>
+          ImagePicker.launchCameraAsync({
+            allowsEditing: false,
+            quality: 0.8,
+          }),
+        'walk.event.recordError',
+        { action: 'launchCamera', dogId, source: 'WalkEventActions' },
+      );
+      if (!result || result.canceled || !result.assets[0]) return;
+
+      const asset = result.assets[0];
+      const event = await runWithAlert(
+        () =>
+          photoUpload.uploadPhoto({
+            walkId,
+            dogId,
+            asset: { uri: asset.uri, mimeType: asset.mimeType },
+            ...(latestPoint
+              ? { latestPoint: { lat: latestPoint.lat, lng: latestPoint.lng } }
+              : {}),
+          }),
+        (err) => {
+          const phase = err instanceof PhotoUploadError ? err.phase : 'record';
+          return {
+            presign: 'walk.event.photoPresignError' as const,
+            upload: 'walk.event.photoUploadError' as const,
+            record: 'walk.event.recordError' as const,
+          }[phase];
+        },
+        { action: 'uploadWalkPhoto', dogId, source: 'WalkEventActions' },
+      );
+      if (!event) return;
+
+      addEvent(event);
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     },
-    [walkId, latestPoint, t, photoUpload, addEvent],
+    [walkId, latestPoint, t, photoUpload, addEvent, runWithAlert],
   );
 
   const cameraTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -129,12 +147,11 @@ export function WalkEventActions({ dogs }: WalkEventActionsProps) {
 
   const fire = (type: WalkEventType, dogId?: string) => {
     if (type === 'photo') {
-      void handlePhoto(dogId).catch((err) => console.error('walk event record failed', err));
-    } else {
-      void handlePeeOrPoo(type, dogId).catch((err) =>
-        console.error('walk event record failed', err),
-      );
+      void handlePhoto(dogId);
+      return;
     }
+
+    void handlePeeOrPoo(type, dogId);
   };
 
   if (dogs.length === 0) return null;

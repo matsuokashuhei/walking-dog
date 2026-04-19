@@ -14,6 +14,12 @@ pub struct Config {
     pub cognito_endpoint_url: Option<String>,
     pub cognito_client_id: String,
     pub port: u16,
+    /// Sentry DSN. 未設定なら Sentry は無効化される。
+    pub sentry_dsn: Option<String>,
+    /// Sentry environment タグ (例: local / development / production)
+    pub sentry_environment: String,
+    /// パフォーマンス計測のサンプリング率 (0.0 - 1.0)
+    pub sentry_traces_sample_rate: f32,
 }
 
 impl Config {
@@ -46,6 +52,12 @@ impl Config {
                 .unwrap_or_else(|_| "3000".to_string())
                 .parse()
                 .expect("PORT must be a number"),
+            sentry_dsn: std::env::var("SENTRY_DSN").ok().filter(|s| !s.is_empty()),
+            sentry_environment: std::env::var("SENTRY_ENVIRONMENT").unwrap_or(app_env),
+            sentry_traces_sample_rate: std::env::var("SENTRY_TRACES_SAMPLE_RATE")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(0.1),
         }
     }
 }

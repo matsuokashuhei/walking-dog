@@ -28,6 +28,11 @@ impl AppError {
     /// Convert to async_graphql::Error with extension code.
     pub fn into_graphql_error(self) -> async_graphql::Error {
         use async_graphql::ErrorExtensions;
+        // Report unexpected failures to Sentry. Expected user-facing errors
+        // (NotFound, Unauthorized, BadRequest, ValidationErrors) are skipped.
+        if matches!(&self, AppError::Internal(_) | AppError::Database(_)) {
+            sentry::capture_error(&self);
+        }
         match self {
             AppError::BadRequest(msg) => async_graphql::Error::new(msg).extend_with(|_, ext| {
                 ext.set("code", "BAD_USER_INPUT");

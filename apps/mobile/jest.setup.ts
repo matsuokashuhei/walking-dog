@@ -1,3 +1,14 @@
+// Mock @sentry/react-native globally so test runs do not initialize the SDK
+// or send events. Individual test files can still override with jest.mock() calls.
+jest.mock('@sentry/react-native', () => ({
+  init: jest.fn(),
+  wrap: <T,>(component: T): T => component,
+  setUser: jest.fn(),
+  captureException: jest.fn(),
+  captureMessage: jest.fn(),
+  ErrorBoundary: ({ children }: { children: unknown }) => children,
+}));
+
 // Workaround for Jest 30 + jest-expo 55 + Expo SDK 54 compatibility.
 //
 // jest-expo 55 targets Jest 29. In Jest 30, calling require() from lazy getters

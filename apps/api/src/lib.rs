@@ -20,6 +20,7 @@ use axum::{
 };
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;
+use tower::ServiceBuilder;
 use tower_http::cors::CorsLayer;
 
 pub struct AppState {
@@ -49,12 +50,22 @@ pub fn build_app(
     });
     let schema = graphql::build_schema(state);
 
+    // Sentry middleware: NewSentryLayer creates a fresh Hub per request so user
+    // context, breadcrumbs and transactions do not leak between concurrent requests.
+    // SentryHttpLayer attaches HTTP request data (method, URL) to each event.
+    // ServiceBuilder composes them into a single Layer that satisfies the
+    // Send + Sync bounds required by Router::layer on axum 0.8.
+    let sentry_layer = ServiceBuilder::new()
+        .layer(sentry_tower::NewSentryLayer::new_from_top())
+        .layer(sentry_tower::SentryHttpLayer::new().enable_transaction());
+
     Router::new()
         .route("/graphql", post(graphql_handler))
         .layer(middleware::from_fn_with_state(
             verifier,
             auth::auth_middleware,
         ))
+        .layer(sentry_layer)
         .layer(CorsLayer::permissive())
         .route("/health", get(|| async { "ok" }))
         .with_state(schema)

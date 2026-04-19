@@ -2,6 +2,7 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import * as Sentry from '@sentry/react-native';
 import 'react-native-reanimated';
 import '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
@@ -10,12 +11,16 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AppProviders } from '@/lib/providers';
 import { useAuthStore } from '@/stores/auth-store';
 import { useSettingsStore } from '@/stores/settings-store';
+import { useSentryUser } from '@/hooks/use-sentry-user';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { ErrorScreen } from '@/components/ui/ErrorScreen';
+import { initSentry } from '@/lib/monitoring/sentry';
 import {
   getPendingInviteToken,
   deletePendingInviteToken,
 } from '@/lib/auth/pending-invite-token';
+
+initSentry();
 
 function NavigationGuard() {
   const { isAuthenticated, isLoading } = useAuthStore();
@@ -49,7 +54,7 @@ export const unstable_settings = {
   anchor: '(tabs)',
 };
 
-export default function RootLayout() {
+function RootLayout() {
   const colorScheme = useColorScheme();
   const isLoading = useAuthStore((s) => s.isLoading);
   const initialize = useAuthStore((s) => s.initialize);
@@ -72,6 +77,7 @@ export default function RootLayout() {
 
   return (
     <AppProviders>
+      <AuthenticatedSentryScope />
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <NavigationGuard />
         <Stack>
@@ -86,3 +92,10 @@ export default function RootLayout() {
     </AppProviders>
   );
 }
+
+function AuthenticatedSentryScope() {
+  useSentryUser();
+  return null;
+}
+
+export default Sentry.wrap(RootLayout);

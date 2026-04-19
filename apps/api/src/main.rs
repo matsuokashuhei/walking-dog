@@ -1,14 +1,49 @@
 use migration::{Migrator, MigratorTrait};
 use std::sync::Arc;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
 use walking_dog_api::auth::jwt::CognitoJwtVerifier;
 use walking_dog_api::config::Config;
 
-#[tokio::main]
-async fn main() {
-    tracing_subscriber::fmt::init();
+fn main() {
     dotenvy::dotenv().ok();
     let config = Config::from_env();
 
+    // Sentry must be initialized from a synchronous context so the ClientInitGuard
+    // lives across the full tokio runtime and flushes events on drop.
+    let _sentry_guard = init_sentry(&config);
+    init_tracing();
+
+    let runtime = tokio::runtime::Runtime::new().expect("Failed to build tokio runtime");
+    runtime.block_on(run(config));
+}
+
+fn init_sentry(config: &Config) -> Option<sentry::ClientInitGuard> {
+    let dsn = config.sentry_dsn.clone()?;
+    let guard = sentry::init((
+        dsn,
+        sentry::ClientOptions {
+            release: sentry::release_name!(),
+            environment: Some(config.sentry_environment.clone().into()),
+            traces_sample_rate: config.sentry_traces_sample_rate,
+            send_default_pii: false,
+            ..Default::default()
+        },
+    ));
+    Some(guard)
+}
+
+fn init_tracing() {
+    let env_filter = tracing_subscriber::EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info"));
+    tracing_subscriber::registry()
+        .with(env_filter)
+        .with(tracing_subscriber::fmt::layer())
+        .with(sentry_tracing::layer())
+        .init();
+}
+
+async fn run(config: Config) {
     let db = walking_dog_api::db::connect(&config.database_url)
         .await
         .expect("Failed to connect to database");

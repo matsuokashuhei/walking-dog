@@ -3,7 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
 import { spacing, typography } from '@/theme/tokens';
-import { useMe } from '@/hooks/use-me';
+import { useSettingsScreenViewModel } from '@/hooks/use-settings-screen-view-model';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { ErrorScreen } from '@/components/ui/ErrorScreen';
 import { ProfileCard } from '@/components/settings/ProfileCard';
@@ -14,10 +14,12 @@ import { SignOutRow } from '@/components/settings/SignOutRow';
 export default function SettingsScreen() {
   const { t } = useTranslation();
   const theme = useColors();
-  const { data: me, isLoading, error, refetch } = useMe();
+  const vm = useSettingsScreenViewModel();
 
-  if (isLoading) return <LoadingScreen />;
-  if (error || !me) return <ErrorScreen message={t('settings.loadError')} onRetry={refetch} />;
+  if (vm.status === 'loading') return <LoadingScreen />;
+  if (vm.status === 'error') {
+    return <ErrorScreen message={t('settings.loadError')} onRetry={vm.handleRetry} />;
+  }
 
   return (
     <SafeAreaView edges={['top']} style={[styles.safeArea, { backgroundColor: theme.background }]}>
@@ -26,7 +28,7 @@ export default function SettingsScreen() {
           {t('settings.title')}
         </Text>
 
-        <ProfileCard displayName={me.displayName} />
+        <ProfileCard displayName={vm.me.displayName} />
         <PreferencesSection />
         <LegalSection />
         <SignOutRow />

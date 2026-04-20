@@ -79,3 +79,12 @@
 - `auth-store.test.ts` should shrink by moving initialize-specific behavior into bootstrap tests
 - `settings-store.ts` should stop calling `AsyncStorage` directly
 - `app/_layout.tsx` should keep the same startup behavior after the refactor
+
+## mobile-cleanup Phase J
+
+- [x] Add RED tests for five screen view models (`walk`, `walk detail`, `dogs`, `dog detail`, `settings`)
+- [x] Extract screen view models so app screens keep rendering and navigation wiring only
+- [x] Extend `use-walk-detail-view-model` so formatted walk detail state leaves the screen
+- [x] Add missing `components/dogs/` tests for `DogStatsCard`, `EncounterCard`, `DogWalkRow`, and `PackRollupCard`
+- [x] Run Phase J verification (`npm test`, `typecheck`, `lint`)
+- [x] Update `tasks/refactor/mobile-cleanup/progress.md` with Phase J notes

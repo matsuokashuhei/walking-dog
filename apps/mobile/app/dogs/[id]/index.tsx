@@ -1,14 +1,6 @@
-import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { useDog } from '@/hooks/use-dog';
-import { useMyWalks } from '@/hooks/use-walks';
-import { usePackProgress } from '@/hooks/use-pack-progress';
-import { useDeleteDog } from '@/hooks/use-dog-mutations';
-import { useMe } from '@/hooks/use-me';
-import { useMutationWithAlert } from '@/hooks/use-mutation-with-alert';
-import { useDogDetailAuthorization } from '@/hooks/use-dog-detail-authorization';
+import { useDogDetailViewModel } from '@/hooks/use-dog-detail-view-model';
 import { DogHero } from '@/components/dogs/DogHero';
 import { DogStatsCard } from '@/components/dogs/DogStatsCard';
 import { DogWalksList } from '@/components/dogs/DogWalksList';
@@ -19,56 +11,13 @@ import { GroupedCard } from '@/components/ui/GroupedCard';
 import { GroupedRow } from '@/components/ui/GroupedRow';
 import { useColors } from '@/hooks/use-colors';
 import { spacing, typography } from '@/theme/tokens';
-import type { Dog, Walk } from '@/types/graphql';
-
-function computeAgeLabel(birthDate: Dog['birthDate'], now: Date = new Date()): string | null {
-  if (!birthDate?.year) return null;
-  const month = birthDate.month ?? 1;
-  const day = birthDate.day ?? 1;
-  const birth = new Date(birthDate.year, month - 1, day);
-  let age = now.getFullYear() - birth.getFullYear();
-  const md = now.getMonth() - birth.getMonth();
-  if (md < 0 || (md === 0 && now.getDate() < birth.getDate())) age -= 1;
-  return age >= 0 ? `${age}y` : null;
-}
-
-function buildMeta(dog: Dog): string {
-  const parts: string[] = [];
-  const age = computeAgeLabel(dog.birthDate);
-  if (age) parts.push(age);
-  if (dog.breed) parts.push(dog.breed);
-  else if (dog.gender) parts.push(dog.gender);
-  return parts.join(' · ');
-}
 
 export default function DogDetailScreen() {
   const { t } = useTranslation();
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
   const theme = useColors();
+  const vm = useDogDetailViewModel();
 
-  const { data: dog, isLoading } = useDog(id, 'ALL');
-  const { data: me } = useMe();
-  const { data: walks = [] } = useMyWalks(100);
-  const pack = usePackProgress();
-  const { mutateAsync: deleteDog } = useDeleteDog();
-  const runWithAlert = useMutationWithAlert();
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const { isOwner } = useDogDetailAuthorization(dog ?? undefined, me ?? undefined);
-
-  if (isLoading || !dog) return <LoadingScreen />;
-
-  async function handleDelete() {
-    const ok = await runWithAlert(() => deleteDog(id), 'dogs.detail.deleteError');
-    if (ok) router.replace('/(tabs)/dogs');
-  }
-
-  const dogWalks: Walk[] = walks.filter((walk) =>
-    walk.dogs.some((walkDog) => walkDog.id === dog.id),
-  );
-  const streakDays = pack.perDog[dog.id]?.streakDays ?? 0;
-  const meta = buildMeta(dog);
-  const memberCount = dog.members?.length ?? 0;
+  if (vm.status === 'loading') return <LoadingScreen />;
 
   return (
     <ScrollView
@@ -76,63 +25,60 @@ export default function DogDetailScreen() {
       contentContainerStyle={styles.content}
       contentInsetAdjustmentBehavior="never"
     >
-      <DogHero photoUrl={dog.photoUrl} />
+      <DogHero photoUrl={vm.dog.photoUrl} />
 
       <View style={styles.nameBlock}>
-        <Text style={[styles.dogName, { color: theme.onSurface }]}>{dog.name}</Text>
-        {meta ? (
-          <Text style={[styles.dogMeta, { color: theme.onSurfaceVariant }]}>{meta}</Text>
+        <Text style={[styles.dogName, { color: theme.onSurface }]}>{vm.dog.name}</Text>
+        {vm.meta ? (
+          <Text style={[styles.dogMeta, { color: theme.onSurfaceVariant }]}>{vm.meta}</Text>
         ) : null}
       </View>
 
-      {dog.walkStats ? (
+      {vm.dog.walkStats ? (
         <View style={styles.statsSection}>
-          <DogStatsCard stats={dog.walkStats} streakDays={streakDays} />
+          <DogStatsCard stats={vm.dog.walkStats} streakDays={vm.streakDays} />
         </View>
       ) : null}
 
       <View style={styles.walksSection}>
-        <DogWalksList
-          walks={dogWalks}
-          onPressWalk={(walkId) => router.push(`/walks/${walkId}`)}
-        />
+        <DogWalksList walks={vm.dogWalks} onPressWalk={vm.handleOpenWalk} />
       </View>
 
       <GroupedCard style={styles.group}>
-        {memberCount > 0 ? (
+        {vm.memberCount > 0 ? (
           <GroupedRow
             label={t('dogs.detail.members')}
-            value={t('dogs.detail.membersCount', { count: memberCount })}
-            onPress={() => router.push(`/dogs/${id}/members`)}
+            value={t('dogs.detail.membersCount', { count: vm.memberCount })}
+            onPress={vm.handleOpenMembers}
           />
         ) : null}
         <GroupedRow
           label={t('dogs.detail.friends', 'Friends')}
           value={t('dogs.detail.viewFriendsList', 'View encounter history')}
           separator={false}
-          onPress={() => router.push(`/dogs/${id}/friends`)}
+          onPress={vm.handleOpenFriends}
         />
       </GroupedCard>
 
-      {isOwner ? (
+      {vm.isOwner ? (
         <View style={styles.actions}>
           <Button
             label={t('dogs.detail.delete')}
             variant="destructive"
-            onPress={() => setShowDeleteConfirm(true)}
+            onPress={vm.openDeleteConfirm}
             style={styles.actionButton}
           />
         </View>
       ) : null}
 
-      {isOwner ? (
+      {vm.isOwner ? (
         <ConfirmDialog
-          visible={showDeleteConfirm}
+          visible={vm.showDeleteConfirm}
           title={t('dogs.detail.deleteTitle')}
-          message={t('dogs.detail.deleteConfirm', { name: dog.name })}
+          message={t('dogs.detail.deleteConfirm', { name: vm.dog.name })}
           confirmLabel={t('dogs.detail.delete')}
-          onConfirm={handleDelete}
-          onCancel={() => setShowDeleteConfirm(false)}
+          onConfirm={vm.handleDelete}
+          onCancel={vm.closeDeleteConfirm}
           destructive
         />
       ) : null}

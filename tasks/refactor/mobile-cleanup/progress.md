@@ -13,7 +13,7 @@
 - [x] Phase G: walk-session グローバル除去 (2026-04-20, tracking session state moved into walk-store and GPS lifecycle/flush orchestration extracted to tracking-manager)
 - [x] Phase H: WalkControls.tsx 分解 (2026-04-20, uncommitted, WalkControls now composes extracted header/metrics/actions sections plus shared Metric and stays at 100 lines)
 - [x] Phase I: stores の責務分離 (2026-04-20, uncommitted, auth bootstrap orchestration and typed AsyncStorage helpers extracted so auth/settings stores stay focused on state transitions)
-- [ ] Phase J: app/ ViewModel 抽出とテスト補強
+- [x] Phase J: app/ ViewModel 抽出とテスト補強 (2026-04-20, uncommitted, tab/detail screens now delegate orchestration to dedicated view-model hooks and dogs component coverage was expanded)
 - [ ] Phase K: テーマトークン統合
 
 Notes:
@@ -53,6 +53,11 @@ Notes:
 - `docker compose -f compose.yml -f mobile.yml run --rm mobile npm test` passed after Phase I; Jest still reports the pre-existing React Query `act(...)` warnings and worker teardown warning, but no failing suites.
 - `docker compose -f compose.yml -f mobile.yml run --rm mobile npm run typecheck` passed after Phase I.
 - `docker compose -f compose.yml -f mobile.yml run --rm mobile npm run lint` completed with the existing 7 warnings only after Phase I.
+- 2026-04-20: Phase J completed on `refactor/mobile-cleanup` by adding `apps/mobile/hooks/use-walk-screen-view-model.ts`, `apps/mobile/hooks/use-dogs-screen-view-model.ts`, `apps/mobile/hooks/use-settings-screen-view-model.ts`, and `apps/mobile/hooks/use-dog-detail-view-model.ts`, extending `apps/mobile/hooks/use-walk-detail-view-model.ts`, refactoring the `walk`, `dogs`, `settings`, `dog detail`, and `walk detail` app screens to consume those hooks, and adding missing `components/dogs/*` coverage for `DogStatsCard`, `EncounterCard`, `DogWalkRow`, and `PackRollupCard`.
+- `docker compose -f compose.yml -f mobile.yml run --rm mobile npm test -- hooks/use-walk-screen-view-model.test.ts hooks/use-dogs-screen-view-model.test.ts hooks/use-settings-screen-view-model.test.ts hooks/use-dog-detail-view-model.test.ts hooks/use-walk-detail-view-model.test.ts components/dogs/DogStatsCard.test.tsx components/dogs/EncounterCard.test.tsx components/dogs/DogWalkRow.test.tsx components/dogs/PackRollupCard.test.tsx __tests__/app/tabs/dogs.test.tsx __tests__/app/dogs/dog-detail.test.tsx __tests__/app/tabs/settings.test.tsx __tests__/app/walks/[id].test.tsx __tests__/app/walks/walk-detail.test.tsx` passed for Phase J after quoting the dynamic-route test path for zsh.
+- `docker compose -f compose.yml -f mobile.yml run --rm mobile npm test` passed after Phase J; Jest still reports the pre-existing React Query `act(...)` warnings and worker teardown warning, but no failing suites.
+- `docker compose -f compose.yml -f mobile.yml run --rm mobile npm run typecheck` passed after Phase J.
+- `docker compose -f compose.yml -f mobile.yml run --rm mobile npm run lint` completed with the existing 7 warnings only after Phase J.
 - `docker compose -f compose.yml -f mobile.yml run --rm mobile npm test` passed after Phase E; Jest still reports pre-existing React Query `act(...)` warnings and a worker teardown warning, but no failing suites.
 - `docker compose -f compose.yml -f mobile.yml run --rm mobile npm run lint` returned the existing 7 warnings only after removing the new `WalkControls.tsx` dependency warning introduced during Phase E.
 - Manual iOS Simulator verification for offline alert display was not run in this session.

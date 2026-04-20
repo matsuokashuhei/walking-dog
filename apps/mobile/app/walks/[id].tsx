@@ -10,11 +10,10 @@ import { useWalk } from '@/hooks/use-walks';
 import { useWalkDetailViewModel } from '@/hooks/use-walk-detail-view-model';
 import { WalkEventTimeline } from '@/components/walk/WalkEventTimeline';
 import { EVENT_EMOJIS } from '@/lib/walk/event-emojis';
-import { formatDistanceParts, formatDuration, formatPace } from '@/lib/walk/format';
 
 export default function WalkDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const theme = useColors();
   const { data: walk, isLoading } = useWalk(id ?? '');
   const vm = useWalkDetailViewModel(walk);
@@ -31,10 +30,6 @@ export default function WalkDetailScreen() {
   const timeLabel = vm.endTime
     ? `${t('walk.detail.startTime')} ${vm.startTime}${separator}${t('walk.detail.endTime')} ${vm.endTime}`
     : `${t('walk.detail.startTime')} ${vm.startTime}`;
-
-  const pace = formatPace(walk.durationSec ?? 0, walk.distanceM ?? 0);
-  const distanceDisplay = formatDistanceParts(walk.distanceM ?? 0, 'km', 2);
-  const durationDisplay = formatDuration(walk.durationSec ?? 0, i18n.language);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -96,39 +91,39 @@ export default function WalkDetailScreen() {
         <GroupedCard padding="lg" style={styles.metrics}>
           <Metric
             label={t('walk.recording.distance')}
-            value={distanceDisplay.value}
-            unit={distanceDisplay.unit}
+            value={vm.distanceDisplay.value}
+            unit={vm.distanceDisplay.unit}
             labelColor={theme.onSurfaceVariant}
             valueColor={theme.onSurface}
           />
           <Metric
             label={t('walk.recording.time')}
-            value={durationDisplay}
+            value={vm.durationDisplay}
             labelColor={theme.onSurfaceVariant}
             valueColor={theme.onSurface}
           />
           <Metric
             label="Pace"
-            value={pace.value}
-            unit={pace.unit}
+            value={vm.paceDisplay.value}
+            unit={vm.paceDisplay.unit}
             labelColor={theme.onSurfaceVariant}
             valueColor={theme.onSurface}
           />
         </GroupedCard>
 
-        {walk.walker ? (
+        {vm.walker ? (
           <View style={styles.walkerSection}>
             <Text style={[styles.walkerLabel, { color: theme.onSurfaceVariant }]}>
               {t('walk.detail.walker')}
             </Text>
             <View style={styles.walkerRow}>
-              {walk.walker.avatarUrl ? (
+              {vm.walker.avatarUrl ? (
                 <Image
-                  source={{ uri: walk.walker.avatarUrl }}
+                  source={{ uri: vm.walker.avatarUrl }}
                   style={styles.walkerAvatar}
                   contentFit="cover"
                   cachePolicy="memory-disk"
-                  accessibilityLabel={walk.walker.displayName ?? ''}
+                  accessibilityLabel={vm.walker.displayName ?? ''}
                 />
               ) : (
                 <View
@@ -139,12 +134,12 @@ export default function WalkDetailScreen() {
                   ]}
                 >
                   <Text style={[styles.walkerInitialText, { color: theme.onInteractive }]}>
-                    {walk.walker.displayName?.charAt(0)?.toUpperCase() ?? '?'}
+                    {vm.walker.initial}
                   </Text>
                 </View>
               )}
               <Text style={[styles.walkerName, { color: theme.onSurface }]}>
-                {walk.walker.displayName}
+                {vm.walker.displayName}
               </Text>
             </View>
           </View>

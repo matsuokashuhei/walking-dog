@@ -1,23 +1,19 @@
-import { act, renderHook } from '@testing-library/react-native';
 import { ClientError } from 'graphql-request';
 import { useAuthStore } from './auth-store';
 import * as secureStorage from '@/lib/auth/secure-storage';
-import {
-  setAuthToken,
-  authenticatedRequest,
-  setRefreshHandler,
-} from '@/lib/graphql/client';
+import { setAuthToken } from '@/lib/graphql/client';
 import * as authApi from '@/lib/auth/api';
+import * as authBootstrap from '@/lib/auth/bootstrap';
 
 jest.mock('@/lib/auth/secure-storage');
 jest.mock('@/lib/graphql/client');
 jest.mock('@/lib/auth/api');
+jest.mock('@/lib/auth/bootstrap');
 
 const mockSecureStorage = secureStorage as jest.Mocked<typeof secureStorage>;
 const mockSetAuthToken = setAuthToken as jest.Mock;
-const mockAuthenticatedRequest = authenticatedRequest as jest.Mock;
-const mockSetRefreshHandler = setRefreshHandler as jest.Mock;
 const mockAuthApi = authApi as jest.Mocked<typeof authApi>;
+const mockBootstrap = authBootstrap as jest.Mocked<typeof authBootstrap>;
 
 describe('auth-store', () => {
   beforeEach(() => {
@@ -30,173 +26,67 @@ describe('auth-store', () => {
     });
   });
 
-  describe('initialize', () => {
-    it('runs legacy-token migration before reading tokens', async () => {
-      const order: string[] = [];
-      mockSecureStorage.migrateLegacyTokens.mockImplementation(async () => {
-        order.push('migrate');
-      });
-      mockSecureStorage.getToken.mockImplementation(async () => {
-        order.push('getToken');
-        return null;
-      });
-
-      const { result } = renderHook(() => useAuthStore());
-      await act(async () => {
-        await result.current.initialize();
-      });
-
-      expect(order).toEqual(['migrate', 'getToken']);
+  it('initialize delegates to bootstrapAuth and applies the bootstrap result', async () => {
+    mockBootstrap.bootstrapAuth.mockResolvedValue({
+      accessToken: 'test-access-token',
+      isAuthenticated: true,
+      networkError: false,
     });
 
-    it('registers refresh handler with graphql client', async () => {
-      mockSecureStorage.getToken.mockResolvedValue(null);
+    await useAuthStore.getState().initialize();
 
-      const { result } = renderHook(() => useAuthStore());
-      await act(async () => {
-        await result.current.initialize();
-      });
-
-      expect(mockSetRefreshHandler).toHaveBeenCalledTimes(1);
-      const handler = mockSetRefreshHandler.mock.calls[0][0];
-      expect(typeof handler).toBe('function');
-    });
-
-    it('sets accessToken from SecureStore and calls setAuthToken', async () => {
-      mockSecureStorage.getToken.mockResolvedValue({
-        accessToken: 'test-access-token',
-        refreshToken: 'test-refresh',
-      });
-      mockAuthenticatedRequest.mockResolvedValue({ me: { id: '1' } });
-
-      const { result } = renderHook(() => useAuthStore());
-      await act(async () => {
-        await result.current.initialize();
-      });
-
-      expect(mockSetAuthToken).toHaveBeenCalledWith('test-access-token');
-      expect(result.current.accessToken).toBe('test-access-token');
-      expect(result.current.isAuthenticated).toBe(true);
-      expect(result.current.networkError).toBe(false);
-      expect(mockAuthenticatedRequest).toHaveBeenCalled();
-    });
-
-    it('does nothing when no token stored', async () => {
-      mockSecureStorage.getToken.mockResolvedValue(null);
-
-      const { result } = renderHook(() => useAuthStore());
-      await act(async () => {
-        await result.current.initialize();
-      });
-
-      expect(result.current.isAuthenticated).toBe(false);
-      expect(result.current.accessToken).toBeNull();
-      expect(mockAuthenticatedRequest).not.toHaveBeenCalled();
-    });
-
-    it('calls clearAuth when authentication fails', async () => {
-      mockSecureStorage.getToken.mockResolvedValue({
-        accessToken: 'bad',
-        refreshToken: 'bad',
-      });
-      const authError = new ClientError(
-        { status: 401, headers: new Headers(), errors: [], body: '' },
-        { query: '' },
-      );
-      mockAuthenticatedRequest.mockRejectedValue(authError);
-
-      const { result } = renderHook(() => useAuthStore());
-      await act(async () => {
-        await result.current.initialize();
-      });
-
-      expect(result.current.isAuthenticated).toBe(false);
-      expect(result.current.accessToken).toBeNull();
-      expect(mockSecureStorage.deleteToken).toHaveBeenCalled();
-      expect(result.current.networkError).toBe(false);
-    });
-
-    it('sets networkError when network is unavailable', async () => {
-      mockSecureStorage.getToken.mockResolvedValue({
-        accessToken: 'tok',
-        refreshToken: 'ref',
-      });
-      mockAuthenticatedRequest.mockRejectedValue(new TypeError('Failed to fetch'));
-
-      const { result } = renderHook(() => useAuthStore());
-      await act(async () => {
-        await result.current.initialize();
-      });
-
-      expect(result.current.networkError).toBe(true);
-      expect(result.current.isAuthenticated).toBe(false);
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    it('sets networkError when server returns 5xx', async () => {
-      const serverError = new ClientError(
-        { status: 500, headers: new Headers(), errors: [], body: '' },
-        { query: '' },
-      );
-      mockSecureStorage.getToken.mockResolvedValue({
-        accessToken: 'tok',
-        refreshToken: 'ref',
-      });
-      mockAuthenticatedRequest.mockRejectedValue(serverError);
-
-      const { result } = renderHook(() => useAuthStore());
-      await act(async () => {
-        await result.current.initialize();
-      });
-
-      expect(result.current.networkError).toBe(true);
-      expect(result.current.isAuthenticated).toBe(false);
-    });
-
-    it('resets networkError on retry', async () => {
-      // 1回目: ネットワークエラー
-      mockSecureStorage.getToken.mockResolvedValue({
-        accessToken: 'tok',
-        refreshToken: 'ref',
-      });
-      mockAuthenticatedRequest.mockRejectedValueOnce(new TypeError('Failed to fetch'));
-
-      const { result } = renderHook(() => useAuthStore());
-      await act(async () => {
-        await result.current.initialize();
-      });
-      expect(result.current.networkError).toBe(true);
-
-      // 2回目: 成功
-      mockAuthenticatedRequest.mockResolvedValueOnce({ me: { id: '1' } });
-      await act(async () => {
-        await result.current.initialize();
-      });
-      expect(result.current.networkError).toBe(false);
-      expect(result.current.isAuthenticated).toBe(true);
+    expect(mockBootstrap.bootstrapAuth).toHaveBeenCalledWith(
+      expect.objectContaining({
+        clearAuth: expect.any(Function),
+        refreshAuth: expect.any(Function),
+      }),
+    );
+    expect(useAuthStore.getState()).toMatchObject({
+      accessToken: 'test-access-token',
+      isAuthenticated: true,
+      isLoading: false,
+      networkError: false,
     });
   });
 
-  it('setAuth: stores token and updates state', async () => {
-    const { result } = renderHook(() => useAuthStore());
-    await act(async () => {
-      await result.current.setAuth('access-token', 'refresh-token');
+  it('initialize stores bootstrap network errors', async () => {
+    mockBootstrap.bootstrapAuth.mockResolvedValue({
+      accessToken: null,
+      isAuthenticated: false,
+      networkError: true,
     });
+
+    await useAuthStore.getState().initialize();
+
+    expect(useAuthStore.getState()).toMatchObject({
+      accessToken: null,
+      isAuthenticated: false,
+      isLoading: false,
+      networkError: true,
+    });
+  });
+
+  it('setAuth stores tokens and updates state', async () => {
+    await useAuthStore.getState().setAuth('access-token', 'refresh-token');
 
     expect(mockSecureStorage.setToken).toHaveBeenCalledWith('access-token', 'refresh-token');
     expect(mockSetAuthToken).toHaveBeenCalledWith('access-token');
-    expect(result.current.isAuthenticated).toBe(true);
+    expect(useAuthStore.getState()).toMatchObject({
+      accessToken: 'access-token',
+      isAuthenticated: true,
+    });
   });
 
-  it('clearAuth: removes token and resets state', async () => {
-    const { result } = renderHook(() => useAuthStore());
-    await act(async () => {
-      await result.current.clearAuth();
-    });
+  it('clearAuth removes tokens and resets state', async () => {
+    await useAuthStore.getState().clearAuth();
 
     expect(mockSecureStorage.deleteToken).toHaveBeenCalled();
     expect(mockSetAuthToken).toHaveBeenCalledWith(null);
-    expect(result.current.isAuthenticated).toBe(false);
+    expect(useAuthStore.getState()).toMatchObject({
+      accessToken: null,
+      isAuthenticated: false,
+      networkError: false,
+    });
   });
 
   describe('refreshAuth', () => {

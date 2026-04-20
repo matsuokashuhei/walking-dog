@@ -1,9 +1,14 @@
 import { create } from 'zustand';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import i18n from '@/lib/i18n';
-
-type ThemeMode = 'light' | 'dark' | 'auto';
-type Units = 'km' | 'mile';
+import {
+  getStoredItem,
+  setStoredItem,
+  SETTINGS_LANGUAGE_KEY,
+  SETTINGS_THEME_KEY,
+  SETTINGS_UNITS_KEY,
+  type ThemeMode,
+  type Units,
+} from '@/lib/storage/async-storage';
 
 interface SettingsState {
   theme: ThemeMode;
@@ -16,10 +21,6 @@ interface SettingsState {
   setUnits: (units: Units) => Promise<void>;
 }
 
-const THEME_KEY = 'settings_theme';
-const LANGUAGE_KEY = 'settings_language';
-const UNITS_KEY = 'settings_units';
-
 export const useSettingsStore = create<SettingsState>((set) => ({
   theme: 'auto',
   language: 'ja',
@@ -29,17 +30,18 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   initialize: async () => {
     try {
       const [theme, language, units] = await Promise.all([
-        AsyncStorage.getItem(THEME_KEY),
-        AsyncStorage.getItem(LANGUAGE_KEY),
-        AsyncStorage.getItem(UNITS_KEY),
+        getStoredItem(SETTINGS_THEME_KEY),
+        getStoredItem(SETTINGS_LANGUAGE_KEY),
+        getStoredItem(SETTINGS_UNITS_KEY),
       ]);
-      const lang = language ?? i18n.language;
-      if (language) {
-        await i18n.changeLanguage(lang);
+      const nextLanguage = language ?? i18n.language;
+      if (language && language !== i18n.language) {
+        await i18n.changeLanguage(nextLanguage);
       }
+
       set({
-        theme: (theme as ThemeMode) ?? 'auto',
-        language: lang,
+        theme: theme ?? 'auto',
+        language: nextLanguage,
         units: units === 'mile' ? 'mile' : 'km',
         isLoaded: true,
       });
@@ -50,29 +52,17 @@ export const useSettingsStore = create<SettingsState>((set) => ({
 
   setTheme: async (theme) => {
     set({ theme });
-    try {
-      await AsyncStorage.setItem(THEME_KEY, theme);
-    } catch {
-      // Storage unavailable
-    }
+    await setStoredItem(SETTINGS_THEME_KEY, theme);
   },
 
   setLanguage: async (language) => {
     await i18n.changeLanguage(language);
     set({ language });
-    try {
-      await AsyncStorage.setItem(LANGUAGE_KEY, language);
-    } catch {
-      // Storage unavailable
-    }
+    await setStoredItem(SETTINGS_LANGUAGE_KEY, language);
   },
 
   setUnits: async (units) => {
     set({ units });
-    try {
-      await AsyncStorage.setItem(UNITS_KEY, units);
-    } catch {
-      // Storage unavailable
-    }
+    await setStoredItem(SETTINGS_UNITS_KEY, units);
   },
 }));

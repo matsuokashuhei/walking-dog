@@ -62,3 +62,20 @@
 - [x] Split `WalkControls.tsx` into smaller presentational sections and keep it under 150 lines
 - [x] Run Phase H verification (`npm test`, `typecheck`, `lint`, line-count guard)
 - [x] Update `tasks/refactor/mobile-cleanup/progress.md` and review notes
+
+## mobile-cleanup Phase I
+
+- [x] Confirm current auth/settings initialization boundaries in `app/_layout.tsx`, `stores/auth-store.ts`, and `stores/settings-store.ts`
+- [x] Add RED tests for `lib/auth/bootstrap.ts` and `lib/storage/async-storage.ts`
+- [x] Extract auth initialization orchestration into `lib/auth/bootstrap.ts`
+- [x] Add typed AsyncStorage wrapper in `lib/storage/async-storage.ts`
+- [x] Refactor `auth-store.ts` and `settings-store.ts` so stores keep state transitions and delegate I/O/orchestration
+- [x] Update or add store tests so bootstrap logic moves out of `auth-store.test.ts` and settings behavior is covered
+- [x] Run Phase I verification (`npm test`, `typecheck`, `lint`)
+- [x] Update `tasks/refactor/mobile-cleanup/progress.md` with Phase I results and review notes
+
+## Phase I review targets
+
+- `auth-store.test.ts` should shrink by moving initialize-specific behavior into bootstrap tests
+- `settings-store.ts` should stop calling `AsyncStorage` directly
+- `app/_layout.tsx` should keep the same startup behavior after the refactor

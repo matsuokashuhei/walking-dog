@@ -88,3 +88,11 @@
 - [x] Add missing `components/dogs/` tests for `DogStatsCard`, `EncounterCard`, `DogWalkRow`, and `PackRollupCard`
 - [x] Run Phase J verification (`npm test`, `typecheck`, `lint`)
 - [x] Update `tasks/refactor/mobile-cleanup/progress.md` with Phase J notes
+
+## mobile-cleanup Phase K
+
+- [x] Add RED tests for named theme radius/shadow tokens and token-backed component styles
+- [x] Add `radius.appMark`, `radius.pill`, and `shadow.primary` to `theme/tokens.ts`
+- [x] Replace targeted hardcoded radius/color values in `AppMark`, `Button`, `Tag`, `WalkEventTimeline`, and `ProfileCard`
+- [x] Run Phase K verification (`npm test`, `typecheck`, `lint`, grep guards)
+- [x] Update `tasks/refactor/mobile-cleanup/progress.md` with Phase K notes

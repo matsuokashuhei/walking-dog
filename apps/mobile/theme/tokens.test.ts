@@ -1,4 +1,4 @@
-import { colors, elevation, radius, spacing, typography, type ColorTokens } from './tokens';
+import { colors, elevation, radius, shadow, spacing, typography, type ColorTokens } from './tokens';
 
 describe('colors (Precise palette)', () => {
   describe('light theme', () => {
@@ -98,8 +98,19 @@ describe('radius', () => {
     expect(radius.phone).toBe(44);
   });
 
+  it('adds named tokens for the app mark and pill shapes', () => {
+    expect(radius.appMark).toBe(22);
+    expect(radius.pill).toBe(100);
+  });
+
   it('keeps full: 9999 for pill shapes', () => {
     expect(radius.full).toBe(9999);
+  });
+});
+
+describe('shadow', () => {
+  it('exposes the interactive blue glow used by branded surfaces', () => {
+    expect(shadow.primary).toBe(colors.light.interactive);
   });
 });
 

@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react-native';
+import { radius } from '@/theme/tokens';
 import { Tag } from './Tag';
 
 jest.mock('@/hooks/use-color-scheme', () => ({
@@ -14,7 +15,7 @@ describe('Tag', () => {
   it('applies the Precise pill radius (100)', () => {
     render(<Tag label="x" testID="tag" />);
     const flat = flatten(screen.getByTestId('tag').props.style);
-    expect(flat.borderRadius).toBe(100);
+    expect(flat.borderRadius).toBe(radius.pill);
   });
 
   it('renders the live tone with a 6 px pulse dot', () => {
@@ -34,8 +35,6 @@ describe('Tag', () => {
 
 type Flat = Record<string, unknown>;
 function flatten(style: unknown): Flat {
-  const arr = (Array.isArray(style) ? style : [style]).flat() as Array<
-    Flat | undefined
-  >;
+  const arr = (Array.isArray(style) ? style : [style]).flat() as (Flat | undefined)[];
   return arr.reduce<Flat>((acc, s) => ({ ...acc, ...(s ?? {}) }), {});
 }

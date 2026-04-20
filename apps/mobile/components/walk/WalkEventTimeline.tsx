@@ -76,7 +76,7 @@ export function WalkEventTimeline({ events }: WalkEventTimelineProps) {
             accessibilityRole="button"
             accessibilityLabel="Close photo"
           >
-            <Text style={styles.closeText}>✕</Text>
+            <Text style={[styles.closeText, { color: theme.onInteractive }]}>✕</Text>
           </Pressable>
           {fullScreenPhoto ? (
             <Image
@@ -138,7 +138,6 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
   },
   closeText: {
-    color: '#fff',
     fontSize: 24,
     fontWeight: '600',
   },

@@ -9,7 +9,7 @@ interface ProfileCardProps {
   displayName: string | null;
 }
 
-const AVATAR_GRADIENT = ['#bf5af2', '#0a84ff'] as const;
+const AVATAR_GRADIENT_START = '#bf5af2';
 
 export function ProfileCard({ displayName }: ProfileCardProps) {
   const { t } = useTranslation();
@@ -21,12 +21,12 @@ export function ProfileCard({ displayName }: ProfileCardProps) {
     <GroupedCard padding="md" elevated={false} style={styles.card}>
       <View style={styles.row}>
         <LinearGradient
-          colors={AVATAR_GRADIENT}
+          colors={[AVATAR_GRADIENT_START, theme.interactive]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.avatar}
         >
-          <Text style={styles.avatarInitial}>{initial}</Text>
+          <Text style={[styles.avatarInitial, { color: theme.onInteractive }]}>{initial}</Text>
         </LinearGradient>
         <View style={styles.textBlock}>
           <Text style={[styles.name, { color: theme.onSurface }]} numberOfLines={1}>
@@ -64,7 +64,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarInitial: {
-    color: '#ffffff',
     fontSize: 22,
     fontWeight: '700',
   },

@@ -14,7 +14,7 @@
 - [x] Phase H: WalkControls.tsx 分解 (2026-04-20, uncommitted, WalkControls now composes extracted header/metrics/actions sections plus shared Metric and stays at 100 lines)
 - [x] Phase I: stores の責務分離 (2026-04-20, uncommitted, auth bootstrap orchestration and typed AsyncStorage helpers extracted so auth/settings stores stay focused on state transitions)
 - [x] Phase J: app/ ViewModel 抽出とテスト補強 (2026-04-20, uncommitted, tab/detail screens now delegate orchestration to dedicated view-model hooks and dogs component coverage was expanded)
-- [ ] Phase K: テーマトークン統合
+- [x] Phase K: テーマトークン統合 (2026-04-20, uncommitted, named radius/shadow tokens added and targeted mobile hardcodes replaced without increasing lint warnings)
 
 Notes:
 - 2026-04-19: Phase A completed on `refactor/mobile-cleanup` after fixing TypeScript test typing in `apps/mobile/hooks/use-walk-session.test.ts` and `apps/mobile/lib/graphql/errors.test.ts`.
@@ -58,6 +58,12 @@ Notes:
 - `docker compose -f compose.yml -f mobile.yml run --rm mobile npm test` passed after Phase J; Jest still reports the pre-existing React Query `act(...)` warnings and worker teardown warning, but no failing suites.
 - `docker compose -f compose.yml -f mobile.yml run --rm mobile npm run typecheck` passed after Phase J.
 - `docker compose -f compose.yml -f mobile.yml run --rm mobile npm run lint` completed with the existing 7 warnings only after Phase J.
+- 2026-04-20: Phase K completed on `refactor/mobile-cleanup` by adding `radius.appMark`, `radius.pill`, and `shadow.primary` in `apps/mobile/theme/tokens.ts`, then replacing the targeted `borderRadius: 22`, `borderRadius: 100`, `'#0a84ff'`, and `'#fff'` component hardcodes with shared token/theme references in `AppMark`, `Button`, `Tag`, `WalkEventTimeline`, and `ProfileCard`.
+- `docker compose -f compose.yml -f mobile.yml run --rm mobile npm test -- theme/tokens.test.ts components/auth/AppMark.test.tsx components/ui/Tag.test.tsx components/ui/Button.test.tsx` passed for Phase K after the RED/GREEN token checks were added.
+- `docker compose -f compose.yml -f mobile.yml run --rm mobile npm test` passed after Phase K; Jest still reports the pre-existing React Query `act(...)` warnings and worker teardown warning, but no failing suites.
+- `docker compose -f compose.yml -f mobile.yml run --rm mobile npm run typecheck` passed after Phase K.
+- `docker compose -f compose.yml -f mobile.yml run --rm mobile npm run lint` completed with 5 pre-existing warnings only after Phase K.
+- Scoped active-tree search confirmed `borderRadius:\s*(22|100)` no longer appears under `apps/mobile` and `'#0a84ff'|'#fff'` no longer appears under `apps/mobile/components` outside the archived worktree.
 - `docker compose -f compose.yml -f mobile.yml run --rm mobile npm test` passed after Phase E; Jest still reports pre-existing React Query `act(...)` warnings and a worker teardown warning, but no failing suites.
 - `docker compose -f compose.yml -f mobile.yml run --rm mobile npm run lint` returned the existing 7 warnings only after removing the new `WalkControls.tsx` dependency warning introduced during Phase E.
 - Manual iOS Simulator verification for offline alert display was not run in this session.

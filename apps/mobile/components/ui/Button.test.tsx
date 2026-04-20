@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
+import { radius } from '@/theme/tokens';
 import { Button } from './Button';
 
 jest.mock('@/hooks/use-color-scheme', () => ({
@@ -56,7 +57,7 @@ describe('Button', () => {
     const flat = flattenStyle(node.props.style);
     expect(flat.width).toBe(200);
     expect(flat.height).toBe(200);
-    expect(flat.borderRadius).toBe(100);
+    expect(flat.borderRadius).toBe(radius.pill);
   });
 
   it('applies the default (Precise 50 px) height when size is omitted', () => {
@@ -76,6 +77,6 @@ describe('Button', () => {
 
 type Flat = Record<string, unknown>;
 function flattenStyle(style: unknown): Flat {
-  const arr = (Array.isArray(style) ? style : [style]).flat() as Array<Flat | undefined>;
+  const arr = (Array.isArray(style) ? style : [style]).flat() as (Flat | undefined)[];
   return arr.reduce<Flat>((acc, s) => ({ ...acc, ...(s ?? {}) }), {});
 }

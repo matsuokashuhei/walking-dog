@@ -7,8 +7,8 @@
 
 ## Review
 
-- Root cause: `useWalkSession()` stored the GPS cleanup function in a hook-local `useRef`, but walk start and walk stop run from different screens and therefore different hook instances. `stop()` could not reach the active `watchPositionAsync` subscription, so location updates continued after End Walk.
-- Fix: move tracking cleanup to module-shared state in [apps/mobile/hooks/use-walk-session.ts](/Users/matsuokashuhei/Development/walking-dog/apps/mobile/hooks/use-walk-session.ts) and invalidate late callbacks with a generation guard before flushing points and finishing the walk.
+- Root cause: `useWalkSession()` originally stored the GPS cleanup function in hook-local state, while walk start and walk stop run from different screens and therefore different hook instances. That let the active `watchPositionAsync` subscription survive End Walk until tracking cleanup was shared across screens.
+- Current design: tracking session generation and cleanup now live in [apps/mobile/stores/walk-store.ts](/Users/matsuokashuhei/Development/walking-dog/apps/mobile/stores/walk-store.ts), while GPS subscription lifecycle and batch flushing live in [apps/mobile/lib/walk/tracking-manager.ts](/Users/matsuokashuhei/Development/walking-dog/apps/mobile/lib/walk/tracking-manager.ts). [apps/mobile/hooks/use-walk-session.ts](/Users/matsuokashuhei/Development/walking-dog/apps/mobile/hooks/use-walk-session.ts) no longer owns module-scope tracking globals.
 - Verification: targeted Jest suites passed, and two simulator screenshots of the finished summary taken about one minute apart stayed identical aside from the status-bar clock.
 
 ## mobile-cleanup kickoff
@@ -53,4 +53,12 @@
 - [x] Extract `EventPill`, `use-walk-event-recorder`, and `use-camera-event-trigger`
 - [x] Refactor `WalkEventActions` to UI orchestration only
 - [x] Run Phase F verification (`npm test`, `typecheck`, `lint`)
+- [x] Update `tasks/refactor/mobile-cleanup/progress.md` and review notes
+
+## mobile-cleanup Phase H
+
+- [x] Add RED tests for extracted walk control presentation components
+- [x] Extract shared `Metric` into `components/ui/Metric.tsx`
+- [x] Split `WalkControls.tsx` into smaller presentational sections and keep it under 150 lines
+- [x] Run Phase H verification (`npm test`, `typecheck`, `lint`, line-count guard)
 - [x] Update `tasks/refactor/mobile-cleanup/progress.md` and review notes

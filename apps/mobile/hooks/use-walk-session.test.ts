@@ -32,6 +32,8 @@ let mockStorePoints: WalkPoint[] = [];
 let mockStoreTotalDistanceM = 0;
 let mockStoreStartedAt: Date | null = null;
 let mockStorePhase: 'ready' | 'recording' | 'finished' = 'ready';
+let mockStoreTrackingGeneration = 0;
+let mockStoreTrackingCleanup: (() => void) | null = null;
 
 jest.mock('@/stores/walk-store', () => {
   const state = {
@@ -55,6 +57,39 @@ jest.mock('@/stores/walk-store', () => {
     },
     get startedAt() {
       return mockStoreStartedAt;
+    },
+    get trackingGeneration() {
+      return mockStoreTrackingGeneration;
+    },
+    get trackingCleanup() {
+      return mockStoreTrackingCleanup;
+    },
+    activateTrackingSession: () => {
+      mockStoreTrackingGeneration += 1;
+      const cleanup = mockStoreTrackingCleanup;
+      mockStoreTrackingCleanup = null;
+      cleanup?.();
+      return mockStoreTrackingGeneration;
+    },
+    attachTrackingCleanup: (generation: number, cleanup: () => void) => {
+      if (generation !== mockStoreTrackingGeneration) {
+        return false;
+      }
+
+      mockStoreTrackingCleanup = cleanup;
+      return true;
+    },
+    stopTrackingSession: () => {
+      mockStoreTrackingGeneration += 1;
+      const cleanup = mockStoreTrackingCleanup;
+      mockStoreTrackingCleanup = null;
+      cleanup?.();
+    },
+    resetTrackingSession: () => {
+      const cleanup = mockStoreTrackingCleanup;
+      mockStoreTrackingCleanup = null;
+      mockStoreTrackingGeneration = 0;
+      cleanup?.();
     },
   };
   const useWalkStoreMock = (selector: (s: typeof state) => unknown) => selector(state);
@@ -83,6 +118,8 @@ beforeEach(() => {
   mockStoreTotalDistanceM = 0;
   mockStoreStartedAt = new Date('2026-04-01T00:00:00Z');
   mockStorePhase = 'ready';
+  mockStoreTrackingGeneration = 0;
+  mockStoreTrackingCleanup = null;
 
   (walkMutations.useStartWalk as jest.Mock).mockReturnValue({
     mutateAsync: mockStartWalkMutateAsync,

@@ -10,8 +10,8 @@
 - [x] Phase D: walk event エラーハンドリング統一 (2026-04-19, uncommitted, walk event mutations now flow through the shared alert helper with Sentry reporting and quick-actions regression coverage)
 - [x] Phase E: タイマー hook 共通化 (2026-04-20, uncommitted, shared elapsed timer hook now drives both WalkControls variants with pause/resume coverage)
 - [x] Phase F: WalkEventActions.tsx 分解 (2026-04-20, uncommitted, WalkEventActions now composes extracted event/camera hooks plus presentational action rows while preserving existing behavior)
-- [ ] Phase G: walk-session グローバル除去
-- [ ] Phase H: WalkControls.tsx 分解
+- [x] Phase G: walk-session グローバル除去 (2026-04-20, tracking session state moved into walk-store and GPS lifecycle/flush orchestration extracted to tracking-manager)
+- [x] Phase H: WalkControls.tsx 分解 (2026-04-20, uncommitted, WalkControls now composes extracted header/metrics/actions sections plus shared Metric and stays at 100 lines)
 - [ ] Phase I: stores の責務分離
 - [ ] Phase J: app/ ViewModel 抽出とテスト補強
 - [ ] Phase K: テーマトークン統合
@@ -34,7 +34,20 @@ Notes:
 - `docker compose -f compose.yml -f mobile.yml run --rm mobile npm test` passed after Phase F; Jest still reports the pre-existing React Query `act(...)` warnings and worker teardown warning, but no failing suites.
 - `docker compose -f compose.yml -f mobile.yml run --rm mobile npm run typecheck` passed after Phase F.
 - `docker compose -f compose.yml -f mobile.yml run --rm mobile npm run lint` returned the existing 7 warnings only after removing the temporary unused import introduced in `apps/mobile/components/walk/DogEventActionRow.tsx`.
+- 2026-04-20: Phase G completed on `refactor/mobile-cleanup` by moving tracking generation/cleanup into `apps/mobile/stores/walk-store.ts`, extracting `apps/mobile/lib/walk/tracking-manager.ts`, and removing `use-walk-session.ts` module-scope tracking globals.
+- `docker compose -f compose.yml -f mobile.yml run --rm mobile npm test -- stores/walk-store.test.ts lib/walk/tracking-manager.test.ts hooks/use-walk-session.test.ts` passed for Phase G.
+- `docker compose -f compose.yml -f mobile.yml run --rm mobile npm test -- lib/walk/tracking-manager.test.ts` passed after tightening test callback typing.
+- `docker compose -f compose.yml -f mobile.yml run --rm mobile npm test` passed after Phase G; Jest still reports the pre-existing React Query `act(...)` warnings and worker teardown warning, but no failing suites.
+- `docker compose -f compose.yml -f mobile.yml run --rm mobile npm run typecheck` passed after Phase G.
+- `docker compose -f compose.yml -f mobile.yml run --rm mobile npm run lint` completed with the existing 7 warnings only after Phase G.
+- Scoped active-tree search confirmed `activeTrackingCleanup` and `activeTrackingGeneration` no longer appear under `apps/mobile`.
 - Scoped active-tree search confirmed `walk event record failed` no longer appears under `apps/mobile/components/walk`.
+- 2026-04-20: Phase H completed on `refactor/mobile-cleanup` by extracting `apps/mobile/components/ui/Metric.tsx`, `apps/mobile/components/walk/WalkIdentityHeader.tsx`, `apps/mobile/components/walk/WalkMetricsRow.tsx`, and `apps/mobile/components/walk/WalkControlsActions.tsx`, then reducing `apps/mobile/components/walk/WalkControls.tsx` to orchestration-only state and derived-metrics logic.
+- `docker compose -f compose.yml -f mobile.yml run --rm mobile npm test -- components/ui/Metric.test.tsx components/walk/WalkIdentityHeader.test.tsx components/walk/WalkControls.test.tsx components/walk/WalkMinimizedControls.test.tsx` passed for Phase H.
+- `docker compose -f compose.yml -f mobile.yml run --rm mobile npm test` passed after Phase H; Jest still reports the pre-existing React Query `act(...)` warnings and worker teardown warning, but no failing suites.
+- `docker compose -f compose.yml -f mobile.yml run --rm mobile npm run typecheck` passed after Phase H.
+- `docker compose -f compose.yml -f mobile.yml run --rm mobile npm run lint` completed with the existing 7 warnings only after Phase H.
+- `wc -l apps/mobile/components/walk/WalkControls.tsx` returned `100 apps/mobile/components/walk/WalkControls.tsx` after Phase H.
 - `docker compose -f compose.yml -f mobile.yml run --rm mobile npm test` passed after Phase E; Jest still reports pre-existing React Query `act(...)` warnings and a worker teardown warning, but no failing suites.
 - `docker compose -f compose.yml -f mobile.yml run --rm mobile npm run lint` returned the existing 7 warnings only after removing the new `WalkControls.tsx` dependency warning introduced during Phase E.
 - Manual iOS Simulator verification for offline alert display was not run in this session.

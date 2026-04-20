@@ -12,6 +12,8 @@ interface WalkState {
   totalDistanceM: number;
   startedAt: Date | null;
   events: WalkEvent[];
+  trackingGeneration: number;
+  trackingCleanup: (() => void) | null;
   // Bumped to a fresh timestamp each time the Live Activity camera button (or
   // any other source) requests the camera flow. WalkEventActions watches it
   // and triggers handlePhoto. Using a timestamp instead of a boolean gives a
@@ -29,8 +31,16 @@ interface WalkState {
   requestCamera: () => void;
   clearCameraRequest: () => void;
   setMinimized: (value: boolean) => void;
+  activateTrackingSession: () => number;
+  attachTrackingCleanup: (generation: number, cleanup: () => void) => boolean;
+  stopTrackingSession: () => void;
+  resetTrackingSession: () => void;
   finish: () => void;
   reset: () => void;
+}
+
+function clearTrackingCleanup(cleanup: (() => void) | null) {
+  cleanup?.();
 }
 
 export const useWalkStore = create<WalkState>((set, get) => ({
@@ -41,6 +51,8 @@ export const useWalkStore = create<WalkState>((set, get) => ({
   totalDistanceM: 0,
   startedAt: null,
   events: [],
+  trackingGeneration: 0,
+  trackingCleanup: null,
   cameraRequestedAt: null,
   isMinimized: false,
 
@@ -78,9 +90,40 @@ export const useWalkStore = create<WalkState>((set, get) => ({
 
   setMinimized: (value) => set({ isMinimized: value }),
 
+  activateTrackingSession: () => {
+    const nextGeneration = get().trackingGeneration + 1;
+    const cleanup = get().trackingCleanup;
+    set({ trackingGeneration: nextGeneration, trackingCleanup: null });
+    clearTrackingCleanup(cleanup);
+    return nextGeneration;
+  },
+
+  attachTrackingCleanup: (generation, cleanup) => {
+    if (get().trackingGeneration !== generation) {
+      return false;
+    }
+
+    set({ trackingCleanup: cleanup });
+    return true;
+  },
+
+  stopTrackingSession: () => {
+    const nextGeneration = get().trackingGeneration + 1;
+    const cleanup = get().trackingCleanup;
+    set({ trackingGeneration: nextGeneration, trackingCleanup: null });
+    clearTrackingCleanup(cleanup);
+  },
+
+  resetTrackingSession: () => {
+    const cleanup = get().trackingCleanup;
+    set({ trackingGeneration: 0, trackingCleanup: null });
+    clearTrackingCleanup(cleanup);
+  },
+
   finish: () => set({ phase: 'finished', cameraRequestedAt: null, isMinimized: false }),
 
-  reset: () =>
+  reset: () => {
+    const cleanup = get().trackingCleanup;
     set({
       phase: 'ready',
       walkId: null,
@@ -89,7 +132,11 @@ export const useWalkStore = create<WalkState>((set, get) => ({
       totalDistanceM: 0,
       startedAt: null,
       events: [],
+      trackingGeneration: 0,
+      trackingCleanup: null,
       cameraRequestedAt: null,
       isMinimized: false,
-    }),
+    });
+    clearTrackingCleanup(cleanup);
+  },
 }));

@@ -31,6 +31,7 @@
 - Use Expo Router file-based routing — no manual navigation config
 - Use secure storage for tokens — avoid AsyncStorage for sensitive data
 - Conventional Commits: feat:, fix:, refactor:, test:, docs:, chore:
+- UI 実装は **Expo 公式ライブラリを最優先で検討する**（`expo-router/unstable-native-tabs` の `NativeTabs`、`presentation: 'formSheet'`、`expo-glass-effect`、`@expo/ui`、`expo-blur` など）。カスタム実装・community 製パッケージはネイティブ API が足りないことを確認してから採用する。
 
 ## Available Commands
 /plan, /code-review, /tdd, /build-fix, /perf, /upgrade, /debug, /deploy,

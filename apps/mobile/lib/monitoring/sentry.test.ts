@@ -1,14 +1,4 @@
-import * as Sentry from '@sentry/react-native';
-
-import { captureGraphQLError, redactSensitive, setSentryUser } from './sentry';
-
-jest.mock('@sentry/react-native', () => ({
-  setUser: jest.fn(),
-  captureException: jest.fn(),
-}), { virtual: true });
-
-const setUserMock = Sentry.setUser as jest.MockedFunction<typeof Sentry.setUser>;
-const captureExceptionMock = Sentry.captureException as jest.MockedFunction<typeof Sentry.captureException>;
+import { captureGraphQLError, initSentry, redactSensitive, setSentryUser } from './sentry';
 
 describe('redactSensitive', () => {
   it('masks accessToken and refreshToken inside request body', () => {
@@ -50,41 +40,29 @@ describe('redactSensitive', () => {
 });
 
 describe('setSentryUser', () => {
-  beforeEach(() => {
-    setUserMock.mockClear();
-  });
-
-  it('forwards id and username when user is provided', () => {
-    setSentryUser({ id: 'user-1', username: 'alice' });
-    expect(setUserMock).toHaveBeenCalledWith({ id: 'user-1', username: 'alice' });
-  });
-
-  it('calls Sentry.setUser with null to clear scope when user is null', () => {
-    setSentryUser(null);
-    expect(setUserMock).toHaveBeenCalledWith(null);
-  });
-
-  it('omits username when not provided', () => {
-    setSentryUser({ id: 'user-2' });
-    expect(setUserMock).toHaveBeenCalledWith({ id: 'user-2', username: undefined });
+  it('is a no-op when a user is provided or cleared', () => {
+    expect(() => {
+      setSentryUser({ id: 'user-1', username: 'alice' });
+      setSentryUser({ id: 'user-2' });
+      setSentryUser(null);
+    }).not.toThrow();
   });
 });
 
 describe('captureGraphQLError', () => {
-  beforeEach(() => {
-    captureExceptionMock.mockClear();
-  });
-
-  it('reports Error instances with context as extras', () => {
+  it('is a no-op for Error and non-Error inputs', () => {
     const err = new Error('boom');
-    captureGraphQLError(err, { operation: 'ListDogs' });
-    expect(captureExceptionMock).toHaveBeenCalledWith(err, { extra: { operation: 'ListDogs' } });
+    expect(() => {
+      captureGraphQLError(err, { operation: 'ListDogs' });
+      captureGraphQLError('plain string');
+      captureGraphQLError(null);
+      captureGraphQLError(undefined);
+    }).not.toThrow();
   });
+});
 
-  it('ignores non-Error inputs to avoid noise', () => {
-    captureGraphQLError('plain string');
-    captureGraphQLError(null);
-    captureGraphQLError(undefined);
-    expect(captureExceptionMock).not.toHaveBeenCalled();
+describe('initSentry', () => {
+  it('is a no-op with Sentry integration disabled', () => {
+    expect(() => initSentry()).not.toThrow();
   });
 });

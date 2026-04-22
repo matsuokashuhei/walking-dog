@@ -2,7 +2,6 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import * as Sentry from '@sentry/react-native';
 import 'react-native-reanimated';
 import '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
@@ -115,4 +114,4 @@ function AuthenticatedSentryScope() {
   return null;
 }
 
-export default Sentry.wrap(RootLayout);
+export default RootLayout;

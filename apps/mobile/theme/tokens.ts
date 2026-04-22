@@ -106,8 +106,14 @@ export const radius = {
   lg: 12,
   xl: 16,
   xxl: 24,
+  appMark: 22,
   phone: 44,
+  pill: 100,
   full: 9999,
+} as const;
+
+export const shadow = {
+  primary: colors.light.interactive,
 } as const;
 
 // Soft layered shadows — never hard

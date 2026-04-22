@@ -40,7 +40,7 @@ describe('LoginForm', () => {
   });
 
   it('shows error message on sign-in failure', async () => {
-    mockSignIn.mockRejectedValue(new Error('UserNotFoundException'));
+    mockSignIn.mockRejectedValue({ kind: 'invalid-credentials' });
     render(<LoginForm onSuccess={jest.fn()} />);
 
     fireEvent.changeText(screen.getByLabelText('Email'), 'wrong@example.com');
@@ -49,6 +49,19 @@ describe('LoginForm', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Invalid email or password')).toBeTruthy();
+    });
+  });
+
+  it('shows network error message on sign-in network failure', async () => {
+    mockSignIn.mockRejectedValue({ kind: 'network' });
+    render(<LoginForm onSuccess={jest.fn()} />);
+
+    fireEvent.changeText(screen.getByLabelText('Email'), 'user@example.com');
+    fireEvent.changeText(screen.getByLabelText('Password'), 'password123');
+    fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Please check your network connection')).toBeTruthy();
     });
   });
 

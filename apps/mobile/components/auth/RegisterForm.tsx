@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { GroupedCard } from '@/components/ui/GroupedCard';
 import { TextInput } from '@/components/ui/TextInput';
 import { useColors } from '@/hooks/use-colors';
+import { toAuthError } from '@/lib/auth/errors';
 import { spacing, typography } from '@/theme/tokens';
 
 interface RegisterFormProps {
@@ -34,13 +35,19 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
       const result = await signUp(email, password, displayName);
       onSuccess(email, result.userConfirmed);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : '';
-      if (message.includes('USER_EXISTS')) {
-        setError(t('auth.register.error.userExists'));
-      } else if (message.includes('INVALID_PASSWORD')) {
-        setError(t('auth.register.error.invalidPassword'));
-      } else {
-        setError(t('auth.register.error.generic'));
+      const authError = toAuthError(err);
+      switch (authError.kind) {
+        case 'user-exists':
+          setError(t('auth.register.error.userExists'));
+          break;
+        case 'invalid-password':
+          setError(t('auth.register.error.invalidPassword'));
+          break;
+        case 'network':
+          setError(t('auth.error.networkError'));
+          break;
+        default:
+          setError(t('auth.register.error.generic'));
       }
     } finally {
       setLoading(false);

@@ -10,6 +10,38 @@ describe('walk-store', () => {
     expect(useWalkStore.getState().phase).toBe('ready');
   });
 
+  describe('tracking session state', () => {
+    it('activateTrackingSession bumps the generation and clears the previous cleanup', () => {
+      const firstGeneration = useWalkStore.getState().activateTrackingSession();
+      const firstCleanup = jest.fn();
+
+      expect(useWalkStore.getState().attachTrackingCleanup(firstGeneration, firstCleanup)).toBe(true);
+
+      const nextGeneration = useWalkStore.getState().activateTrackingSession();
+
+      expect(firstCleanup).toHaveBeenCalledTimes(1);
+      expect(nextGeneration).toBe(firstGeneration + 1);
+      expect(useWalkStore.getState().trackingGeneration).toBe(nextGeneration);
+      expect(useWalkStore.getState().trackingCleanup).toBeNull();
+    });
+
+    it('only accepts cleanup registration for the active generation and stopTrackingSession runs it', () => {
+      const generation = useWalkStore.getState().activateTrackingSession();
+      const staleCleanup = jest.fn();
+      const activeCleanup = jest.fn();
+
+      expect(useWalkStore.getState().attachTrackingCleanup(generation - 1, staleCleanup)).toBe(false);
+      expect(useWalkStore.getState().attachTrackingCleanup(generation, activeCleanup)).toBe(true);
+
+      useWalkStore.getState().stopTrackingSession();
+
+      expect(staleCleanup).not.toHaveBeenCalled();
+      expect(activeCleanup).toHaveBeenCalledTimes(1);
+      expect(useWalkStore.getState().trackingGeneration).toBe(generation + 1);
+      expect(useWalkStore.getState().trackingCleanup).toBeNull();
+    });
+  });
+
   it('isMinimized defaults to false and toggles via setMinimized', () => {
     expect(useWalkStore.getState().isMinimized).toBe(false);
     useWalkStore.getState().setMinimized(true);

@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
+import { formatShortDate } from '@/lib/walk/format';
 import { spacing, radius, typography } from '@/theme/tokens';
 import type { Friendship } from '@/types/graphql';
 
@@ -11,11 +12,11 @@ interface FriendCardProps {
 }
 
 export function FriendCard({ friendship, onPress }: FriendCardProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const theme = useColors();
   const { friend } = friendship;
 
-  const lastMetDate = new Date(friendship.lastMetAt).toLocaleDateString();
+  const lastMetDate = formatShortDate(friendship.lastMetAt, i18n.language);
 
   return (
     <Pressable

@@ -140,4 +140,32 @@ describe('useWalkDetailViewModel', () => {
     );
     expect(result.current!.events).toEqual([event]);
   });
+
+  it('provides formatted metric display values for screen rendering', () => {
+    const { result } = renderHook(() => useWalkDetailViewModel(makeWalk()));
+
+    expect(result.current!.distanceDisplay).toEqual({ value: '2.50', unit: 'km' });
+    expect(result.current!.durationDisplay).toBe('30:00');
+    expect(result.current!.paceDisplay).toEqual({ value: `12'00"`, unit: '/km' });
+  });
+
+  it('builds walker presentation data with an initial fallback', () => {
+    const { result } = renderHook(() =>
+      useWalkDetailViewModel(
+        makeWalk({
+          walker: {
+            id: 'walker-1',
+            displayName: 'Mio',
+            avatarUrl: null,
+          },
+        }),
+      ),
+    );
+
+    expect(result.current!.walker).toEqual({
+      displayName: 'Mio',
+      avatarUrl: null,
+      initial: 'M',
+    });
+  });
 });

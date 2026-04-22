@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
   circle: {
     width: 200,
     height: 200,
-    borderRadius: 100,
+    borderRadius: radius.pill,
     borderWidth: 0,
     alignItems: 'center',
     justifyContent: 'center',

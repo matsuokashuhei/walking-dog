@@ -3,16 +3,11 @@ import {
   getToken,
   setToken,
   deleteToken,
-  migrateLegacyTokens,
 } from '@/lib/auth/secure-storage';
 import { refreshToken } from '@/lib/auth/api';
-import {
-  setAuthToken,
-  authenticatedRequest,
-  setRefreshHandler,
-} from '@/lib/graphql/client';
+import { setAuthToken } from '@/lib/graphql/client';
 import { isNetworkError } from '@/lib/graphql/errors';
-import { ME_QUERY } from '@/lib/graphql/queries/me';
+import { bootstrapAuth } from '@/lib/auth/bootstrap';
 
 interface AuthState {
   accessToken: string | null;
@@ -33,37 +28,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   initialize: async () => {
     set({ isLoading: true, networkError: false });
-    // Wire refresh middleware before any network call so 401s get retried.
-    setRefreshHandler(() => get().refreshAuth());
     try {
-      // Must run before the first getToken(): legacy tokens live in the
-      // default keychain scope and are invisible to the shared App Group.
-      await migrateLegacyTokens();
-      const stored = await getToken();
-      if (!stored) return;
+      const result = await bootstrapAuth({
+        clearAuth: () => get().clearAuth(),
+        refreshAuth: () => get().refreshAuth(),
+      });
 
-      setAuthToken(stored.accessToken);
-      try {
-        await authenticatedRequest(ME_QUERY);
-        // Re-read token in case authenticatedRequest triggered a refresh
-        const current = await getToken();
-        set({
-          accessToken: current?.accessToken ?? stored.accessToken,
-          isAuthenticated: true,
-        });
-      } catch (error) {
-        if (isNetworkError(error)) {
-          set({ networkError: true });
-        } else {
-          try {
-            await get().clearAuth();
-          } catch {
-            // Force in-memory state clean even if storage failed
-            setAuthToken(null);
-            set({ accessToken: null, isAuthenticated: false });
-          }
-        }
-      }
+      set({
+        accessToken: result.accessToken,
+        isAuthenticated: result.isAuthenticated,
+        networkError: result.networkError,
+      });
     } finally {
       set({ isLoading: false });
     }

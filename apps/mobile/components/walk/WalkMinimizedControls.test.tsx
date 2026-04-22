@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { WalkMinimizedControls } from './WalkMinimizedControls';
 import type { Dog } from '@/types/graphql';
 
@@ -9,14 +9,15 @@ jest.mock('@/hooks/use-color-scheme', () => ({
 jest.mock('expo-image', () => ({ Image: 'Image' }));
 
 const mockSetMinimized = jest.fn();
+const mockWalkStoreState = {
+  startedAt: null as Date | null,
+  totalDistanceM: 1420,
+  setMinimized: mockSetMinimized,
+};
 
 jest.mock('@/stores/walk-store', () => ({
-  useWalkStore: (selector: (s: object) => unknown) =>
-    selector({
-      startedAt: null,
-      totalDistanceM: 1420,
-      setMinimized: mockSetMinimized,
-    }),
+  useWalkStore: (selector: (s: typeof mockWalkStoreState) => unknown) =>
+    selector(mockWalkStoreState),
 }));
 
 jest.mock('@/lib/walk/format', () => ({
@@ -36,7 +37,14 @@ const coco: Dog = {
 
 describe('WalkMinimizedControls', () => {
   beforeEach(() => {
+    jest.useFakeTimers();
     mockSetMinimized.mockClear();
+    mockWalkStoreState.startedAt = null;
+    mockWalkStoreState.totalDistanceM = 1420;
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   it('renders distance and LIVE', () => {
@@ -54,5 +62,19 @@ describe('WalkMinimizedControls', () => {
     render(<WalkMinimizedControls dogs={[coco]} />);
     fireEvent.press(screen.getByRole('button', { name: 'Expand' }));
     expect(mockSetMinimized).toHaveBeenCalledWith(false);
+  });
+
+  it('updates the elapsed label while recording', () => {
+    jest.setSystemTime(new Date('2026-04-20T10:00:00.000Z'));
+    mockWalkStoreState.startedAt = new Date('2026-04-20T09:59:56.000Z');
+
+    render(<WalkMinimizedControls dogs={[coco]} />);
+    expect(screen.getByText('4s')).toBeTruthy();
+
+    act(() => {
+      jest.advanceTimersByTime(2_000);
+    });
+
+    expect(screen.getByText('6s')).toBeTruthy();
   });
 });

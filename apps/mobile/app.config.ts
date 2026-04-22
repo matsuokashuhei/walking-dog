@@ -93,7 +93,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       },
     ],
     '@bacons/apple-targets',
-    '@sentry/react-native',
   ],
   experiments: {
     typedRoutes: true,
@@ -104,6 +103,5 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     appEnv: APP_ENV,
     appGroup: APP_GROUP,
     keychainService: KEYCHAIN_SERVICE,
-    sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN ?? null,
   },
 });

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
 import { spacing, radius, typography } from '@/theme/tokens';
 import { OutlinedCard } from '@/components/ui/OutlinedCard';
+import { formatDateTime, formatDuration } from '@/lib/walk/format';
 import type { Encounter } from '@/types/graphql';
 
 interface EncounterCardProps {
@@ -11,20 +12,12 @@ interface EncounterCardProps {
   myDogId: string;
 }
 
-function formatDuration(totalSec: number): string {
-  if (totalSec < 60) return `${totalSec}s`;
-  const min = Math.floor(totalSec / 60);
-  const sec = totalSec % 60;
-  return sec > 0 ? `${min}m ${sec}s` : `${min}m`;
-}
-
 export function EncounterCard({ encounter, myDogId }: EncounterCardProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const theme = useColors();
 
   // Show the other dog (not mine)
   const otherDog = encounter.dog1.id === myDogId ? encounter.dog2 : encounter.dog1;
-  const metDate = new Date(encounter.metAt);
 
   return (
     <OutlinedCard style={styles.card}>
@@ -37,12 +30,12 @@ export function EncounterCard({ encounter, myDogId }: EncounterCardProps) {
       <View style={styles.info}>
         <Text style={[styles.name, { color: theme.onSurface }]}>{otherDog.name}</Text>
         <Text style={[styles.meta, { color: theme.onSurfaceVariant }]}>
-          {metDate.toLocaleString()}
+          {formatDateTime(encounter.metAt, i18n.language)}
         </Text>
       </View>
       <View style={styles.duration}>
         <Text style={[styles.durationValue, { color: theme.onSurface }]}>
-          {formatDuration(encounter.durationSec)}
+          {formatDuration(encounter.durationSec, i18n.language)}
         </Text>
         <Text style={[styles.durationLabel, { color: theme.onSurfaceVariant }]}>
           {t('dogs.encounters.duration', 'duration')}

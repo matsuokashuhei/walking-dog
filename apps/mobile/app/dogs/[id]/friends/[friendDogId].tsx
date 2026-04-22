@@ -7,17 +7,11 @@ import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { OutlinedCard } from '@/components/ui/OutlinedCard';
 import { Button } from '@/components/ui/Button';
 import { useColors } from '@/hooks/use-colors';
+import { formatDuration, formatShortDate } from '@/lib/walk/format';
 import { spacing, radius, typography } from '@/theme/tokens';
 
-function formatDuration(totalSec: number): string {
-  if (totalSec < 60) return `${totalSec}s`;
-  const min = Math.floor(totalSec / 60);
-  const sec = totalSec % 60;
-  return sec > 0 ? `${min}m ${sec}s` : `${min}m`;
-}
-
 export default function FriendDogDetailScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { id, friendDogId } = useLocalSearchParams<{ id: string; friendDogId: string }>();
   const router = useRouter();
   const theme = useColors();
@@ -61,7 +55,7 @@ export default function FriendDogDetailScreen() {
             {t('dogs.friends.totalTime', 'Total Time').toUpperCase()}
           </Text>
           <Text style={[styles.statValue, { color: theme.onSurface }]}>
-            {formatDuration(friendship.totalInteractionSec)}
+            {formatDuration(friendship.totalInteractionSec, i18n.language)}
           </Text>
         </OutlinedCard>
       </View>
@@ -72,7 +66,7 @@ export default function FriendDogDetailScreen() {
             {t('dogs.friends.firstMet', 'First Met').toUpperCase()}
           </Text>
           <Text style={[styles.statValue, { color: theme.onSurface }]}>
-            {new Date(friendship.firstMetAt).toLocaleDateString()}
+            {formatShortDate(friendship.firstMetAt, i18n.language)}
           </Text>
         </OutlinedCard>
         <OutlinedCard padding="md">
@@ -80,7 +74,7 @@ export default function FriendDogDetailScreen() {
             {t('dogs.friends.lastMet', 'Last Met').toUpperCase()}
           </Text>
           <Text style={[styles.statValue, { color: theme.onSurface }]}>
-            {new Date(friendship.lastMetAt).toLocaleDateString()}
+            {formatShortDate(friendship.lastMetAt, i18n.language)}
           </Text>
         </OutlinedCard>
       </View>

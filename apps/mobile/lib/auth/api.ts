@@ -6,6 +6,7 @@ import {
   SIGN_OUT_MUTATION,
   REFRESH_TOKEN_MUTATION,
 } from '../graphql/mutations/auth';
+import { toAuthError } from './errors';
 
 export interface SignUpResult {
   success: boolean;
@@ -33,28 +34,42 @@ interface SignOutResponse {
   signOut: boolean;
 }
 
+async function mapAuthRequestError<T>(request: () => Promise<T>): Promise<T> {
+  try {
+    return await request();
+  } catch (error) {
+    throw toAuthError(error);
+  }
+}
+
 export async function signUp(
   email: string,
   password: string,
   displayName: string
 ): Promise<SignUpResult> {
-  const data = await graphqlClient.request<SignUpResponse>(SIGN_UP_MUTATION, {
-    input: { email, password, displayName },
-  });
+  const data = await mapAuthRequestError(() =>
+    graphqlClient.request<SignUpResponse>(SIGN_UP_MUTATION, {
+      input: { email, password, displayName },
+    })
+  );
   return data.signUp;
 }
 
 export async function confirmSignUp(email: string, code: string): Promise<boolean> {
-  const data = await graphqlClient.request<ConfirmSignUpResponse>(CONFIRM_SIGN_UP_MUTATION, {
-    input: { email, code },
-  });
+  const data = await mapAuthRequestError(() =>
+    graphqlClient.request<ConfirmSignUpResponse>(CONFIRM_SIGN_UP_MUTATION, {
+      input: { email, code },
+    })
+  );
   return data.confirmSignUp;
 }
 
 export async function signIn(email: string, password: string): Promise<SignInResult> {
-  const data = await graphqlClient.request<SignInResponse>(SIGN_IN_MUTATION, {
-    input: { email, password },
-  });
+  const data = await mapAuthRequestError(() =>
+    graphqlClient.request<SignInResponse>(SIGN_IN_MUTATION, {
+      input: { email, password },
+    })
+  );
   return data.signIn;
 }
 

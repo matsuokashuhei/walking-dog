@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View, type ViewProps } from 'react-native';
 import { useColors } from '@/hooks/use-colors';
+import { radius } from '@/theme/tokens';
 
 export type TagTone =
   | 'neutral'
@@ -61,7 +62,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     paddingVertical: 4,
     paddingHorizontal: 10,
-    borderRadius: 100,
+    borderRadius: radius.pill,
     gap: 6,
   },
   dot: {

@@ -1,9 +1,7 @@
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { useMe } from '@/hooks/use-me';
-import { usePackProgress } from '@/hooks/use-pack-progress';
+import { useDogsScreenViewModel } from '@/hooks/use-dogs-screen-view-model';
 import { DogListItem } from '@/components/dogs/DogListItem';
 import { PackRollupCard } from '@/components/dogs/PackRollupCard';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -14,14 +12,10 @@ import { spacing, typography } from '@/theme/tokens';
 
 export default function DogsScreen() {
   const { t } = useTranslation();
-  const router = useRouter();
   const theme = useColors();
-  const { data: me, isLoading, refetch } = useMe();
-  const pack = usePackProgress();
+  const vm = useDogsScreenViewModel();
 
-  if (isLoading) return <LoadingScreen />;
-
-  const dogs = me?.dogs ?? [];
+  if (vm.isLoading) return <LoadingScreen />;
 
   const ListHeader = (
     <View style={styles.headerContainer}>
@@ -32,7 +26,7 @@ export default function DogsScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t('dogs.list.addDog')}
-          onPress={() => router.push('/dogs/new')}
+          onPress={vm.handleAddDog}
           hitSlop={12}
         >
           <Text style={[styles.addCta, { color: theme.interactive }]}>
@@ -43,9 +37,9 @@ export default function DogsScreen() {
 
       <View style={styles.rollupWrap}>
         <PackRollupCard
-          todayKm={pack.todayKm}
-          goalKm={pack.goalKm}
-          progressPct={pack.progressPct}
+          todayKm={vm.pack.todayKm}
+          goalKm={vm.pack.goalKm}
+          progressPct={vm.pack.progressPct}
         />
       </View>
 
@@ -62,24 +56,24 @@ export default function DogsScreen() {
       style={[styles.container, { backgroundColor: theme.background }]}
     >
       <FlatList
-        data={dogs}
+        data={vm.dogs}
         keyExtractor={(dog) => dog.id}
         renderItem={({ item }) => (
           <DogListItem
             dog={item}
-            onPress={(id) => router.push(`/dogs/${id}`)}
-            progress={pack.perDog[item.id]}
+            onPress={vm.handleOpenDog}
+            progress={vm.pack.perDog[item.id]}
           />
         )}
         ListHeaderComponent={ListHeader}
         contentContainerStyle={styles.list}
-        onRefresh={refetch}
-        refreshing={isLoading}
+        onRefresh={vm.handleRefresh}
+        refreshing={vm.isLoading}
         ListEmptyComponent={
           <EmptyState
             message={t('dogs.list.empty')}
             ctaLabel={t('dogs.list.addDog')}
-            onCta={() => router.push('/dogs/new')}
+            onCta={vm.handleAddDog}
           />
         }
       />

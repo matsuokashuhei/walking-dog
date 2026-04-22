@@ -1,0 +1,129 @@
+import { useCallback, useMemo, useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useDog } from '@/hooks/use-dog';
+import { useDogDetailAuthorization } from '@/hooks/use-dog-detail-authorization';
+import { useDeleteDog } from '@/hooks/use-dog-mutations';
+import { useMe } from '@/hooks/use-me';
+import { useMutationWithAlert } from '@/hooks/use-mutation-with-alert';
+import { usePackProgress } from '@/hooks/use-pack-progress';
+import { useMyWalks } from '@/hooks/use-walks';
+import type { Dog, DogWithStats, Walk } from '@/types/graphql';
+
+function computeAgeLabel(birthDate: Dog['birthDate'], now: Date = new Date()): string | null {
+  if (!birthDate?.year) return null;
+  const month = birthDate.month ?? 1;
+  const day = birthDate.day ?? 1;
+  const birth = new Date(birthDate.year, month - 1, day);
+  let age = now.getFullYear() - birth.getFullYear();
+  const monthDiff = now.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birth.getDate())) {
+    age -= 1;
+  }
+  return age >= 0 ? `${age}y` : null;
+}
+
+function buildMeta(dog: Dog): string {
+  const parts: string[] = [];
+  const age = computeAgeLabel(dog.birthDate);
+  if (age) parts.push(age);
+  if (dog.breed) parts.push(dog.breed);
+  else if (dog.gender) parts.push(dog.gender);
+  return parts.join(' · ');
+}
+
+interface DogDetailLoadingViewModel {
+  status: 'loading';
+}
+
+interface DogDetailReadyViewModel {
+  status: 'ready';
+  dog: DogWithStats;
+  meta: string;
+  memberCount: number;
+  streakDays: number;
+  dogWalks: Walk[];
+  isOwner: boolean;
+  showDeleteConfirm: boolean;
+  handleOpenWalk: (walkId: string) => void;
+  handleOpenMembers: () => void;
+  handleOpenFriends: () => void;
+  openDeleteConfirm: () => void;
+  closeDeleteConfirm: () => void;
+  handleDelete: () => Promise<void>;
+}
+
+export type DogDetailViewModel = DogDetailLoadingViewModel | DogDetailReadyViewModel;
+
+export function useDogDetailViewModel(): DogDetailViewModel {
+  const { id: rawId } = useLocalSearchParams<{ id: string }>();
+  const dogId = Array.isArray(rawId) ? rawId[0] : rawId;
+  const router = useRouter();
+
+  const { data: dog, isLoading } = useDog(dogId ?? '', 'ALL');
+  const { data: me } = useMe();
+  const { data: walks = [] } = useMyWalks(100);
+  const pack = usePackProgress();
+  const { mutateAsync: deleteDog } = useDeleteDog();
+  const runWithAlert = useMutationWithAlert();
+  const { isOwner } = useDogDetailAuthorization(dog ?? undefined, me ?? undefined);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const dogWalks = useMemo(
+    () => (dog ? walks.filter((walk) => walk.dogs.some((walkDog) => walkDog.id === dog.id)) : []),
+    [dog, walks],
+  );
+
+  const handleOpenWalk = useCallback(
+    (walkId: string) => {
+      router.push(`/walks/${walkId}`);
+    },
+    [router],
+  );
+
+  const handleOpenMembers = useCallback(() => {
+    if (!dogId) return;
+    router.push(`/dogs/${dogId}/members`);
+  }, [dogId, router]);
+
+  const handleOpenFriends = useCallback(() => {
+    if (!dogId) return;
+    router.push(`/dogs/${dogId}/friends`);
+  }, [dogId, router]);
+
+  const openDeleteConfirm = useCallback(() => {
+    setShowDeleteConfirm(true);
+  }, []);
+
+  const closeDeleteConfirm = useCallback(() => {
+    setShowDeleteConfirm(false);
+  }, []);
+
+  const handleDelete = useCallback(async () => {
+    if (!dogId) return;
+    const ok = await runWithAlert(() => deleteDog(dogId), 'dogs.detail.deleteError');
+    if (ok) {
+      router.replace('/(tabs)/dogs');
+    }
+  }, [deleteDog, dogId, router, runWithAlert]);
+
+  if (isLoading || !dog) {
+    return { status: 'loading' };
+  }
+
+  return {
+    status: 'ready',
+    dog,
+    meta: buildMeta(dog),
+    memberCount: dog.members?.length ?? 0,
+    streakDays: pack.perDog[dog.id]?.streakDays ?? 0,
+    dogWalks,
+    isOwner,
+    showDeleteConfirm,
+    handleOpenWalk,
+    handleOpenMembers,
+    handleOpenFriends,
+    openDeleteConfirm,
+    closeDeleteConfirm,
+    handleDelete,
+  };
+}

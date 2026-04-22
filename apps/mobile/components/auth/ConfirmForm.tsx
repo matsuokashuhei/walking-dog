@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/Button';
 import { useColors } from '@/hooks/use-colors';
 import { useOtpInput } from '@/hooks/use-otp-input';
+import { toAuthError } from '@/lib/auth/errors';
 import { radius, spacing, typography } from '@/theme/tokens';
 
 interface ConfirmFormProps {
@@ -31,13 +32,20 @@ export function ConfirmForm({ email, onSuccess }: ConfirmFormProps) {
       await confirmSignUp(email, otp.code);
       onSuccess();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : '';
-      if (message.includes('INVALID_CODE')) {
-        setError(t('auth.confirm.error.invalidCode'));
-      } else if (message.includes('EXPIRED_CODE')) {
-        setError(t('auth.confirm.error.expiredCode'));
-      } else {
-        setError(t('auth.confirm.error.generic'));
+      const authError = toAuthError(err);
+      switch (authError.kind) {
+        case 'code-mismatch':
+          setError(
+            authError.reason === 'expired'
+              ? t('auth.confirm.error.expiredCode')
+              : t('auth.confirm.error.invalidCode'),
+          );
+          break;
+        case 'network':
+          setError(t('auth.error.networkError'));
+          break;
+        default:
+          setError(t('auth.confirm.error.generic'));
       }
     } finally {
       setLoading(false);

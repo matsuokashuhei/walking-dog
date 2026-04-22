@@ -32,6 +32,8 @@ let mockStorePoints: WalkPoint[] = [];
 let mockStoreTotalDistanceM = 0;
 let mockStoreStartedAt: Date | null = null;
 let mockStorePhase: 'ready' | 'recording' | 'finished' = 'ready';
+let mockStoreTrackingGeneration = 0;
+let mockStoreTrackingCleanup: (() => void) | null = null;
 
 jest.mock('@/stores/walk-store', () => {
   const state = {
@@ -56,6 +58,39 @@ jest.mock('@/stores/walk-store', () => {
     get startedAt() {
       return mockStoreStartedAt;
     },
+    get trackingGeneration() {
+      return mockStoreTrackingGeneration;
+    },
+    get trackingCleanup() {
+      return mockStoreTrackingCleanup;
+    },
+    activateTrackingSession: () => {
+      mockStoreTrackingGeneration += 1;
+      const cleanup = mockStoreTrackingCleanup;
+      mockStoreTrackingCleanup = null;
+      cleanup?.();
+      return mockStoreTrackingGeneration;
+    },
+    attachTrackingCleanup: (generation: number, cleanup: () => void) => {
+      if (generation !== mockStoreTrackingGeneration) {
+        return false;
+      }
+
+      mockStoreTrackingCleanup = cleanup;
+      return true;
+    },
+    stopTrackingSession: () => {
+      mockStoreTrackingGeneration += 1;
+      const cleanup = mockStoreTrackingCleanup;
+      mockStoreTrackingCleanup = null;
+      cleanup?.();
+    },
+    resetTrackingSession: () => {
+      const cleanup = mockStoreTrackingCleanup;
+      mockStoreTrackingCleanup = null;
+      mockStoreTrackingGeneration = 0;
+      cleanup?.();
+    },
   };
   const useWalkStoreMock = (selector: (s: typeof state) => unknown) => selector(state);
   (useWalkStoreMock as unknown as { getState: () => typeof state }).getState = () => state;
@@ -67,6 +102,15 @@ const mockFinishWalkMutateAsync = jest.fn();
 const mockAddPointsMutateAsync = jest.fn();
 const mockStopTracking = jest.fn();
 
+function requireCapturedOnPoint(
+  callback: ((point: WalkPoint) => void) | null,
+): (point: WalkPoint) => void {
+  if (!callback) {
+    throw new Error('Expected GPS callback to be captured');
+  }
+  return callback;
+}
+
 beforeEach(() => {
   jest.clearAllMocks();
   resetWalkSessionTrackingState();
@@ -74,6 +118,8 @@ beforeEach(() => {
   mockStoreTotalDistanceM = 0;
   mockStoreStartedAt = new Date('2026-04-01T00:00:00Z');
   mockStorePhase = 'ready';
+  mockStoreTrackingGeneration = 0;
+  mockStoreTrackingCleanup = null;
 
   (walkMutations.useStartWalk as jest.Mock).mockReturnValue({
     mutateAsync: mockStartWalkMutateAsync,
@@ -225,7 +271,8 @@ describe('useWalkSession.stop', () => {
     mockStoreAddPoint.mockClear();
     (liveActivity.updateLiveActivityDistance as jest.Mock).mockClear();
 
-    capturedOnPoint?.({ lat: 35.68, lng: 139.76, recordedAt: '2026-04-01T00:01:00Z' });
+    const onPoint = requireCapturedOnPoint(capturedOnPoint);
+    onPoint({ lat: 35.68, lng: 139.76, recordedAt: '2026-04-01T00:01:00Z' });
 
     expect(mockStoreAddPoint).not.toHaveBeenCalled();
     expect(liveActivity.updateLiveActivityDistance).not.toHaveBeenCalled();

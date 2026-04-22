@@ -1,6 +1,13 @@
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { TOKYO_STATION_COORDINATE } from '@/lib/walk/constants';
-import { formatClockTime } from '@/lib/walk/format';
+import {
+  formatClockTime,
+  formatDistanceParts,
+  formatDuration,
+  formatPace,
+  formatShortDate,
+} from '@/lib/walk/format';
 import type { Walk, WalkEvent } from '@/types/graphql';
 
 export interface WalkDetailViewModel {
@@ -8,28 +15,50 @@ export interface WalkDetailViewModel {
   events: WalkEvent[];
   durationMin: number;
   distanceKm: string;
+  distanceDisplay: { value: string; unit: string };
+  durationDisplay: string;
+  paceDisplay: { value: string; unit: string };
   date: string;
   dogNames: string;
   startTime: string;
   endTime: string | null;
   midpoint: { latitude: number; longitude: number };
+  walker: {
+    displayName: string | null;
+    avatarUrl: string | null;
+    initial: string;
+  } | null;
 }
 
 export function useWalkDetailViewModel(walk: Walk | null | undefined): WalkDetailViewModel | null {
+  const { i18n } = useTranslation();
+
   return useMemo(() => {
     if (!walk) return null;
 
+    const distanceM = walk.distanceM ?? 0;
+    const durationSec = walk.durationSec ?? 0;
     const coordinates = (walk.points ?? []).map((p) => ({
       latitude: p.lat,
       longitude: p.lng,
     }));
     const events = walk.events ?? [];
-    const durationMin = walk.durationSec ? Math.round(walk.durationSec / 60) : 0;
-    const distanceKm = walk.distanceM ? (walk.distanceM / 1000).toFixed(2) : '0';
-    const date = new Date(walk.startedAt).toLocaleDateString();
+    const durationMin = durationSec ? Math.round(durationSec / 60) : 0;
+    const distanceDisplay = formatDistanceParts(distanceM, 'km', 2);
+    const durationDisplay = formatDuration(durationSec, i18n.language);
+    const paceDisplay = formatPace(durationSec, distanceM);
+    const distanceKm = distanceDisplay.value;
+    const date = formatShortDate(walk.startedAt);
     const dogNames = walk.dogs.map((d) => d.name).join(', ');
     const startTime = formatClockTime(walk.startedAt);
     const endTime = walk.endedAt ? formatClockTime(walk.endedAt) : null;
+    const walker = walk.walker
+      ? {
+          displayName: walk.walker.displayName,
+          avatarUrl: walk.walker.avatarUrl,
+          initial: walk.walker.displayName?.trim().charAt(0).toUpperCase() ?? '?',
+        }
+      : null;
     const midpoint =
       coordinates.length > 0
         ? coordinates[Math.floor(coordinates.length / 2)]
@@ -40,11 +69,15 @@ export function useWalkDetailViewModel(walk: Walk | null | undefined): WalkDetai
       events,
       durationMin,
       distanceKm,
+      distanceDisplay,
+      durationDisplay,
+      paceDisplay,
       date,
       dogNames,
       startTime,
       endTime,
       midpoint,
+      walker,
     };
-  }, [walk]);
+  }, [i18n.language, walk]);
 }

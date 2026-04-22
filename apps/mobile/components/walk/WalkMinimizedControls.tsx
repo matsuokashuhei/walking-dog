@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { Tag } from '@/components/ui/Tag';
 import { useColors } from '@/hooks/use-colors';
+import { useWalkElapsed } from '@/hooks/use-walk-elapsed';
 import { useSettingsStore } from '@/stores/settings-store';
 import { useWalkStore } from '@/stores/walk-store';
 import { elevation, radius, spacing, typography } from '@/theme/tokens';
@@ -23,17 +23,7 @@ export function WalkMinimizedControls({ dogs }: WalkMinimizedControlsProps) {
   const totalDistanceM = useWalkStore((s) => s.totalDistanceM);
   const setMinimized = useWalkStore((s) => s.setMinimized);
   const units = useSettingsStore((s) => s.units);
-  const [elapsedSec, setElapsedSec] = useState(0);
-
-  useEffect(() => {
-    if (!startedAt) return;
-    const tick = () => {
-      setElapsedSec(Math.floor((Date.now() - startedAt.getTime()) / 1000));
-    };
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, [startedAt]);
+  const elapsedSec = useWalkElapsed({ startedAt, isPaused: false, totalPausedMs: 0 });
 
   const expand = () => setMinimized(false);
 

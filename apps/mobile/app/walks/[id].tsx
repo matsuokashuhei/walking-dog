@@ -31,9 +31,6 @@ export default function WalkDetailScreen() {
     ? `${t('walk.detail.startTime')} ${vm.startTime}${separator}${t('walk.detail.endTime')} ${vm.endTime}`
     : `${t('walk.detail.startTime')} ${vm.startTime}`;
 
-  const pace = formatPace(vm.durationMin, vm.distanceKm);
-  const durationDisplay = formatDuration(vm.durationMin);
-
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <ScrollView
@@ -94,40 +91,39 @@ export default function WalkDetailScreen() {
         <GroupedCard padding="lg" style={styles.metrics}>
           <Metric
             label={t('walk.recording.distance')}
-            value={vm.distanceKm}
-            unit="km"
+            value={vm.distanceDisplay.value}
+            unit={vm.distanceDisplay.unit}
             labelColor={theme.onSurfaceVariant}
             valueColor={theme.onSurface}
           />
           <Metric
             label={t('walk.recording.time')}
-            value={durationDisplay.value}
-            unit={durationDisplay.unit}
+            value={vm.durationDisplay}
             labelColor={theme.onSurfaceVariant}
             valueColor={theme.onSurface}
           />
           <Metric
             label="Pace"
-            value={pace.value}
-            unit={pace.unit}
+            value={vm.paceDisplay.value}
+            unit={vm.paceDisplay.unit}
             labelColor={theme.onSurfaceVariant}
             valueColor={theme.onSurface}
           />
         </GroupedCard>
 
-        {walk.walker ? (
+        {vm.walker ? (
           <View style={styles.walkerSection}>
             <Text style={[styles.walkerLabel, { color: theme.onSurfaceVariant }]}>
               {t('walk.detail.walker')}
             </Text>
             <View style={styles.walkerRow}>
-              {walk.walker.avatarUrl ? (
+              {vm.walker.avatarUrl ? (
                 <Image
-                  source={{ uri: walk.walker.avatarUrl }}
+                  source={{ uri: vm.walker.avatarUrl }}
                   style={styles.walkerAvatar}
                   contentFit="cover"
                   cachePolicy="memory-disk"
-                  accessibilityLabel={walk.walker.displayName ?? ''}
+                  accessibilityLabel={vm.walker.displayName ?? ''}
                 />
               ) : (
                 <View
@@ -138,12 +134,12 @@ export default function WalkDetailScreen() {
                   ]}
                 >
                   <Text style={[styles.walkerInitialText, { color: theme.onInteractive }]}>
-                    {walk.walker.displayName?.charAt(0)?.toUpperCase() ?? '?'}
+                    {vm.walker.initial}
                   </Text>
                 </View>
               )}
               <Text style={[styles.walkerName, { color: theme.onSurface }]}>
-                {walk.walker.displayName}
+                {vm.walker.displayName}
               </Text>
             </View>
           </View>
@@ -181,24 +177,6 @@ function Metric({
       </View>
     </View>
   );
-}
-
-function formatDuration(durationMin: number): { value: string; unit: string } {
-  if (durationMin < 60) return { value: `${durationMin}`, unit: 'min' };
-  const hh = Math.floor(durationMin / 60);
-  const mm = durationMin % 60;
-  return { value: `${hh}:${mm.toString().padStart(2, '0')}`, unit: 'hr' };
-}
-
-function formatPace(durationMin: number, distanceKm: string): { value: string; unit: string } {
-  const km = Number(distanceKm);
-  if (!Number.isFinite(km) || km < 0.1 || durationMin === 0) {
-    return { value: '—', unit: '/km' };
-  }
-  const secPerKm = (durationMin * 60) / km;
-  const mm = Math.floor(secPerKm / 60);
-  const ss = Math.floor(secPerKm % 60);
-  return { value: `${mm}'${ss.toString().padStart(2, '0')}"`, unit: '/km' };
 }
 
 const styles = StyleSheet.create({

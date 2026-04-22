@@ -65,7 +65,8 @@
     "rust-analyzer-lsp@claude-plugins-official": true,
     "swift-lsp@claude-plugins-official": true,
     "agent-skills@addy-agent-skills": true,
-    "ecc@everything-claude-code": false
+    "ecc@everything-claude-code": false,
+    "sentry@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "claude-plugins-official": {

@@ -95,35 +95,19 @@ pub fn user_output_type() -> Object {
             TypeRef::named_nn_list_nn("DogOutput"),
             |ctx| {
                 FieldFuture::new(async move {
-                    use crate::entities::dog_members::{self, Entity as DogMemberEntity};
-                    use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
-
                     let u = ctx.parent_value.try_downcast_ref::<UserOutput>()?;
-                    let user_id = u.id;
                     let state = ctx.data::<Arc<crate::AppState>>()?;
-                    let dogs =
-                        crate::services::dog_service::get_dogs_by_user_id(&state.db, user_id)
-                            .await
-                            .map_err(crate::error::AppError::into_graphql_error)?;
-
-                    // Fetch memberships to get role for each dog
-                    let dog_ids: Vec<Uuid> = dogs.iter().map(|d| d.id).collect();
-                    let memberships = DogMemberEntity::find()
-                        .filter(dog_members::Column::UserId.eq(user_id))
-                        .filter(dog_members::Column::DogId.is_in(dog_ids))
-                        .all(&state.db)
+                    let dogs_with_roles =
+                        crate::services::dog_member_service::get_dogs_with_roles_for_user(
+                            &state.db, u.id,
+                        )
                         .await
-                        .map_err(|e| AppError::Database(e).into_graphql_error())?;
-
-                    let values: Vec<FieldValue> = dogs
+                        .map_err(AppError::into_graphql_error)?;
+                    let values: Vec<FieldValue> = dogs_with_roles
                         .into_iter()
-                        .map(|d| {
-                            let role = memberships
-                                .iter()
-                                .find(|m| m.dog_id == d.id)
-                                .map(|m| m.role.clone());
+                        .map(|(d, role)| {
                             let mut output = super::dog::DogOutput::from(d);
-                            output.role = role;
+                            output.role = Some(role);
                             FieldValue::owned_any(output)
                         })
                         .collect();

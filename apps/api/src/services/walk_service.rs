@@ -1,4 +1,5 @@
 use crate::entities::{
+    dogs::{self, Entity as DogEntity, Model as DogModel},
     walk_dogs::{self, ActiveModel as WalkDogActiveModel, Entity as WalkDogEntity},
     walks::{self, ActiveModel, Entity as WalkEntity, Model as WalkModel, WalkStatus},
 };
@@ -239,6 +240,30 @@ pub async fn get_walks_for_user(
 
     let walks = query.all(db).await?;
     Ok(walks)
+}
+
+/// Get the dogs associated with a walk (via `walk_dogs`).
+pub async fn get_dogs_for_walk(
+    db: &sea_orm::DatabaseConnection,
+    walk_id: Uuid,
+) -> Result<Vec<DogModel>, AppError> {
+    let dog_ids: Vec<Uuid> = WalkDogEntity::find()
+        .filter(walk_dogs::Column::WalkId.eq(walk_id))
+        .select_only()
+        .column(walk_dogs::Column::DogId)
+        .into_tuple()
+        .all(db)
+        .await?;
+
+    if dog_ids.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    DogEntity::find()
+        .filter(dogs::Column::Id.is_in(dog_ids))
+        .all(db)
+        .await
+        .map_err(AppError::Database)
 }
 
 #[cfg(test)]

@@ -175,7 +175,7 @@ pub fn walk_output_type() -> Object {
         ))
         .field(Field::new(
             "points",
-            TypeRef::named_nn_list_nn("WalkPointOutput"),
+            TypeRef::named_nn_list_nn("WalkPoint"),
             |ctx| {
                 FieldFuture::new(async move {
                     let w = ctx.parent_value.try_downcast_ref::<WalkOutput>()?;
@@ -220,46 +220,6 @@ pub fn walk_output_type() -> Object {
                         .map(|e| FieldValue::owned_any(super::walk_event::WalkEventOutput::from(e)))
                         .collect();
                     Ok(Some(FieldValue::list(values)))
-                })
-            },
-        ))
-}
-
-pub fn walk_point_output_type() -> Object {
-    Object::new("WalkPointOutput")
-        .field(Field::new(
-            "lat",
-            TypeRef::named_nn(TypeRef::FLOAT),
-            |ctx| {
-                FieldFuture::new(async move {
-                    let p = ctx
-                        .parent_value
-                        .try_downcast_ref::<crate::graphql::custom_queries::WalkPointOutput>()?;
-                    Ok(Some(FieldValue::value(p.lat)))
-                })
-            },
-        ))
-        .field(Field::new(
-            "lng",
-            TypeRef::named_nn(TypeRef::FLOAT),
-            |ctx| {
-                FieldFuture::new(async move {
-                    let p = ctx
-                        .parent_value
-                        .try_downcast_ref::<crate::graphql::custom_queries::WalkPointOutput>()?;
-                    Ok(Some(FieldValue::value(p.lng)))
-                })
-            },
-        ))
-        .field(Field::new(
-            "recordedAt",
-            TypeRef::named_nn(TypeRef::STRING),
-            |ctx| {
-                FieldFuture::new(async move {
-                    let p = ctx
-                        .parent_value
-                        .try_downcast_ref::<crate::graphql::custom_queries::WalkPointOutput>()?;
-                    Ok(Some(FieldValue::value(p.recorded_at.clone())))
                 })
             },
         ))

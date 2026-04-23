@@ -75,7 +75,6 @@ pub fn build_schema(state: Arc<AppState>) -> AppSchema {
         .register(mutations::dog_output_type())
         .register(mutations::walk_output_type())
         .register(mutations::walker_output_type())
-        .register(mutations::walk_point_output_type())
         .register(mutations::user_output_type())
         .register(mutations::walk_event_output_type())
         .register(mutations::presigned_url_type())

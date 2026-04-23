@@ -242,6 +242,22 @@ pub async fn get_walks_for_user(
     Ok(walks)
 }
 
+/// Verify that the given user owns the walk. Returns the walk on success
+/// or `AppError::NotFound` when the walk does not exist or belongs to
+/// another user. Used by walk mutations that must only be performed by the
+/// walk's creator (e.g. recording GPS points, finishing the walk).
+pub async fn require_walk_owner(
+    db: &sea_orm::DatabaseConnection,
+    walk_id: Uuid,
+    user_id: Uuid,
+) -> Result<WalkModel, AppError> {
+    WalkEntity::find_by_id(walk_id)
+        .filter(walks::Column::UserId.eq(user_id))
+        .one(db)
+        .await?
+        .ok_or_else(|| AppError::NotFound(format!("Walk {} not found", walk_id)))
+}
+
 /// Get the dogs associated with a walk (via `walk_dogs`).
 pub async fn get_dogs_for_walk(
     db: &sea_orm::DatabaseConnection,

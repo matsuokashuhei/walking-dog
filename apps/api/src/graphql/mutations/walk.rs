@@ -310,9 +310,6 @@ pub fn add_walk_points_field(state: Arc<AppState>) -> Field {
         move |ctx| {
             let state = state.clone();
             FieldFuture::new(async move {
-                use crate::entities::{walks, walks::Entity as WalkEntity};
-                use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
-
                 let walk_id_str = ctx.args.try_get("walkId")?.string()?;
 
                 let mut field_errors: Vec<FieldError> = Vec::new();
@@ -329,13 +326,10 @@ pub fn add_walk_points_field(state: Arc<AppState>) -> Field {
                 let walk_id = walk_id_opt.unwrap();
 
                 let user = auth_helpers::resolve_user(&ctx, &state).await?;
-                // Only the walk owner can add points (walks.user_id check)
-                WalkEntity::find_by_id(walk_id)
-                    .filter(walks::Column::UserId.eq(user.id))
-                    .one(&state.db)
+                // Only the walk owner can add points.
+                walk_service::require_walk_owner(&state.db, walk_id, user.id)
                     .await
-                    .map_err(|e| AppError::Database(e).into_graphql_error())?
-                    .ok_or_else(|| async_graphql::Error::new("Walk not found"))?;
+                    .map_err(AppError::into_graphql_error)?;
 
                 let points_raw = ctx.args.try_get("points")?.list()?;
                 let points: Vec<walk_points_service::WalkPointInput> = points_raw

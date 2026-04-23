@@ -2,8 +2,8 @@ use super::auth_helpers;
 use super::mutations::{DogOutput, UserOutput, WalkOutput};
 use crate::error::AppError;
 use crate::services::{
-    dog_member_service, dog_service, encounter_service, friendship_service, walk_points_service,
-    walk_service,
+    dog_member_service, dog_pair::DogPair, dog_service, encounter_service, friendship_service,
+    walk_points_service, walk_service,
 };
 use crate::AppState;
 use async_graphql::dynamic::{Field, FieldFuture, FieldValue, InputValue, Object, TypeRef};
@@ -563,7 +563,10 @@ fn friendship_field(state: Arc<AppState>) -> Field {
                     );
                 }
 
-                let friendship = friendship_service::get_friendship(&state.db, dog_id_1, dog_id_2)
+                let Some(pair) = DogPair::new(dog_id_1, dog_id_2) else {
+                    return Ok(None);
+                };
+                let friendship = friendship_service::get_friendship(&state.db, pair)
                     .await
                     .map_err(AppError::into_graphql_error)?;
 

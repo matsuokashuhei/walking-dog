@@ -17,18 +17,7 @@ use crate::entities::{
     walks::Entity as WalkEntity,
 };
 use crate::error::AppError;
-
-/// Normalize a dog pair so that `dog_id_1 < dog_id_2` (UUID lexicographic order).
-/// Returns `None` if both IDs are equal (same dog — skip).
-fn normalize_dog_pair(a: Uuid, b: Uuid) -> Option<(Uuid, Uuid)> {
-    if a < b {
-        Some((a, b))
-    } else if a > b {
-        Some((b, a))
-    } else {
-        None
-    }
-}
+use crate::services::dog_pair::DogPair;
 
 /// Verify that encounter detection is allowed for the acting user's walk.
 ///
@@ -167,8 +156,8 @@ pub async fn record_encounter(
 
     for my_dog in &my_dog_ids {
         for their_dog in &their_dog_ids {
-            // Normalize ordering: dog_id_1 < dog_id_2 (UUID lexicographic); skip same dog
-            let Some((dog_id_1, dog_id_2)) = normalize_dog_pair(*my_dog, *their_dog) else {
+            // DogPair enforces dog_id_1 < dog_id_2 and skips the same-dog case.
+            let Some(pair) = DogPair::new(*my_dog, *their_dog) else {
                 continue;
             };
 
@@ -179,8 +168,8 @@ pub async fn record_encounter(
                         .add(encounters::Column::WalkId.eq(my_walk_id))
                         .add(encounters::Column::WalkId.eq(their_walk_id)),
                 )
-                .filter(encounters::Column::DogId1.eq(dog_id_1))
-                .filter(encounters::Column::DogId2.eq(dog_id_2))
+                .filter(encounters::Column::DogId1.eq(pair.first()))
+                .filter(encounters::Column::DogId2.eq(pair.second()))
                 .one(&txn)
                 .await?;
 
@@ -196,8 +185,8 @@ pub async fn record_encounter(
                 let encounter = EncounterActiveModel {
                     id: Set(Uuid::new_v4()),
                     walk_id: Set(my_walk_id),
-                    dog_id_1: Set(dog_id_1),
-                    dog_id_2: Set(dog_id_2),
+                    dog_id_1: Set(pair.first()),
+                    dog_id_2: Set(pair.second()),
                     duration_sec: Set(duration_sec),
                     met_at: Set(met_at.into()),
                     created_at: Set(met_at.into()),
@@ -206,14 +195,7 @@ pub async fn record_encounter(
                 .await?;
 
                 // Upsert friendship (first encounter creates it)
-                friendship_service::upsert_friendship(
-                    &txn,
-                    dog_id_1,
-                    dog_id_2,
-                    duration_sec,
-                    met_at,
-                )
-                .await?;
+                friendship_service::upsert_friendship(&txn, pair, duration_sec, met_at).await?;
 
                 encounter
             };
@@ -257,14 +239,14 @@ pub async fn update_encounter_duration(
 
     for my_dog in &my_dog_ids {
         for their_dog in &their_dog_ids {
-            let Some((dog_id_1, dog_id_2)) = normalize_dog_pair(*my_dog, *their_dog) else {
+            let Some(pair) = DogPair::new(*my_dog, *their_dog) else {
                 continue;
             };
 
             let existing = EncounterEntity::find()
                 .filter(encounters::Column::WalkId.eq(my_walk_id))
-                .filter(encounters::Column::DogId1.eq(dog_id_1))
-                .filter(encounters::Column::DogId2.eq(dog_id_2))
+                .filter(encounters::Column::DogId1.eq(pair.first()))
+                .filter(encounters::Column::DogId2.eq(pair.second()))
                 .one(db)
                 .await?;
 
@@ -277,8 +259,7 @@ pub async fn update_encounter_duration(
 
                 // Update friendship total_interaction_sec with precise delta
                 let delta = new_duration - old_duration;
-                friendship_service::update_friendship_duration(db, dog_id_1, dog_id_2, delta)
-                    .await?;
+                friendship_service::update_friendship_duration(db, pair, delta).await?;
             }
         }
     }
@@ -315,29 +296,6 @@ pub async fn get_encounters_for_dog(
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn normalize_dog_pair_returns_ordered_pair_when_a_less_than_b() {
-        let a = Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap();
-        let b = Uuid::parse_str("00000000-0000-0000-0000-000000000002").unwrap();
-        let result = normalize_dog_pair(a, b);
-        assert_eq!(result, Some((a, b)));
-    }
-
-    #[test]
-    fn normalize_dog_pair_returns_swapped_pair_when_a_greater_than_b() {
-        let a = Uuid::parse_str("00000000-0000-0000-0000-000000000002").unwrap();
-        let b = Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap();
-        let result = normalize_dog_pair(a, b);
-        assert_eq!(result, Some((b, a)));
-    }
-
-    #[test]
-    fn normalize_dog_pair_returns_none_when_same_dog() {
-        let id = Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap();
-        let result = normalize_dog_pair(id, id);
-        assert_eq!(result, None);
-    }
 
     /// Static guard: record_encounter must accept acting_user_id parameter.
     #[test]

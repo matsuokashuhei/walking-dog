@@ -9,19 +9,20 @@ use crate::entities::friendships::{
     Model as FriendshipModel,
 };
 use crate::error::AppError;
+use crate::services::dog_pair::DogPair;
 
-/// Insert or update a friendship between two dogs.
-/// dog_id_1 MUST be < dog_id_2 (normalized by caller).
+/// Insert or update a friendship between two dogs. The canonical
+/// `dog_id_1 < dog_id_2` ordering is enforced by the `DogPair` type, so
+/// callers can no longer pass an out-of-order tuple.
 pub async fn upsert_friendship<C: sea_orm::ConnectionTrait>(
     db: &C,
-    dog_id_1: Uuid,
-    dog_id_2: Uuid,
+    pair: DogPair,
     duration_sec: i32,
     met_at: DateTime<Utc>,
 ) -> Result<FriendshipModel, AppError> {
     let existing = FriendshipEntity::find()
-        .filter(friendships::Column::DogId1.eq(dog_id_1))
-        .filter(friendships::Column::DogId2.eq(dog_id_2))
+        .filter(friendships::Column::DogId1.eq(pair.first()))
+        .filter(friendships::Column::DogId2.eq(pair.second()))
         .one(db)
         .await?;
 
@@ -34,8 +35,8 @@ pub async fn upsert_friendship<C: sea_orm::ConnectionTrait>(
     } else {
         FriendshipActiveModel {
             id: Set(Uuid::new_v4()),
-            dog_id_1: Set(dog_id_1),
-            dog_id_2: Set(dog_id_2),
+            dog_id_1: Set(pair.first()),
+            dog_id_2: Set(pair.second()),
             encounter_count: Set(1),
             total_interaction_sec: Set(duration_sec),
             first_met_at: Set(met_at.into()),
@@ -52,8 +53,7 @@ pub async fn upsert_friendship<C: sea_orm::ConnectionTrait>(
 /// Update the total_interaction_sec of an existing friendship by a precise delta.
 pub async fn update_friendship_duration(
     db: &sea_orm::DatabaseConnection,
-    dog_id_1: Uuid,
-    dog_id_2: Uuid,
+    pair: DogPair,
     delta_sec: i32,
 ) -> Result<bool, AppError> {
     if delta_sec == 0 {
@@ -61,8 +61,8 @@ pub async fn update_friendship_duration(
     }
 
     let existing = FriendshipEntity::find()
-        .filter(friendships::Column::DogId1.eq(dog_id_1))
-        .filter(friendships::Column::DogId2.eq(dog_id_2))
+        .filter(friendships::Column::DogId1.eq(pair.first()))
+        .filter(friendships::Column::DogId2.eq(pair.second()))
         .one(db)
         .await?;
 
@@ -94,21 +94,14 @@ pub async fn get_friends_for_dog(
     Ok(friends)
 }
 
-/// Get a specific friendship between two dogs.
+/// Get the friendship record for a specific pair of dogs.
 pub async fn get_friendship(
     db: &sea_orm::DatabaseConnection,
-    dog_id_a: Uuid,
-    dog_id_b: Uuid,
+    pair: DogPair,
 ) -> Result<Option<FriendshipModel>, AppError> {
-    let (dog_id_1, dog_id_2) = if dog_id_a < dog_id_b {
-        (dog_id_a, dog_id_b)
-    } else {
-        (dog_id_b, dog_id_a)
-    };
-
     let friendship = FriendshipEntity::find()
-        .filter(friendships::Column::DogId1.eq(dog_id_1))
-        .filter(friendships::Column::DogId2.eq(dog_id_2))
+        .filter(friendships::Column::DogId1.eq(pair.first()))
+        .filter(friendships::Column::DogId2.eq(pair.second()))
         .one(db)
         .await?;
 

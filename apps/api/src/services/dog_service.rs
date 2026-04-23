@@ -71,13 +71,6 @@ pub async fn update_dog(
     Ok(updated)
 }
 
-pub async fn get_dogs_by_user_id(
-    db: &sea_orm::DatabaseConnection,
-    user_id: Uuid,
-) -> Result<Vec<DogModel>, AppError> {
-    dog_member_service::get_dogs_by_member(db, user_id).await
-}
-
 pub async fn get_dog_by_id(
     db: &sea_orm::DatabaseConnection,
     dog_id: Uuid,

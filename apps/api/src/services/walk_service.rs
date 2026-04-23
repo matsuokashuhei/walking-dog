@@ -42,12 +42,15 @@ impl fmt::Display for Period {
 impl FromStr for Period {
     type Err = String;
 
+    /// Case-insensitive. Accepts both the domain casing ("Week") and the
+    /// GraphQL enum casing ("WEEK") so that resolver input and internal
+    /// round-trips can share this parser.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "Week" => Ok(Period::Week),
-            "Month" => Ok(Period::Month),
-            "Year" => Ok(Period::Year),
-            "All" => Ok(Period::All),
+        match s.to_ascii_uppercase().as_str() {
+            "WEEK" => Ok(Period::Week),
+            "MONTH" => Ok(Period::Month),
+            "YEAR" => Ok(Period::Year),
+            "ALL" => Ok(Period::All),
             other => Err(format!("Invalid Period: '{}'", other)),
         }
     }
@@ -314,6 +317,16 @@ mod tests {
     fn period_from_str_invalid_returns_error() {
         let result: Result<Period, _> = "invalid".parse();
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn period_from_str_accepts_graphql_uppercase() {
+        // GraphQL sends these names via the Period enum type; the parser
+        // must accept them so dogWalkStats respects the period argument.
+        assert_eq!("WEEK".parse::<Period>().unwrap(), Period::Week);
+        assert_eq!("MONTH".parse::<Period>().unwrap(), Period::Month);
+        assert_eq!("YEAR".parse::<Period>().unwrap(), Period::Year);
+        assert_eq!("ALL".parse::<Period>().unwrap(), Period::All);
     }
 
     #[test]

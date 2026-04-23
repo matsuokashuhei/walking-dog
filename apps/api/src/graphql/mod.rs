@@ -102,3 +102,57 @@ pub fn build_schema(state: Arc<AppState>) -> AppSchema {
         .finish()
         .expect("Failed to build GraphQL schema")
 }
+
+#[cfg(test)]
+mod tests {
+    //! Enum-parity guards.
+    //!
+    //! The GraphQL enums declared above are hand-rolled shadows of domain
+    //! enums that live elsewhere. Keeping the two in sync by hand is
+    //! error-prone; these tests fail as soon as a new domain variant ships
+    //! without its GraphQL counterpart.
+    //!
+    //! Convention: GraphQL variants are `SCREAMING_SNAKE_CASE`; the domain
+    //! enum's `Display` / `FromStr` uses lowercase (`walk_status`,
+    //! `walk_event_type`) or title-case (`period`). Parity is tested via
+    //! case-insensitive round-trip through the domain `FromStr`.
+    use std::str::FromStr;
+
+    fn assert_graphql_enum_matches<T, F>(graphql_variants: &[&str], parse: F)
+    where
+        F: Fn(&str) -> Result<T, String>,
+    {
+        for g in graphql_variants {
+            parse(g).unwrap_or_else(|e| {
+                panic!(
+                    "GraphQL enum variant `{}` does not map back to a domain variant: {}",
+                    g, e
+                )
+            });
+        }
+    }
+
+    #[test]
+    fn walk_status_graphql_enum_round_trips_through_domain() {
+        use crate::entities::walks::WalkStatus;
+        assert_graphql_enum_matches(&["ACTIVE", "FINISHED"], |g| {
+            WalkStatus::from_str(&g.to_ascii_lowercase())
+        });
+    }
+
+    #[test]
+    fn walk_event_type_graphql_enum_round_trips_through_domain() {
+        use crate::services::walk_event_service::WalkEventType;
+        assert_graphql_enum_matches(&["PEE", "POO", "PHOTO"], |g| {
+            WalkEventType::from_str(&g.to_ascii_lowercase())
+                .map_err(|e| format!("{:?}", e))
+        });
+    }
+
+    #[test]
+    fn period_graphql_enum_round_trips_through_domain() {
+        use crate::services::walk_service::Period;
+        // Period::from_str is case-insensitive so the raw uppercase name works.
+        assert_graphql_enum_matches(&["WEEK", "MONTH", "YEAR", "ALL"], Period::from_str);
+    }
+}

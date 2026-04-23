@@ -51,7 +51,15 @@ pub async fn get_dogs_by_member(
 }
 
 /// Return the user's dogs together with the membership role for each dog.
-/// Result is `(dog, role)` pairs, where `role` is either `"owner"` or `"member"`.
+/// Result is `(dog, role)` pairs, where `role` is either `"owner"` or
+/// `"member"`.
+///
+/// A dog without a matching `dog_members` row for this user is silently
+/// skipped from the result. Under normal operation this cannot happen —
+/// every dog_member row references an existing dog — but if the two
+/// tables drift, the dog is omitted rather than being surfaced with a
+/// missing role. The FK constraint on `dog_members.dog_id` makes this a
+/// defensive guard rather than a practical concern.
 pub async fn get_dogs_with_roles_for_user(
     db: &sea_orm::DatabaseConnection,
     user_id: Uuid,

@@ -442,4 +442,47 @@ mod tests {
         assert_eq!(stats.total_distance_m, 0);
         assert_eq!(stats.total_duration_sec, 0);
     }
+
+    #[tokio::test]
+    async fn require_walk_owner_returns_walk_when_user_is_owner() {
+        let walk_id = Uuid::new_v4();
+        let user_id = Uuid::new_v4();
+        let walk = make_finished_walk(walk_id, user_id, None, None);
+        let db = MockDatabase::new(DatabaseBackend::Postgres)
+            .append_query_results([vec![walk.clone()]])
+            .into_connection();
+
+        let result = require_walk_owner(&db, walk_id, user_id).await.unwrap();
+        assert_eq!(result.id, walk_id);
+        assert_eq!(result.user_id, user_id);
+    }
+
+    #[tokio::test]
+    async fn require_walk_owner_returns_not_found_when_user_is_not_owner() {
+        // Walk exists but belongs to a different user. The SQL filter
+        // (UserId.eq(user_id)) returns no rows, so MockDatabase returns
+        // an empty Vec. The function collapses both "walk missing" and
+        // "walk owned by another user" into NotFound, matching the
+        // auth_helpers convention that prevents walk-ID enumeration.
+        let walk_id = Uuid::new_v4();
+        let requesting_user_id = Uuid::new_v4();
+        let db = MockDatabase::new(DatabaseBackend::Postgres)
+            .append_query_results([Vec::<crate::entities::walks::Model>::new()])
+            .into_connection();
+
+        let result = require_walk_owner(&db, walk_id, requesting_user_id).await;
+        assert!(matches!(result, Err(crate::error::AppError::NotFound(_))));
+    }
+
+    #[tokio::test]
+    async fn require_walk_owner_returns_not_found_when_walk_does_not_exist() {
+        let walk_id = Uuid::new_v4();
+        let user_id = Uuid::new_v4();
+        let db = MockDatabase::new(DatabaseBackend::Postgres)
+            .append_query_results([Vec::<crate::entities::walks::Model>::new()])
+            .into_connection();
+
+        let result = require_walk_owner(&db, walk_id, user_id).await;
+        assert!(matches!(result, Err(crate::error::AppError::NotFound(_))));
+    }
 }

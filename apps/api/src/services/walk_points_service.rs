@@ -126,10 +126,11 @@ pub async fn get_walk_points(
     table_name: &str,
     walk_id: Uuid,
 ) -> Result<Vec<WalkPoint>, AppError> {
+    // Static expression literal. Must stay in sync with `PK_ATTR`.
     let result = client
         .query()
         .table_name(table_name)
-        .key_condition_expression(format!("{} = :pk", PK_ATTR))
+        .key_condition_expression("pk = :pk")
         .expression_attribute_values(":pk", AttributeValue::S(walk_partition_key(walk_id)))
         .send()
         .await

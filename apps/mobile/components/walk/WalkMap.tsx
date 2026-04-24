@@ -2,7 +2,7 @@ import { StyleSheet, View, Text } from 'react-native';
 import MapView, { Polyline, Marker } from 'react-native-maps';
 import { useColors } from '@/hooks/use-colors';
 import { useWalkStore } from '@/stores/walk-store';
-import { EVENT_EMOJIS } from '@/lib/walk/event-emojis';
+import { MAP_EVENT_EMOJIS } from '@/lib/walk/events';
 import { TOKYO_STATION_COORDINATE } from '@/lib/walk/constants';
 import type { WalkEvent } from '@/types/graphql';
 
@@ -54,9 +54,9 @@ export function WalkMap({ events = [] }: WalkMapProps) {
               key={e.id}
               testID={`event-marker-${e.id}`}
               coordinate={{ latitude: e.lat!, longitude: e.lng! }}
-              accessibilityLabel={`${EVENT_EMOJIS[e.eventType]} event at ${e.occurredAt}`}
+              accessibilityLabel={`${MAP_EVENT_EMOJIS[e.eventType]} event at ${e.occurredAt}`}
             >
-              <Text style={styles.eventMarker}>{EVENT_EMOJIS[e.eventType]}</Text>
+              <Text style={styles.eventMarker}>{MAP_EVENT_EMOJIS[e.eventType]}</Text>
             </Marker>
           ))}
       </MapView>

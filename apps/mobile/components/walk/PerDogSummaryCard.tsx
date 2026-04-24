@@ -3,6 +3,7 @@ import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { GroupedCard } from '@/components/ui/GroupedCard';
 import { useColors } from '@/hooks/use-colors';
+import { UI_EVENT_EMOJIS, countEventsByType } from '@/lib/walk/events';
 import { radius, spacing, typography } from '@/theme/tokens';
 import type { Dog, WalkEvent } from '@/types/graphql';
 
@@ -44,7 +45,7 @@ export function PerDogSummaryCard({
 
       <GroupedCard>
         {dogs.map((dog, i) => {
-          const counts = countFor(dog.id, events);
+          const counts = countEventsByType(events, { dogId: dog.id });
           return (
             <View key={dog.id}>
               {i > 0 ? (
@@ -68,7 +69,7 @@ export function PerDogSummaryCard({
                     style={[styles.counts, { color: theme.onSurfaceVariant }]}
                     accessibilityLabel={`${dog.name} pee ${counts.pee}, poo ${counts.poo}, photo ${counts.photo}`}
                   >
-                    {`💧 ${counts.pee}  ·  💩 ${counts.poo}  ·  📷 ${counts.photo}`}
+                    {`${UI_EVENT_EMOJIS.pee} ${counts.pee}  ·  ${UI_EVENT_EMOJIS.poo} ${counts.poo}  ·  ${UI_EVENT_EMOJIS.photo} ${counts.photo}`}
                   </Text>
                 </View>
                 <Text style={[styles.chevron, { color: theme.textDisabled }]}>
@@ -81,23 +82,6 @@ export function PerDogSummaryCard({
       </GroupedCard>
     </View>
   );
-}
-
-interface Counts {
-  pee: number;
-  poo: number;
-  photo: number;
-}
-
-function countFor(dogId: string, events: WalkEvent[]): Counts {
-  const counts: Counts = { pee: 0, poo: 0, photo: 0 };
-  for (const e of events) {
-    if (e.dogId !== dogId) continue;
-    if (e.eventType === 'pee') counts.pee += 1;
-    else if (e.eventType === 'poo') counts.poo += 1;
-    else if (e.eventType === 'photo') counts.photo += 1;
-  }
-  return counts;
 }
 
 const styles = StyleSheet.create({

@@ -1,13 +1,8 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
+import { EVENT_ORDER, UI_EVENT_EMOJIS } from '@/lib/walk/events';
 import { spacing, typography } from '@/theme/tokens';
 import type { Dog, WalkEventType } from '@/types/graphql';
-
-const EVENT_ORDER: { type: WalkEventType; emoji: string }[] = [
-  { type: 'pee', emoji: '💧' },
-  { type: 'poo', emoji: '💩' },
-  { type: 'photo', emoji: '📷' },
-];
 
 const ICON_SIZE = 36;
 
@@ -58,11 +53,11 @@ export function DogEventActionRow({
           {dog.name}
         </Text>
         <Text style={[styles.counts, { color: secondaryTextColor }]}>
-          {`💧 ${counts.pee} · 💩 ${counts.poo}`}
+          {`${UI_EVENT_EMOJIS.pee} ${counts.pee} · ${UI_EVENT_EMOJIS.poo} ${counts.poo}`}
         </Text>
       </View>
       <View style={styles.buttons}>
-        {EVENT_ORDER.map(({ type, emoji }) => (
+        {EVENT_ORDER.map((type) => (
           <Pressable
             key={type}
             disabled={disabled}
@@ -78,7 +73,7 @@ export function DogEventActionRow({
               disabled && styles.buttonDisabled,
             ]}
           >
-            <Text style={styles.iconEmoji}>{emoji}</Text>
+            <Text style={styles.iconEmoji}>{UI_EVENT_EMOJIS[type]}</Text>
           </Pressable>
         ))}
       </View>

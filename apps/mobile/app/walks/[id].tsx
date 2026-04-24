@@ -9,7 +9,7 @@ import { radius, spacing, typography } from '@/theme/tokens';
 import { useWalk } from '@/hooks/use-walks';
 import { useWalkDetailViewModel } from '@/hooks/use-walk-detail-view-model';
 import { WalkEventTimeline } from '@/components/walk/WalkEventTimeline';
-import { EVENT_EMOJIS } from '@/lib/walk/event-emojis';
+import { MAP_EVENT_EMOJIS } from '@/lib/walk/events';
 
 export default function WalkDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -62,9 +62,9 @@ export default function WalkDetailScreen() {
                 <Marker
                   key={e.id}
                   coordinate={{ latitude: e.lat!, longitude: e.lng! }}
-                  accessibilityLabel={`${EVENT_EMOJIS[e.eventType]} event`}
+                  accessibilityLabel={`${MAP_EVENT_EMOJIS[e.eventType]} event`}
                 >
-                  <Text style={styles.eventMarker}>{EVENT_EMOJIS[e.eventType]}</Text>
+                  <Text style={styles.eventMarker}>{MAP_EVENT_EMOJIS[e.eventType]}</Text>
                 </Marker>
               ))}
           </MapView>

@@ -3,8 +3,8 @@ import Svg, { Circle, Path } from 'react-native-svg';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
 import { radius, spacing, typography } from '@/theme/tokens';
+import { UI_EVENT_EMOJIS, countWalkActivityEvents } from '@/lib/walk/events';
 import {
-  countWalkEvents,
   formatDistance,
   formatPaceString,
   formatTime,
@@ -33,7 +33,7 @@ export function DogWalkRow({ walk, onPress, separator = true }: DogWalkRowProps)
     formatPaceString(durationSec, distanceM),
   ];
   const meta = metaParts.join(' · ');
-  const { pee, poo } = countWalkEvents(walk.events);
+  const { pee, poo } = countWalkActivityEvents(walk.events);
 
   return (
     <>
@@ -70,12 +70,12 @@ export function DogWalkRow({ walk, onPress, separator = true }: DogWalkRowProps)
           <View style={styles.eventCounts}>
             {pee > 0 ? (
               <Text style={[styles.eventText, { color: theme.onSurfaceVariant }]}>
-                💧{pee}
+                {UI_EVENT_EMOJIS.pee}{pee}
               </Text>
             ) : null}
             {poo > 0 ? (
               <Text style={[styles.eventText, { color: theme.onSurfaceVariant }]}>
-                💩{poo}
+                {UI_EVENT_EMOJIS.poo}{poo}
               </Text>
             ) : null}
           </View>

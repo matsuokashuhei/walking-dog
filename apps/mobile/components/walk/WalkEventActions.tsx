@@ -9,15 +9,10 @@ import { useMutationWithAlert } from '@/hooks/use-mutation-with-alert';
 import { useWalkEventRecorder } from '@/hooks/use-walk-event-recorder';
 import { useWalkStore } from '@/stores/walk-store';
 import { spacing } from '@/theme/tokens';
+import { EVENT_ORDER, UI_EVENT_EMOJIS, countEventsByType } from '@/lib/walk/events';
 import { DogEventActionRow } from './DogEventActionRow';
 import { EventPill } from './EventPill';
 import type { Dog, WalkEvent, WalkEventType } from '@/types/graphql';
-
-const EVENT_ORDER: { type: WalkEventType; emoji: string }[] = [
-  { type: 'pee', emoji: '💧' },
-  { type: 'poo', emoji: '💩' },
-  { type: 'photo', emoji: '📷' },
-];
 
 interface WalkEventActionsProps {
   dogs: Dog[];
@@ -127,14 +122,14 @@ export function WalkEventActions({ dogs }: WalkEventActionsProps) {
   if (dogs.length === 0) return null;
 
   if (isSingleDog) {
-    const counts = tallyByType(events);
+    const counts = countEventsByType(events);
     return (
       <View style={styles.singleRow}>
-        {EVENT_ORDER.map(({ type, emoji }) => (
+        {EVENT_ORDER.map((type) => (
           <EventPill
             key={type}
             label={t(`walk.event.${type}`)}
-            emoji={emoji}
+            emoji={UI_EVENT_EMOJIS[type]}
             count={counts[type]}
             disabled={isDisabled}
             onPress={() => fire(type, singleDogId)}
@@ -150,7 +145,7 @@ export function WalkEventActions({ dogs }: WalkEventActionsProps) {
   return (
     <View style={styles.multiList}>
       {dogs.map((dog, index) => {
-        const counts = tallyByType(events, dog.id);
+        const counts = countEventsByType(events, { dogId: dog.id });
         return (
           <DogEventActionRow
             key={dog.id}
@@ -173,15 +168,6 @@ export function WalkEventActions({ dogs }: WalkEventActionsProps) {
       })}
     </View>
   );
-}
-
-function tallyByType(events: WalkEvent[], dogId?: string) {
-  const scoped = dogId ? events.filter((event) => event.dogId === dogId) : events;
-  return {
-    pee: scoped.filter((event) => event.eventType === 'pee').length,
-    poo: scoped.filter((event) => event.eventType === 'poo').length,
-    photo: scoped.filter((event) => event.eventType === 'photo').length,
-  };
 }
 
 const styles = StyleSheet.create({

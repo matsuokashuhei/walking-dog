@@ -8,7 +8,6 @@ import {
   formatShortDate,
   formatDateTime,
   formatWalkDateLabel,
-  countWalkEvents,
 } from './format';
 
 describe('formatTime', () => {
@@ -196,20 +195,3 @@ describe('formatWalkDateLabel', () => {
   });
 });
 
-describe('countWalkEvents', () => {
-  it('returns zeros for undefined or empty events', () => {
-    expect(countWalkEvents()).toEqual({ pee: 0, poo: 0 });
-    expect(countWalkEvents([])).toEqual({ pee: 0, poo: 0 });
-    expect(countWalkEvents(null)).toEqual({ pee: 0, poo: 0 });
-  });
-
-  it('counts pee and poo events and ignores photos', () => {
-    const events = [
-      { eventType: 'pee' as const },
-      { eventType: 'poo' as const },
-      { eventType: 'pee' as const },
-      { eventType: 'photo' as const },
-    ];
-    expect(countWalkEvents(events)).toEqual({ pee: 2, poo: 1 });
-  });
-});

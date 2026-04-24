@@ -159,20 +159,3 @@ export function formatWalkDateLabel(
   return `${prefix} · ${formatClockTime(isoString)}`;
 }
 
-interface CountableEvent {
-  eventType: 'pee' | 'poo' | 'photo';
-}
-
-export function countWalkEvents(events?: CountableEvent[] | null): {
-  pee: number;
-  poo: number;
-} {
-  if (!events || events.length === 0) return { pee: 0, poo: 0 };
-  let pee = 0;
-  let poo = 0;
-  for (const event of events) {
-    if (event.eventType === 'pee') pee += 1;
-    else if (event.eventType === 'poo') poo += 1;
-  }
-  return { pee, poo };
-}

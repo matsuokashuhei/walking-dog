@@ -50,6 +50,48 @@ pub async fn get_dogs_by_member(
         .map_err(AppError::Database)
 }
 
+/// Return the user's dogs together with the membership role for each dog.
+/// Result is `(dog, role)` pairs, where `role` is either `"owner"` or
+/// `"member"`.
+///
+/// A dog without a matching `dog_members` row for this user is silently
+/// skipped from the result. Under normal operation this cannot happen —
+/// every dog_member row references an existing dog — but if the two
+/// tables drift, the dog is omitted rather than being surfaced with a
+/// missing role. The FK constraint on `dog_members.dog_id` makes this a
+/// defensive guard rather than a practical concern.
+pub async fn get_dogs_with_roles_for_user(
+    db: &sea_orm::DatabaseConnection,
+    user_id: Uuid,
+) -> Result<Vec<(DogModel, String)>, AppError> {
+    let memberships = DogMemberEntity::find()
+        .filter(dog_members::Column::UserId.eq(user_id))
+        .all(db)
+        .await?;
+
+    if memberships.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let dog_ids: Vec<Uuid> = memberships.iter().map(|m| m.dog_id).collect();
+    let dogs_list = DogEntity::find()
+        .filter(crate::entities::dogs::Column::Id.is_in(dog_ids))
+        .all(db)
+        .await?;
+
+    let results = dogs_list
+        .into_iter()
+        .filter_map(|d| {
+            memberships
+                .iter()
+                .find(|m| m.dog_id == d.id)
+                .map(|m| (d, m.role.clone()))
+        })
+        .collect();
+
+    Ok(results)
+}
+
 pub async fn get_members_by_dog(
     db: &sea_orm::DatabaseConnection,
     dog_id: Uuid,

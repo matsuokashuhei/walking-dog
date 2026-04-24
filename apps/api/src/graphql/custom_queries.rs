@@ -2,8 +2,8 @@ use super::auth_helpers;
 use super::mutations::{DogOutput, UserOutput, WalkOutput};
 use crate::error::AppError;
 use crate::services::{
-    dog_member_service, dog_service, encounter_service, friendship_service, walk_points_service,
-    walk_service,
+    dog_member_service, dog_pair::DogPair, dog_service, encounter_service, friendship_service,
+    walk_points_service, walk_service,
 };
 use crate::AppState;
 use async_graphql::dynamic::{Field, FieldFuture, FieldValue, InputValue, Object, TypeRef};
@@ -206,32 +206,22 @@ pub fn encounter_output_type() -> Object {
         ))
         .field(Field::new("dog1", TypeRef::named_nn("DogOutput"), |ctx| {
             FieldFuture::new(async move {
-                use crate::entities::dogs::Entity as DogEntity;
-                use sea_orm::EntityTrait;
-
                 let e = ctx.parent_value.try_downcast_ref::<EncounterOutput>()?;
-                let dog_id = e.dog_id_1;
                 let state = ctx.data::<Arc<crate::AppState>>()?;
-                let dog = DogEntity::find_by_id(dog_id)
-                    .one(&state.db)
+                let dog = dog_service::get_dog_by_id(&state.db, e.dog_id_1)
                     .await
-                    .map_err(|e| AppError::Database(e).into_graphql_error())?
+                    .map_err(AppError::into_graphql_error)?
                     .ok_or_else(|| async_graphql::Error::new("Dog not found"))?;
                 Ok(Some(FieldValue::owned_any(DogOutput::from(dog))))
             })
         }))
         .field(Field::new("dog2", TypeRef::named_nn("DogOutput"), |ctx| {
             FieldFuture::new(async move {
-                use crate::entities::dogs::Entity as DogEntity;
-                use sea_orm::EntityTrait;
-
                 let e = ctx.parent_value.try_downcast_ref::<EncounterOutput>()?;
-                let dog_id = e.dog_id_2;
                 let state = ctx.data::<Arc<crate::AppState>>()?;
-                let dog = DogEntity::find_by_id(dog_id)
-                    .one(&state.db)
+                let dog = dog_service::get_dog_by_id(&state.db, e.dog_id_2)
                     .await
-                    .map_err(|e| AppError::Database(e).into_graphql_error())?
+                    .map_err(AppError::into_graphql_error)?
                     .ok_or_else(|| async_graphql::Error::new("Dog not found"))?;
                 Ok(Some(FieldValue::owned_any(DogOutput::from(dog))))
             })
@@ -295,9 +285,6 @@ pub fn friendship_output_type() -> Object {
             TypeRef::named_nn("DogOutput"),
             |ctx| {
                 FieldFuture::new(async move {
-                    use crate::entities::dogs::Entity as DogEntity;
-                    use sea_orm::EntityTrait;
-
                     let f = ctx.parent_value.try_downcast_ref::<FriendshipOutput>()?;
                     // If requesting dog is dog_id_1, the friend is dog_id_2 and vice versa
                     let friend_id = if f.requesting_dog_id == f.dog_id_1 {
@@ -306,10 +293,9 @@ pub fn friendship_output_type() -> Object {
                         f.dog_id_1
                     };
                     let state = ctx.data::<Arc<crate::AppState>>()?;
-                    let dog = DogEntity::find_by_id(friend_id)
-                        .one(&state.db)
+                    let dog = dog_service::get_dog_by_id(&state.db, friend_id)
                         .await
-                        .map_err(|e| AppError::Database(e).into_graphql_error())?
+                        .map_err(AppError::into_graphql_error)?
                         .ok_or_else(|| async_graphql::Error::new("Dog not found"))?;
                     Ok(Some(FieldValue::owned_any(DogOutput::from(dog))))
                 })
@@ -577,7 +563,10 @@ fn friendship_field(state: Arc<AppState>) -> Field {
                     );
                 }
 
-                let friendship = friendship_service::get_friendship(&state.db, dog_id_1, dog_id_2)
+                let Some(pair) = DogPair::new(dog_id_1, dog_id_2) else {
+                    return Ok(None);
+                };
+                let friendship = friendship_service::get_friendship(&state.db, pair)
                     .await
                     .map_err(AppError::into_graphql_error)?;
 

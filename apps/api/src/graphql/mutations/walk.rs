@@ -1,6 +1,8 @@
 use crate::error::{AppError, FieldError};
 use crate::graphql::auth_helpers;
-use crate::services::{dog_member_service, walk_event_service, walk_points_service, walk_service};
+use crate::services::{
+    dog_member_service, user_service, walk_event_service, walk_points_service, walk_service,
+};
 use crate::AppState;
 use async_graphql::dynamic::{
     Field, FieldFuture, FieldValue, InputObject, InputValue, Object, TypeRef,
@@ -121,18 +123,11 @@ pub fn walk_output_type() -> Object {
             TypeRef::named("WalkerOutput"),
             |ctx| {
                 FieldFuture::new(async move {
-                    use crate::entities::users::Entity as UserEntity;
-                    use sea_orm::EntityTrait;
-
                     let w = ctx.parent_value.try_downcast_ref::<WalkOutput>()?;
-                    let user_id = w.user_id;
                     let state = ctx.data::<Arc<crate::AppState>>()?;
-
-                    let user = UserEntity::find_by_id(user_id)
-                        .one(&state.db)
+                    let user = user_service::get_user_by_id(&state.db, w.user_id)
                         .await
-                        .map_err(|e| AppError::Database(e).into_graphql_error())?;
-
+                        .map_err(AppError::into_graphql_error)?;
                     Ok(user.map(|u| FieldValue::owned_any(WalkerOutput::from(u))))
                 })
             },
@@ -142,29 +137,11 @@ pub fn walk_output_type() -> Object {
             TypeRef::named_nn_list_nn("DogOutput"),
             |ctx| {
                 FieldFuture::new(async move {
-                    use crate::entities::{
-                        dogs::{self, Entity as DogEntity},
-                        walk_dogs::{self, Entity as WalkDogEntity},
-                    };
-                    use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
-
                     let w = ctx.parent_value.try_downcast_ref::<WalkOutput>()?;
-                    let walk_id = w.id;
                     let state = ctx.data::<Arc<crate::AppState>>()?;
-
-                    let walk_dog_rows = WalkDogEntity::find()
-                        .filter(walk_dogs::Column::WalkId.eq(walk_id))
-                        .all(&state.db)
+                    let dogs = walk_service::get_dogs_for_walk(&state.db, w.id)
                         .await
-                        .map_err(|e| AppError::Database(e).into_graphql_error())?;
-                    let dog_ids: Vec<Uuid> = walk_dog_rows.iter().map(|wd| wd.dog_id).collect();
-
-                    let dogs = DogEntity::find()
-                        .filter(dogs::Column::Id.is_in(dog_ids))
-                        .all(&state.db)
-                        .await
-                        .map_err(|e| AppError::Database(e).into_graphql_error())?;
-
+                        .map_err(AppError::into_graphql_error)?;
                     let values: Vec<FieldValue> = dogs
                         .into_iter()
                         .map(|d| FieldValue::owned_any(super::dog::DogOutput::from(d)))
@@ -175,7 +152,7 @@ pub fn walk_output_type() -> Object {
         ))
         .field(Field::new(
             "points",
-            TypeRef::named_nn_list_nn("WalkPointOutput"),
+            TypeRef::named_nn_list_nn("WalkPoint"),
             |ctx| {
                 FieldFuture::new(async move {
                     let w = ctx.parent_value.try_downcast_ref::<WalkOutput>()?;
@@ -220,46 +197,6 @@ pub fn walk_output_type() -> Object {
                         .map(|e| FieldValue::owned_any(super::walk_event::WalkEventOutput::from(e)))
                         .collect();
                     Ok(Some(FieldValue::list(values)))
-                })
-            },
-        ))
-}
-
-pub fn walk_point_output_type() -> Object {
-    Object::new("WalkPointOutput")
-        .field(Field::new(
-            "lat",
-            TypeRef::named_nn(TypeRef::FLOAT),
-            |ctx| {
-                FieldFuture::new(async move {
-                    let p = ctx
-                        .parent_value
-                        .try_downcast_ref::<crate::graphql::custom_queries::WalkPointOutput>()?;
-                    Ok(Some(FieldValue::value(p.lat)))
-                })
-            },
-        ))
-        .field(Field::new(
-            "lng",
-            TypeRef::named_nn(TypeRef::FLOAT),
-            |ctx| {
-                FieldFuture::new(async move {
-                    let p = ctx
-                        .parent_value
-                        .try_downcast_ref::<crate::graphql::custom_queries::WalkPointOutput>()?;
-                    Ok(Some(FieldValue::value(p.lng)))
-                })
-            },
-        ))
-        .field(Field::new(
-            "recordedAt",
-            TypeRef::named_nn(TypeRef::STRING),
-            |ctx| {
-                FieldFuture::new(async move {
-                    let p = ctx
-                        .parent_value
-                        .try_downcast_ref::<crate::graphql::custom_queries::WalkPointOutput>()?;
-                    Ok(Some(FieldValue::value(p.recorded_at.clone())))
                 })
             },
         ))
@@ -373,9 +310,6 @@ pub fn add_walk_points_field(state: Arc<AppState>) -> Field {
         move |ctx| {
             let state = state.clone();
             FieldFuture::new(async move {
-                use crate::entities::{walks, walks::Entity as WalkEntity};
-                use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
-
                 let walk_id_str = ctx.args.try_get("walkId")?.string()?;
 
                 let mut field_errors: Vec<FieldError> = Vec::new();
@@ -392,13 +326,10 @@ pub fn add_walk_points_field(state: Arc<AppState>) -> Field {
                 let walk_id = walk_id_opt.unwrap();
 
                 let user = auth_helpers::resolve_user(&ctx, &state).await?;
-                // Only the walk owner can add points (walks.user_id check)
-                WalkEntity::find_by_id(walk_id)
-                    .filter(walks::Column::UserId.eq(user.id))
-                    .one(&state.db)
+                // Only the walk owner can add points.
+                walk_service::require_walk_owner(&state.db, walk_id, user.id)
                     .await
-                    .map_err(|e| AppError::Database(e).into_graphql_error())?
-                    .ok_or_else(|| async_graphql::Error::new("Walk not found"))?;
+                    .map_err(AppError::into_graphql_error)?;
 
                 let points_raw = ctx.args.try_get("points")?.list()?;
                 let points: Vec<walk_points_service::WalkPointInput> = points_raw

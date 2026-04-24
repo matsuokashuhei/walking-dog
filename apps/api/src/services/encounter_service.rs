@@ -7,25 +7,105 @@ use uuid::Uuid;
 
 use super::friendship_service;
 use crate::entities::{
+    dog_members::{self, Entity as DogMemberEntity},
     encounters::{
         self, ActiveModel as EncounterActiveModel, Entity as EncounterEntity,
         Model as EncounterModel,
     },
+    users::{self, Entity as UserEntity},
     walk_dogs::{self, Entity as WalkDogEntity},
+    walks::Entity as WalkEntity,
 };
 use crate::error::AppError;
-use crate::services::walk_event_service;
+use crate::services::dog_pair::DogPair;
 
-/// Normalize a dog pair so that `dog_id_1 < dog_id_2` (UUID lexicographic order).
-/// Returns `None` if both IDs are equal (same dog — skip).
-fn normalize_dog_pair(a: Uuid, b: Uuid) -> Option<(Uuid, Uuid)> {
-    if a < b {
-        Some((a, b))
-    } else if a > b {
-        Some((b, a))
-    } else {
-        None
+/// Verify that encounter detection is allowed for the acting user's walk.
+///
+/// Checks:
+/// 1. The walk exists.
+/// 2. The walk belongs to `user_id` (ownership check).
+/// 3. The user has `encounter_detection_enabled = true`.
+async fn verify_encounter_detection(
+    db: &sea_orm::DatabaseConnection,
+    walk_id: Uuid,
+    user_id: Uuid,
+) -> Result<(), AppError> {
+    let walk = WalkEntity::find_by_id(walk_id)
+        .one(db)
+        .await?
+        .ok_or_else(|| AppError::NotFound(format!("Walk {} not found", walk_id)))?;
+
+    if walk.user_id != user_id {
+        return Err(AppError::Unauthorized(
+            "Walk does not belong to user".to_string(),
+        ));
     }
+
+    let user = UserEntity::find_by_id(user_id)
+        .one(db)
+        .await?
+        .ok_or_else(|| AppError::NotFound(format!("User {} not found", user_id)))?;
+
+    if !user.encounter_detection_enabled {
+        return Err(AppError::Unauthorized(
+            "Encounter detection is disabled for your account".to_string(),
+        ));
+    }
+
+    Ok(())
+}
+
+/// Verify that all users associated with the counterparty walk have
+/// encounter detection enabled.
+///
+/// Three fixed queries replace an N+M nested loop:
+/// 1. walk_dogs WHERE walk_id = their_walk_id → dog_ids
+/// 2. dog_members WHERE dog_id IN (dog_ids) → user_ids
+/// 3. users WHERE id IN (user_ids) AND encounter_detection_enabled = false
+///
+/// If any associated user has encounter detection disabled, returns
+/// `Unauthorized`.
+async fn verify_counterparty_encounter_detection(
+    db: &sea_orm::DatabaseConnection,
+    their_walk_id: Uuid,
+) -> Result<(), AppError> {
+    let dog_ids: Vec<Uuid> = WalkDogEntity::find()
+        .filter(walk_dogs::Column::WalkId.eq(their_walk_id))
+        .select_only()
+        .column(walk_dogs::Column::DogId)
+        .into_tuple()
+        .all(db)
+        .await?;
+
+    if dog_ids.is_empty() {
+        return Ok(());
+    }
+
+    let user_ids: Vec<Uuid> = DogMemberEntity::find()
+        .filter(dog_members::Column::DogId.is_in(dog_ids))
+        .select_only()
+        .column(dog_members::Column::UserId)
+        .into_tuple()
+        .all(db)
+        .await?;
+
+    if user_ids.is_empty() {
+        return Ok(());
+    }
+
+    let opted_out = UserEntity::find()
+        .filter(users::Column::Id.is_in(user_ids))
+        .filter(users::Column::EncounterDetectionEnabled.eq(false))
+        .one(db)
+        .await?;
+
+    if opted_out.is_some() {
+        return Err(AppError::Unauthorized(
+            "Encounter detection is disabled for the other user".to_string(),
+        ));
+    }
+
+    Ok(())
 }
 
 /// Record encounters between all dog pairs from two walks.
@@ -41,10 +121,10 @@ pub async fn record_encounter(
     acting_user_id: Uuid,
 ) -> Result<Vec<EncounterModel>, AppError> {
     // Verify acting user ownership + encounter detection enabled
-    walk_event_service::verify_encounter_detection(db, my_walk_id, acting_user_id).await?;
+    verify_encounter_detection(db, my_walk_id, acting_user_id).await?;
 
     // Verify all counterparty users have encounter detection enabled (fixed 2-3 queries)
-    walk_event_service::verify_counterparty_encounter_detection(db, their_walk_id).await?;
+    verify_counterparty_encounter_detection(db, their_walk_id).await?;
 
     // Fetch all dog IDs in each walk
     let my_dog_ids: Vec<Uuid> = WalkDogEntity::find()
@@ -76,8 +156,8 @@ pub async fn record_encounter(
 
     for my_dog in &my_dog_ids {
         for their_dog in &their_dog_ids {
-            // Normalize ordering: dog_id_1 < dog_id_2 (UUID lexicographic); skip same dog
-            let Some((dog_id_1, dog_id_2)) = normalize_dog_pair(*my_dog, *their_dog) else {
+            // DogPair enforces dog_id_1 < dog_id_2 and skips the same-dog case.
+            let Some(pair) = DogPair::new(*my_dog, *their_dog) else {
                 continue;
             };
 
@@ -88,8 +168,8 @@ pub async fn record_encounter(
                         .add(encounters::Column::WalkId.eq(my_walk_id))
                         .add(encounters::Column::WalkId.eq(their_walk_id)),
                 )
-                .filter(encounters::Column::DogId1.eq(dog_id_1))
-                .filter(encounters::Column::DogId2.eq(dog_id_2))
+                .filter(encounters::Column::DogId1.eq(pair.first()))
+                .filter(encounters::Column::DogId2.eq(pair.second()))
                 .one(&txn)
                 .await?;
 
@@ -105,8 +185,8 @@ pub async fn record_encounter(
                 let encounter = EncounterActiveModel {
                     id: Set(Uuid::new_v4()),
                     walk_id: Set(my_walk_id),
-                    dog_id_1: Set(dog_id_1),
-                    dog_id_2: Set(dog_id_2),
+                    dog_id_1: Set(pair.first()),
+                    dog_id_2: Set(pair.second()),
                     duration_sec: Set(duration_sec),
                     met_at: Set(met_at.into()),
                     created_at: Set(met_at.into()),
@@ -115,14 +195,7 @@ pub async fn record_encounter(
                 .await?;
 
                 // Upsert friendship (first encounter creates it)
-                friendship_service::upsert_friendship(
-                    &txn,
-                    dog_id_1,
-                    dog_id_2,
-                    duration_sec,
-                    met_at,
-                )
-                .await?;
+                friendship_service::upsert_friendship(&txn, pair, duration_sec, met_at).await?;
 
                 encounter
             };
@@ -147,7 +220,7 @@ pub async fn update_encounter_duration(
     acting_user_id: Uuid,
 ) -> Result<bool, AppError> {
     // Verify acting user ownership + encounter detection enabled
-    walk_event_service::verify_encounter_detection(db, my_walk_id, acting_user_id).await?;
+    verify_encounter_detection(db, my_walk_id, acting_user_id).await?;
     let their_dog_ids: Vec<Uuid> = WalkDogEntity::find()
         .filter(walk_dogs::Column::WalkId.eq(their_walk_id))
         .select_only()
@@ -166,14 +239,14 @@ pub async fn update_encounter_duration(
 
     for my_dog in &my_dog_ids {
         for their_dog in &their_dog_ids {
-            let Some((dog_id_1, dog_id_2)) = normalize_dog_pair(*my_dog, *their_dog) else {
+            let Some(pair) = DogPair::new(*my_dog, *their_dog) else {
                 continue;
             };
 
             let existing = EncounterEntity::find()
                 .filter(encounters::Column::WalkId.eq(my_walk_id))
-                .filter(encounters::Column::DogId1.eq(dog_id_1))
-                .filter(encounters::Column::DogId2.eq(dog_id_2))
+                .filter(encounters::Column::DogId1.eq(pair.first()))
+                .filter(encounters::Column::DogId2.eq(pair.second()))
                 .one(db)
                 .await?;
 
@@ -186,8 +259,7 @@ pub async fn update_encounter_duration(
 
                 // Update friendship total_interaction_sec with precise delta
                 let delta = new_duration - old_duration;
-                friendship_service::update_friendship_duration(db, dog_id_1, dog_id_2, delta)
-                    .await?;
+                friendship_service::update_friendship_duration(db, pair, delta).await?;
             }
         }
     }
@@ -225,29 +297,6 @@ pub async fn get_encounters_for_dog(
 mod tests {
     use super::*;
 
-    #[test]
-    fn normalize_dog_pair_returns_ordered_pair_when_a_less_than_b() {
-        let a = Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap();
-        let b = Uuid::parse_str("00000000-0000-0000-0000-000000000002").unwrap();
-        let result = normalize_dog_pair(a, b);
-        assert_eq!(result, Some((a, b)));
-    }
-
-    #[test]
-    fn normalize_dog_pair_returns_swapped_pair_when_a_greater_than_b() {
-        let a = Uuid::parse_str("00000000-0000-0000-0000-000000000002").unwrap();
-        let b = Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap();
-        let result = normalize_dog_pair(a, b);
-        assert_eq!(result, Some((b, a)));
-    }
-
-    #[test]
-    fn normalize_dog_pair_returns_none_when_same_dog() {
-        let id = Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap();
-        let result = normalize_dog_pair(id, id);
-        assert_eq!(result, None);
-    }
-
     /// Static guard: record_encounter must accept acting_user_id parameter.
     #[test]
     fn record_encounter_signature_has_acting_user_id() {
@@ -281,25 +330,26 @@ mod tests {
         );
     }
 
-    /// Static guard: encounter_service must call verify_encounter_detection.
+    /// Static guard: encounter_service must own and call
+    /// verify_encounter_detection (no delegation to walk_event_service).
     #[test]
-    fn encounter_service_calls_verify_encounter_detection() {
+    fn encounter_service_defines_verify_encounter_detection() {
         let src = include_str!("encounter_service.rs");
         assert!(
-            src.contains("verify_encounter_detection"),
-            "encounter_service must call walk_event_service::verify_encounter_detection"
+            src.contains("async fn verify_encounter_detection"),
+            "encounter_service must define verify_encounter_detection internally"
         );
     }
 
-    /// Static guard: walk_event_service must expose verify_counterparty_encounter_detection.
-    /// References a separate file to avoid self-referential trap.
+    /// Static guard: encounter_service must own
+    /// verify_counterparty_encounter_detection (no delegation to
+    /// walk_event_service).
     #[test]
-    fn walk_event_service_exposes_verify_counterparty_encounter_detection() {
-        let src = include_str!("walk_event_service.rs");
+    fn encounter_service_defines_verify_counterparty_encounter_detection() {
+        let src = include_str!("encounter_service.rs");
         assert!(
-            src.contains("pub async fn verify_counterparty_encounter_detection"),
-            "walk_event_service must expose verify_counterparty_encounter_detection, \
-             but the function was not found"
+            src.contains("async fn verify_counterparty_encounter_detection"),
+            "encounter_service must define verify_counterparty_encounter_detection internally"
         );
     }
 

@@ -42,6 +42,16 @@ pub async fn get_or_create_user(
     upsert_user(db, cognito_sub, None).await
 }
 
+pub async fn get_user_by_id(
+    db: &sea_orm::DatabaseConnection,
+    user_id: Uuid,
+) -> Result<Option<UserModel>, AppError> {
+    UserEntity::find_by_id(user_id)
+        .one(db)
+        .await
+        .map_err(AppError::Database)
+}
+
 pub async fn create_user_with_profile(
     db: &sea_orm::DatabaseConnection,
     cognito_sub: &str,

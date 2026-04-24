@@ -1,4 +1,5 @@
 use crate::entities::{
+    dogs::{self, Entity as DogEntity, Model as DogModel},
     walk_dogs::{self, ActiveModel as WalkDogActiveModel, Entity as WalkDogEntity},
     walks::{self, ActiveModel, Entity as WalkEntity, Model as WalkModel, WalkStatus},
 };
@@ -41,12 +42,15 @@ impl fmt::Display for Period {
 impl FromStr for Period {
     type Err = String;
 
+    /// Case-insensitive. Accepts both the domain casing ("Week") and the
+    /// GraphQL enum casing ("WEEK") so that resolver input and internal
+    /// round-trips can share this parser.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "Week" => Ok(Period::Week),
-            "Month" => Ok(Period::Month),
-            "Year" => Ok(Period::Year),
-            "All" => Ok(Period::All),
+        match s.to_ascii_uppercase().as_str() {
+            "WEEK" => Ok(Period::Week),
+            "MONTH" => Ok(Period::Month),
+            "YEAR" => Ok(Period::Year),
+            "ALL" => Ok(Period::All),
             other => Err(format!("Invalid Period: '{}'", other)),
         }
     }
@@ -241,6 +245,46 @@ pub async fn get_walks_for_user(
     Ok(walks)
 }
 
+/// Verify that the given user owns the walk. Returns the walk on success
+/// or `AppError::NotFound` when the walk does not exist or belongs to
+/// another user. Used by walk mutations that must only be performed by the
+/// walk's creator (e.g. recording GPS points, finishing the walk).
+pub async fn require_walk_owner(
+    db: &sea_orm::DatabaseConnection,
+    walk_id: Uuid,
+    user_id: Uuid,
+) -> Result<WalkModel, AppError> {
+    WalkEntity::find_by_id(walk_id)
+        .filter(walks::Column::UserId.eq(user_id))
+        .one(db)
+        .await?
+        .ok_or_else(|| AppError::NotFound(format!("Walk {} not found", walk_id)))
+}
+
+/// Get the dogs associated with a walk (via `walk_dogs`).
+pub async fn get_dogs_for_walk(
+    db: &sea_orm::DatabaseConnection,
+    walk_id: Uuid,
+) -> Result<Vec<DogModel>, AppError> {
+    let dog_ids: Vec<Uuid> = WalkDogEntity::find()
+        .filter(walk_dogs::Column::WalkId.eq(walk_id))
+        .select_only()
+        .column(walk_dogs::Column::DogId)
+        .into_tuple()
+        .all(db)
+        .await?;
+
+    if dog_ids.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    DogEntity::find()
+        .filter(dogs::Column::Id.is_in(dog_ids))
+        .all(db)
+        .await
+        .map_err(AppError::Database)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -273,6 +317,16 @@ mod tests {
     fn period_from_str_invalid_returns_error() {
         let result: Result<Period, _> = "invalid".parse();
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn period_from_str_accepts_graphql_uppercase() {
+        // GraphQL sends these names via the Period enum type; the parser
+        // must accept them so dogWalkStats respects the period argument.
+        assert_eq!("WEEK".parse::<Period>().unwrap(), Period::Week);
+        assert_eq!("MONTH".parse::<Period>().unwrap(), Period::Month);
+        assert_eq!("YEAR".parse::<Period>().unwrap(), Period::Year);
+        assert_eq!("ALL".parse::<Period>().unwrap(), Period::All);
     }
 
     #[test]
@@ -387,5 +441,48 @@ mod tests {
         assert_eq!(stats.total_walks, 1);
         assert_eq!(stats.total_distance_m, 0);
         assert_eq!(stats.total_duration_sec, 0);
+    }
+
+    #[tokio::test]
+    async fn require_walk_owner_returns_walk_when_user_is_owner() {
+        let walk_id = Uuid::new_v4();
+        let user_id = Uuid::new_v4();
+        let walk = make_finished_walk(walk_id, user_id, None, None);
+        let db = MockDatabase::new(DatabaseBackend::Postgres)
+            .append_query_results([vec![walk.clone()]])
+            .into_connection();
+
+        let result = require_walk_owner(&db, walk_id, user_id).await.unwrap();
+        assert_eq!(result.id, walk_id);
+        assert_eq!(result.user_id, user_id);
+    }
+
+    #[tokio::test]
+    async fn require_walk_owner_returns_not_found_when_user_is_not_owner() {
+        // Walk exists but belongs to a different user. The SQL filter
+        // (UserId.eq(user_id)) returns no rows, so MockDatabase returns
+        // an empty Vec. The function collapses both "walk missing" and
+        // "walk owned by another user" into NotFound, matching the
+        // auth_helpers convention that prevents walk-ID enumeration.
+        let walk_id = Uuid::new_v4();
+        let requesting_user_id = Uuid::new_v4();
+        let db = MockDatabase::new(DatabaseBackend::Postgres)
+            .append_query_results([Vec::<crate::entities::walks::Model>::new()])
+            .into_connection();
+
+        let result = require_walk_owner(&db, walk_id, requesting_user_id).await;
+        assert!(matches!(result, Err(crate::error::AppError::NotFound(_))));
+    }
+
+    #[tokio::test]
+    async fn require_walk_owner_returns_not_found_when_walk_does_not_exist() {
+        let walk_id = Uuid::new_v4();
+        let user_id = Uuid::new_v4();
+        let db = MockDatabase::new(DatabaseBackend::Postgres)
+            .append_query_results([Vec::<crate::entities::walks::Model>::new()])
+            .into_connection();
+
+        let result = require_walk_owner(&db, walk_id, user_id).await;
+        assert!(matches!(result, Err(crate::error::AppError::NotFound(_))));
     }
 }

@@ -12,6 +12,7 @@ import type { WalkPoint } from '@/types/graphql';
 
 interface WalkRoutePreviewProps {
   points: WalkPoint[];
+  routeBreakIndices?: number[];
   totalDistanceM: number;
   elapsedSec: number;
 }
@@ -21,12 +22,14 @@ const DOT_SIZE = 14;
 
 export function WalkRoutePreview({
   points,
+  routeBreakIndices = [],
   totalDistanceM,
   elapsedSec,
 }: WalkRoutePreviewProps) {
   const theme = useColors();
 
   const coordinates = points.map((p) => ({ latitude: p.lat, longitude: p.lng }));
+  const routeSegments = buildRouteSegments(coordinates, routeBreakIndices);
   const start = coordinates[0];
   const end = coordinates[coordinates.length - 1];
 
@@ -57,15 +60,16 @@ export function WalkRoutePreview({
         toolbarEnabled={false}
         pointerEvents="none"
       >
-        {coordinates.length >= 2 ? (
+        {routeSegments.map((segment, index) => (
           <Polyline
-            coordinates={coordinates}
+            key={index}
+            coordinates={segment}
             strokeColor={theme.success}
             strokeWidth={5}
             lineCap="round"
             lineJoin="round"
           />
-        ) : null}
+        ))}
         {start ? (
           <Marker
             testID="route-preview-start"
@@ -105,6 +109,32 @@ export function WalkRoutePreview({
       </View>
     </View>
   );
+}
+
+function buildRouteSegments(
+  coordinates: { latitude: number; longitude: number }[],
+  breakIndices: number[],
+) {
+  if (coordinates.length < 2) return [];
+
+  const sortedBreaks = [...breakIndices].sort((a, b) => a - b);
+  const segments: { latitude: number; longitude: number }[][] = [];
+  let start = 0;
+
+  for (const breakIndex of sortedBreaks) {
+    const segment = coordinates.slice(start, breakIndex);
+    if (segment.length >= 2) {
+      segments.push(segment);
+    }
+    start = breakIndex;
+  }
+
+  const lastSegment = coordinates.slice(start);
+  if (lastSegment.length >= 2) {
+    segments.push(lastSegment);
+  }
+
+  return segments;
 }
 
 interface PillProps {

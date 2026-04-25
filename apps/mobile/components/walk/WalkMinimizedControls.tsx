@@ -20,10 +20,18 @@ export function WalkMinimizedControls({ dogs }: WalkMinimizedControlsProps) {
   const { t } = useTranslation();
   const theme = useColors();
   const startedAt = useWalkStore((s) => s.startedAt);
+  const isPaused = useWalkStore((s) => s.isPaused);
+  const totalPausedMs = useWalkStore((s) => s.totalPausedMs);
+  const pauseStartedAtMs = useWalkStore((s) => s.pauseStartedAtMs);
   const totalDistanceM = useWalkStore((s) => s.totalDistanceM);
   const setMinimized = useWalkStore((s) => s.setMinimized);
   const units = useSettingsStore((s) => s.units);
-  const elapsedSec = useWalkElapsed({ startedAt, isPaused: false, totalPausedMs: 0 });
+  const elapsedSec = useWalkElapsed({
+    startedAt,
+    isPaused,
+    totalPausedMs,
+    pauseStartedAtMs,
+  });
 
   const expand = () => setMinimized(false);
 

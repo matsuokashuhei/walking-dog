@@ -2,7 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
-import { elevation, radius, spacing, typography } from '@/theme/tokens';
+import { elevation, spacing, typography } from '@/theme/tokens';
 import type { Dog } from '@/types/graphql';
 
 interface WalkTopChipProps {
@@ -20,13 +20,13 @@ export function WalkTopChip({ dogs }: WalkTopChipProps) {
   const isSingle = dogs.length === 1;
   const label = isSingle
     ? t('walk.recording.walkWith', { name: dogs[0].name })
-    : t('walk.recording.groupWalk');
+    : dogs.map((dog) => dog.name).join(' + ');
 
   return (
     <View
       style={[
         styles.chip,
-        { backgroundColor: theme.surface, borderColor: theme.border },
+        { backgroundColor: theme.material, borderColor: theme.border },
         elevation.low,
       ]}
     >
@@ -38,7 +38,7 @@ export function WalkTopChip({ dogs }: WalkTopChipProps) {
               source={dog.photoUrl ?? require('@/assets/images/icon.png')}
               style={[
                 styles.avatar,
-                { borderColor: theme.surface },
+                { borderColor: theme.material },
                 i > 0 && styles.avatarOverlap,
               ]}
               contentFit="cover"
@@ -60,10 +60,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: spacing.xs + 2,
     paddingHorizontal: spacing.md,
-    borderRadius: radius.full,
+    borderRadius: 20,
     borderWidth: StyleSheet.hairlineWidth,
     gap: spacing.xs,
-    maxWidth: '80%',
+    maxWidth: '100%',
   },
   avatars: {
     flexDirection: 'row',

@@ -56,6 +56,58 @@ describe('walk-store', () => {
     expect(useWalkStore.getState().isMinimized).toBe(false);
   });
 
+  it('togglePaused pauses and resumes a recording walk while accumulating paused time', () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-04-20T10:00:00.000Z'));
+
+    useWalkStore.getState().startRecording('walk-123');
+    useWalkStore.getState().togglePaused();
+
+    expect(useWalkStore.getState().isPaused).toBe(true);
+    expect(useWalkStore.getState().pauseStartedAtMs).toBe(Date.now());
+
+    jest.advanceTimersByTime(5_000);
+    useWalkStore.getState().togglePaused();
+
+    expect(useWalkStore.getState().isPaused).toBe(false);
+    expect(useWalkStore.getState().pauseStartedAtMs).toBeNull();
+    expect(useWalkStore.getState().totalPausedMs).toBe(5_000);
+
+    jest.useRealTimers();
+  });
+
+  it('breaks the route and skips paused displacement on the first point after resume', () => {
+    const p1: WalkPoint = { lat: 35.6812, lng: 139.7671, recordedAt: '2026-03-23T10:00:00Z' };
+    const p2: WalkPoint = { lat: 35.6912, lng: 139.7771, recordedAt: '2026-03-23T10:10:00Z' };
+    const p3: WalkPoint = { lat: 35.6913, lng: 139.7772, recordedAt: '2026-03-23T10:10:05Z' };
+
+    useWalkStore.getState().startRecording('walk-123');
+    useWalkStore.getState().addPoint(p1);
+    useWalkStore.getState().togglePaused();
+    useWalkStore.getState().togglePaused();
+    useWalkStore.getState().addPoint(p2);
+
+    expect(useWalkStore.getState().routeBreakIndices).toEqual([1]);
+    expect(useWalkStore.getState().totalDistanceM).toBe(0);
+
+    useWalkStore.getState().addPoint(p3);
+
+    expect(useWalkStore.getState().totalDistanceM).toBeGreaterThan(0);
+  });
+
+  it('tracks uploaded points monotonically and resets them for a new walk', () => {
+    useWalkStore.getState().startRecording('walk-123');
+
+    useWalkStore.getState().markUploadedPointCount(5);
+    useWalkStore.getState().markUploadedPointCount(3);
+
+    expect(useWalkStore.getState().uploadedPointCount).toBe(5);
+
+    useWalkStore.getState().startRecording('walk-456');
+
+    expect(useWalkStore.getState().uploadedPointCount).toBe(0);
+  });
+
   it('selectDog toggles dog selection', () => {
     const { selectDog } = useWalkStore.getState();
     selectDog('dog-1');
@@ -89,6 +141,23 @@ describe('walk-store', () => {
     useWalkStore.getState().startRecording('walk-123');
     useWalkStore.getState().finish();
     expect(useWalkStore.getState().phase).toBe('finished');
+  });
+
+  it('finish uses the provided timestamp and closes any active paused span', () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-04-20T10:00:00.000Z'));
+
+    useWalkStore.getState().startRecording('walk-123');
+    useWalkStore.getState().togglePaused();
+
+    const finishedAt = new Date('2026-04-20T10:00:05.000Z');
+    useWalkStore.getState().finish(finishedAt);
+
+    expect(useWalkStore.getState().finishedAt).toEqual(finishedAt);
+    expect(useWalkStore.getState().totalPausedMs).toBe(5_000);
+    expect(useWalkStore.getState().isPaused).toBe(false);
+
+    jest.useRealTimers();
   });
 
   it('reset returns to ready phase', () => {

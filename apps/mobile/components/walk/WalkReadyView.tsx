@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { GroupedCard } from '@/components/ui/GroupedCard';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { DogPickerCard } from '@/components/walk/DogPickerCard';
+import { GroupWalkSummaryCard } from '@/components/walk/GroupWalkSummaryCard';
 import { useColors } from '@/hooks/use-colors';
 import { useMe } from '@/hooks/use-me';
 import { useWalkStore } from '@/stores/walk-store';
@@ -21,21 +22,38 @@ export function WalkReadyView({ onStart, isStarting }: WalkReadyViewProps) {
   const theme = useColors();
   const { data: me } = useMe();
   const dogs = useMemo<Dog[]>(() => me?.dogs ?? [], [me?.dogs]);
+  const dogIds = useMemo(() => new Set(dogs.map((dog) => dog.id)), [dogs]);
   const selectedDogIds = useWalkStore((s) => s.selectedDogIds);
   const selectDog = useWalkStore((s) => s.selectDog);
   const setSelectedDogs = useWalkStore((s) => s.setSelectedDogs);
 
   const isSingleDog = dogs.length === 1;
+  const selectedDogIdsInPack = useMemo(
+    () => selectedDogIds.filter((dogId) => dogIds.has(dogId)),
+    [dogIds, selectedDogIds],
+  );
+  const effectiveSelectedDogIds = useMemo(() => {
+    if (isSingleDog && dogs[0]) {
+      return [dogs[0].id];
+    }
+    return selectedDogIdsInPack;
+  }, [dogs, isSingleDog, selectedDogIdsInPack]);
+  const selectedDogs = useMemo(
+    () => dogs.filter((dog) => effectiveSelectedDogIds.includes(dog.id)),
+    [dogs, effectiveSelectedDogIds],
+  );
 
   // With a single dog, there is no picker — keep the selection in sync so START works.
   useEffect(() => {
-    if (isSingleDog && selectedDogIds.length === 0) {
+    if (!isSingleDog || !dogs[0]) return;
+
+    if (selectedDogIds.length !== 1 || selectedDogIds[0] !== dogs[0].id) {
       setSelectedDogs([dogs[0].id]);
     }
-  }, [isSingleDog, dogs, selectedDogIds.length, setSelectedDogs]);
+  }, [dogs, isSingleDog, selectedDogIds, setSelectedDogs]);
 
   const allSelected =
-    dogs.length > 0 && dogs.every((d) => selectedDogIds.includes(d.id));
+    dogs.length > 0 && dogs.every((d) => effectiveSelectedDogIds.includes(d.id));
 
   const handleSelectAll = useCallback(() => {
     if (allSelected) {
@@ -45,7 +63,7 @@ export function WalkReadyView({ onStart, isStarting }: WalkReadyViewProps) {
     }
   }, [allSelected, dogs, setSelectedDogs]);
 
-  const canStart = selectedDogIds.length > 0 && !isStarting;
+  const canStart = effectiveSelectedDogIds.length > 0 && !isStarting;
   const selectAllLabel = allSelected
     ? t('walk.ready.deselectAll')
     : t('walk.ready.selectAll');
@@ -61,9 +79,9 @@ export function WalkReadyView({ onStart, isStarting }: WalkReadyViewProps) {
         {t('walk.ready.largeTitle')}
       </Text>
 
-      <View style={styles.walkingWith}>
+      <View style={styles.dogSection}>
         <SectionHeader
-          label={t('walk.ready.walkingWith')}
+          label={t('walk.ready.whosComing')}
           trailing={
             showSelectAll ? (
               <Pressable
@@ -89,11 +107,15 @@ export function WalkReadyView({ onStart, isStarting }: WalkReadyViewProps) {
         ) : (
           <DogPickerCard
             dogs={dogs}
-            selectedIds={selectedDogIds}
+            selectedIds={effectiveSelectedDogIds}
             onToggle={selectDog}
             variant={isSingleDog ? 'single' : 'multi'}
           />
         )}
+
+        <View style={styles.summaryCard}>
+          <GroupWalkSummaryCard dogs={selectedDogs} />
+        </View>
       </View>
 
       <View style={styles.ctaColumn}>
@@ -124,13 +146,16 @@ const styles = StyleSheet.create({
     paddingTop: spacing.md,
     paddingBottom: spacing.sm,
   },
-  walkingWith: {
+  dogSection: {
     marginTop: spacing.md,
     paddingHorizontal: spacing.sm,
   },
   selectAll: {
     fontSize: 13,
     fontWeight: '500',
+  },
+  summaryCard: {
+    marginTop: spacing.sm,
   },
   emptyText: {
     ...typography.body,

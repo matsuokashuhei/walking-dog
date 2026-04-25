@@ -53,11 +53,15 @@ jest.mock('@/stores/walk-store', () => ({
     selector({
       walkId: 'walk-1',
       startedAt: new Date(Date.now() - 24 * 60 * 1000),
+      isPaused: false,
+      totalPausedMs: 0,
+      pauseStartedAtMs: null,
       totalDistanceM: 1420,
       points: [
         { lat: 35.6812, lng: 139.7671, recordedAt: '2026-04-19T10:00:00Z' },
         { lat: 35.682, lng: 139.768, recordedAt: '2026-04-19T10:05:00Z' },
       ],
+      routeBreakIndices: [],
       events: mockEvents,
       selectedDogIds: mockSelectedDogIds,
       reset: mockReset,

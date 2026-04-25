@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useColors } from '@/hooks/use-colors';
 import { useWalkElapsed } from '@/hooks/use-walk-elapsed';
-import { spacing } from '@/theme/tokens';
+import { radius, spacing } from '@/theme/tokens';
 import { useSettingsStore } from '@/stores/settings-store';
 import { useWalkStore } from '@/stores/walk-store';
 import { formatDistanceParts, formatPace, formatTime } from '@/lib/walk/format';
@@ -21,32 +22,20 @@ interface WalkControlsProps {
 
 export function WalkControls({ dogs, onStop, isStopping, children }: WalkControlsProps) {
   const { t } = useTranslation();
+  const theme = useColors();
   const startedAt = useWalkStore((s) => s.startedAt);
-  const startedAtMs = startedAt?.getTime() ?? null;
+  const isPaused = useWalkStore((s) => s.isPaused);
+  const totalPausedMs = useWalkStore((s) => s.totalPausedMs);
+  const pauseStartedAtMs = useWalkStore((s) => s.pauseStartedAtMs);
+  const togglePaused = useWalkStore((s) => s.togglePaused);
   const totalDistanceM = useWalkStore((s) => s.totalDistanceM);
   const units = useSettingsStore((s) => s.units);
-
-  const [isPaused, setIsPaused] = useState(false);
-  const [totalPausedMs, setTotalPausedMs] = useState(0);
-  const pausedAtMsRef = useRef<number | null>(null);
-  const elapsedSec = useWalkElapsed({ startedAt, isPaused, totalPausedMs });
-
-  useEffect(() => {
-    pausedAtMsRef.current = null;
-    setIsPaused(false);
-    setTotalPausedMs(0);
-  }, [startedAtMs]);
-
-  const togglePause = () => {
-    if (isPaused && pausedAtMsRef.current !== null) {
-      setTotalPausedMs((ms) => ms + (Date.now() - pausedAtMsRef.current!));
-      pausedAtMsRef.current = null;
-      setIsPaused(false);
-    } else {
-      pausedAtMsRef.current = Date.now();
-      setIsPaused(true);
-    }
-  };
+  const elapsedSec = useWalkElapsed({
+    startedAt,
+    isPaused,
+    totalPausedMs,
+    pauseStartedAtMs,
+  });
 
   const { value: distanceValue, unit: distanceUnit } = formatDistanceParts(totalDistanceM, units);
   const pace = formatPace(elapsedSec, totalDistanceM, units);
@@ -67,7 +56,19 @@ export function WalkControls({ dogs, onStop, isStopping, children }: WalkControl
     : `${t('walk.recording.groupWalk')} · ${t('walk.recording.together')}`;
 
   return (
-    <View style={styles.sheet}>
+    <View
+      testID="walk-controls-sheet"
+      style={[
+        styles.sheet,
+        {
+          backgroundColor: theme.material,
+          borderColor: theme.border,
+        },
+      ]}
+    >
+      <View style={styles.grabberWrap}>
+        <View testID="walk-controls-grabber" style={[styles.grabber, { backgroundColor: theme.onSurfaceVariant }]} />
+      </View>
       <WalkIdentityHeader dogs={dogs} title={title} subtitle={subtitle} />
       <WalkMetricsRow metrics={metrics} />
 
@@ -76,7 +77,7 @@ export function WalkControls({ dogs, onStop, isStopping, children }: WalkControl
       <WalkControlsActions
         isPaused={isPaused}
         isStopping={isStopping}
-        onTogglePause={togglePause}
+        onTogglePause={togglePaused}
         onStop={onStop}
       />
     </View>
@@ -92,9 +93,24 @@ function contextualWalkLabel(startedAt: Date | null, t: (key: string) => string)
 
 const styles = StyleSheet.create({
   sheet: {
-    paddingTop: spacing.md,
+    borderRadius: 32,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.lg,
+    overflow: 'hidden',
+  },
+  grabberWrap: {
+    alignItems: 'center',
+    paddingBottom: spacing.md,
+  },
+  grabber: {
+    width: 36,
+    height: 5,
+    borderRadius: radius.full,
+    opacity: 0.45,
   },
   slot: {
-    marginBottom: spacing.md,
+    marginBottom: spacing.lg,
   },
 });

@@ -118,15 +118,24 @@ describe('beginWalkTracking', () => {
 describe('flushWalkPoints', () => {
   it('batches walk points with MAX_POINTS_PER_BATCH', async () => {
     const addWalkPoints = jest.fn().mockResolvedValue(true);
+    const markUploadedPointCount = jest.fn();
     const points: WalkPoint[] = Array.from({ length: MAX_POINTS_PER_BATCH + 50 }, (_, index) => ({
       lat: 35.68,
       lng: 139.76,
       recordedAt: `2026-04-01T00:${String(index % 60).padStart(2, '0')}:00Z`,
     }));
 
-    await flushWalkPoints({ walkId: 'walk-1', points, addWalkPoints });
+    await flushWalkPoints({
+      walkId: 'walk-1',
+      points,
+      uploadedPointCount: 0,
+      addWalkPoints,
+      markUploadedPointCount,
+    });
 
     expect(addWalkPoints).toHaveBeenCalledTimes(2);
+    expect(markUploadedPointCount).toHaveBeenNthCalledWith(1, MAX_POINTS_PER_BATCH);
+    expect(markUploadedPointCount).toHaveBeenNthCalledWith(2, MAX_POINTS_PER_BATCH + 50);
     expect(addWalkPoints.mock.calls[0][0]).toEqual(
       expect.objectContaining({ points: expect.arrayContaining(points.slice(0, MAX_POINTS_PER_BATCH)) }),
     );

@@ -14,7 +14,9 @@ interface BeginWalkTrackingOptions {
 interface FlushWalkPointsOptions {
   walkId: string;
   points: WalkPoint[];
+  uploadedPointCount: number;
   addWalkPoints: (args: { walkId: string; points: WalkPointInput[] }) => Promise<unknown>;
+  markUploadedPointCount: (count: number) => void;
 }
 
 export async function beginWalkTracking({ onPoint, onDistanceChange }: BeginWalkTrackingOptions) {
@@ -24,6 +26,7 @@ export async function beginWalkTracking({ onPoint, onDistanceChange }: BeginWalk
     const state = useWalkStore.getState();
     if (state.trackingGeneration !== trackingGeneration) return;
     if (state.phase !== 'recording') return;
+    if (state.isPaused) return;
 
     onPoint(point);
     onDistanceChange?.(useWalkStore.getState().totalDistanceM);
@@ -45,8 +48,18 @@ export function resetWalkTrackingState() {
   useWalkStore.getState().resetTrackingSession();
 }
 
-export async function flushWalkPoints({ walkId, points, addWalkPoints }: FlushWalkPointsOptions) {
-  for (let index = 0; index < points.length; index += MAX_POINTS_PER_BATCH) {
+export async function flushWalkPoints({
+  walkId,
+  points,
+  uploadedPointCount,
+  addWalkPoints,
+  markUploadedPointCount,
+}: FlushWalkPointsOptions) {
+  for (
+    let index = Math.min(uploadedPointCount, points.length);
+    index < points.length;
+    index += MAX_POINTS_PER_BATCH
+  ) {
     const batch = points.slice(index, index + MAX_POINTS_PER_BATCH).map((point) => ({
       lat: point.lat,
       lng: point.lng,
@@ -54,5 +67,6 @@ export async function flushWalkPoints({ walkId, points, addWalkPoints }: FlushWa
     }));
 
     await addWalkPoints({ walkId, points: batch });
+    markUploadedPointCount(index + batch.length);
   }
 }

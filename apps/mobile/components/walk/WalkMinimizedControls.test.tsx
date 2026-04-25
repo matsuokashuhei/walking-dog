@@ -11,6 +11,9 @@ jest.mock('expo-image', () => ({ Image: 'Image' }));
 const mockSetMinimized = jest.fn();
 const mockWalkStoreState = {
   startedAt: null as Date | null,
+  isPaused: false,
+  totalPausedMs: 0,
+  pauseStartedAtMs: null as number | null,
   totalDistanceM: 1420,
   setMinimized: mockSetMinimized,
 };
@@ -40,6 +43,9 @@ describe('WalkMinimizedControls', () => {
     jest.useFakeTimers();
     mockSetMinimized.mockClear();
     mockWalkStoreState.startedAt = null;
+    mockWalkStoreState.isPaused = false;
+    mockWalkStoreState.totalPausedMs = 0;
+    mockWalkStoreState.pauseStartedAtMs = null;
     mockWalkStoreState.totalDistanceM = 1420;
   });
 

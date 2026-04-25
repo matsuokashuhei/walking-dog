@@ -1,6 +1,7 @@
 import { Fragment, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
+import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { GroupedCard } from '@/components/ui/GroupedCard';
 import { useColors } from '@/hooks/use-colors';
@@ -34,7 +35,7 @@ export function DogPickerCard({
       {dogs.map((dog, index) => {
         const isSelected = selectedIds.includes(dog.id);
         const isLast = index === dogs.length - 1;
-        const lastWalkText = formatLastWalk(dog.latestWalk?.endedAt, now, t);
+        const subtitle = buildSubtitle(dog, now, t);
         const rowContent = (
           <>
             <Image
@@ -50,7 +51,7 @@ export function DogPickerCard({
                 style={[styles.lastWalk, { color: theme.onSurfaceVariant }]}
                 numberOfLines={1}
               >
-                {lastWalkText}
+                {subtitle}
               </Text>
             </View>
             {showCheckbox ? (
@@ -100,6 +101,24 @@ export function DogPickerCard({
       })}
     </GroupedCard>
   );
+}
+
+function buildSubtitle(dog: Dog, now: Date, t: TFunction) {
+  const parts: string[] = [];
+
+  if (dog.breed) {
+    parts.push(dog.breed);
+  }
+
+  if (dog.latestWalk?.endedAt) {
+    parts.push(formatLastWalk(dog.latestWalk.endedAt, now, t));
+  }
+
+  if (parts.length > 0) {
+    return parts.join(' · ');
+  }
+
+  return t('walk.ready.lastWalk.never');
 }
 
 const styles = StyleSheet.create({

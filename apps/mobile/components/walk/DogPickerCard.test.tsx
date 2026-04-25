@@ -46,7 +46,7 @@ const momo: Dog = {
 };
 
 describe('DogPickerCard', () => {
-  it('renders each dog name and the last walk label', () => {
+  it('renders each dog name with breed and last walk subtitle', () => {
     render(
       <DogPickerCard
         dogs={[coco, momo]}
@@ -55,9 +55,9 @@ describe('DogPickerCard', () => {
       />,
     );
     expect(screen.getByText('Coco')).toBeTruthy();
-    expect(screen.getByText('Last walk 2 hours ago')).toBeTruthy();
+    expect(screen.getByText('Toy Poodle · Last walk 2 hours ago')).toBeTruthy();
     expect(screen.getByText('Momo')).toBeTruthy();
-    expect(screen.getByText('Last walk yesterday')).toBeTruthy();
+    expect(screen.getByText('Shiba Inu · Last walk yesterday')).toBeTruthy();
   });
 
   it('marks selected rows with accessibilityState.checked = true', () => {
@@ -87,8 +87,27 @@ describe('DogPickerCard', () => {
     expect(onToggle).toHaveBeenCalledWith('dog-2');
   });
 
-  it('renders never-walked copy when latestWalk is missing', () => {
+  it('renders breed-only subtitle when latestWalk is missing', () => {
     const mystery: Dog = { ...coco, id: 'dog-3', name: 'Mystery', latestWalk: null };
+    render(
+      <DogPickerCard
+        dogs={[mystery]}
+        selectedIds={[]}
+        onToggle={jest.fn()}
+      />,
+    );
+    expect(screen.getByText('Mystery')).toBeTruthy();
+    expect(screen.getByText('Toy Poodle')).toBeTruthy();
+  });
+
+  it('falls back to first-walk copy when breed and latestWalk are missing', () => {
+    const mystery: Dog = {
+      ...coco,
+      id: 'dog-3',
+      name: 'Mystery',
+      breed: null,
+      latestWalk: null,
+    };
     render(
       <DogPickerCard
         dogs={[mystery]}
@@ -111,6 +130,6 @@ describe('DogPickerCard', () => {
     );
     expect(screen.queryByRole('checkbox', { name: 'Coco' })).toBeNull();
     expect(screen.getByText('Coco')).toBeTruthy();
-    expect(screen.getByText('Last walk 2 hours ago')).toBeTruthy();
+    expect(screen.getByText('Toy Poodle · Last walk 2 hours ago')).toBeTruthy();
   });
 });

@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { Text } from 'react-native';
 import { WalkControls } from './WalkControls';
 import type { Dog } from '@/types/graphql';
 
@@ -10,7 +11,14 @@ jest.mock('expo-image', () => ({ Image: 'Image' }));
 
 const mockWalkStoreState = {
   startedAt: null as Date | null,
+  pauseStartedAtMs: null as number | null,
   totalDistanceM: 0,
+  isPaused: false,
+  totalPausedMs: 0,
+  togglePaused: jest.fn(() => {
+    mockWalkStoreState.pauseStartedAtMs = mockWalkStoreState.isPaused ? null : Date.now();
+    mockWalkStoreState.isPaused = !mockWalkStoreState.isPaused;
+  }),
 };
 
 jest.mock('@/stores/walk-store', () => ({
@@ -50,7 +58,11 @@ describe('WalkControls', () => {
   beforeEach(() => {
     jest.useFakeTimers();
     mockWalkStoreState.startedAt = null;
+    mockWalkStoreState.pauseStartedAtMs = null;
     mockWalkStoreState.totalDistanceM = 0;
+    mockWalkStoreState.isPaused = false;
+    mockWalkStoreState.totalPausedMs = 0;
+    mockWalkStoreState.togglePaused.mockClear();
   });
 
   afterEach(() => {
@@ -67,6 +79,18 @@ describe('WalkControls', () => {
   it('renders a LIVE status tag', () => {
     render(<WalkControls dogs={[coco]} onStop={jest.fn()} isStopping={false} />);
     expect(screen.getByText('LIVE')).toBeTruthy();
+  });
+
+  it('renders the glass sheet grabber and child quick actions slot', () => {
+    render(
+      <WalkControls dogs={[coco]} onStop={jest.fn()} isStopping={false}>
+        <Text>Quick actions</Text>
+      </WalkControls>,
+    );
+
+    expect(screen.getByTestId('walk-controls-sheet')).toBeTruthy();
+    expect(screen.getByTestId('walk-controls-grabber')).toBeTruthy();
+    expect(screen.getByText('Quick actions')).toBeTruthy();
   });
 
   it('renders the destructive End Walk button', () => {
@@ -97,9 +121,10 @@ describe('WalkControls', () => {
   });
 
   it('Pause button toggles to Resume when pressed', () => {
-    render(<WalkControls dogs={[coco]} onStop={jest.fn()} isStopping={false} />);
+    const { rerender } = render(<WalkControls dogs={[coco]} onStop={jest.fn()} isStopping={false} />);
     const pause = screen.getByRole('button', { name: 'Pause' });
     fireEvent.press(pause);
+    rerender(<WalkControls dogs={[coco]} onStop={jest.fn()} isStopping={false} />);
     expect(screen.getByRole('button', { name: 'Resume' })).toBeTruthy();
   });
 

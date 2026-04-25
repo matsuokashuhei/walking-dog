@@ -10,16 +10,12 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AppProviders } from '@/lib/providers';
 import { useAuthStore } from '@/stores/auth-store';
 import { useSettingsStore } from '@/stores/settings-store';
-import { useSentryUser } from '@/hooks/use-sentry-user';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { ErrorScreen } from '@/components/ui/ErrorScreen';
-import { initSentry } from '@/lib/monitoring/sentry';
 import {
   getPendingInviteToken,
   deletePendingInviteToken,
 } from '@/lib/auth/pending-invite-token';
-
-initSentry();
 
 function NavigationGuard() {
   const { isAuthenticated, isLoading } = useAuthStore();
@@ -76,7 +72,6 @@ function RootLayout() {
 
   return (
     <AppProviders>
-      <AuthenticatedSentryScope />
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <NavigationGuard />
         <Stack>
@@ -107,11 +102,6 @@ function RootLayout() {
       </ThemeProvider>
     </AppProviders>
   );
-}
-
-function AuthenticatedSentryScope() {
-  useSentryUser();
-  return null;
 }
 
 export default RootLayout;

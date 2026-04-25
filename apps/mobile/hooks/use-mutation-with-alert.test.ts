@@ -1,24 +1,14 @@
 import { renderHook, act } from '@testing-library/react-native';
 import { Alert } from 'react-native';
-import { captureGraphQLError } from '@/lib/monitoring/sentry';
 import { useMutationWithAlert } from './use-mutation-with-alert';
-
-jest.mock('@/lib/monitoring/sentry', () => ({
-  captureGraphQLError: jest.fn(),
-}));
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
 
 describe('useMutationWithAlert', () => {
-  const captureGraphQLErrorMock = captureGraphQLError as jest.MockedFunction<
-    typeof captureGraphQLError
-  >;
-
   beforeEach(() => {
     jest.spyOn(Alert, 'alert').mockImplementation(() => {});
-    captureGraphQLErrorMock.mockClear();
   });
 
   afterEach(() => {
@@ -54,10 +44,9 @@ describe('useMutationWithAlert', () => {
 
     expect(value).toBeNull();
     expect(Alert.alert).toHaveBeenCalledWith('common.error', 'dogs.members.inviteError');
-    expect(captureGraphQLErrorMock).toHaveBeenCalledWith(boom, undefined);
   });
 
-  it('resolves the message key from the thrown error and reports context', async () => {
+  it('resolves the message key from the thrown error', async () => {
     const { result } = renderHook(() => useMutationWithAlert());
     const boom = new Error('boom');
 
@@ -73,8 +62,5 @@ describe('useMutationWithAlert', () => {
 
     expect(value).toBeNull();
     expect(Alert.alert).toHaveBeenCalledWith('common.error', 'walk.event.photoUploadError');
-    expect(captureGraphQLErrorMock).toHaveBeenCalledWith(boom, {
-      operation: 'recordWalkEvent',
-    });
   });
 });

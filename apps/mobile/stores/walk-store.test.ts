@@ -102,6 +102,66 @@ describe('walk-store', () => {
     expect(state.selectedDogIds).toEqual([]);
   });
 
+  describe('liveActivity state', () => {
+    it('initial liveActivity is null', () => {
+      expect(useWalkStore.getState().liveActivity).toBeNull();
+    });
+
+    it('setLiveActivity stores the activity record', () => {
+      const startedAt = new Date('2026-04-19T08:00:00Z');
+      useWalkStore.getState().setLiveActivity({
+        activityId: 'activity-1',
+        startedAt,
+        lastUpdateAt: 0,
+      });
+      expect(useWalkStore.getState().liveActivity).toEqual({
+        activityId: 'activity-1',
+        startedAt,
+        lastUpdateAt: 0,
+      });
+    });
+
+    it('setLiveActivity(null) clears the activity record', () => {
+      useWalkStore.getState().setLiveActivity({
+        activityId: 'activity-1',
+        startedAt: new Date(),
+        lastUpdateAt: 0,
+      });
+      useWalkStore.getState().setLiveActivity(null);
+      expect(useWalkStore.getState().liveActivity).toBeNull();
+    });
+
+    it('bumpLiveActivityUpdateAt updates lastUpdateAt while preserving identity fields', () => {
+      const startedAt = new Date('2026-04-19T08:00:00Z');
+      useWalkStore.getState().setLiveActivity({
+        activityId: 'activity-1',
+        startedAt,
+        lastUpdateAt: 0,
+      });
+      useWalkStore.getState().bumpLiveActivityUpdateAt(1234);
+      expect(useWalkStore.getState().liveActivity).toEqual({
+        activityId: 'activity-1',
+        startedAt,
+        lastUpdateAt: 1234,
+      });
+    });
+
+    it('bumpLiveActivityUpdateAt is a no-op when liveActivity is null', () => {
+      useWalkStore.getState().bumpLiveActivityUpdateAt(1234);
+      expect(useWalkStore.getState().liveActivity).toBeNull();
+    });
+
+    it('reset clears liveActivity', () => {
+      useWalkStore.getState().setLiveActivity({
+        activityId: 'activity-1',
+        startedAt: new Date(),
+        lastUpdateAt: 1234,
+      });
+      useWalkStore.getState().reset();
+      expect(useWalkStore.getState().liveActivity).toBeNull();
+    });
+  });
+
   describe('walk events', () => {
     const mockEvent: WalkEvent = {
       id: 'event-1',

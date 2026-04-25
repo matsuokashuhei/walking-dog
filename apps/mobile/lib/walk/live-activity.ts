@@ -20,10 +20,12 @@ const extras = (Constants.expoConfig?.extra ?? {}) as {
   appGroup?: string;
 };
 
-const UPDATE_DEBOUNCE_MS = 10_000;
-
-let currentActivityId: string | null = null;
-let lastUpdateAt = 0;
+/**
+ * Minimum elapsed time between consecutive `updateLiveActivityDistance` calls.
+ * Owners (e.g. the walk session hook) compare this against
+ * `walk-store.liveActivity.lastUpdateAt` to gate native updates.
+ */
+export const UPDATE_DEBOUNCE_MS = 10_000;
 
 export interface LiveActivityStartInput {
   walkId: string;
@@ -37,15 +39,20 @@ export function isLiveActivitySupported(): boolean {
   return mod?.isSupported() ?? false;
 }
 
-export async function startLiveActivity(input: LiveActivityStartInput): Promise<void> {
-  if (!mod || !mod.isSupported()) return;
+/**
+ * Starts an iOS Live Activity. Returns the activity id on success or null when
+ * Live Activities are unsupported, config is missing, or the native call
+ * throws. Callers are responsible for persisting the id (typically in the
+ * walk-store) and passing it to subsequent update / end calls.
+ */
+export async function startLiveActivity(input: LiveActivityStartInput): Promise<string | null> {
+  if (!mod || !mod.isSupported()) return null;
   if (!extras.appGroup || !extras.apiUrl) {
     console.warn('[live-activity] appGroup or apiUrl missing from expo config extras');
-    return;
+    return null;
   }
-  if (currentActivityId) return;
   try {
-    const id = await mod.startActivity({
+    return await mod.startActivity({
       walkId: input.walkId,
       dogId: input.dogId,
       dogName: input.dogName,
@@ -54,34 +61,33 @@ export async function startLiveActivity(input: LiveActivityStartInput): Promise<
       appGroup: extras.appGroup,
       apiUrl: extras.apiUrl,
     });
-    currentActivityId = id;
-    lastUpdateAt = Date.now();
   } catch (err) {
     console.error('[live-activity] start failed', err);
+    return null;
   }
 }
 
-export async function updateLiveActivityDistance(distanceM: number): Promise<void> {
-  if (!mod || !currentActivityId) return;
-  const now = Date.now();
-  if (now - lastUpdateAt < UPDATE_DEBOUNCE_MS) return;
-  lastUpdateAt = now;
+export async function updateLiveActivityDistance(
+  activityId: string,
+  distanceM: number,
+): Promise<void> {
+  if (!mod) return;
   try {
-    await mod.updateActivity(currentActivityId, { distanceM });
+    await mod.updateActivity(activityId, { distanceM });
   } catch (err) {
     console.error('[live-activity] update failed', err);
   }
 }
 
 export async function updateLiveActivityEvent(
+  activityId: string,
   distanceM: number,
   eventKind: string,
   eventAt: Date,
 ): Promise<void> {
-  if (!mod || !currentActivityId) return;
-  lastUpdateAt = Date.now();
+  if (!mod) return;
   try {
-    await mod.updateActivity(currentActivityId, {
+    await mod.updateActivity(activityId, {
       distanceM,
       lastEventKind: eventKind,
       lastEventAtMs: eventAt.getTime(),
@@ -91,14 +97,11 @@ export async function updateLiveActivityEvent(
   }
 }
 
-export async function endLiveActivity(): Promise<void> {
-  if (!mod || !currentActivityId) return;
-  const id = currentActivityId;
-  currentActivityId = null;
-  lastUpdateAt = 0;
+export async function endLiveActivity(activityId: string): Promise<void> {
+  if (!mod) return;
   if (!extras.appGroup) return;
   try {
-    await mod.endActivity(id, extras.appGroup);
+    await mod.endActivity(activityId, extras.appGroup);
   } catch (err) {
     console.error('[live-activity] end failed', err);
   }

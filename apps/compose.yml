@@ -9,6 +9,11 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U walking_dog"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   dynamodb-local:
     image: amazon/dynamodb-local:latest
@@ -54,6 +59,21 @@ services:
       - localstack
       - cognito-local
 
+  schemaspy:
+    image: schemaspy/schemaspy
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./schemaspy/schemaspy.properties:/schemaspy.properties
+      - ./schemaspy/output:/output
+
+  web:
+    image: nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./schemaspy/output:/usr/share/nginx/html
 
 volumes:
   postgres_data:

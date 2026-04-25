@@ -4,15 +4,16 @@ import { useColors } from '@/hooks/use-colors';
 import { useWalkStore } from '@/stores/walk-store';
 import { MAP_EVENT_EMOJIS } from '@/lib/walk/events';
 import { TOKYO_STATION_COORDINATE } from '@/lib/walk/constants';
-import type { WalkEvent } from '@/types/graphql';
 
-interface WalkMapProps {
-  events?: WalkEvent[];
-}
-
-export function WalkMap({ events = [] }: WalkMapProps) {
+/**
+ * Live recording map. Reads both the GPS trail (`points`) and recorded events
+ * from `walk-store` so the entire visible state comes from one source of
+ * truth. Event markers update in lockstep with `WalkEventActions` writes.
+ */
+export function WalkMap() {
   const theme = useColors();
   const points = useWalkStore((s) => s.points);
+  const events = useWalkStore((s) => s.events);
 
   const coordinates = points.map((p) => ({ latitude: p.lat, longitude: p.lng }));
   const lastPoint = coordinates[coordinates.length - 1];

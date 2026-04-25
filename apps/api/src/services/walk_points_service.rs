@@ -114,7 +114,19 @@ pub async fn add_walk_points(
             .request_items(table_name, chunk.to_vec())
             .send()
             .await
-            .map_err(|e| AppError::Internal(e.to_string()))?;
+            .map_err(|e| {
+                tracing::error!(
+                    error = ?e,
+                    table = table_name,
+                    walk_id = %walk_id,
+                    batch_size = chunk.len(),
+                    "DynamoDB BatchWriteItem failed"
+                );
+                AppError::Internal(format!(
+                    "DynamoDB BatchWriteItem: {}",
+                    crate::error::format_error_chain(&e)
+                ))
+            })?;
     }
 
     Ok(true)
@@ -134,7 +146,18 @@ pub async fn get_walk_points(
         .expression_attribute_values(":pk", AttributeValue::S(walk_partition_key(walk_id)))
         .send()
         .await
-        .map_err(|e| AppError::Internal(e.to_string()))?;
+        .map_err(|e| {
+            tracing::error!(
+                error = ?e,
+                table = table_name,
+                walk_id = %walk_id,
+                "DynamoDB Query failed"
+            );
+            AppError::Internal(format!(
+                "DynamoDB Query: {}",
+                crate::error::format_error_chain(&e)
+            ))
+        })?;
 
     let mut points: Vec<WalkPoint> = result.items().iter().filter_map(parse_point_row).collect();
 

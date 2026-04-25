@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Modularity Review</title>
+<style>
+  :root {
+    --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    --font-mono: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, Consolas, monospace;
+    --max-width: 820px;
+  }
+
+  :root[data-theme="light"] {
+    --bg: #ffffff;
+    --bg-secondary: #f6f8fa;
+    --bg-tertiary: #eef1f5;
+    --text: #1a1a1a;
+    --text-secondary: #4a5568;
+    --text-muted: #718096;
+    --border: #e2e8f0;
+    --accent: #2b6cb0;
+    --accent-light: #ebf4ff;
+    --severity-critical: #c53030;
+    --severity-critical-bg: #fff5f5;
+    --severity-significant: #c05621;
+    --severity-significant-bg: #fffaf0;
+    --severity-minor: #2b6cb0;
+    --severity-minor-bg: #ebf8ff;
+    --table-stripe: #f7fafc;
+    --link: #2b6cb0;
+    --link-hover: #1a4971;
+    --shadow: rgba(0, 0, 0, 0.06);
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #1a1a1a;
+    --bg-secondary: #242424;
+    --bg-tertiary: #2e2e2e;
+    --text: #e2e2e2;
+    --text-secondary: #a0a0a0;
+    --text-muted: #717171;
+    --border: #333333;
+    --accent: #b0b0b0;
+    --accent-light: #2a2a2a;
+    --severity-critical: #fc8181;
+    --severity-critical-bg: #2d1b1b;
+    --severity-significant: #f6ad55;
+    --severity-significant-bg: #2d2415;
+    --severity-minor: #a0a0a0;
+    --severity-minor-bg: #282828;
+    --table-stripe: #222222;
+    --link: #e0c97f;
+    --link-hover: #f0dca0;
+    --shadow: rgba(0, 0, 0, 0.2);
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    margin: 0;
+    padding: 2rem 1.5rem;
+    transition: background 0.3s ease, color 0.3s ease;
+  }
+
+  .container {
+    max-width: var(--max-width);
+    margin: 0 auto;
+  }
+
+  /* Theme toggle */
+  .theme-toggle {
+    position: fixed;
+    top: 1.5rem;
+    right: 1.5rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    color: var(--text);
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    z-index: 100;
+  }
+
+  .theme-toggle:hover {
+    background: var(--bg-tertiary);
+  }
+
+  /* Typography */
+  h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 0 0 0.5rem 0;
+    color: var(--text);
+  }
+
+  h2 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 2.5rem 0 1rem 0;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 1.8rem 0 0.6rem 0;
+    color: var(--text);
+  }
+
+  p {
+    margin: 0 0 1rem 0;
+    color: var(--text-secondary);
+  }
+
+  a {
+    color: var(--link);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.2s ease;
+  }
+
+  a:hover {
+    color: var(--link-hover);
+    border-bottom-color: var(--link-hover);
+  }
+
+  /* Metadata */
+  .meta {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .meta strong {
+    color: var(--text-secondary);
+  }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+    font-size: 0.9rem;
+  }
+
+  th {
+    background: var(--bg-secondary);
+    font-weight: 600;
+    text-align: left;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  td {
+    padding: 0.65rem 1rem;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+  }
+
+  tr:nth-child(even) td {
+    background: var(--table-stripe);
+  }
+
+  /* Severity badges */
+  .severity {
+    display: inline-block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.15rem 0.6rem;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .severity-critical {
+    color: var(--severity-critical);
+    background: var(--severity-critical-bg);
+  }
+
+  .severity-significant {
+    color: var(--severity-significant);
+    background: var(--severity-significant-bg);
+  }
+
+  .severity-minor {
+    color: var(--severity-minor);
+    background: var(--severity-minor-bg);
+  }
+
+  /* Issue cards */
+  .issue {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem 2rem;
+    margin: 1.5rem 0;
+    box-shadow: 0 1px 3px var(--shadow);
+  }
+
+  .issue h2 {
+    margin-top: 0;
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .issue h3 {
+    font-size: 1rem;
+  }
+
+  .issue-meta {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+  }
+
+  /* Lists */
+  ul, ol {
+    padding-left: 1.5rem;
+    color: var(--text-secondary);
+  }
+
+  li {
+    margin-bottom: 0.35rem;
+  }
+
+  /* Code */
+  code {
+    font-family: var(--font-mono);
+    font-size: 0.88em;
+    background: var(--bg-tertiary);
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+  }
+
+  /* Horizontal rule */
+  hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 3rem 0 1.5rem 0;
+  }
+
+  /* Footer */
+  .footer {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  .footer a {
+    color: var(--text-muted);
+    border-bottom-color: var(--border);
+  }
+
+  .footer a:hover {
+    color: var(--link);
+  }
+
+  /* Print */
+  @media print {
+    .theme-toggle { display: none; }
+    body { padding: 0; }
+    .issue { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+  <span id="theme-icon"></span>
+</button>
+
+<div class="container">
+  <h1>Modularity Review</h1>
+
+  <div class="meta">
+    <strong>Scope</strong>: <code>apps/api/</code> — Rust/Axum + Seaography (async-graphql) GraphQL API on PostgreSQL (SeaORM) + DynamoDB (walk points) + S3 (photos) + Cognito (identity)<br>
+    <strong>Date</strong>: 2026-04-24
+  </div>
+
+  <hr>
+
+  <h2>Executive Summary</h2>
+
+  <p><code>apps/api</code> is the backend for a dog-walking product whose differentiators are <strong>GPS-recorded walks</strong> and <strong>BLE-detected dog-to-dog encounters that aggregate into friendships</strong>. Eight modularity findings remain after the PR #138 cleanup; none are <em>Critical</em> under the <a href="https://coupling.dev/posts/core-concepts/balance/">Balanced Coupling</a> criteria because the entire API is one Rust binary owned by one developer, so <a href="https://coupling.dev/posts/dimensions-of-coupling/distance/">distance</a> is uniformly low and the worst-case &ldquo;high strength + high distance + high <a href="https://coupling.dev/posts/dimensions-of-coupling/volatility/">volatility</a>&rdquo; combination cannot occur within the API itself. The most important finding is <strong>H1</strong>: <code>auth/jwt.rs</code> duplicates env-reading rules that <code>Config</code> already centralizes, undoing the abstraction the trait-based <code>JwtVerifier</code> was designed to enable. The four <em>Significant</em> issues all share one shape — <strong><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">implicit coupling</a></strong> that hides an integration point a future change will trip over.</p>
+
+  <p>A second-order observation: while distance inside <code>apps/api</code> is low, <strong>distance re-asserts itself at the mobile/API GraphQL contract boundary</strong> (separate codebase, separate deploy cadence, separate platform). H2 (SeaORM model leakage into output types) and M4 (Cognito-specific field in public schema) both have effects there — schema reshapes become socio-technical events, not local refactors.</p>
+
+  <hr>
+
+  <h2>Coupling Overview Table</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Integration</th>
+        <th><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Strength</a></th>
+        <th><a href="https://coupling.dev/posts/dimensions-of-coupling/distance/">Distance</a></th>
+        <th><a href="https://coupling.dev/posts/dimensions-of-coupling/volatility/">Volatility</a></th>
+        <th><a href="https://coupling.dev/posts/core-concepts/balance/">Balanced?</a></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>auth/jwt.rs</code> ⇄ env vars (and indirectly <code>config.rs</code>)</td>
+        <td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Model</a> (duplicated env-reading rule)</td>
+        <td>Low (same crate)</td>
+        <td>Medium</td>
+        <td><strong>No</strong> — implicit, duplicated</td>
+      </tr>
+      <tr>
+        <td><code>services/*</code> → GraphQL <code>*Output</code> types (via SeaORM <code>Model</code>)</td>
+        <td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Model</a> (shape duplicated)</td>
+        <td>Low (inside crate); <strong>Medium at the mobile API contract</strong></td>
+        <td>High (core domain)</td>
+        <td><strong>No</strong> — domain model is implicit</td>
+      </tr>
+      <tr>
+        <td>GraphQL field resolvers → entity-by-id services (loops)</td>
+        <td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Functional</a> (singular semantics in many-lookup context)</td>
+        <td>Low</td>
+        <td>High (query shapes evolve)</td>
+        <td>Tolerable today; documented as a <em>Quality observation</em> below</td>
+      </tr>
+      <tr>
+        <td>Resolvers → <code>walk_points_service</code> (passing <code>table_name</code>)</td>
+        <td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Model</a> (callers know which <code>Config</code> field)</td>
+        <td>Low</td>
+        <td>Low</td>
+        <td><strong>No</strong> — module advertises encapsulation it does not deliver</td>
+      </tr>
+      <tr>
+        <td><code>mutations/</code> → <code>mutations/</code> cross-imports for <code>*Output</code> (used by queries)</td>
+        <td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Model</a></td>
+        <td>Low (cross-intent module)</td>
+        <td>High</td>
+        <td><strong>No</strong> — low cohesion</td>
+      </tr>
+      <tr>
+        <td><code>dog_member_service</code> ⇄ string literal <code>"owner"</code>/<code>"member"</code> (5+ sites)</td>
+        <td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Intrusive</a> (stringly-typed enum)</td>
+        <td>Low</td>
+        <td>Low</td>
+        <td><strong>No</strong> but tolerable; failure mode is silent typo</td>
+      </tr>
+      <tr>
+        <td>GraphQL <code>UserOutput.cognitoSub</code> → public clients</td>
+        <td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Model</a> (IdP detail in public contract)</td>
+        <td><strong>Medium</strong> at the mobile/E2E boundary</td>
+        <td>High (provider-strategic)</td>
+        <td><strong>No</strong> — leaks generic-subdomain detail</td>
+      </tr>
+      <tr>
+        <td><code>custom_queries.rs::walk_by_id_field</code> → <code>entities::walks::Entity</code> (direct)</td>
+        <td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Intrusive</a> (one-off bypass)</td>
+        <td>Low</td>
+        <td>Low</td>
+        <td>Tolerable but inconsistent</td>
+      </tr>
+      <tr>
+        <td>GraphQL inputs → resolvers (inline <code>try_get</code>/<code>string()</code> parsing)</td>
+        <td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Intrusive</a> (schema decl + parse code agree implicitly)</td>
+        <td>Low</td>
+        <td>Medium</td>
+        <td><strong>No</strong> — typos compile</td>
+      </tr>
+      <tr>
+        <td><code>encounter_service</code> → <code>friendship_service</code> (transactional side effect)</td>
+        <td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Functional</a></td>
+        <td>Low</td>
+        <td>Medium</td>
+        <td><strong>Yes</strong> — <em>essential</em> coupling, friendship is the aggregate of encounters</td>
+      </tr>
+      <tr>
+        <td>Services → <code>entities::*</code> (SeaORM models)</td>
+        <td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Model</a></td>
+        <td>Low</td>
+        <td>Mixed</td>
+        <td>Acceptable; the boundary is the only DB seam</td>
+      </tr>
+      <tr>
+        <td><code>error.rs</code> → GraphQL (<a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Contract</a> via <code>into_graphql_error</code>)</td>
+        <td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Contract</a></td>
+        <td>Low</td>
+        <td>Low</td>
+        <td><strong>Yes</strong> — clean anti-corruption layer</td>
+      </tr>
+      <tr>
+        <td><code>DogPair</code> newtype → <code>encounter_service</code> / <code>friendship_service</code></td>
+        <td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Contract</a> (invariant-enforcing newtype)</td>
+        <td>Low</td>
+        <td>Medium</td>
+        <td><strong>Yes</strong> — textbook abstraction</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <h2>Domain Classification</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Subdomain</th>
+        <th>Classification</th>
+        <th><a href="https://coupling.dev/posts/dimensions-of-coupling/volatility/">Volatility</a></th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Encounter detection + friendship aggregation</td>
+        <td><a href="https://coupling.dev/posts/dimensions-of-coupling/volatility/"><strong>Core</strong></a></td>
+        <td>High</td>
+        <td>BLE-driven dog-to-dog encounters; the unique product feature. Recently moved encounter auth into the service.</td>
+      </tr>
+      <tr>
+        <td>Walk lifecycle + GPS recording</td>
+        <td><a href="https://coupling.dev/posts/dimensions-of-coupling/volatility/"><strong>Core</strong></a></td>
+        <td>High</td>
+        <td>iOS 26 Liquid Glass walk-recording flow shipped in PR #134; mobile UI evolves quickly.</td>
+      </tr>
+      <tr>
+        <td>Walk events (pee/poo/photo)</td>
+        <td><strong>Supporting</strong></td>
+        <td>Medium</td>
+        <td>Adding event types is the most likely change.</td>
+      </tr>
+      <tr>
+        <td>Dog membership / family sharing</td>
+        <td><strong>Supporting</strong></td>
+        <td>Medium</td>
+        <td>Recently shipped; role model may grow.</td>
+      </tr>
+      <tr>
+        <td>Dog profile management</td>
+        <td><strong>Supporting</strong></td>
+        <td>Low-Medium</td>
+        <td>CRUD over fixed shape.</td>
+      </tr>
+      <tr>
+        <td>Identity (Cognito sync)</td>
+        <td><strong>Generic</strong></td>
+        <td>Low (impl), Medium (provider)</td>
+        <td>Replaceable.</td>
+      </tr>
+      <tr>
+        <td>Photo storage (S3)</td>
+        <td><strong>Generic</strong></td>
+        <td>Low</td>
+        <td>Pure infrastructure adapter.</td>
+      </tr>
+      <tr>
+        <td>GPS point storage (DynamoDB)</td>
+        <td><strong>Generic</strong></td>
+        <td>Low</td>
+        <td>Pure infrastructure adapter.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <div class="issue">
+    <h2>Issue: JWT verifier reads <code>std::env::var</code> directly, bypassing <code>Config</code></h2>
+    <div class="issue-meta">
+      <strong>Integration</strong>: <code>auth/jwt.rs</code> -&gt; environment variables (and indirectly <code>config.rs</code>)<br>
+      <strong>Severity</strong>: <span class="severity severity-significant">Significant</span>
+    </div>
+
+    <h3>Knowledge Leakage</h3>
+    <p>The Cognito JWT verifier (<code>apps/api/src/auth/jwt.rs:35-36</code>, <code>:39</code>, <code>:67</code>) reads three env vars by name — <code>COGNITO_USER_POOL_ID</code>, <code>AWS_REGION</code>, <code>COGNITO_ENDPOINT_URL</code> — and encodes a domain rule alongside: <em>&ldquo;if <code>COGNITO_ENDPOINT_URL</code> is set, skip issuer validation (we are running cognito-local)&rdquo;</em>. <code>config.rs</code> already loads the same three values into <code>Config</code> and stores them in <code>AppState.config</code>. The env-var <strong>names</strong>, the <strong>default region fallback</strong>, and the <strong>issuer-validation rule</strong> are duplicated knowledge living in two places — the very <a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">implicit coupling</a> the <code>Config</code> abstraction was supposed to eliminate.</p>
+
+    <h3>Complexity Impact</h3>
+    <p>A reader of <code>Config</code> cannot tell that <code>COGNITO_ENDPOINT_URL</code> controls issuer-validation behavior — that rule is invisible from <code>config.rs</code>. A reader of <code>jwt.rs</code> cannot tell that the vars are also loaded elsewhere. The <code>JwtVerifier</code> trait was introduced for testability (the <code>NoOpJwtVerifier</code> injects in integration tests), but <code>CognitoJwtVerifier</code> is not configurable — only its <em>replacement</em> is. This violates the trait&rsquo;s reason for existing.</p>
+
+    <h3>Cascading Changes</h3>
+    <p>Any change to Cognito wiring — adding multi-region support, switching endpoint resolution, introducing per-environment overrides — must edit two files in lockstep, with no compiler help to ensure both are consistent. The recent <code>cognito-local</code> workaround already shows this churn pattern; the next provider/region/staging change will hit the same wall.</p>
+
+    <h3>Recommended Improvement</h3>
+    <p>Make <code>CognitoJwtVerifier</code> hold its config:</p>
+    <pre><code>pub struct CognitoJwtVerifier {
+    pub user_pool_id: String,
+    pub region: String,
+    pub endpoint_url: Option&lt;String&gt;,
+}</code></pre>
+    <p>Construct it in <code>main.rs</code> from <code>&amp;Config</code>. Move the JWKS-URL builder and the issuer-validation rule onto methods of the struct. After the change, <code>jwt.rs</code> reads zero env vars; <code>Config::from_env</code> is the only place that does. This is a <a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">contract-coupling</a> refactor — <code>CognitoJwtVerifier</code> consumes <code>Config</code> via fields, not via implicit env names.</p>
+    <p><strong>Trade-off:</strong> Adds three fields to one struct and one constructor call in <code>main.rs</code>. Negligible cost; restores the abstraction.</p>
+  </div>
+
+  <div class="issue">
+    <h2>Issue: SeaORM <code>Model</code> types leak across every service boundary</h2>
+    <div class="issue-meta">
+      <strong>Integration</strong>: <code>services/*</code> -&gt; GraphQL <code>*Output</code> types -&gt; client schema<br>
+      <strong>Severity</strong>: <span class="severity severity-significant">Significant</span>
+    </div>
+
+    <h3>Knowledge Leakage</h3>
+    <p>Every public service function returns a SeaORM <code>Model</code> directly: <code>DogModel</code>, <code>WalkModel</code>, <code>EncounterModel</code>, <code>FriendshipModel</code>, <code>WalkEventModel</code>, <code>UserModel</code>, <code>DogMemberModel</code>. The corresponding GraphQL <code>*Output</code> types (<code>mutations/walk.rs:15</code>, <code>mutations/dog.rs:80</code>, etc.) duplicate the field list — same shape, different name. The &ldquo;domain model&rdquo; has no canonical Rust representation; it is <strong>smeared</strong> across the SeaORM entity, the GraphQL output struct, and inline computations in field resolvers. This is implicit <a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">model coupling</a> on a <a href="https://coupling.dev/posts/dimensions-of-coupling/volatility/">core subdomain</a>.</p>
+
+    <h3>Complexity Impact</h3>
+    <p>The <code>From&lt;Model&gt;</code> impl localizes the wiring to one site, so the <em>visible</em> cost today is bearable. The hidden cost surfaces when GraphQL needs to expose a derived field that isn&rsquo;t a column — <code>walk.duration_seconds</code> from <code>started_at</code>/<code>finished_at</code>, encounter counts, etc. The leaky abstraction forces a choice between (a) computing in the resolver (encapsulation broken; calculation duplicated for multiple consumers) or (b) extending the SeaORM <code>Model</code> with non-persisted fields (ORM anti-pattern). Both have already been chosen ad-hoc in the resolvers. Cognitive cost: a reader must scan three files to know <em>what a Walk is</em>.</p>
+    <p>Distance is low <em>inside</em> <code>apps/api</code>, but the same model leaks out to mobile via the GraphQL schema — and there <a href="https://coupling.dev/posts/dimensions-of-coupling/distance/">distance reasserts itself</a>: mobile is a separate deploy on a separate cadence, so reshaping <code>WalkOutput</code> becomes a socio-technical event.</p>
+
+    <h3>Cascading Changes</h3>
+    <p>Every column rename, addition, or type change on a core entity touches: the auto-generated <code>entities/*.rs</code>, the matching <code>*Output</code> struct, the <code>From&lt;Model&gt;</code> impl, and (if mobile uses the field) the mobile codegen + UI. The first three are local; the fourth is cross-team and cross-deploy.</p>
+
+    <h3>Recommended Improvement</h3>
+    <p>Introduce domain structs at the <a href="https://coupling.dev/posts/dimensions-of-coupling/volatility/">core</a> boundary only — start with <code>Walk</code> and <code>Encounter</code>:</p>
+    <pre><code>// services/walk.rs
+pub struct Walk {
+    pub id: Uuid,
+    pub user_id: Uuid,
+    pub status: WalkStatus,
+    pub started_at: DateTime&lt;Utc&gt;,
+    pub finished_at: Option&lt;DateTime&lt;Utc&gt;&gt;,
+    pub distance_m: Option&lt;i32&gt;,
+    pub duration_seconds: Option&lt;i64&gt;,  // ← derived field has a home
+}
+impl From&lt;WalkModel&gt; for Walk { ... }</code></pre>
+    <p>Services return the domain struct, not <code>Model</code>. GraphQL <code>*Output</code> wraps the domain struct (one less hop, one canonical model). This is a <a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">contract-coupling</a> move with <a href="https://coupling.dev/posts/related-topics/domain-driven-design/">DDD</a> flavor — the <code>Walk</code> struct is the <a href="https://coupling.dev/posts/related-topics/domain-driven-design/">aggregate</a> the codebase has been pretending it has.</p>
+    <p>Leave <code>Dog</code>, <code>User</code>, <code>DogMember</code>, <code>DogInvitation</code> alone. Their volatility is <a href="https://coupling.dev/posts/core-concepts/balance/">low-enough that the unbalanced coupling is tolerable</a>; wrapping them now is speculative work.</p>
+    <p><strong>Trade-off:</strong> One more conversion step per service call; ~50 lines of new code per wrapped entity. Pays back the first time a derived field needs a home.</p>
+  </div>
+
+  <div class="issue">
+    <h2>Issue: <code>walk_points_service</code> re-leaks the table name it claims to encapsulate</h2>
+    <div class="issue-meta">
+      <strong>Integration</strong>: <code>services/walk_points_service</code> -&gt; resolver call sites (passing <code>table_name</code>)<br>
+      <strong>Severity</strong>: <span class="severity severity-significant">Significant</span>
+    </div>
+
+    <h3>Knowledge Leakage</h3>
+    <p><code>services/walk_points_service.rs:13-22</code> declares: <em>&ldquo;Every bit of knowledge about how walk points are stored in DynamoDB lives here. If the schema changes, this block is the only place that changes.&rdquo;</em> The PK/SK builders, attribute names, and item construction are indeed encapsulated. But the public functions <code>add_walk_points</code> and <code>get_walk_points</code> (<code>:84-86</code>, <code>:124-127</code>) require every caller to pass <code>table_name: &amp;str</code>. Callers do:</p>
+    <pre><code>walk_points_service::get_walk_points(
+    &amp;state.dynamo,
+    &amp;state.config.dynamodb_table_walk_points,  // ← caller knows the Config field
+    walk_id,
+)</code></pre>
+    <p>at <code>mutations/walk.rs:162-164</code>, <code>custom_queries.rs:448</code>, and the writer in <code>mutations/walk.rs</code>. The rule <em>&ldquo;walk points live in <code>state.config.dynamodb_table_walk_points</code>&rdquo;</em> is a piece of <a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">implicit, model-level knowledge</a> that the module advertises it owns and then declines to actually own.</p>
+
+    <h3>Complexity Impact</h3>
+    <p>A reader sees the encapsulation comment and trusts it; then they grep for the table name and find it scattered. The contradiction is small in absolute lines but corrosive — it teaches the codebase that the rules in the comments are aspirational rather than enforced.</p>
+
+    <h3>Cascading Changes</h3>
+    <p>A storage migration (sharding by week, splitting hot/cold tiers, renaming the table) touches three files instead of one. Worse, future call sites <em>must remember</em> to use the right <code>Config</code> field name; auto-completion is the only safety net.</p>
+
+    <h3>Recommended Improvement</h3>
+    <p>Introduce a thin store struct that owns both the client and the table name:</p>
+    <pre><code>pub struct WalkPointsStore {
+    client: aws_sdk_dynamodb::Client,
+    table_name: String,
+}
+impl WalkPointsStore {
+    pub async fn add_points(&amp;self, walk_id: Uuid, points: Vec&lt;WalkPointInput&gt;) -&gt; Result&lt;bool, AppError&gt; { ... }
+    pub async fn get_points(&amp;self, walk_id: Uuid) -&gt; Result&lt;Vec&lt;WalkPoint&gt;, AppError&gt; { ... }
+}</code></pre>
+    <p>Construct once in <code>main.rs</code>, store <code>Arc&lt;WalkPointsStore&gt;</code> in <code>AppState</code>. Resolvers call <code>state.walk_points.get_points(walk_id)</code>. Remove <code>dynamodb_table_walk_points</code> from anywhere that isn&rsquo;t the constructor. This is a <a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">contract-coupling</a> refactor: callers integrate via a method, not a tuple of <code>(client, table_name)</code>.</p>
+    <p><strong>Trade-off:</strong> One small struct, one constructor call. The module finally delivers what its comment promises.</p>
+  </div>
+
+  <div class="issue">
+    <h2>Issue: <code>cognitoSub</code> exposed in the public <code>UserOutput</code> GraphQL type</h2>
+    <div class="issue-meta">
+      <strong>Integration</strong>: <code>mutations/auth.rs::UserOutput</code> -&gt; public GraphQL clients<br>
+      <strong>Severity</strong>: <span class="severity severity-significant">Significant</span>
+    </div>
+
+    <h3>Knowledge Leakage</h3>
+    <p><code>mutations/auth.rs:14</code> exposes <code>cognitoSub</code> as a public field on <code>UserOutput</code>, returning the raw IdP subject claim. This is a <a href="https://coupling.dev/posts/dimensions-of-coupling/volatility/">generic subdomain</a> implementation detail (Cognito-specific) leaked into the public published schema — clients can read it, parse it, build assumptions on its format. The only stable public identifier should be <code>user.id</code> (UUID).</p>
+    <p><strong>Verified usage (read-only grep):</strong> <code>apps/mobile/</code> does <strong>not</strong> reference <code>cognitoSub</code> anywhere. The single consumer is <code>apps/e2e/tests/api/auth.spec.ts:193</code>, which asserts the field is truthy. So removal is safe at the mobile boundary; only the E2E assertion needs updating.</p>
+
+    <h3>Complexity Impact</h3>
+    <p>The contract claims to be about a <em>user</em> but reveals the <em>identity provider</em>. Any future client developer who sees <code>cognitoSub</code> in the schema is now thinking about Cognito — even though Cognito is the most replaceable piece of the stack. This pollutes the mental model of the published language.</p>
+
+    <h3>Cascading Changes</h3>
+    <p>If the team ever swaps identity providers (Auth0, Firebase, custom OIDC), or even rotates Cognito sub formats, any client that snapshotted <code>cognitoSub</code> semantics breaks silently. With <code>apps/mobile</code> clean, the actual blast radius today is one E2E assertion — but the <em>risk surface</em> (anyone who learns the schema) is everyone.</p>
+
+    <h3>Recommended Improvement</h3>
+    <p>Remove the field from the public schema. Update <code>apps/e2e/tests/api/auth.spec.ts:193</code> to assert on <code>me.id</code> instead (the stable internal UUID). This is a <a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">contract</a>-narrowing change — the published language stops mentioning the identity provider.</p>
+    <p><strong>Trade-off:</strong> Trivial — one field removed, one test assertion updated. No mobile changes. Distance reduces (the contract no longer crosses into the IdP&rsquo;s domain).</p>
+  </div>
+
+  <div class="issue">
+    <h2>Issue: GraphQL output types live under <code>mutations/</code> but queries depend on them</h2>
+    <div class="issue-meta">
+      <strong>Integration</strong>: <code>graphql/custom_queries.rs</code> -&gt; <code>graphql/mutations/*::*Output</code><br>
+      <strong>Severity</strong>: <span class="severity severity-minor">Minor</span>
+    </div>
+
+    <h3>Knowledge Leakage</h3>
+    <p><code>WalkOutput</code> lives in <code>mutations/walk.rs:15</code>; <code>DogOutput</code> lives in <code>mutations/dog.rs:80</code>; <code>WalkEventOutput</code> in <code>mutations/walk_event.rs:13</code>. Yet <code>custom_queries.rs::walk_by_id_field</code> (line 322) returns <code>WalkOutput</code> from <code>mutations/</code>, and <code>dog_field</code> (line 346) returns <code>DogOutput</code>. The path implies &ldquo;this type is the output of a mutation,&rdquo; but the type is really <em>the GraphQL projection of a Walk</em> — used by queries, mutations, and field resolvers alike. This is <a href="https://coupling.dev/posts/core-concepts/balance/">low cohesion by intent</a> — the type&rsquo;s location lies about its scope.</p>
+
+    <h3>Complexity Impact</h3>
+    <p>Readers must scan two folders to find a type&rsquo;s source. New contributors hesitate to move things because they&rsquo;re not sure whether the location encodes intent or accident.</p>
+
+    <h3>Cascading Changes</h3>
+    <p>Adding a new query that returns <code>WalkOutput</code> requires reaching across the <code>mutations/</code> boundary. Each such cross-import normalizes the smell further.</p>
+
+    <h3>Recommended Improvement</h3>
+    <p>Extract <code>graphql/types/</code>:</p>
+    <pre><code>graphql/
+  types/
+    walk.rs        // WalkOutput, WalkerOutput
+    dog.rs         // DogOutput, BirthDate
+    walk_event.rs  // WalkEventOutput
+    user.rs        // UserOutput
+    encounter.rs   // (move from custom_queries.rs)
+    friendship.rs  // (move from custom_queries.rs)
+    walk_point.rs  // (move from custom_queries.rs)
+  mutations/       // mutation field builders + input types only
+  custom_queries.rs // query field builders only</code></pre>
+    <p>This is a pure <a href="https://coupling.dev/posts/core-concepts/balance/">cohesion</a> improvement — no behavior change.</p>
+    <p><strong>Trade-off:</strong> Moves ~7 type definitions; one round of imports updates. Approximately one-hour change with high readability payoff.</p>
+  </div>
+
+  <div class="issue">
+    <h2>Issue: <code>dog_members.role</code> is a raw string compared in 5+ sites</h2>
+    <div class="issue-meta">
+      <strong>Integration</strong>: <code>dog_member_service</code> ⇄ string literal <code>"owner"</code>/<code>"member"</code><br>
+      <strong>Severity</strong>: <span class="severity severity-minor">Minor</span>
+    </div>
+
+    <h3>Knowledge Leakage</h3>
+    <p>The role enum is implicit — it lives in (1) the DB column allowed values, (2) <code>dog_member_service.rs:35</code> (<code>.eq("owner")</code>), <code>:134</code> (<code>if target_member.role == "owner"</code>), <code>:138</code> (<code>.eq("owner")</code>), <code>:167</code> (<code>Set(role.to_string())</code>), and (3) callers like <code>dog_service.rs:34</code> passing <code>"owner"</code> literal. This is classic stringly-typed <a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">intrusive coupling</a> — the compiler cannot help.</p>
+
+    <h3>Complexity Impact</h3>
+    <p>A typo (<code>"owener"</code>) compiles. A new role added to the DB has no compile-time enforcement that all comparison sites consider it.</p>
+
+    <h3>Cascading Changes</h3>
+    <p>Adding a third role (e.g., <code>"viewer"</code>) requires grep + tribal knowledge to find every site. Today the volatility is low (binary roles), but family sharing already added one membership concept; the next iteration could add another.</p>
+
+    <h3>Recommended Improvement</h3>
+    <p>Introduce a domain enum:</p>
+    <pre><code>pub enum Role { Owner, Member }
+impl Role {
+    pub fn as_str(&amp;self) -&gt; &amp;'static str { match self { Self::Owner =&gt; "owner", Self::Member =&gt; "member" } }
+}
+impl FromStr for Role { ... }</code></pre>
+    <p>Replace literals. SeaORM filters become <code>.eq(Role::Owner.as_str())</code>. This is a <a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">contract</a>-coupling tightening — the contract is now the enum, not the spelling.</p>
+    <p><strong>Trade-off:</strong> ~30 lines added, ~5 sites updated. Eliminates a class of silent bugs.</p>
+  </div>
+
+  <div class="issue">
+    <h2>Issue: <code>custom_queries.rs::walk_by_id_field</code> bypasses <code>walk_service</code></h2>
+    <div class="issue-meta">
+      <strong>Integration</strong>: <code>custom_queries.rs</code> -&gt; <code>entities::walks::Entity</code> (direct)<br>
+      <strong>Severity</strong>: <span class="severity severity-minor">Minor</span>
+    </div>
+
+    <h3>Knowledge Leakage</h3>
+    <p><code>custom_queries.rs:335</code> uses <code>WalkEntity::find_by_id(walk_id).one(&amp;state.db).await</code> — the <strong>only</strong> GraphQL-layer site that touches a SeaORM entity directly. Every other resolver routes through services.</p>
+
+    <h3>Complexity Impact</h3>
+    <p>Trivial in isolation; the smell is the inconsistency. New contributors copy what they see; one bypass invites more.</p>
+
+    <h3>Cascading Changes</h3>
+    <p>If <code>walk_service</code> ever adds an invariant on read (e.g., scrubbing soft-deleted rows), this site silently breaks the invariant.</p>
+
+    <h3>Recommended Improvement</h3>
+    <p>Add <code>services::walk::get_walk_by_id(db, walk_id) -&gt; Option&lt;WalkModel&gt;</code> and use it. This aligns naturally with the H2 domain-struct refactor but does not require it — five-minute change.</p>
+    <p><strong>Trade-off:</strong> One new service function. Restores the rule that services own DB access.</p>
+  </div>
+
+  <div class="issue">
+    <h2>Issue: GraphQL inputs are parsed inline with <code>try_get</code>/<code>string()</code> patterns</h2>
+    <div class="issue-meta">
+      <strong>Integration</strong>: GraphQL schema declarations (<code>*_input_type()</code> factories) ⇄ resolver parsing bodies<br>
+      <strong>Severity</strong>: <span class="severity severity-minor">Minor</span>
+    </div>
+
+    <h3>Knowledge Leakage</h3>
+    <p>Every mutation declares input shape in a factory function (<code>create_dog_input_type()</code> etc.) and then re-parses each field inline in the resolver (<code>input.try_get("name")?.string()?</code>). The field name and type are duplicated knowledge — <a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">implicit coupling</a> between two collaborating sites in the same file with no compiler check.</p>
+
+    <h3>Complexity Impact</h3>
+    <p>A field rename requires editing both sites; a typo compiles. Same failure mode as the stringly-typed role issue (M3) but spread across every mutation.</p>
+
+    <h3>Cascading Changes</h3>
+    <p>Adding a new input field touches the factory and every parsing site. Removing a field that resolvers still try to <code>try_get</code> is silent until tested.</p>
+
+    <h3>Recommended Improvement</h3>
+    <p>Define Rust input structs with a single parse step. Input structs can live in <code>graphql/input/</code> next to the existing <code>birth_date.rs</code>. (Note: Seaography&rsquo;s dynamic schema may need glue to bridge the factory-declaration shape to a <code>#[derive(InputObject)]</code> — but the same factory + a single deserialize call is enough.)</p>
+    <p><strong>Trade-off:</strong> ~10 input structs to write; meaningful reduction in bug surface across all mutations.</p>
+  </div>
+
+  <hr>
+
+  <h2>Quality Observations (non-modularity)</h2>
+
+  <p>These are surfaced for completeness — they affect the codebase but are not strictly <a href="https://coupling.dev/posts/core-concepts/balance/">Balanced Coupling</a> issues:</p>
+
+  <ul>
+    <li><strong>N+1 query patterns in field resolvers</strong> (<code>mutations/walk.rs:128, 142, 191</code>; <code>custom_queries.rs:211, 222, 296</code>; <code>mutations/dog.rs:247</code>). Each field resolver fetches one row at a time. This is a query-plan / performance issue, not <a href="https://coupling.dev/posts/core-concepts/balance/">unbalanced coupling</a> — adding a batched <code>get_dogs_by_ids</code> alongside <code>get_dog_by_id</code> does not require any cascading change. Worth fixing with <code>async-graphql::dataloader::DataLoader</code> (start with <code>Dog</code> and <code>User</code>), but the modularity rationale is weak; the perf rationale is strong. Mentioning here so it isn&rsquo;t lost.</li>
+    <li><strong>Tests heavily concentrated at the GraphQL boundary</strong> (12 integration test files, few service-level unit tests). This is a test-pyramid issue, not a coupling issue. Schema changes ripple through tests; targeted unit tests at the service layer would shorten the feedback loop.</li>
+  </ul>
+
+  <hr>
+
+  <h2>Health Observations (worth keeping)</h2>
+
+  <p>These are <em>good</em> coupling decisions worth naming so future changes don&rsquo;t undo them:</p>
+
+  <ol>
+    <li><strong><code>DogPair</code> newtype</strong> (<code>services/dog_pair.rs</code>) — textbook abstraction for canonical-ordering invariants. Every encounter/friendship caller goes through it.</li>
+    <li><strong><code>auth_helpers.rs</code></strong> + GraphQL/domain enum parity tests (<code>graphql/mod.rs:107-158</code>) — small, single-responsibility helpers with guard tests that fail loudly when invariants drift.</li>
+    <li><strong><code>AppError</code> → GraphQL conversion</strong> at the resolver boundary (<code>error.rs::into_graphql_error</code>) — clean <a href="https://coupling.dev/posts/related-topics/domain-driven-design/">anti-corruption layer</a>; services know nothing about GraphQL, GraphQL knows nothing about SeaORM error types.</li>
+    <li><strong>Service layer is the only DB boundary</strong> (with one exception, the L1 minor issue above). Unusual discipline for a Seaography codebase.</li>
+    <li><strong><code>walk_points_service</code> schema encapsulation</strong> (PK/SK builders, <code>build_point_item</code>/<code>parse_point_row</code>, stable-format unit tests). The pattern is right; just needs to swallow the table name too (M1).</li>
+    <li><strong><code>encounter → friendship</code> transactional coupling</strong> is high-strength but <strong>cohesively</strong> so — friendship is literally the aggregate of encounters. The strength is <em>essential, not accidental</em>. Don&rsquo;t try to &ldquo;decouple&rdquo; by introducing events for events&rsquo; sake.</li>
+  </ol>
+
+  <hr>
+
+  <h2>Recommended Sequence</h2>
+
+  <p>If only three changes are taken: <strong>H1 → M1 → M4.</strong></p>
+  <ul>
+    <li><strong>H1</strong> is a small surgical fix that closes a real abstraction leak.</li>
+    <li><strong>M1</strong> delivers on a promise the module already made.</li>
+    <li><strong>M4</strong> has been verified safe (mobile clean, one E2E assertion to update) — turning a leak in the published language into a cleanup.</li>
+  </ul>
+  <p>For a longer pass: add <strong>H2 for <code>Walk</code> only</strong> (the most-touched core entity), then <strong>M2</strong> (reduces friction across the GraphQL layer), then <strong>M3</strong> + <strong>L1</strong> + <strong>L2</strong> as cleanup.</p>
+  <p>Defer <strong>H2 for non-core entities</strong> until volatility forces them — the <code>From&lt;Model&gt;</code> site keeps the cost low today.</p>
+
+  <hr>
+
+  <h2>Verification</h2>
+
+  <p>To validate that any of the above changes preserve behavior:</p>
+  <pre><code># unit tests (no test-utils feature needed)
+docker compose -f apps/compose.yml run --rm api cargo test --lib
+
+# full integration tests
+docker compose -f apps/compose.yml run --rm api cargo test --features test-utils -- --test-threads=1</code></pre>
+  <p>For <strong>H1</strong>: existing JWT tests (<code>tests/test_authorization.rs</code> + <code>auth/jwt.rs::tests::*</code>) cover both <code>CognitoJwtVerifier</code> and <code>NoOpJwtVerifier</code> paths. For <strong>M4</strong>: update <code>apps/e2e/tests/api/auth.spec.ts:193</code> to assert on <code>me.id</code>. For <strong>M2/M4</strong> (schema-shape changes): if a GraphQL schema dump is checked into <code>docs/</code>, regenerate and diff.</p>
+
+  <hr>
+
+  <h2>Out of Scope</h2>
+
+  <ul>
+    <li><strong><code>main.rs</code> as composition root</strong> knowing every subsystem — by design for a Rust binary, not a coupling defect.</li>
+    <li><strong>Sentry / tracing wiring</strong> — pure infrastructure, well-isolated.</li>
+    <li><strong>Mobile-side coupling to API contract</strong> — this review is <code>apps/api/</code> only, but H2 and M4 acknowledge the boundary.</li>
+  </ul>
+
+  <div class="footer">
+    <em>This analysis was performed using the <a href="https://coupling.dev">Balanced Coupling</a> model by <a href="https://vladikk.com">Vlad Khononov</a>.</em>
+  </div>
+</div>
+
+<script>
+  function getDefaultTheme() {
+    const hour = new Date().getHours();
+    return (hour >= 7 && hour < 19) ? 'light' : 'dark';
+  }
+
+  function setTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('modularity-review-theme', theme);
+    document.getElementById('theme-icon').textContent = theme === 'light' ? '☾' : '☀';
+  }
+
+  function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme');
+    setTheme(current === 'light' ? 'dark' : 'light');
+  }
+
+  const saved = localStorage.getItem('modularity-review-theme');
+  setTheme(saved || getDefaultTheme());
+</script>
+</body>
+</html>

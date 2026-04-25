@@ -145,14 +145,10 @@
     "ready": {
       "largeTitle": "Walk",
       "walkingWith": "Walking with",
-      "whosComing": "Who's coming?",
       "selectAll": "Select all",
       "deselectAll": "Deselect all",
-      "hint": "We'll log pees, poops and photos for each dog separately.",
+      "hint": "Tap to begin. We'll follow your route and log everything gently.",
       "start": "START",
-      "dogsWalkingBold": "{{count}} dogs",
-      "dogsWalkingTail": " walking together",
-      "groupWalk": "Group walk",
       "noDogs": "Register a dog first",
       "lastWalk": {
         "never": "Ready for the first walk",
@@ -180,9 +176,6 @@
       "resume": "Resume",
       "endWalk": "End Walk",
       "minimize": "Minimize",
-      "mapLabel": "Map",
-      "satelliteLabel": "Sat",
-      "toggleMapStyle": "Toggle map style",
       "expand": "Expand",
       "expandHint": "Tap to expand for controls"
     },

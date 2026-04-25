@@ -23,13 +23,8 @@ export function WalkSummaryCard() {
 
   const walkId = useWalkStore((s) => s.walkId);
   const startedAt = useWalkStore((s) => s.startedAt);
-  const finishedAt = useWalkStore((s) => s.finishedAt);
-  const isPaused = useWalkStore((s) => s.isPaused);
-  const totalPausedMs = useWalkStore((s) => s.totalPausedMs);
-  const pauseStartedAtMs = useWalkStore((s) => s.pauseStartedAtMs);
   const totalDistanceM = useWalkStore((s) => s.totalDistanceM);
   const points = useWalkStore((s) => s.points);
-  const routeBreakIndices = useWalkStore((s) => s.routeBreakIndices);
   const events = useWalkStore((s) => s.events);
   const selectedDogIds = useWalkStore((s) => s.selectedDogIds);
   const reset = useWalkStore((s) => s.reset);
@@ -40,16 +35,8 @@ export function WalkSummaryCard() {
     [me?.dogs, selectedDogIds],
   );
 
-  const elapsedBaseMs = finishedAt?.getTime()
-    ?? (isPaused ? pauseStartedAtMs ?? Date.now() : Date.now());
-
   const elapsedSec = startedAt
-    ? Math.max(
-        0,
-        Math.floor(
-          (elapsedBaseMs - startedAt.getTime() - totalPausedMs) / 1000,
-        ),
-      )
+    ? Math.floor((Date.now() - startedAt.getTime()) / 1000)
     : 0;
   const elapsedMin = Math.max(1, Math.round(elapsedSec / 60));
 
@@ -116,7 +103,6 @@ export function WalkSummaryCard() {
 
         <WalkRoutePreview
           points={points}
-          routeBreakIndices={routeBreakIndices}
           totalDistanceM={totalDistanceM}
           elapsedSec={elapsedSec}
         />

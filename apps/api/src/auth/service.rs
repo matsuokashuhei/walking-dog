@@ -32,21 +32,8 @@ pub(crate) fn map_error_code(code: Option<&str>) -> AppError {
 fn map_cognito_error<E, R>(err: &aws_smithy_runtime_api::client::result::SdkError<E, R>) -> AppError
 where
     E: ProvideErrorMetadata,
-    aws_smithy_runtime_api::client::result::SdkError<E, R>: std::error::Error,
 {
-    match err.code() {
-        Some(
-            "UsernameExistsException"
-            | "NotAuthorizedException"
-            | "CodeMismatchException"
-            | "ExpiredCodeException"
-            | "InvalidPasswordException",
-        ) => map_error_code(err.code()),
-        _ => AppError::Internal(crate::error::format_error_with_context(
-            "Cognito service error",
-            err,
-        )),
-    }
+    map_error_code(err.code())
 }
 
 pub async fn sign_up(
@@ -60,12 +47,7 @@ pub async fn sign_up(
         .name("name")
         .value(display_name)
         .build()
-        .map_err(|e| {
-            AppError::Internal(crate::error::format_error_with_context(
-                "Cognito AttributeType builder",
-                &e,
-            ))
-        })?;
+        .map_err(|e| AppError::Internal(e.to_string()))?;
 
     let result = client
         .sign_up()

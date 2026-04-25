@@ -26,16 +26,6 @@ pub fn format_error_chain<E: std::error::Error + ?Sized>(e: &E) -> String {
     chain
 }
 
-/// Prefix an error chain with stable local context.
-pub fn format_error_with_context<E: std::error::Error + ?Sized>(context: &str, e: &E) -> String {
-    let chain = format_error_chain(e);
-    if context.is_empty() {
-        chain
-    } else {
-        format!("{}: {}", context, chain)
-    }
-}
-
 #[derive(Debug, Error)]
 pub enum AppError {
     #[error("Database error: {0}")]
@@ -178,23 +168,6 @@ mod tests {
         impl std::error::Error for Lone {}
 
         assert_eq!(format_error_chain(&Lone), "standalone");
-    }
-
-    #[test]
-    fn format_error_with_context_prefixes_chain() {
-        #[derive(Debug)]
-        struct Inner;
-        impl std::fmt::Display for Inner {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                write!(f, "root cause")
-            }
-        }
-        impl std::error::Error for Inner {}
-
-        assert_eq!(
-            format_error_with_context("Cognito sign_up", &Inner),
-            "Cognito sign_up: root cause"
-        );
     }
 
     #[test]

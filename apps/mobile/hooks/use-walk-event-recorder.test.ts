@@ -1,9 +1,11 @@
-import { act, renderHook } from '@testing-library/react-native';
+import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { useWalkEventRecorder } from './use-walk-event-recorder';
 import { PhotoUploadError } from './use-photo-upload';
 import * as walkEventMutations from './use-walk-event-mutations';
 import * as photoUpload from './use-photo-upload';
 import * as mutationWithAlert from './use-mutation-with-alert';
+import * as eventOutbox from '@/lib/walk/event-outbox';
+import * as flushOutboxHook from './use-flush-walk-event-outbox';
 
 jest.mock('./use-walk-event-mutations', () => ({
   useRecordWalkEvent: jest.fn(),
@@ -18,9 +20,18 @@ jest.mock('./use-mutation-with-alert', () => ({
   useMutationWithAlert: jest.fn(),
 }));
 
+jest.mock('@/lib/walk/event-outbox', () => ({
+  enqueuePendingEvent: jest.fn(),
+}));
+
+jest.mock('./use-flush-walk-event-outbox', () => ({
+  useFlushWalkEventOutbox: jest.fn(),
+}));
+
 const mockRecordWalkEvent = jest.fn();
 const mockUploadPhoto = jest.fn();
 const runWithAlertMock = jest.fn();
+const mockFlushOutbox = jest.fn();
 
 let lastResolvedErrorKey: string | null;
 
@@ -54,6 +65,10 @@ beforeEach(() => {
   );
 
   (mutationWithAlert.useMutationWithAlert as jest.Mock).mockReturnValue(runWithAlertMock);
+
+  mockFlushOutbox.mockResolvedValue({ flushed: 0, remaining: 0 });
+  (flushOutboxHook.useFlushWalkEventOutbox as jest.Mock).mockReturnValue(mockFlushOutbox);
+  (eventOutbox.enqueuePendingEvent as jest.Mock).mockResolvedValue(undefined);
 });
 
 describe('useWalkEventRecorder', () => {
@@ -149,6 +164,59 @@ describe('useWalkEventRecorder', () => {
     expect(recorded).toBeNull();
     expect(runWithAlertMock).not.toHaveBeenCalled();
     expect(mockRecordWalkEvent).not.toHaveBeenCalled();
+  });
+
+  it('attempts an opportunistic outbox flush when the recorder mounts', async () => {
+    renderHook(() => useWalkEventRecorder({ walkId: 'walk-1' }));
+    await waitFor(() => {
+      expect(mockFlushOutbox).toHaveBeenCalled();
+    });
+  });
+
+  it('enqueues the failed event into the outbox when the mutation rejects, and returns null', async () => {
+    mockRecordWalkEvent.mockRejectedValue(new Error('network'));
+
+    const { result } = renderHook(() =>
+      useWalkEventRecorder({
+        walkId: 'walk-1',
+        latestPoint: { lat: 35.68, lng: 139.76 },
+      }),
+    );
+
+    let recorded: unknown;
+    await act(async () => {
+      recorded = await result.current.recordEvent('pee', 'dog-1');
+    });
+
+    expect(recorded).toBeNull();
+    expect(eventOutbox.enqueuePendingEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        walkId: 'walk-1',
+        dogId: 'dog-1',
+        eventType: 'pee',
+        lat: 35.68,
+        lng: 139.76,
+        occurredAt: expect.any(String),
+      }),
+    );
+  });
+
+  it('does not enqueue when the mutation succeeds, and triggers an opportunistic flush', async () => {
+    mockRecordWalkEvent.mockResolvedValue({ id: 'event-1', eventType: 'pee' });
+    mockFlushOutbox.mockClear();
+
+    const { result } = renderHook(() => useWalkEventRecorder({ walkId: 'walk-1' }));
+    await waitFor(() => {
+      expect(mockFlushOutbox).toHaveBeenCalledTimes(1);
+    });
+    mockFlushOutbox.mockClear();
+
+    await act(async () => {
+      await result.current.recordEvent('pee', 'dog-1');
+    });
+
+    expect(eventOutbox.enqueuePendingEvent).not.toHaveBeenCalled();
+    expect(mockFlushOutbox).toHaveBeenCalledTimes(1);
   });
 
   it('surfaces pending state from either event mutation or photo upload', () => {

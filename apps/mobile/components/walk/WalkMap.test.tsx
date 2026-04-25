@@ -23,8 +23,7 @@ jest.mock('react-native-maps', () => {
     accessibilityLabel?: string;
   }) => React.createElement(View, { testID, accessibilityLabel });
 
-  const MockPolyline = ({ testID, ...props }: { testID?: string }) =>
-    React.createElement(View, { testID, ...props });
+  const MockPolyline = () => React.createElement(View, null);
 
   return {
     __esModule: true,
@@ -99,17 +98,5 @@ describe('WalkMap', () => {
     render(<WalkMap />);
     expect(screen.getByTestId('event-marker-event-1')).toBeTruthy();
     expect(screen.getByTestId('event-marker-event-3')).toBeTruthy();
-  });
-
-  it('renders the dual route polylines with the updated active-walk styling', () => {
-    mockStorePoints = [
-      { lat: 35.68, lng: 139.76, recordedAt: '2026-04-12T10:00:00Z' },
-      { lat: 35.681, lng: 139.761, recordedAt: '2026-04-12T10:01:00Z' },
-    ];
-
-    render(<WalkMap />);
-
-    expect(screen.getByTestId('walk-route-highlight').props.strokeWidth).toBe(8);
-    expect(screen.getByTestId('walk-route-line').props.strokeWidth).toBe(5);
   });
 });

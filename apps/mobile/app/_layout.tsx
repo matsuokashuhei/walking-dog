@@ -91,8 +91,8 @@ function RootLayout() {
               presentation: 'formSheet',
               sheetAllowedDetents: [0.15, 0.45],
               sheetInitialDetentIndex: 1,
-              sheetGrabberVisible: false,
-              sheetCornerRadius: 32,
+              sheetGrabberVisible: true,
+              sheetCornerRadius: 24,
               gestureEnabled: false,
               contentStyle: { backgroundColor: 'transparent' },
             }}

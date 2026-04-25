@@ -9,7 +9,6 @@ import { useBleSession } from '@/hooks/use-ble-session';
 import { useEncounterSession } from '@/hooks/use-encounter-session';
 import { WalkControls } from '@/components/walk/WalkControls';
 import { WalkEventActions } from '@/components/walk/WalkEventActions';
-import { WalkMinimizedControls } from '@/components/walk/WalkMinimizedControls';
 import { spacing } from '@/theme/tokens';
 import type { Dog } from '@/types/graphql';
 
@@ -18,7 +17,6 @@ export default function WalkRecordingControlsScreen() {
   const walkId = useWalkStore((s) => s.walkId);
   const phase = useWalkStore((s) => s.phase);
   const selectedDogIds = useWalkStore((s) => s.selectedDogIds);
-  const isMinimized = useWalkStore((s) => s.isMinimized);
   const requestCamera = useWalkStore((s) => s.requestCamera);
   const params = useLocalSearchParams<{ action?: string }>();
 
@@ -28,7 +26,7 @@ export default function WalkRecordingControlsScreen() {
   const encounterSession = useEncounterSession();
   const navigation = useNavigation();
   const [isStopping, setIsStopping] = useState(false);
-  const lastDetentRef = useRef('');
+  const lastDetentRef = useRef(0);
 
   const selectedDogs = useMemo<Dog[]>(
     () => (me?.dogs ?? []).filter((d) => selectedDogIds.includes(d.id)),
@@ -46,28 +44,27 @@ export default function WalkRecordingControlsScreen() {
   const handleLayout = useCallback(
     (e: LayoutChangeEvent) => {
       const { height: screenH } = Dimensions.get('window');
+      // Grabber + padding beyond measured content area (~28pt for grabber & inset).
       const sheetHeight = e.nativeEvent.layout.height + 28;
-      const fraction = Math.min(0.9, Math.max(isMinimized ? 0.15 : 0.25, sheetHeight / screenH));
-      const detents = isMinimized ? [0.15] : [0.15, fraction];
-      const detentKey = detents.join(',');
-      if (detentKey === lastDetentRef.current) return;
-      lastDetentRef.current = detentKey;
+      const fraction = Math.min(0.9, Math.max(0.25, sheetHeight / screenH));
+      if (Math.abs(fraction - lastDetentRef.current) < 0.01) return;
+      lastDetentRef.current = fraction;
       navigation.setOptions({
-        sheetAllowedDetents: detents,
+        sheetAllowedDetents: [0.15, fraction],
       });
     },
-    [isMinimized, navigation],
+    [navigation],
   );
 
   const handleStop = useCallback(async () => {
     if (!walkId) return;
     setIsStopping(true);
+    bleSession.stop();
+    encounterSession.stop();
     try {
       await walkSession.stop(walkId);
-      bleSession.stop();
-      encounterSession.stop();
       router.dismissTo('/(tabs)/walk');
-    } catch {
+    } catch (err) {
       Alert.alert(t('common.error'), t('walk.error.finishFailed'));
     } finally {
       setIsStopping(false);
@@ -76,21 +73,16 @@ export default function WalkRecordingControlsScreen() {
 
   return (
     <View style={styles.container} onLayout={handleLayout}>
-      {isMinimized ? (
-        <WalkMinimizedControls dogs={selectedDogs} />
-      ) : (
-        <WalkControls dogs={selectedDogs} onStop={handleStop} isStopping={isStopping}>
-          <WalkEventActions dogs={selectedDogs} />
-        </WalkControls>
-      )}
+      <WalkControls dogs={selectedDogs} onStop={handleStop} isStopping={isStopping}>
+        <WalkEventActions dogs={selectedDogs} />
+      </WalkControls>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: spacing.sm,
-    paddingTop: 0,
-    paddingBottom: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xs,
   },
 });

@@ -145,14 +145,10 @@
     "ready": {
       "largeTitle": "散歩",
       "walkingWith": "一緒に散歩する犬",
-      "whosComing": "今日の散歩メンバー",
       "selectAll": "すべて選択",
       "deselectAll": "すべて解除",
-      "hint": "おしっこ・うんち・写真は犬ごとに記録されます。",
+      "hint": "タップして開始。ルートを追跡し、そっと記録します。",
       "start": "START",
-      "dogsWalkingBold": "{{count}}頭",
-      "dogsWalkingTail": "でおでかけ",
-      "groupWalk": "グループ散歩",
       "noDogs": "先に犬を登録してください",
       "lastWalk": {
         "never": "はじめての散歩",
@@ -180,9 +176,6 @@
       "resume": "再開",
       "endWalk": "散歩を終了",
       "minimize": "縮小表示",
-      "mapLabel": "地図",
-      "satelliteLabel": "航空",
-      "toggleMapStyle": "地図表示を切り替え",
       "expand": "展開",
       "expandHint": "タップして操作を展開"
     },

@@ -13,7 +13,6 @@ jest.mock('expo-haptics', () => ({
   ImpactFeedbackStyle: { Light: 'Light' },
 }));
 jest.mock('@/hooks/use-color-scheme', () => ({ useColorScheme: () => 'light' }));
-jest.mock('@/lib/monitoring/sentry', () => ({ captureGraphQLError: jest.fn() }));
 jest.mock('expo-image', () => ({ Image: 'Image' }));
 jest.mock('@/stores/walk-store', () => ({ useWalkStore: jest.fn() }));
 jest.mock('@/hooks/use-walk-event-mutations', () => ({

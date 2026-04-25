@@ -8,6 +8,24 @@ pub struct FieldError {
     pub message: String,
 }
 
+/// Format an error and its full source chain into a single string.
+///
+/// AWS SDK errors are the motivating case: `SdkError::ServiceError(...)`
+/// displays as just `"service error"`, which throws away the actual API
+/// error code such as `ProvisionedThroughputExceededException` or
+/// `InternalServerError`. Walking [`std::error::Error::source`] recovers
+/// that information so it can be surfaced to Sentry.
+pub fn format_error_chain<E: std::error::Error + ?Sized>(e: &E) -> String {
+    let mut chain = e.to_string();
+    let mut source = e.source();
+    while let Some(s) = source {
+        chain.push_str(": ");
+        chain.push_str(&s.to_string());
+        source = s.source();
+    }
+    chain
+}
+
 #[derive(Debug, Error)]
 pub enum AppError {
     #[error("Database error: {0}")]
@@ -100,6 +118,56 @@ mod tests {
         // Verify first field has correct structure
         assert_eq!(fields_arr[0]["field"], "myWalkId");
         assert_eq!(fields_arr[0]["message"], "Invalid UUID format");
+    }
+
+    #[test]
+    fn format_error_chain_walks_full_source_chain() {
+        // Mirrors the AWS SDK shape: outer "service error" wraps an inner
+        // structured error such as `ProvisionedThroughputExceededException`.
+        // Without source() walking, the outer Display would be all callers
+        // see, hiding the real error code.
+        #[derive(Debug)]
+        struct Inner;
+        impl std::fmt::Display for Inner {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, "ProvisionedThroughputExceededException: rate limit")
+            }
+        }
+        impl std::error::Error for Inner {}
+
+        #[derive(Debug)]
+        struct Outer(Inner);
+        impl std::fmt::Display for Outer {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, "service error")
+            }
+        }
+        impl std::error::Error for Outer {
+            fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+                Some(&self.0)
+            }
+        }
+
+        let err = Outer(Inner);
+        let formatted = format_error_chain(&err);
+        assert_eq!(
+            formatted,
+            "service error: ProvisionedThroughputExceededException: rate limit"
+        );
+    }
+
+    #[test]
+    fn format_error_chain_returns_display_when_no_source() {
+        #[derive(Debug)]
+        struct Lone;
+        impl std::fmt::Display for Lone {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, "standalone")
+            }
+        }
+        impl std::error::Error for Lone {}
+
+        assert_eq!(format_error_chain(&Lone), "standalone");
     }
 
     #[test]

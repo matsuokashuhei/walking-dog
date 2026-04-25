@@ -44,11 +44,27 @@ pub async fn generate_walk_event_photo_upload_url(
         .key(&key)
         .content_type(content_type)
         .presigned(
-            PresigningConfig::expires_in(S3_PRESIGNED_URL_EXPIRY)
-                .map_err(|e| crate::error::AppError::Internal(e.to_string()))?,
+            PresigningConfig::expires_in(S3_PRESIGNED_URL_EXPIRY).map_err(|e| {
+                tracing::error!(error = ?e, "S3 PresigningConfig failed");
+                crate::error::AppError::Internal(format!(
+                    "S3 PresigningConfig: {}",
+                    crate::error::format_error_chain(&e)
+                ))
+            })?,
         )
         .await
-        .map_err(|e| crate::error::AppError::Internal(e.to_string()))?;
+        .map_err(|e| {
+            tracing::error!(
+                error = ?e,
+                bucket = bucket,
+                key = key.as_str(),
+                "S3 PutObject presign failed"
+            );
+            crate::error::AppError::Internal(format!(
+                "S3 PutObject presign: {}",
+                crate::error::format_error_chain(&e)
+            ))
+        })?;
 
     let expires_at =
         chrono::Utc::now() + chrono::Duration::seconds(S3_PRESIGNED_URL_EXPIRY.as_secs() as i64);
@@ -77,11 +93,27 @@ pub async fn generate_dog_photo_upload_url(
         .key(&key)
         .content_type(content_type)
         .presigned(
-            PresigningConfig::expires_in(S3_PRESIGNED_URL_EXPIRY)
-                .map_err(|e| crate::error::AppError::Internal(e.to_string()))?,
+            PresigningConfig::expires_in(S3_PRESIGNED_URL_EXPIRY).map_err(|e| {
+                tracing::error!(error = ?e, "S3 PresigningConfig failed");
+                crate::error::AppError::Internal(format!(
+                    "S3 PresigningConfig: {}",
+                    crate::error::format_error_chain(&e)
+                ))
+            })?,
         )
         .await
-        .map_err(|e| crate::error::AppError::Internal(e.to_string()))?;
+        .map_err(|e| {
+            tracing::error!(
+                error = ?e,
+                bucket = bucket,
+                key = key.as_str(),
+                "S3 PutObject presign failed"
+            );
+            crate::error::AppError::Internal(format!(
+                "S3 PutObject presign: {}",
+                crate::error::format_error_chain(&e)
+            ))
+        })?;
 
     let expires_at =
         chrono::Utc::now() + chrono::Duration::seconds(S3_PRESIGNED_URL_EXPIRY.as_secs() as i64);

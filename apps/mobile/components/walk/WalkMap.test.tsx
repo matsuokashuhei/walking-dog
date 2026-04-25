@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react-native';
 import { WalkMap } from './WalkMap';
-import type { WalkEvent } from '@/types/graphql';
+import type { WalkEvent, WalkPoint } from '@/types/graphql';
 
 jest.mock('@/hooks/use-color-scheme', () => ({
   useColorScheme: () => 'light',
@@ -33,8 +33,12 @@ jest.mock('react-native-maps', () => {
   };
 });
 
+let mockStorePoints: WalkPoint[] = [];
+let mockStoreEvents: WalkEvent[] = [];
+
 jest.mock('@/stores/walk-store', () => ({
-  useWalkStore: (selector: (s: object) => unknown) => selector({ points: [] }),
+  useWalkStore: (selector: (s: { points: WalkPoint[]; events: WalkEvent[] }) => unknown) =>
+    selector({ points: mockStorePoints, events: mockStoreEvents }),
 }));
 
 jest.mock('react-i18next', () => ({
@@ -63,24 +67,35 @@ const photoEventNoGps: WalkEvent = {
   photoUrl: 'https://cdn.example.com/walks/walk-123/photo.jpg',
 };
 
+beforeEach(() => {
+  mockStorePoints = [];
+  mockStoreEvents = [];
+});
+
 describe('WalkMap', () => {
-  it('renders without events prop', () => {
+  it('renders without any recorded events', () => {
     render(<WalkMap />);
     expect(screen.getByTestId('MapView')).toBeTruthy();
   });
 
-  it('renders event markers for events with lat/lng', () => {
-    render(<WalkMap events={[peeEvent]} />);
+  it('renders event markers for store events with lat/lng', () => {
+    mockStoreEvents = [peeEvent];
+    render(<WalkMap />);
     expect(screen.getByTestId('event-marker-event-1')).toBeTruthy();
   });
 
   it('does not render marker for events without lat/lng', () => {
-    render(<WalkMap events={[photoEventNoGps]} />);
+    mockStoreEvents = [photoEventNoGps];
+    render(<WalkMap />);
     expect(screen.queryByTestId('event-marker-event-2')).toBeNull();
   });
 
   it('renders markers for multiple events', () => {
-    render(<WalkMap events={[peeEvent, { ...peeEvent, id: 'event-3', lat: 35.682, lng: 139.768 }]} />);
+    mockStoreEvents = [
+      peeEvent,
+      { ...peeEvent, id: 'event-3', lat: 35.682, lng: 139.768 },
+    ];
+    render(<WalkMap />);
     expect(screen.getByTestId('event-marker-event-1')).toBeTruthy();
     expect(screen.getByTestId('event-marker-event-3')).toBeTruthy();
   });

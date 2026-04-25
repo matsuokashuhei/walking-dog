@@ -1,10 +1,10 @@
 import { useCallback } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
-import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
 import { useCameraEventTrigger } from '@/hooks/use-camera-event-trigger';
+import { useCommitWalkEvent } from '@/hooks/use-commit-walk-event';
 import { useMutationWithAlert } from '@/hooks/use-mutation-with-alert';
 import { useWalkEventRecorder } from '@/hooks/use-walk-event-recorder';
 import { useWalkStore } from '@/stores/walk-store';
@@ -12,7 +12,7 @@ import { spacing } from '@/theme/tokens';
 import { EVENT_ORDER, UI_EVENT_EMOJIS, countEventsByType } from '@/lib/walk/events';
 import { DogEventActionRow } from './DogEventActionRow';
 import { EventPill } from './EventPill';
-import type { Dog, WalkEvent, WalkEventType } from '@/types/graphql';
+import type { Dog, WalkEventType } from '@/types/graphql';
 
 interface WalkEventActionsProps {
   dogs: Dog[];
@@ -24,10 +24,10 @@ export function WalkEventActions({ dogs }: WalkEventActionsProps) {
   const walkId = useWalkStore((s) => s.walkId);
   const points = useWalkStore((s) => s.points);
   const events = useWalkStore((s) => s.events);
-  const addEvent = useWalkStore((s) => s.addEvent);
   const cameraRequestedAt = useWalkStore((s) => s.cameraRequestedAt);
   const clearCameraRequest = useWalkStore((s) => s.clearCameraRequest);
   const runWithAlert = useMutationWithAlert();
+  const commitEvent = useCommitWalkEvent();
 
   const isSingleDog = dogs.length === 1;
   const singleDogId = isSingleDog ? dogs[0].id : undefined;
@@ -43,17 +43,6 @@ export function WalkEventActions({ dogs }: WalkEventActionsProps) {
     source: 'WalkEventActions',
   });
   const isDisabled = !walkId || isPending;
-
-  const commitEvent = useCallback(
-    async (run: () => Promise<WalkEvent | null>) => {
-      const event = await run();
-      if (!event) return;
-
-      addEvent(event);
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    },
-    [addEvent],
-  );
 
   const handlePeeOrPoo = useCallback(
     async (eventType: Extract<WalkEventType, 'pee' | 'poo'>, dogId?: string) => {

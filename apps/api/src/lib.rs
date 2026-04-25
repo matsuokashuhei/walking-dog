@@ -23,6 +23,75 @@ use std::sync::Arc;
 use tower::ServiceBuilder;
 use tower_http::cors::CorsLayer;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct GraphqlOperationMetadata {
+    operation_type: &'static str,
+    operation_name: String,
+}
+
+fn strip_graphql_leading_comments(mut query: &str) -> &str {
+    loop {
+        let trimmed = query.trim_start();
+        if let Some(rest) = trimmed.strip_prefix('#') {
+            if let Some(newline) = rest.find('\n') {
+                query = &rest[newline + 1..];
+                continue;
+            }
+            return "";
+        }
+        return trimmed;
+    }
+}
+
+fn extract_named_operation(query: &str, operation_type: &'static str) -> Option<String> {
+    let rest = match operation_type {
+        "mutation" => query.strip_prefix("mutation")?,
+        "subscription" => query.strip_prefix("subscription")?,
+        _ => query.strip_prefix("query")?,
+    };
+    let name: String = rest
+        .trim_start()
+        .chars()
+        .take_while(|ch| ch.is_ascii_alphanumeric() || *ch == '_')
+        .collect();
+    if name.is_empty() {
+        None
+    } else {
+        Some(name)
+    }
+}
+
+fn graphql_operation_metadata(request: &async_graphql::Request) -> GraphqlOperationMetadata {
+    let trimmed = strip_graphql_leading_comments(&request.query);
+    let operation_type = if trimmed.starts_with("mutation") {
+        "mutation"
+    } else if trimmed.starts_with("subscription") {
+        "subscription"
+    } else {
+        "query"
+    };
+
+    let operation_name = request
+        .operation_name
+        .clone()
+        .filter(|name| !name.is_empty())
+        .or_else(|| extract_named_operation(trimmed, operation_type))
+        .unwrap_or_else(|| "anonymous".to_string());
+
+    GraphqlOperationMetadata {
+        operation_type,
+        operation_name,
+    }
+}
+
+fn configure_graphql_sentry_scope(request: &async_graphql::Request) {
+    let metadata = graphql_operation_metadata(request);
+    sentry::configure_scope(|scope| {
+        scope.set_tag("graphql.operation_type", metadata.operation_type);
+        scope.set_tag("graphql.operation_name", metadata.operation_name.clone());
+    });
+}
+
 pub struct AppState {
     pub db: DatabaseConnection,
     pub dynamo: DynamoClient,
@@ -77,6 +146,70 @@ async fn graphql_handler(
     req: GraphQLRequest,
 ) -> GraphQLResponse {
     let cognito_sub: Option<String> = auth_user.map(|u| u.cognito_sub.clone());
-    let request = req.into_inner().data(cognito_sub);
+    let request = req.into_inner();
+    configure_graphql_sentry_scope(&request);
+    let request = request.data(cognito_sub);
     schema.execute(request).await.into()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn graphql_operation_metadata_uses_explicit_operation_name() {
+        let request = async_graphql::Request::new("query Walk { walk(id: \"1\") { id } }")
+            .operation_name("WalkOverride");
+
+        assert_eq!(
+            graphql_operation_metadata(&request),
+            GraphqlOperationMetadata {
+                operation_type: "query",
+                operation_name: "WalkOverride".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn graphql_operation_metadata_derives_named_mutation() {
+        let request = async_graphql::Request::new(
+            "mutation RecordWalkEvent($input: RecordWalkEventInput!) { recordWalkEvent(input: $input) { id } }",
+        );
+
+        assert_eq!(
+            graphql_operation_metadata(&request),
+            GraphqlOperationMetadata {
+                operation_type: "mutation",
+                operation_name: "RecordWalkEvent".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn graphql_operation_metadata_skips_leading_comments() {
+        let request = async_graphql::Request::new(
+            "# mobile walk detail\n query Walk { walk(id: \"1\") { id } }",
+        );
+
+        assert_eq!(
+            graphql_operation_metadata(&request),
+            GraphqlOperationMetadata {
+                operation_type: "query",
+                operation_name: "Walk".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn graphql_operation_metadata_marks_anonymous_query() {
+        let request = async_graphql::Request::new("{ me { id } }");
+
+        assert_eq!(
+            graphql_operation_metadata(&request),
+            GraphqlOperationMetadata {
+                operation_type: "query",
+                operation_name: "anonymous".to_string(),
+            }
+        );
+    }
 }

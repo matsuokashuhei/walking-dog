@@ -103,12 +103,20 @@ describe('DogDetailScreen', () => {
     expect(screen.queryByText('Delete')).toBeNull();
   });
 
-  it('renders edit button in hero nav overlay', () => {
+  it('renders edit button exactly once in hero nav overlay for owner', () => {
     renderWithProviders(<DogDetailScreen />);
-    expect(screen.getByText('Edit')).toBeTruthy();
+    // Regression guard: Edit must appear exactly once (no duplicate from
+    // a stray Stack header reintroduction).
+    expect(screen.getAllByText('Edit')).toHaveLength(1);
   });
 
-  it('navigates to edit screen when edit button is pressed', () => {
+  it('hides edit button for non-owner member', () => {
+    mockMeData = { id: 'user-2' }; // member, not owner
+    renderWithProviders(<DogDetailScreen />);
+    expect(screen.queryByText('Edit')).toBeNull();
+  });
+
+  it('navigates to edit screen when edit button is pressed (owner)', () => {
     renderWithProviders(<DogDetailScreen />);
     fireEvent.press(screen.getByLabelText('Edit'));
     expect(mockPush).toHaveBeenCalledWith({

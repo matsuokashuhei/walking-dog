@@ -1,9 +1,8 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useDogDetailViewModel } from '@/hooks/use-dog-detail-view-model';
 import { DogHero } from '@/components/dogs/DogHero';
+import { DogHeroNavBar } from '@/components/dogs/DogHeroNavBar';
 import { DogStatsCard } from '@/components/dogs/DogStatsCard';
 import { DogWalksList } from '@/components/dogs/DogWalksList';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
@@ -86,42 +85,7 @@ export default function DogDetailScreen() {
           />
         ) : null}
       </ScrollView>
-      <HeroNavBar dogId={vm.dog.id} />
-    </View>
-  );
-}
-
-function HeroNavBar({ dogId }: { dogId: string }) {
-  const { t } = useTranslation();
-  const router = useRouter();
-  const insets = useSafeAreaInsets();
-  // System Stack header is disabled, so the back button must guard against
-  // empty navigation history (deep-link / cold-start entry would softlock).
-  const handleBack = () => {
-    if (router.canGoBack()) {
-      router.back();
-    } else {
-      router.replace('/(tabs)/dogs');
-    }
-  };
-  return (
-    <View style={[heroNavStyles.bar, { top: insets.top }]} pointerEvents="box-none">
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={t('dogs.detail.back')}
-        onPress={handleBack}
-        hitSlop={12}
-      >
-        <Text style={heroNavStyles.back}>{`‹ ${t('dogs.detail.back')}`}</Text>
-      </Pressable>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={t('dogs.detail.edit')}
-        onPress={() => router.push({ pathname: '/dogs/[id]/edit', params: { id: dogId } })}
-        hitSlop={12}
-      >
-        <Text style={heroNavStyles.edit}>{t('dogs.detail.edit')}</Text>
-      </Pressable>
+      <DogHeroNavBar dogId={vm.dog.id} isOwner={vm.isOwner} />
     </View>
   );
 }
@@ -161,37 +125,5 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     width: '100%',
-  },
-});
-
-// Hero overlay text always renders on the photo hero (photo, not surface),
-// so colors are intentionally hard-coded white rather than themed.
-const HERO_OVERLAY_TEXT = {
-  color: '#ffffff',
-  textShadowColor: 'rgba(0,0,0,0.3)',
-  textShadowOffset: { width: 0, height: 1 },
-  textShadowRadius: 4,
-} as const;
-
-const heroNavStyles = StyleSheet.create({
-  bar: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    height: 44,
-    paddingHorizontal: spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    zIndex: 30,
-  },
-  back: {
-    ...typography.body,
-    fontWeight: '500',
-    ...HERO_OVERLAY_TEXT,
-  },
-  edit: {
-    ...typography.body,
-    ...HERO_OVERLAY_TEXT,
   },
 });

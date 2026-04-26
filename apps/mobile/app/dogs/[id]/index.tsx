@@ -95,12 +95,21 @@ function HeroNavBar({ dogId }: { dogId: string }) {
   const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  // System Stack header is disabled, so the back button must guard against
+  // empty navigation history (deep-link / cold-start entry would softlock).
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(tabs)/dogs');
+    }
+  };
   return (
     <View style={[heroNavStyles.bar, { top: insets.top }]} pointerEvents="box-none">
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={t('dogs.detail.back')}
-        onPress={() => router.back()}
+        onPress={handleBack}
         hitSlop={12}
       >
         <Text style={heroNavStyles.back}>{`‹ ${t('dogs.detail.back')}`}</Text>
@@ -108,7 +117,7 @@ function HeroNavBar({ dogId }: { dogId: string }) {
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={t('dogs.detail.edit')}
-        onPress={() => router.push(`/dogs/${dogId}/edit`)}
+        onPress={() => router.push({ pathname: '/dogs/[id]/edit', params: { id: dogId } })}
         hitSlop={12}
       >
         <Text style={heroNavStyles.edit}>{t('dogs.detail.edit')}</Text>
@@ -155,32 +164,34 @@ const styles = StyleSheet.create({
   },
 });
 
+// Hero overlay text always renders on the photo hero (photo, not surface),
+// so colors are intentionally hard-coded white rather than themed.
+const HERO_OVERLAY_TEXT = {
+  color: '#ffffff',
+  textShadowColor: 'rgba(0,0,0,0.3)',
+  textShadowOffset: { width: 0, height: 1 },
+  textShadowRadius: 4,
+} as const;
+
 const heroNavStyles = StyleSheet.create({
   bar: {
     position: 'absolute',
     left: 0,
     right: 0,
     height: 44,
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     zIndex: 30,
   },
   back: {
-    fontSize: 17,
+    ...typography.body,
     fontWeight: '500',
-    color: '#ffffff',
-    textShadowColor: 'rgba(0,0,0,0.3)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
+    ...HERO_OVERLAY_TEXT,
   },
   edit: {
-    fontSize: 17,
-    fontWeight: '400',
-    color: '#ffffff',
-    textShadowColor: 'rgba(0,0,0,0.3)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
+    ...typography.body,
+    ...HERO_OVERLAY_TEXT,
   },
 });

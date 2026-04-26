@@ -1,0 +1,118 @@
+# Dependabot v2 configuration
+# Docs: https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+#
+# Schedule: every Monday 09:00 Asia/Tokyo so we can triage at start of the week.
+# Security updates are enabled separately at the repository level by GitHub.
+version: 2
+updates:
+  # ----- Rust API -----
+  - package-ecosystem: "cargo"
+    directory: "/apps/api"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "rust"
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+      include: "scope"
+    groups:
+      aws-sdk:
+        patterns:
+          - "aws-sdk-*"
+          - "aws-config"
+          - "aws-smithy-*"
+      tracing:
+        patterns:
+          - "tracing"
+          - "tracing-*"
+      serde:
+        patterns:
+          - "serde"
+          - "serde_*"
+
+  # ----- Mobile (Expo / React Native) -----
+  - package-ecosystem: "npm"
+    directory: "/apps/mobile"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "mobile"
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+      include: "scope"
+    ignore:
+      - dependency-name: "expo"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-native"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@aws-amplify/*"
+        update-types: ["version-update:semver-major"]
+    groups:
+      expo-stack:
+        patterns:
+          - "expo"
+          - "expo-*"
+      react-native-stack:
+        patterns:
+          - "react-native"
+          - "@react-native/*"
+          - "react-native-*"
+      aws-amplify:
+        patterns:
+          - "@aws-amplify/*"
+          - "aws-amplify"
+      dev-dependencies:
+        dependency-type: "development"
+
+  # ----- Docker (API image) -----
+  - package-ecosystem: "docker"
+    directory: "/apps/api"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+
+  # ----- GitHub Actions -----
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "ci"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    groups:
+      actions:
+        patterns:
+          - "actions/*"
+      aws-actions:
+        patterns:
+          - "aws-actions/*"

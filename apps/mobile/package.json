@@ -4,6 +4,8 @@
   "version": "1.0.0",
   "scripts": {
     "start": "expo start --host lan",
+    "metro:kill": "sh ./scripts/kill-metro.sh",
+    "ios:clean": "npx expo prebuild --platform ios --clean",
     "ios:sim:local": "EXPO_PUBLIC_API_URL=http://localhost:3000 expo run:ios",
     "ios:sim:dev": "EXPO_PUBLIC_API_URL=https://walkingdogdev.dpdns.org expo run:ios",
     "ios:sim:prod": "EXPO_PUBLIC_API_URL=https://walkingdogdev.dpdns.org expo run:ios --configuration Release",
@@ -14,7 +16,9 @@
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "android": "expo run:android",
+    "ios": "expo run:ios"
   },
   "dependencies": {
     "@bacons/apple-targets": "4.0.6",

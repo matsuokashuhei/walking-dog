@@ -78,42 +78,9 @@ updates:
       dev-dependencies:
         dependency-type: "development"
 
-  # ----- E2E (Playwright) -----
-  - package-ecosystem: "npm"
-    directory: "/apps/e2e"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-      timezone: "Asia/Tokyo"
-    open-pull-requests-limit: 5
-    labels:
-      - "dependencies"
-      - "e2e"
-    commit-message:
-      prefix: "chore(deps)"
-      prefix-development: "chore(deps-dev)"
-      include: "scope"
-
   # ----- Docker (API image) -----
   - package-ecosystem: "docker"
     directory: "/apps/api"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-      timezone: "Asia/Tokyo"
-    open-pull-requests-limit: 3
-    labels:
-      - "dependencies"
-      - "docker"
-    commit-message:
-      prefix: "chore(deps)"
-      include: "scope"
-
-  # ----- Docker (E2E image) -----
-  - package-ecosystem: "docker"
-    directory: "/apps/e2e"
     schedule:
       interval: "weekly"
       day: "monday"

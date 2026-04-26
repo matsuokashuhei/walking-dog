@@ -1,16 +1,12 @@
 // apps/mobile/app.config.ts
 import { ExpoConfig, ConfigContext } from 'expo/config';
 
-const APP_ENV = process.env.APP_ENV ?? (process.env.NODE_ENV === 'production' ? 'production' : 'local');
-
-const IS_DEV = APP_ENV !== 'production';
-
-const APP_GROUP = IS_DEV ? 'group.com.walkingdog.dev' : 'group.com.walkingdog.app';
+const APP_GROUP = 'group.com.walkingdog.app';
 const KEYCHAIN_SERVICE = 'com.walkingdog.shared';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: IS_DEV ? `Walking Dog (${APP_ENV})` : 'Walking Dog',
+  name: 'Walking Dog',
   slug: 'walking-dog',
   version: '1.0.0',
   orientation: 'portrait',
@@ -20,7 +16,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   newArchEnabled: true,
   ios: {
     supportsTablet: false,
-    bundleIdentifier: IS_DEV ? 'com.walkingdog.dev' : 'com.walkingdog.app',
+    bundleIdentifier: 'com.walkingdog.app',
     appleTeamId: process.env.APPLE_TEAM_ID ?? 'CY4LJR5KMM',
     infoPlist: {
       NSLocationWhenInUseUsageDescription:
@@ -43,7 +39,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       monochromeImage: './assets/images/android-icon-monochrome.png',
     },
     edgeToEdgeEnabled: true,
-    package: IS_DEV ? 'com.walkingdog.dev' : 'com.walkingdog.app',
+    package: 'com.walkingdog.app',
   },
   web: {
     output: 'static' as const,
@@ -99,8 +95,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     reactCompiler: true,
   },
   extra: {
-    apiUrl: process.env.API_URL ?? 'http://localhost:3000',
-    appEnv: APP_ENV,
     appGroup: APP_GROUP,
     keychainService: KEYCHAIN_SERVICE,
   },

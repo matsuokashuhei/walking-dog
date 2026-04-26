@@ -16,9 +16,10 @@ function loadModule(): WalkActivityModule | null {
 const mod = loadModule();
 
 const extras = (Constants.expoConfig?.extra ?? {}) as {
-  apiUrl?: string;
   appGroup?: string;
 };
+
+const apiUrl = process.env.EXPO_PUBLIC_API_URL;
 
 /**
  * Minimum elapsed time between consecutive `updateLiveActivityDistance` calls.
@@ -47,8 +48,8 @@ export function isLiveActivitySupported(): boolean {
  */
 export async function startLiveActivity(input: LiveActivityStartInput): Promise<string | null> {
   if (!mod || !mod.isSupported()) return null;
-  if (!extras.appGroup || !extras.apiUrl) {
-    console.warn('[live-activity] appGroup or apiUrl missing from expo config extras');
+  if (!extras.appGroup || !apiUrl) {
+    console.warn('[live-activity] appGroup or EXPO_PUBLIC_API_URL missing');
     return null;
   }
   try {
@@ -59,7 +60,7 @@ export async function startLiveActivity(input: LiveActivityStartInput): Promise<
       startedAtMs: input.startedAt.getTime(),
       distanceM: input.distanceM,
       appGroup: extras.appGroup,
-      apiUrl: extras.apiUrl,
+      apiUrl,
     });
   } catch (err) {
     console.error('[live-activity] start failed', err);

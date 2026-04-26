@@ -12,7 +12,7 @@ jest.mock('expo-constants', () => ({
   default: {
     expoConfig: {
       extra: {
-        appGroup: 'group.com.walkingdog.dev',
+        appGroup: 'group.com.walkingdog.app',
         keychainService: 'com.walkingdog.shared',
       },
     },
@@ -22,7 +22,7 @@ jest.mock('expo-constants', () => ({
 const mockSecureStore = SecureStore as jest.Mocked<typeof SecureStore>;
 
 const sharedOptions = {
-  accessGroup: 'group.com.walkingdog.dev',
+  accessGroup: 'group.com.walkingdog.app',
   keychainService: 'com.walkingdog.shared',
 };
 

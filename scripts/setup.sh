@@ -52,6 +52,37 @@ echo "  Migrations complete."
 echo ""
 echo "[4/5] Creating AWS local resources..."
 
+echo "  Waiting for DynamoDB Local..."
+for i in $(seq 1 30); do
+  if curl -s -X POST "http://localhost:8000" \
+    -H 'Content-Type: application/x-amz-json-1.0' \
+    -H 'X-Amz-Target: DynamoDB_20120810.ListTables' \
+    -H 'X-Amz-Date: 20260101T000000Z' \
+    -H 'Authorization: AWS4-HMAC-SHA256 Credential=test/20260101/ap-northeast-1/dynamodb/aws4_request, SignedHeaders=content-type;host;x-amz-date;x-amz-target, Signature=dummy' \
+    -d '{"Limit":1}' > /dev/null 2>&1; then
+    echo "  DynamoDB Local is ready."
+    break
+  fi
+  if [ "$i" -eq 30 ]; then
+    echo "Error: DynamoDB Local did not become ready in time." >&2
+    exit 1
+  fi
+  sleep 1
+done
+
+echo "  Waiting for LocalStack..."
+for i in $(seq 1 30); do
+  if docker compose -f "$COMPOSE_FILE" exec -T localstack awslocal s3 ls > /dev/null 2>&1; then
+    echo "  LocalStack is ready."
+    break
+  fi
+  if [ "$i" -eq 30 ]; then
+    echo "Error: LocalStack did not become ready in time." >&2
+    exit 1
+  fi
+  sleep 1
+done
+
 # DynamoDB table (amazon/dynamodb-local — data is persisted to volume)
 DYNAMO_URL="http://localhost:8000"
 DYNAMO_HEADERS='-H "Content-Type: application/x-amz-json-1.0" -H "X-Amz-Date: 20260101T000000Z" -H "Authorization: AWS4-HMAC-SHA256 Credential=test/20260101/ap-northeast-1/dynamodb/aws4_request, SignedHeaders=content-type;host;x-amz-date;x-amz-target, Signature=dummy"'
@@ -89,6 +120,29 @@ fi
 # S3 bucket (LocalStack — recreated on each container start)
 docker compose -f "$COMPOSE_FILE" exec -T localstack awslocal s3 mb s3://dog-photos > /dev/null 2>&1 || true
 echo "  S3 bucket dog-photos ensured."
+
+# SQS queues (LocalStack)
+WALK_POINTS_DLQ_URL=$(docker compose -f "$COMPOSE_FILE" exec -T localstack awslocal sqs create-queue \
+  --queue-name walk-points-local-dlq \
+  --query QueueUrl \
+  --output text 2>/dev/null || docker compose -f "$COMPOSE_FILE" exec -T localstack awslocal sqs get-queue-url \
+  --queue-name walk-points-local-dlq \
+  --query QueueUrl \
+  --output text)
+WALK_POINTS_DLQ_ARN=$(docker compose -f "$COMPOSE_FILE" exec -T localstack awslocal sqs get-queue-attributes \
+  --queue-url "$WALK_POINTS_DLQ_URL" \
+  --attribute-names QueueArn \
+  --query 'Attributes.QueueArn' \
+  --output text)
+WALK_POINTS_ATTRIBUTES=$(cat <<EOF
+{"RedrivePolicy":"{\"deadLetterTargetArn\":\"$WALK_POINTS_DLQ_ARN\",\"maxReceiveCount\":\"5\"}","VisibilityTimeout":"60","MessageRetentionPeriod":"345600"}
+EOF
+)
+docker compose -f "$COMPOSE_FILE" exec -T localstack awslocal sqs create-queue \
+  --queue-name walk-points-local \
+  --attributes "$WALK_POINTS_ATTRIBUTES" \
+  > /dev/null
+echo "  SQS queues walk-points-local and walk-points-local-dlq ensured."
 
 # 5. Start all services
 echo ""

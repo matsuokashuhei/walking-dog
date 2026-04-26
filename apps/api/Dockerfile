@@ -6,12 +6,13 @@ COPY Cargo.toml Cargo.lock ./
 COPY migration/Cargo.toml ./migration/
 COPY src ./src
 COPY migration/src ./migration/src
-RUN cargo build --release
+RUN cargo build --release --bin walking-dog-api --bin walk_points_worker
 
 # --- Runtime Stage ---
 FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y ca-certificates libssl3 && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=builder /app/target/release/walking-dog-api .
+COPY --from=builder /app/target/release/walk_points_worker .
 EXPOSE 3000
 CMD ["./walking-dog-api"]

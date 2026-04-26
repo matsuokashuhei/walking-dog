@@ -18,6 +18,7 @@ seaography = { version = "~2.0.0-rc", features = ["field-camel-case", "schema-me
 aws-config = { version = "1", features = ["behavior-version-latest"] }
 aws-sdk-dynamodb = "1"
 aws-sdk-s3 = { version = "1", features = ["behavior-version-latest"] }
+aws-sdk-sqs = "1"
 aws-sdk-cognitoidentityprovider = "1"
 aws-smithy-types = "1"
 aws-smithy-runtime-api = { version = "1", features = ["client"] }
@@ -27,7 +28,7 @@ sea-orm-migration = { version = "~2.0.0-rc", features = ["sqlx-postgres", "runti
 jsonwebtoken = "9"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-uuid = { version = "1", features = ["v4"] }
+uuid = { version = "1", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 dotenvy = "0.15"
 tracing = "0.1"
@@ -45,6 +46,10 @@ sentry-tracing = "0.47"
 
 [features]
 test-utils = []
+
+[[bin]]
+name = "walk_points_worker"
+path = "src/bin/walk_points_worker.rs"
 
 [dev-dependencies]
 reqwest = { version = "0.12", features = ["json"] }

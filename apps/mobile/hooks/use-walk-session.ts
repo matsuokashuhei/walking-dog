@@ -8,14 +8,16 @@ import {
 import {
   beginWalkTracking,
   flushWalkPoints,
+  flushPendingWalkPoints,
   MAX_POINTS_PER_BATCH,
+  PERIODIC_FLUSH_INTERVAL_MS,
   resetWalkTrackingState,
   stopWalkTracking,
 } from '@/lib/walk/tracking-manager';
 import { useWalkStore } from '@/stores/walk-store';
 import { useAddWalkPoints, useFinishWalk, useStartWalk } from './use-walk-mutations';
 
-export { MAX_POINTS_PER_BATCH };
+export { MAX_POINTS_PER_BATCH, PERIODIC_FLUSH_INTERVAL_MS };
 
 export function resetWalkSessionTrackingState() {
   resetWalkTrackingState();
@@ -59,6 +61,8 @@ export function useWalkSession() {
       }
 
       await beginWalkTracking({
+        walkId: walk.id,
+        addWalkPoints: addWalkPointsMutation.mutateAsync,
         onPoint: (point) => {
           useWalkStore.getState().addPoint(point);
         },
@@ -84,9 +88,8 @@ export function useWalkSession() {
       stopWalkTracking();
 
       const currentPoints = useWalkStore.getState().points;
-      await flushWalkPoints({
+      await flushPendingWalkPoints({
         walkId,
-        points: currentPoints,
         addWalkPoints: addWalkPointsMutation.mutateAsync,
       });
 

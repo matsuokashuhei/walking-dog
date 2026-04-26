@@ -4,6 +4,8 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 
+git pull --ff-only
+
 # Load .env
 set -a
 # shellcheck disable=SC1091
@@ -17,7 +19,7 @@ aws ecr get-login-password --region "$AWS_REGION" \
       "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
 
 # Pull latest image and (re)start services.
-docker compose pull api
-docker compose up -d
+docker compose pull api walker
+docker compose up -d --force-recreate
 
 echo "Deploy complete."

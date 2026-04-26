@@ -2,6 +2,7 @@ use aws_config::{BehaviorVersion, Region};
 use aws_sdk_cognitoidentityprovider::Client as CognitoClient;
 use aws_sdk_dynamodb::Client as DynamoClient;
 use aws_sdk_s3::Client as S3Client;
+use aws_sdk_sqs::Client as SqsClient;
 
 pub async fn build_dynamo_client(region: &str, endpoint_url: Option<&str>) -> DynamoClient {
     let mut builder =
@@ -11,6 +12,16 @@ pub async fn build_dynamo_client(region: &str, endpoint_url: Option<&str>) -> Dy
     }
     let config = builder.load().await;
     DynamoClient::new(&config)
+}
+
+pub async fn build_sqs_client(region: &str, endpoint_url: Option<&str>) -> SqsClient {
+    let mut builder =
+        aws_config::defaults(BehaviorVersion::latest()).region(Region::new(region.to_string()));
+    if let Some(url) = endpoint_url {
+        builder = builder.endpoint_url(url);
+    }
+    let config = builder.load().await;
+    SqsClient::new(&config)
 }
 
 pub async fn build_s3_client(region: &str, endpoint_url: Option<&str>) -> S3Client {

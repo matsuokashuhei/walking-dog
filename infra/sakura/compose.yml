@@ -30,6 +30,15 @@ services:
       - postgres
     restart: unless-stopped
 
+  walker:
+    image: ${ECR_IMAGE}
+    command: ["./walk_points_worker"]
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   caddy_data:

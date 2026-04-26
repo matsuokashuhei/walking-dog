@@ -315,4 +315,14 @@ async fn test_add_walk_points() {
         .unwrap();
     let body: serde_json::Value = res.json().await.unwrap();
     assert_eq!(body["data"]["addWalkPoints"], true, "got: {:?}", body);
+
+    let messages = client.receive_walk_points_message_bodies().await;
+    assert_eq!(messages.len(), 1, "expected one queue message, got: {messages:?}");
+
+    let message: walking_dog_api::services::walk_points_queue_service::WalkPointsQueueMessage =
+        serde_json::from_str(&messages[0]).expect("walk points message must deserialize");
+    assert_eq!(message.walk_id.to_string(), walk_id);
+    assert_eq!(message.points.len(), 2);
+    assert_eq!(message.points[0].recorded_at, "2026-03-21T10:00:00Z");
+    assert_eq!(message.points[1].recorded_at, "2026-03-21T10:00:05Z");
 }

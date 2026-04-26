@@ -140,9 +140,10 @@ cd ~/walking-dog/infra/sakura
 ```
 
 `deploy.sh` の処理内容:
-1. ECR にログイン（12時間有効なトークンを都度取得）
-2. 最新イメージを pull
-3. `docker compose up -d` でコンテナ再起動
+1. `git pull --ff-only` で `infra/sakura/` の tracked file を最新化
+2. ECR にログイン（12時間有効なトークンを都度取得）
+3. 最新イメージを pull
+4. `docker compose up -d --force-recreate` でコンテナを再作成
 
 PostgreSQL は `postgres_data` volume でデータ永続化されるため、API の再起動時にも保持される。
 
@@ -153,11 +154,12 @@ PostgreSQL は `postgres_data` volume でデータ永続化されるため、API
 ```bash
 cd ~/walking-dog/infra/sakura
 vi .env                              # 変数を追記・編集
-docker compose up -d --force-recreate api
-docker compose exec api env | grep <VAR_NAME>  # 反映確認
+./deploy.sh
+docker compose exec api env | grep <VAR_NAME>     # 反映確認
+docker compose exec walker env | grep <VAR_NAME>  # worker 側も確認
 ```
 
-例: `PHOTO_CDN_URL` を追加したとき、`docker compose restart api` だと `env_file` を再読込しない環境があるため `--force-recreate` を推奨する。
+例: `SQS_QUEUE_URL_WALK_POINTS` や `PHOTO_CDN_URL` を追加したとき、`docker compose restart` だけでは `env_file` を再読込しない環境があるため、`deploy.sh` 経由での `--force-recreate` を前提にする。
 
 ## トラブルシューティング
 

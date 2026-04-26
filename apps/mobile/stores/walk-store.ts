@@ -16,6 +16,7 @@ interface WalkState {
   walkId: string | null;
   selectedDogIds: string[];
   points: WalkPoint[];
+  flushedPointCount: number;
   totalDistanceM: number;
   startedAt: Date | null;
   events: WalkEvent[];
@@ -40,6 +41,7 @@ interface WalkState {
   setSelectedDogs: (dogIds: string[]) => void;
   startRecording: (walkId: string) => void;
   addPoint: (point: WalkPoint) => void;
+  markFlushedPointCount: (count: number) => void;
   addEvent: (event: WalkEvent) => void;
   removeEvent: (eventId: string) => void;
   requestCamera: () => void;
@@ -64,6 +66,7 @@ export const useWalkStore = create<WalkState>((set, get) => ({
   walkId: null,
   selectedDogIds: [],
   points: [],
+  flushedPointCount: 0,
   totalDistanceM: 0,
   startedAt: null,
   events: [],
@@ -83,7 +86,7 @@ export const useWalkStore = create<WalkState>((set, get) => ({
   setSelectedDogs: (dogIds) => set({ selectedDogIds: dogIds }),
 
   startRecording: (walkId) =>
-    set({ phase: 'recording', walkId, startedAt: new Date() }),
+    set({ phase: 'recording', walkId, startedAt: new Date(), flushedPointCount: 0 }),
 
   addPoint: (point) =>
     set((state) => {
@@ -94,6 +97,11 @@ export const useWalkStore = create<WalkState>((set, get) => ({
         totalDistanceM: state.totalDistanceM + added,
       };
     }),
+
+  markFlushedPointCount: (count) =>
+    set((state) => ({
+      flushedPointCount: Math.min(state.points.length, Math.max(state.flushedPointCount, count)),
+    })),
 
   addEvent: (event) =>
     set((state) => ({ events: [...state.events, event] })),
@@ -153,6 +161,7 @@ export const useWalkStore = create<WalkState>((set, get) => ({
       walkId: null,
       selectedDogIds: [],
       points: [],
+      flushedPointCount: 0,
       totalDistanceM: 0,
       startedAt: null,
       events: [],

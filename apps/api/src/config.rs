@@ -6,6 +6,8 @@ pub struct Config {
     pub s3_endpoint_url: Option<String>,
     pub dynamodb_endpoint_url: Option<String>,
     pub dynamodb_table_walk_points: String,
+    pub sqs_endpoint_url: Option<String>,
+    pub walk_points_queue_url: Option<String>,
     pub s3_bucket_dog_photos: String,
     pub photo_cdn_url: String,
     pub cognito_user_pool_id: String,
@@ -39,6 +41,12 @@ impl Config {
                 .filter(|s| !s.is_empty()),
             dynamodb_table_walk_points: std::env::var("DYNAMODB_TABLE_WALK_POINTS")
                 .unwrap_or_else(|_| "WalkPoints".to_string()),
+            sqs_endpoint_url: std::env::var("SQS_ENDPOINT_URL")
+                .ok()
+                .filter(|s| !s.is_empty()),
+            walk_points_queue_url: std::env::var("SQS_QUEUE_URL_WALK_POINTS")
+                .ok()
+                .filter(|s| !s.is_empty()),
             s3_bucket_dog_photos: std::env::var("S3_BUCKET_DOG_PHOTOS")
                 .unwrap_or_else(|_| "dog-photos".to_string()),
             photo_cdn_url: std::env::var("PHOTO_CDN_URL")

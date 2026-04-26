@@ -7,11 +7,16 @@ const mockReplace = jest.fn();
 
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({ id: 'dog-1' }),
-  useRouter: () => ({ push: mockPush, replace: mockReplace }),
+  useRouter: () => ({ push: mockPush, replace: mockReplace, back: jest.fn() }),
 }));
 
 jest.mock('expo-image', () => ({
   Image: 'Image',
+}));
+
+jest.mock('react-native-safe-area-context', () => ({
+  useSafeAreaInsets: () => ({ top: 44, bottom: 34, left: 0, right: 0 }),
+  SafeAreaProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
 const mockDog = {
@@ -90,10 +95,9 @@ describe('DogDetailScreen', () => {
     expect(screen.queryByText('Delete')).toBeNull();
   });
 
-  it('does not render edit button inside screen body (moved to nav header)', () => {
-    mockMeData = { id: 'user-2' }; // member, not owner
+  it('renders edit button in hero nav overlay', () => {
     renderWithProviders(<DogDetailScreen />);
-    expect(screen.queryByText('Edit')).toBeNull();
+    expect(screen.getByText('Edit')).toBeTruthy();
   });
 
   it('hides delete button when user is not in members list', () => {

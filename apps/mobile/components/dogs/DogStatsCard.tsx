@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
-import { spacing, typography } from '@/theme/tokens';
+import { spacing } from '@/theme/tokens';
 import { OutlinedCard } from '@/components/ui/OutlinedCard';
 import { formatDistance } from '@/lib/walk/format';
 import type { WalkStats } from '@/types/graphql';
@@ -49,10 +49,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   value: {
-    ...typography.h3,
+    fontSize: 22,
+    fontWeight: '700',
+    letterSpacing: -0.4,
+    fontVariant: ['tabular-nums'],
   },
   label: {
-    ...typography.label,
-    marginTop: spacing.xs,
+    fontSize: 11,
+    fontWeight: '400',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+    marginTop: 2,
   },
 });

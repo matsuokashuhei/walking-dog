@@ -31,6 +31,7 @@ const mockStoreStartRecording = jest.fn();
 const mockStoreAddPoint = jest.fn();
 const mockStoreFinish = jest.fn();
 let mockStorePoints: WalkPoint[] = [];
+let mockStoreFlushedPointCount = 0;
 let mockStoreTotalDistanceM = 0;
 let mockStoreStartedAt: Date | null = null;
 let mockStorePhase: 'ready' | 'recording' | 'finished' = 'ready';
@@ -45,15 +46,22 @@ jest.mock('@/stores/walk-store', () => {
     },
     startRecording: (...args: unknown[]) => {
       mockStorePhase = 'recording';
+      mockStoreFlushedPointCount = 0;
       return mockStoreStartRecording(...args);
     },
     addPoint: (...args: unknown[]) => mockStoreAddPoint(...args),
+    markFlushedPointCount: (count: number) => {
+      mockStoreFlushedPointCount = Math.max(mockStoreFlushedPointCount, count);
+    },
     finish: () => {
       mockStorePhase = 'finished';
       return mockStoreFinish();
     },
     get points() {
       return mockStorePoints;
+    },
+    get flushedPointCount() {
+      return mockStoreFlushedPointCount;
     },
     get totalDistanceM() {
       return mockStoreTotalDistanceM;
@@ -129,6 +137,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   resetWalkSessionTrackingState();
   mockStorePoints = [];
+  mockStoreFlushedPointCount = 0;
   mockStoreTotalDistanceM = 0;
   mockStoreStartedAt = new Date('2026-04-01T00:00:00Z');
   mockStorePhase = 'ready';
@@ -391,6 +400,28 @@ describe('useWalkSession.stop', () => {
     expect(firstBatch).toHaveLength(MAX_POINTS_PER_BATCH);
     const secondBatch = (mockAddPointsMutateAsync.mock.calls[1][0] as { points: WalkPoint[] }).points;
     expect(secondBatch).toHaveLength(50);
+  });
+
+  it('only flushes points that have not already been sent when stop runs', async () => {
+    mockStartWalkMutateAsync.mockResolvedValue({ id: 'walk-1' });
+    mockStorePoints = Array.from({ length: MAX_POINTS_PER_BATCH + 50 }, (_, i) => ({
+      lat: 35.68,
+      lng: 139.76,
+      recordedAt: `2026-04-01T00:${String(i % 60).padStart(2, '0')}:00Z`,
+    }));
+
+    const { result } = renderHook(() => useWalkSession());
+    await act(async () => {
+      await result.current.start({ selectedDogIds: ['dog-1'], liveActivityDogName: 'Rex' });
+    });
+    mockStoreFlushedPointCount = MAX_POINTS_PER_BATCH;
+    await act(async () => {
+      await result.current.stop('walk-1');
+    });
+
+    expect(mockAddPointsMutateAsync).toHaveBeenCalledTimes(1);
+    const pendingBatch = (mockAddPointsMutateAsync.mock.calls[0][0] as { points: WalkPoint[] }).points;
+    expect(pendingBatch).toHaveLength(50);
   });
 
   it('calls finishWalk with rounded distance, ends live activity by id, and clears it from store', async () => {

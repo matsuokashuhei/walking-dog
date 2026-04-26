@@ -1,16 +1,19 @@
-use migration::{Migrator, MigratorTrait};
-use std::sync::Arc;
+use std::time::Duration;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
-use walking_dog_api::auth::jwt::CognitoJwtVerifier;
 use walking_dog_api::config::Config;
+
+const RECEIVE_WAIT_TIME_SECONDS: i32 = 20;
+const RECEIVE_MAX_MESSAGES: i32 = 10;
 
 fn main() {
     dotenvy::dotenv().ok();
     let config = Config::from_env();
+    config
+        .walk_points_queue_url
+        .as_deref()
+        .expect("SQS_QUEUE_URL_WALK_POINTS must be set");
 
-    // Sentry must be initialized from a synchronous context so the ClientInitGuard
-    // lives across the full tokio runtime and flushes events on drop.
     let _sentry_guard = init_sentry(&config);
     init_tracing();
 
@@ -44,33 +47,13 @@ fn init_tracing() {
 }
 
 async fn run(config: Config) {
-    config
+    let queue_url = config
         .walk_points_queue_url
-        .as_deref()
+        .clone()
         .expect("SQS_QUEUE_URL_WALK_POINTS must be set");
-
-    let db = walking_dog_api::db::connect(&config.database_url)
-        .await
-        .expect("Failed to connect to database");
-
-    Migrator::up(&db, None)
-        .await
-        .expect("Failed to run database migrations");
-    tracing::info!("Database migrations completed");
-
     let dynamo = walking_dog_api::aws::client::build_dynamo_client(
         &config.aws_region,
         config.dynamodb_endpoint_url.as_deref(),
-    )
-    .await;
-    let s3 = walking_dog_api::aws::client::build_s3_client(
-        &config.aws_region,
-        config.s3_endpoint_url.as_deref(),
-    )
-    .await;
-    let cognito = walking_dog_api::aws::client::build_cognito_client(
-        &config.aws_region,
-        config.cognito_endpoint_url.as_deref(),
     )
     .await;
     let sqs = walking_dog_api::aws::client::build_sqs_client(
@@ -79,13 +62,33 @@ async fn run(config: Config) {
     )
     .await;
 
-    let verifier = Arc::new(CognitoJwtVerifier);
+    tracing::info!(queue_url, "walk points worker started");
 
-    let addr = std::net::SocketAddr::from(([0, 0, 0, 0], config.port));
-    tracing::info!("Listening on {}", addr);
-
-    let app = walking_dog_api::build_app(db, dynamo, s3, cognito, sqs, config, verifier);
-
-    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    loop {
+        match walking_dog_api::services::walk_points_queue_service::drain_walk_points_queue_once(
+            &sqs,
+            &queue_url,
+            &dynamo,
+            &config.dynamodb_table_walk_points,
+            RECEIVE_WAIT_TIME_SECONDS,
+            RECEIVE_MAX_MESSAGES,
+        )
+        .await
+        {
+            Ok(result) => {
+                if result.received > 0 || result.failed > 0 {
+                    tracing::info!(
+                        received = result.received,
+                        deleted = result.deleted,
+                        failed = result.failed,
+                        "walk points worker processed batch"
+                    );
+                }
+            }
+            Err(error) => {
+                tracing::error!(error = %error, "walk points worker iteration failed");
+                tokio::time::sleep(Duration::from_secs(1)).await;
+            }
+        }
+    }
 }

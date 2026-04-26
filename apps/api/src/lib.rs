@@ -13,6 +13,7 @@ use crate::graphql::AppSchema;
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
 use aws_sdk_dynamodb::Client as DynamoClient;
 use aws_sdk_s3::Client as S3Client;
+use aws_sdk_sqs::Client as SqsClient;
 use axum::{
     middleware,
     routing::{get, post},
@@ -28,6 +29,7 @@ pub struct AppState {
     pub dynamo: DynamoClient,
     pub s3: S3Client,
     pub cognito: aws_sdk_cognitoidentityprovider::Client,
+    pub sqs: SqsClient,
     pub config: Config,
     pub verifier: Arc<dyn JwtVerifier>,
 }
@@ -37,6 +39,7 @@ pub fn build_app(
     dynamo: DynamoClient,
     s3: S3Client,
     cognito: aws_sdk_cognitoidentityprovider::Client,
+    sqs: SqsClient,
     config: Config,
     verifier: Arc<dyn JwtVerifier>,
 ) -> Router {
@@ -45,6 +48,7 @@ pub fn build_app(
         dynamo,
         s3,
         cognito,
+        sqs,
         config,
         verifier: verifier.clone(),
     });

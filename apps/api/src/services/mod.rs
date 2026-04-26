@@ -7,5 +7,6 @@ pub mod friendship_service;
 pub mod s3_service;
 pub mod user_service;
 pub mod walk_event_service;
+pub mod walk_points_queue_service;
 pub mod walk_points_service;
 pub mod walk_service;

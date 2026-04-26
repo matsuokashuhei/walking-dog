@@ -67,11 +67,13 @@ describe('walk-store', () => {
   });
 
   it('startRecording transitions to recording phase', () => {
+    useWalkStore.getState().markFlushedPointCount(99);
     useWalkStore.getState().startRecording('walk-123');
     const state = useWalkStore.getState();
     expect(state.phase).toBe('recording');
     expect(state.walkId).toBe('walk-123');
     expect(state.startedAt).toBeInstanceOf(Date);
+    expect(state.flushedPointCount).toBe(0);
   });
 
   it('addPoint accumulates points and distance', () => {
@@ -83,6 +85,26 @@ describe('walk-store', () => {
     const state = useWalkStore.getState();
     expect(state.points).toHaveLength(2);
     expect(state.totalDistanceM).toBeGreaterThan(0);
+  });
+
+  it('markFlushedPointCount advances the cursor without exceeding points length', () => {
+    useWalkStore.getState().startRecording('walk-123');
+    useWalkStore.getState().addPoint({
+      lat: 35.6812,
+      lng: 139.7671,
+      recordedAt: '2026-03-23T10:00:00Z',
+    });
+    useWalkStore.getState().addPoint({
+      lat: 35.6813,
+      lng: 139.7672,
+      recordedAt: '2026-03-23T10:00:05Z',
+    });
+
+    useWalkStore.getState().markFlushedPointCount(1);
+    expect(useWalkStore.getState().flushedPointCount).toBe(1);
+
+    useWalkStore.getState().markFlushedPointCount(99);
+    expect(useWalkStore.getState().flushedPointCount).toBe(2);
   });
 
   it('finish transitions to finished phase', () => {
@@ -99,6 +121,7 @@ describe('walk-store', () => {
     expect(state.phase).toBe('ready');
     expect(state.walkId).toBeNull();
     expect(state.points).toEqual([]);
+    expect(state.flushedPointCount).toBe(0);
     expect(state.selectedDogIds).toEqual([]);
   });
 

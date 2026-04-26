@@ -50,6 +50,21 @@ resource "aws_iam_user_policy" "vps_api" {
         Resource = aws_cognito_user_pool.main.arn
       },
       {
+        Sid    = "SQS"
+        Effect = "Allow"
+        Action = [
+          "sqs:SendMessage",
+          "sqs:ReceiveMessage",
+          "sqs:DeleteMessage",
+          "sqs:DeleteMessageBatch",
+          "sqs:GetQueueAttributes",
+        ]
+        Resource = [
+          aws_sqs_queue.walk_points.arn,
+          aws_sqs_queue.walk_points_dlq.arn,
+        ]
+      },
+      {
         Sid      = "ECRAuth"
         Effect   = "Allow"
         Action   = ["ecr:GetAuthorizationToken"]

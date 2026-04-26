@@ -26,6 +26,10 @@ output "dynamodb_table_walk_points" {
   value = aws_dynamodb_table.walk_points.name
 }
 
+output "walk_points_queue_url" {
+  value = aws_sqs_queue.walk_points.id
+}
+
 # --- S3 ---
 
 output "s3_bucket_dog_photos" {

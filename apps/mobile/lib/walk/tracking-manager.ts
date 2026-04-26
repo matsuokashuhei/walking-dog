@@ -5,8 +5,16 @@ import type { WalkPoint, WalkPointInput } from '@/types/graphql';
 // Server-side validation rejects payloads over ~200 points per addWalkPoints
 // call (request size cap). Keep batches under this ceiling when flushing.
 export const MAX_POINTS_PER_BATCH = 200;
+export const PERIODIC_FLUSH_INTERVAL_MS = 30_000;
+
+type AddWalkPointsFn = (args: { walkId: string; points: WalkPointInput[] }) => Promise<unknown>;
+
+let activeFlushPromise: Promise<void> | null = null;
+let queuedFlushRequest: FlushPendingWalkPointsOptions | null = null;
 
 interface BeginWalkTrackingOptions {
+  walkId: string;
+  addWalkPoints: AddWalkPointsFn;
   onPoint: (point: WalkPoint) => void;
   onDistanceChange?: (distanceM: number) => void;
 }
@@ -14,10 +22,25 @@ interface BeginWalkTrackingOptions {
 interface FlushWalkPointsOptions {
   walkId: string;
   points: WalkPoint[];
-  addWalkPoints: (args: { walkId: string; points: WalkPointInput[] }) => Promise<unknown>;
+  addWalkPoints: AddWalkPointsFn;
+  onBatchFlushed?: (flushedPointCount: number) => void;
 }
 
-export async function beginWalkTracking({ onPoint, onDistanceChange }: BeginWalkTrackingOptions) {
+interface FlushPendingWalkPointsOptions {
+  walkId: string;
+  addWalkPoints: AddWalkPointsFn;
+}
+
+function logPeriodicFlushError(error: unknown) {
+  console.error('Failed to flush walk points during active tracking', error);
+}
+
+export async function beginWalkTracking({
+  walkId,
+  addWalkPoints,
+  onPoint,
+  onDistanceChange,
+}: BeginWalkTrackingOptions) {
   const trackingGeneration = useWalkStore.getState().activateTrackingSession();
 
   const stopTracking = await startTracking((point) => {
@@ -29,9 +52,18 @@ export async function beginWalkTracking({ onPoint, onDistanceChange }: BeginWalk
     onDistanceChange?.(useWalkStore.getState().totalDistanceM);
   });
 
-  const attached = useWalkStore.getState().attachTrackingCleanup(trackingGeneration, stopTracking);
-  if (!attached) {
+  const flushTimer = setInterval(() => {
+    void flushPendingWalkPoints({ walkId, addWalkPoints }).catch(logPeriodicFlushError);
+  }, PERIODIC_FLUSH_INTERVAL_MS);
+
+  const cleanup = () => {
+    clearInterval(flushTimer);
     stopTracking();
+  };
+
+  const attached = useWalkStore.getState().attachTrackingCleanup(trackingGeneration, cleanup);
+  if (!attached) {
+    cleanup();
   }
 
   return attached;
@@ -45,7 +77,63 @@ export function resetWalkTrackingState() {
   useWalkStore.getState().resetTrackingSession();
 }
 
-export async function flushWalkPoints({ walkId, points, addWalkPoints }: FlushWalkPointsOptions) {
+async function flushPendingWalkPointsNow({
+  walkId,
+  addWalkPoints,
+}: FlushPendingWalkPointsOptions) {
+  const state = useWalkStore.getState();
+  const flushFrom = state.flushedPointCount;
+  const flushTo = state.points.length;
+  if (flushTo <= flushFrom) {
+    return;
+  }
+
+  await flushWalkPoints({
+    walkId,
+    points: state.points.slice(flushFrom, flushTo),
+    addWalkPoints,
+    onBatchFlushed: (flushedPointCount) => {
+      const currentState = useWalkStore.getState();
+      if (currentState.walkId === walkId) {
+        currentState.markFlushedPointCount(flushFrom + flushedPointCount);
+      }
+    },
+  });
+}
+
+export async function flushPendingWalkPoints(options: FlushPendingWalkPointsOptions) {
+  if (activeFlushPromise) {
+    queuedFlushRequest = options;
+    await activeFlushPromise;
+    return;
+  }
+
+  const promise = (async () => {
+    let nextRequest: FlushPendingWalkPointsOptions | null = options;
+    while (nextRequest) {
+      const currentRequest = nextRequest;
+      queuedFlushRequest = null;
+      await flushPendingWalkPointsNow(currentRequest);
+      nextRequest = queuedFlushRequest;
+    }
+  })();
+
+  activeFlushPromise = promise;
+  try {
+    await promise;
+  } finally {
+    if (activeFlushPromise === promise) {
+      activeFlushPromise = null;
+    }
+  }
+}
+
+export async function flushWalkPoints({
+  walkId,
+  points,
+  addWalkPoints,
+  onBatchFlushed,
+}: FlushWalkPointsOptions) {
   for (let index = 0; index < points.length; index += MAX_POINTS_PER_BATCH) {
     const batch = points.slice(index, index + MAX_POINTS_PER_BATCH).map((point) => ({
       lat: point.lat,
@@ -54,5 +142,6 @@ export async function flushWalkPoints({ walkId, points, addWalkPoints }: FlushWa
     }));
 
     await addWalkPoints({ walkId, points: batch });
+    onBatchFlushed?.(index + batch.length);
   }
 }

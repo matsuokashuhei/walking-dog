@@ -1,7 +1,8 @@
 use crate::error::{AppError, FieldError};
 use crate::graphql::auth_helpers;
 use crate::services::{
-    dog_member_service, user_service, walk_event_service, walk_points_service, walk_service,
+    dog_member_service, user_service, walk_event_service, walk_points_queue_service,
+    walk_points_service, walk_service,
 };
 use crate::AppState;
 use async_graphql::dynamic::{
@@ -347,9 +348,17 @@ pub fn add_walk_points_field(state: Arc<AppState>) -> Field {
                     })
                     .collect::<Result<_, async_graphql::Error>>()?;
 
-                let result = walk_points_service::add_walk_points(
-                    &state.dynamo,
-                    &state.config.dynamodb_table_walk_points,
+                let queue_url = state
+                    .config
+                    .walk_points_queue_url
+                    .as_deref()
+                    .ok_or_else(|| {
+                        AppError::Internal("SQS_QUEUE_URL_WALK_POINTS must be set".to_string())
+                    })?;
+
+                let result = walk_points_queue_service::enqueue_walk_points(
+                    &state.sqs,
+                    queue_url,
                     walk_id,
                     points,
                 )

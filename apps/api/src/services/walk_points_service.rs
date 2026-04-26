@@ -3,7 +3,8 @@ use aws_sdk_dynamodb::{
     types::{AttributeValue, PutRequest, WriteRequest},
     Client as DynamoClient,
 };
-use std::collections::HashMap;
+use serde::{Deserialize, Serialize};
+use std::collections::{BTreeMap, HashMap};
 use uuid::Uuid;
 
 /// Maximum number of write requests per DynamoDB BatchWriteItem call.
@@ -74,10 +75,28 @@ pub struct WalkPoint {
     pub recorded_at: String,
 }
 
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct WalkPointInput {
     pub lat: f64,
     pub lng: f64,
     pub recorded_at: String,
+}
+
+pub fn sanitize_points(points: Vec<WalkPointInput>) -> Result<Vec<WalkPointInput>, AppError> {
+    if points.len() > 200 {
+        return Err(AppError::BadRequest(
+            "batch size must be <= 200".to_string(),
+        ));
+    }
+
+    let mut deduped = BTreeMap::new();
+    for point in points {
+        // Last-write-wins keeps the latest sample when the client flushes the
+        // same recorded_at more than once in a single batch.
+        deduped.insert(point.recorded_at.clone(), point);
+    }
+
+    Ok(deduped.into_values().collect())
 }
 
 /// バッチ書き込み: DynamoDBは1回のバッチで最大 DYNAMODB_BATCH_WRITE_LIMIT 件まで
@@ -87,11 +106,7 @@ pub async fn add_walk_points(
     walk_id: Uuid,
     points: Vec<WalkPointInput>,
 ) -> Result<bool, AppError> {
-    if points.len() > 200 {
-        return Err(AppError::BadRequest(
-            "batch size must be <= 200".to_string(),
-        ));
-    }
+    let points = sanitize_points(points)?;
 
     if points.is_empty() {
         return Ok(true);
@@ -239,5 +254,46 @@ mod tests {
         item.insert(LAT_ATTR.to_string(), AttributeValue::N("35.0".to_string()));
         // lng and recorded_at are missing
         assert!(parse_point_row(&item).is_none());
+    }
+
+    #[test]
+    fn sanitize_points_deduplicates_recorded_at_and_keeps_last_value() {
+        let sanitized = sanitize_points(vec![
+            WalkPointInput {
+                lat: 35.0,
+                lng: 139.0,
+                recorded_at: "2026-04-24T10:00:05Z".to_string(),
+            },
+            WalkPointInput {
+                lat: 35.1,
+                lng: 139.1,
+                recorded_at: "2026-04-24T10:00:00Z".to_string(),
+            },
+            WalkPointInput {
+                lat: 35.2,
+                lng: 139.2,
+                recorded_at: "2026-04-24T10:00:00Z".to_string(),
+            },
+        ])
+        .unwrap();
+
+        assert_eq!(sanitized.len(), 2);
+        assert_eq!(sanitized[0].recorded_at, "2026-04-24T10:00:00Z");
+        assert!((sanitized[0].lat - 35.2).abs() < 1e-9);
+        assert_eq!(sanitized[1].recorded_at, "2026-04-24T10:00:05Z");
+    }
+
+    #[test]
+    fn sanitize_points_rejects_batches_over_200() {
+        let points = (0..201)
+            .map(|index| WalkPointInput {
+                lat: 35.0,
+                lng: 139.0,
+                recorded_at: format!("2026-04-24T10:00:{index:02}Z"),
+            })
+            .collect();
+
+        let error = sanitize_points(points).expect_err("expected size validation error");
+        assert!(matches!(error, AppError::BadRequest(_)));
     }
 }

@@ -10,7 +10,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U walking_dog"]
+      test: ["CMD-SHELL", "pg_isready -U walking_dog -d walking_dog_dev"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -27,7 +27,7 @@ services:
   localstack:
     image: localstack/localstack:3
     environment:
-      SERVICES: s3
+      SERVICES: s3,sqs
       AWS_DEFAULT_REGION: ap-northeast-1
     ports:
       - "4566:4566"
@@ -51,6 +51,28 @@ services:
       - ./api:/app                          # ソースコードをマウント
       - cargo_cache:/usr/local/cargo    # cargoキャッシュを永続化
       - target_cache:/app/target        # ビルドキャッシュを永続化
+    env_file:
+      - ./api/.env.local
+    depends_on:
+      - postgres
+      - dynamodb-local
+      - localstack
+      - cognito-local
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  worker:
+    build:
+      context: ./api
+      dockerfile: Dockerfile.dev
+    command: ["cargo", "watch", "-x", "run --bin walk_points_worker"]
+    volumes:
+      - ./api:/app
+      - cargo_cache:/usr/local/cargo
+      - target_cache:/app/target
     env_file:
       - ./api/.env.local
     depends_on:

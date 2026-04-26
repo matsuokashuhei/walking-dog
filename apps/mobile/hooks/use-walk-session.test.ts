@@ -375,7 +375,9 @@ describe('useWalkSession.stop', () => {
     mockStorePoints = Array.from({ length: MAX_POINTS_PER_BATCH + 50 }, (_, i) => ({
       lat: 35.68,
       lng: 139.76,
-      recordedAt: `2026-04-01T00:0${i % 10}:00Z`,
+      // Unique recordedAt per point — flushWalkPoints now dedupes by
+      // recordedAt before batching, so any collision shrinks the batch count.
+      recordedAt: `2026-04-01T00:00:00.${String(i).padStart(3, '0')}Z`,
     }));
 
     const { result } = renderHook(() => useWalkSession());

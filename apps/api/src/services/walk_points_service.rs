@@ -3,7 +3,7 @@ use aws_sdk_dynamodb::{
     types::{AttributeValue, PutRequest, WriteRequest},
     Client as DynamoClient,
 };
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use uuid::Uuid;
 
 /// Maximum number of write requests per DynamoDB BatchWriteItem call.
@@ -65,6 +65,20 @@ fn parse_point_row(item: &HashMap<String, AttributeValue>) -> Option<WalkPoint> 
     })
 }
 
+/// 同じ `recorded_at` を持つ point を 1 件に縮約する（最初に出現したものを保持）。
+///
+/// DynamoDB `BatchWriteItem` は同一バッチ内に同じ primary key を持つ
+/// `WriteRequest` を許容しない（`ValidationException: "Provided list of item
+/// keys contains duplicates"`）。`(walk_id, recorded_at)` が PK/SK なので、
+/// `recorded_at` が一致する 2 件は同じキーとして衝突する。
+fn dedup_points_by_recorded_at(points: Vec<WalkPointInput>) -> Vec<WalkPointInput> {
+    let mut seen: HashSet<String> = HashSet::new();
+    points
+        .into_iter()
+        .filter(|p| seen.insert(p.recorded_at.clone()))
+        .collect()
+}
+
 // ─── Public API ──────────────────────────────────────────────────────────────
 
 #[derive(Clone, Debug)]
@@ -96,6 +110,11 @@ pub async fn add_walk_points(
     if points.is_empty() {
         return Ok(true);
     }
+
+    // 同一 batch 内で `(pk, sk)` が重複すると DynamoDB が
+    // `ValidationException: "Provided list of item keys contains duplicates"`
+    // を返してバッチごと拒否する。送信前に recorded_at で dedup する。
+    let points = dedup_points_by_recorded_at(points);
 
     let all_requests: Vec<WriteRequest> = points
         .iter()
@@ -239,5 +258,53 @@ mod tests {
         item.insert(LAT_ATTR.to_string(), AttributeValue::N("35.0".to_string()));
         // lng and recorded_at are missing
         assert!(parse_point_row(&item).is_none());
+    }
+
+    fn make_point(recorded_at: &str, lat: f64) -> WalkPointInput {
+        WalkPointInput {
+            lat,
+            lng: 139.0,
+            recorded_at: recorded_at.to_string(),
+        }
+    }
+
+    #[test]
+    fn dedup_points_by_recorded_at_keeps_first_occurrence_of_duplicate() {
+        // DynamoDB BatchWriteItem の `(pk, sk)` 重複は ValidationException を引き起こす。
+        // 同じ recorded_at の point が 2 つ以上含まれていたら、先に来たものを保持する。
+        let points = vec![
+            make_point("2026-04-26T02:45:35.951Z", 35.6),
+            make_point("2026-04-26T02:45:35.951Z", 35.7),
+            make_point("2026-04-26T02:45:40.000Z", 35.8),
+        ];
+
+        let deduped = dedup_points_by_recorded_at(points);
+
+        assert_eq!(deduped.len(), 2);
+        assert!((deduped[0].lat - 35.6).abs() < 1e-9);
+        assert_eq!(deduped[0].recorded_at, "2026-04-26T02:45:35.951Z");
+        assert_eq!(deduped[1].recorded_at, "2026-04-26T02:45:40.000Z");
+    }
+
+    #[test]
+    fn dedup_points_by_recorded_at_preserves_order_when_no_duplicates() {
+        let points = vec![
+            make_point("2026-04-26T02:45:35.000Z", 1.0),
+            make_point("2026-04-26T02:45:36.000Z", 2.0),
+            make_point("2026-04-26T02:45:37.000Z", 3.0),
+        ];
+
+        let deduped = dedup_points_by_recorded_at(points);
+
+        assert_eq!(deduped.len(), 3);
+        assert_eq!(deduped[0].recorded_at, "2026-04-26T02:45:35.000Z");
+        assert_eq!(deduped[1].recorded_at, "2026-04-26T02:45:36.000Z");
+        assert_eq!(deduped[2].recorded_at, "2026-04-26T02:45:37.000Z");
+    }
+
+    #[test]
+    fn dedup_points_by_recorded_at_returns_empty_for_empty_input() {
+        let deduped = dedup_points_by_recorded_at(Vec::new());
+        assert!(deduped.is_empty());
     }
 }

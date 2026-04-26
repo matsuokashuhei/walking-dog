@@ -45,9 +45,28 @@ export function resetWalkTrackingState() {
   useWalkStore.getState().resetTrackingSession();
 }
 
+/**
+ * 同じ `recordedAt` を持つ point を 1 件に縮約する（最初に出現したものを保持）。
+ *
+ * DynamoDB `BatchWriteItem` は同一バッチ内に同じ primary key を持つ
+ * `WriteRequest` を許容しない。`(walk_id, recorded_at)` が PK/SK のため、
+ * `recordedAt` が一致する 2 件は同じキーとして衝突する。サーバー側にも
+ * 防御的 dedup があるが、ネットワーク負荷を減らすためクライアントでも縮約する。
+ */
+function dedupePointsByRecordedAt(points: WalkPoint[]): WalkPoint[] {
+  const seen = new Set<string>();
+  return points.filter((p) => {
+    if (seen.has(p.recordedAt)) return false;
+    seen.add(p.recordedAt);
+    return true;
+  });
+}
+
 export async function flushWalkPoints({ walkId, points, addWalkPoints }: FlushWalkPointsOptions) {
-  for (let index = 0; index < points.length; index += MAX_POINTS_PER_BATCH) {
-    const batch = points.slice(index, index + MAX_POINTS_PER_BATCH).map((point) => ({
+  const deduped = dedupePointsByRecordedAt(points);
+
+  for (let index = 0; index < deduped.length; index += MAX_POINTS_PER_BATCH) {
+    const batch = deduped.slice(index, index + MAX_POINTS_PER_BATCH).map((point) => ({
       lat: point.lat,
       lng: point.lng,
       recordedAt: point.recordedAt,

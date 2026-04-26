@@ -85,6 +85,23 @@ describe('walk-store', () => {
     expect(state.totalDistanceM).toBeGreaterThan(0);
   });
 
+  // GPS subscription の二重発火等で同一 recordedAt の point が連続して来た
+  // 場合、後続を黙って捨てる。距離も加算しない。Sentry WALKING-DOG-API-DEV-2/3/4
+  // の発生源対策。
+  it('addPoint ignores a duplicate recordedAt of the previous point', () => {
+    useWalkStore.getState().startRecording('walk-123');
+    const p1: WalkPoint = { lat: 35.6812, lng: 139.7671, recordedAt: '2026-04-26T02:45:35.951Z' };
+    const dup: WalkPoint = { lat: 35.7, lng: 139.8, recordedAt: '2026-04-26T02:45:35.951Z' };
+    useWalkStore.getState().addPoint(p1);
+    const distanceAfterFirst = useWalkStore.getState().totalDistanceM;
+
+    useWalkStore.getState().addPoint(dup);
+
+    const state = useWalkStore.getState();
+    expect(state.points).toHaveLength(1);
+    expect(state.totalDistanceM).toBe(distanceAfterFirst);
+  });
+
   it('finish transitions to finished phase', () => {
     useWalkStore.getState().startRecording('walk-123');
     useWalkStore.getState().finish();

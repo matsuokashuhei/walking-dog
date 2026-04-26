@@ -316,3 +316,47 @@ async fn test_add_walk_points() {
     let body: serde_json::Value = res.json().await.unwrap();
     assert_eq!(body["data"]["addWalkPoints"], true, "got: {:?}", body);
 }
+
+// 同一バッチ内に同じ recorded_at を持つ point が複数含まれていても、
+// `BatchWriteItem` の `ValidationException: "Provided list of item keys
+// contains duplicates"` で失敗してはならない。Sentry WALKING-DOG-API-DEV-2/3/4
+// の回帰テスト。
+#[tokio::test]
+async fn test_add_walk_points_with_duplicate_recorded_at_succeeds() {
+    let client = support::test_client().await;
+    let dog_id = create_test_dog(&client).await;
+
+    let start_res = client
+        .post("/graphql")
+        .header("Authorization", "Bearer test-token")
+        .json(&serde_json::json!({
+            "query": format!(r#"mutation {{ startWalk(dogIds: ["{}"]) {{ id }} }}"#, dog_id)
+        }))
+        .send()
+        .await
+        .unwrap();
+    let start_body: serde_json::Value = start_res.json().await.unwrap();
+    let walk_id = start_body["data"]["startWalk"]["id"].as_str().unwrap();
+
+    let res = client
+        .post("/graphql")
+        .header("Authorization", "Bearer test-token")
+        .json(&serde_json::json!({
+            "query": format!(r#"mutation {{
+                addWalkPoints(walkId: "{}", points: [
+                    {{ lat: 35.6762, lng: 139.6503, recordedAt: "2026-04-26T02:45:35.951Z" }},
+                    {{ lat: 35.6763, lng: 139.6504, recordedAt: "2026-04-26T02:45:35.951Z" }},
+                    {{ lat: 35.6764, lng: 139.6505, recordedAt: "2026-04-26T02:45:40.000Z" }}
+                ])
+            }}"#, walk_id)
+        }))
+        .send()
+        .await
+        .unwrap();
+    let body: serde_json::Value = res.json().await.unwrap();
+    assert_eq!(
+        body["data"]["addWalkPoints"], true,
+        "duplicate recorded_at must be deduped server-side, got: {:?}",
+        body
+    );
+}

@@ -121,7 +121,9 @@ describe('flushWalkPoints', () => {
     const points: WalkPoint[] = Array.from({ length: MAX_POINTS_PER_BATCH + 50 }, (_, index) => ({
       lat: 35.68,
       lng: 139.76,
-      recordedAt: `2026-04-01T00:${String(index % 60).padStart(2, '0')}:00Z`,
+      // recordedAt must stay unique across the whole array; the flush step now
+      // dedupes by recordedAt so any collision shrinks the batch count.
+      recordedAt: `2026-04-01T00:00:00.${String(index).padStart(3, '0')}Z`,
     }));
 
     await flushWalkPoints({ walkId: 'walk-1', points, addWalkPoints });
@@ -132,5 +134,47 @@ describe('flushWalkPoints', () => {
     );
     expect(addWalkPoints.mock.calls[0][0].points).toHaveLength(MAX_POINTS_PER_BATCH);
     expect(addWalkPoints.mock.calls[1][0].points).toHaveLength(50);
+  });
+
+  // 同一 recordedAt の point が複数 store に蓄積された場合（GPS 二重 emit
+  // など）、API へのバッチ送信前に dedup する必要がある。さもなければ
+  // DynamoDB BatchWriteItem が ValidationException で失敗する。
+  // Sentry WALKING-DOG-API-DEV-2/3/4 の回帰テスト。
+  it('dedupes points sharing the same recordedAt before batching', async () => {
+    const addWalkPoints = jest.fn().mockResolvedValue(true);
+    const points: WalkPoint[] = [
+      { lat: 35.68, lng: 139.76, recordedAt: '2026-04-26T02:45:35.951Z' },
+      { lat: 35.69, lng: 139.77, recordedAt: '2026-04-26T02:45:35.951Z' },
+      { lat: 35.7, lng: 139.78, recordedAt: '2026-04-26T02:45:40.000Z' },
+    ];
+
+    await flushWalkPoints({ walkId: 'walk-1', points, addWalkPoints });
+
+    expect(addWalkPoints).toHaveBeenCalledTimes(1);
+    const sentPoints = addWalkPoints.mock.calls[0][0].points;
+    expect(sentPoints).toHaveLength(2);
+    expect(sentPoints.map((p: { recordedAt: string }) => p.recordedAt)).toEqual([
+      '2026-04-26T02:45:35.951Z',
+      '2026-04-26T02:45:40.000Z',
+    ]);
+  });
+
+  it('keeps order of distinct points unchanged when no duplicates exist', async () => {
+    const addWalkPoints = jest.fn().mockResolvedValue(true);
+    const points: WalkPoint[] = [
+      { lat: 1, lng: 1, recordedAt: '2026-04-26T02:45:35.000Z' },
+      { lat: 2, lng: 2, recordedAt: '2026-04-26T02:45:36.000Z' },
+      { lat: 3, lng: 3, recordedAt: '2026-04-26T02:45:37.000Z' },
+    ];
+
+    await flushWalkPoints({ walkId: 'walk-1', points, addWalkPoints });
+
+    expect(addWalkPoints).toHaveBeenCalledTimes(1);
+    const sentPoints = addWalkPoints.mock.calls[0][0].points;
+    expect(sentPoints.map((p: { recordedAt: string }) => p.recordedAt)).toEqual([
+      '2026-04-26T02:45:35.000Z',
+      '2026-04-26T02:45:36.000Z',
+      '2026-04-26T02:45:37.000Z',
+    ]);
   });
 });

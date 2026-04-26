@@ -88,6 +88,12 @@ export const useWalkStore = create<WalkState>((set, get) => ({
   addPoint: (point) =>
     set((state) => {
       const prev = state.points[state.points.length - 1];
+      // GPS subscription の二重発火等で同一 recordedAt の point が連続して
+      // 来た場合は捨てる。さもなければ DynamoDB BatchWriteItem の
+      // (walk_id, recorded_at) PK 重複で flush が ValidationException になる。
+      if (prev && prev.recordedAt === point.recordedAt) {
+        return state;
+      }
       const added = prev ? haversineDistance(prev, point) : 0;
       return {
         points: [...state.points, point],

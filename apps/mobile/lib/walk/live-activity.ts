@@ -19,8 +19,6 @@ const extras = (Constants.expoConfig?.extra ?? {}) as {
   appGroup?: string;
 };
 
-const apiUrl = process.env.EXPO_PUBLIC_API_URL;
-
 /**
  * Minimum elapsed time between consecutive `updateLiveActivityDistance` calls.
  * Owners (e.g. the walk session hook) compare this against
@@ -48,7 +46,7 @@ export function isLiveActivitySupported(): boolean {
  */
 export async function startLiveActivity(input: LiveActivityStartInput): Promise<string | null> {
   if (!mod || !mod.isSupported()) return null;
-  if (!extras.appGroup || !apiUrl) {
+  if (!extras.appGroup || !process.env.EXPO_PUBLIC_API_URL) {
     console.warn('[live-activity] appGroup or EXPO_PUBLIC_API_URL missing');
     return null;
   }
@@ -60,7 +58,7 @@ export async function startLiveActivity(input: LiveActivityStartInput): Promise<
       startedAtMs: input.startedAt.getTime(),
       distanceM: input.distanceM,
       appGroup: extras.appGroup,
-      apiUrl,
+      apiUrl: process.env.EXPO_PUBLIC_API_URL,
     });
   } catch (err) {
     console.error('[live-activity] start failed', err);
@@ -100,7 +98,7 @@ export async function updateLiveActivityEvent(
 
 export async function endLiveActivity(activityId: string): Promise<void> {
   if (!mod) return;
-  if (!extras.appGroup) return;
+  if (!extras.appGroup || !process.env.EXPO_PUBLIC_API_URL) return;
   try {
     await mod.endActivity(activityId, extras.appGroup);
   } catch (err) {

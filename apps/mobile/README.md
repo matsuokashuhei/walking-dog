@@ -30,77 +30,53 @@ Xcode → Settings → Accounts に Apple ID を追加し、Personal Team とし
 
 ---
 
-## デバイスにインストールする方法（環境別）
+## ビルド & インストール
 
-3 つの環境がある。Bundle ID と API_URL の組み合わせで使い分ける。
+スクリプトは「install target × API 環境」の2軸で命名: `ios:<target>:<env>`。
 
-| 環境 | API_URL | Bundle ID | 主な用途 |
+| Script | Install | API URL | Configuration |
 |---|---|---|---|
-| **Local** | `http://localhost:3000` | `com.walkingdog.dev` | ローカル API でフロント開発 |
-| **Development** | `https://walkingdogdev.dpdns.org` | `com.walkingdog.dev` | dev サーバ API で実機検証 |
-| **Production** | `https://walkingdogdev.dpdns.org` (override) | `com.walkingdog.app` | サブミット版 .ipa に近いバイナリで検証 |
+| `npm run ios:sim:local` | Simulator | `http://localhost:3000` | Debug |
+| `npm run ios:sim:dev` | Simulator | `https://walkingdogdev.dpdns.org` | Debug |
+| `npm run ios:sim:prod` | Simulator | `https://walkingdogdev.dpdns.org`（※本番未デプロイ） | Release |
+| `npm run ios:dev:local` | Device | `http://localhost:3000` | Debug |
+| `npm run ios:dev:dev` | Device | `https://walkingdogdev.dpdns.org` | Release |
+| `npm run ios:dev:prod` | Device | `https://walkingdogdev.dpdns.org`（※本番未デプロイ） | Release |
 
-### Local 環境（ローカル API でフロント開発）
+API URL は `EXPO_PUBLIC_API_URL` をスクリプト内でインライン指定し、`process.env.EXPO_PUBLIC_API_URL` 経由で JS バンドルにビルド時 inline される。`.env.*` ファイルは使用しない。
 
-ローカルの `apps/api` と組み合わせて Debug ビルドで開発するときの経路。Metro の fast refresh が効く。
+実機で dev サーバ相手に Metro / fast refresh を使いたいときだけ、例外として `npm run ios:dev:dev:debug` を使う。これは Debug dev-client build を install し、`npm run start:dev-client` と組み合わせて使う。
 
-```bash
-# 1. iPhone に Debug build を install（初回のみ、または env を変えたとき）
-APP_ENV=dev npx expo run:ios --device
-
-# 2. 別ターミナルで Metro を起動
-npm run start:dev
-```
-
-iPhone で「Walking Dog (dev)」を起動すると Metro 経由で JS をロードする。コード変更は Cmd+R で reload。
-
-### Development 環境（dev サーバ API で実機検証）
-
-dev サーバ (`walkingdogdev.dpdns.org`) と通信する Release ビルドを実機に焼く。Metro 不要・fast refresh なし、サブミット版に近い最適化が掛かる。
-
-```bash
-API_URL=https://walkingdogdev.dpdns.org APP_ENV=dev \
-  npx expo run:ios --device --configuration Release
-```
-
-ビルドが終わると iPhone にアプリ「Walking Dog (dev)」がインストールされ、Metro サーバはこの時点で Ctrl+C で落として OK（Release ビルドは JS bundle 内蔵のため）。
-
-### Production 環境（サブミット版に近いビルドで検証）
-
-本番 Bundle ID (`com.walkingdog.app`) を使った Release ビルド。実際にサブミットされる .ipa とほぼ同じ構成になる。
-
-> 本番 API は未デプロイ。当面は dev サーバ URL を `.env.production.local` で override して使う。
-
-```bash
-# 1. 初回のみ: API URL override 用の env ファイル作成（gitignore 対象）
-echo "API_URL=https://walkingdogdev.dpdns.org" > .env.production.local
-
-# 2. 本番設定で native プロジェクトを再生成
-APP_ENV=production NODE_ENV=production \
-  npx expo prebuild --platform ios --clean
-
-# 3. ビルド & 実機 install
-API_URL=https://walkingdogdev.dpdns.org APP_ENV=production NODE_ENV=production \
-  npx expo run:ios --device --configuration Release
-```
-
-差分:
-- アプリ表示名: 「Walking Dog」（dev サフィックスなし）
-- Live Activity Bundle: `com.walkingdog.app.liveactivity`
-- App Group: `group.com.walkingdog.app`
+Bundle ID は全プロファイル共通で `com.walkingdog.app`。
 
 ---
 
-## 環境を切り替えるとき
+## API 環境別の使い分け
 
-**Local ↔ Development**（同じ Bundle ID）: env vars だけ差し替えれば OK。
+### Local (`localhost:3000`) — フロント開発
 
-**Local/Development ↔ Production**（Bundle ID が変わる）: `npx expo prebuild --platform ios --clean` を再実行する必要あり。`ios/WalkingDoglocal*` ↔ `ios/WalkingDog*` で `ios/` ディレクトリ自体が再生成される。
+ローカル `apps/api` と組み合わせて Debug ビルド。Metro fast refresh が効く。
 
-```bash
-# 例: Production から Development に戻す
-APP_ENV=dev npx expo prebuild --platform ios --clean
-```
+- **Simulator**: `npm run ios:sim:local`
+- **実機**: 実機からは `localhost` が iPhone 自身になるため URL は届かない。LAN IP に差し替えて起動する：
+  ```bash
+  EXPO_PUBLIC_API_URL=http://<MacのLAN_IP>:3000 npm run ios:dev:local
+  ```
+
+### Development (`walkingdogdev.dpdns.org`) — dev サーバ検証
+
+dev サーバの Rust API と通信する。Metro 不要・fast refresh なし。
+
+- **Simulator**: `npm run ios:sim:dev`
+- **実機**: `npm run ios:dev:dev`
+- **実機で Metro も使う**: `npm run ios:dev:dev:debug` で Debug build を入れ、別ターミナルで `npm run start:dev-client`
+
+### Production — サブミット版に近い検証
+
+Release ビルド。本番 API は未デプロイのため当面は dev サーバ URL を流用。
+
+- **Simulator**: `npm run ios:sim:prod`
+- **実機**: `npm run ios:dev:prod`
 
 ---
 
@@ -108,11 +84,13 @@ APP_ENV=dev npx expo prebuild --platform ios --clean
 
 | 症状 | 対処 |
 |---|---|
-| `Could not find any connected device` | iPhone を USB で接続、画面ロック解除、「このコンピュータを信頼」を承認。`xcrun xctrace list devices` で認識されるか確認。 |
-| 7 日経つとアプリが起動しなくなる | Personal Team 証明書の有効期限切れ。同じ手順で再 install。 |
-| `pod install` が失敗 | `cd ios && pod repo update && pod install` を試す。 |
-| Wi-Fi で実機ビルドしたい | 一度 USB 接続して、Xcode → Window → Devices and Simulators → 該当デバイス → "Connect via network" にチェック。 |
-| API_URL が反映されない | `expo prebuild --clean` を再実行（env vars はネイティブビルド時に焼き込まれるため）。 |
+| `EXPO_PUBLIC_API_URL` を変えても反映されない | `EXPO_PUBLIC_*` はビルド時に焼き込まれるため `expo run:ios` を再実行（必要に応じて `npx expo prebuild --platform ios --clean`） |
+| `Could not find any connected device` | iPhone を USB 接続、ロック解除、「このコンピュータを信頼」を承認。`xcrun xctrace list devices` で認識確認 |
+| `No apps connected. Sending "devMenu"...` | `npm run ios:dev:dev` は Release なので Metro には接続しない。Metro が必要なら `npm run ios:dev:dev:debug` を install し、`npm run start:dev-client` を同じ LAN で起動する |
+| 7 日経つとアプリが起動しなくなる | Personal Team 証明書の有効期限切れ。同じ手順で再 install |
+| `pod install` が失敗 | `cd ios && pod repo update && pod install` |
+| Wi-Fi で実機ビルドしたい | 一度 USB 接続して、Xcode → Window → Devices and Simulators → 該当デバイス → "Connect via network" にチェック |
+| 実機で `localhost` に届かない | 上記「Local — 実機」を参照、LAN IP を渡す |
 
 ---
 

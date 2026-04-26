@@ -1,13 +1,10 @@
 import { GraphQLClient } from 'graphql-request';
-import Constants from 'expo-constants';
 import {
   createRefreshMiddleware,
   type RefreshHandler,
 } from './middleware/refresh-on-401';
 
-const API_URL = Constants.expoConfig?.extra?.apiUrl ?? 'http://localhost:3000';
-
-export const graphqlClient = new GraphQLClient(`${API_URL}/graphql`);
+export const graphqlClient = new GraphQLClient(`${process.env.EXPO_PUBLIC_API_URL}/graphql`);
 
 export function setAuthToken(token: string | null): void {
   if (token) {

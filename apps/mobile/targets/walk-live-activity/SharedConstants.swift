@@ -1,19 +1,9 @@
 import Foundation
 
-// Resolved from the widget extension's bundle id so dev and prod builds land
-// on their own App Group / keychain bucket. The extension bundle id is
-// `<main-bundle>.liveactivity` — for dev that's `com.walkingdog.dev.liveactivity`,
-// for prod `com.walkingdog.app.liveactivity`. Keep in sync with app.config.ts.
+// Keep in sync with app.config.ts (APP_GROUP / KEYCHAIN_SERVICE).
 enum SharedConstants {
     static let keychainService = "com.walkingdog.shared"
-
-    static var appGroup: String {
-        let bundleId = Bundle.main.bundleIdentifier ?? ""
-        if bundleId.hasPrefix("com.walkingdog.dev") {
-            return "group.com.walkingdog.dev"
-        }
-        return "group.com.walkingdog.app"
-    }
+    static let appGroup = "group.com.walkingdog.app"
 }
 
 enum SharedWalkContextKey {

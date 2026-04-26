@@ -10,7 +10,7 @@ const KEYCHAIN_SERVICE = 'com.walkingdog.shared';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: IS_DEV ? `Walking Dog (${APP_ENV})` : 'Walking Dog',
+  name: IS_DEV ? 'Walking Dog (Dev)' : 'Walking Dog',
   slug: 'walking-dog',
   version: '1.0.0',
   orientation: 'portrait',

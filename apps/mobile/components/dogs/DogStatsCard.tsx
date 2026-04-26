@@ -49,10 +49,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   value: {
-    ...typography.h3,
+    ...typography.title2,
+    fontVariant: ['tabular-nums'],
   },
   label: {
-    ...typography.label,
-    marginTop: spacing.xs,
+    ...typography.metricLabel,
+    marginTop: 2,
   },
 });

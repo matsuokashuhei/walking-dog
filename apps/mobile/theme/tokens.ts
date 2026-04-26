@@ -180,6 +180,14 @@ export const typography = {
     lineHeight: 34,
     letterSpacing: -1.2,
   },
+  // Compact uppercase label for stat grids (Dog detail "WALKS / DISTANCE / STREAK").
+  metricLabel: {
+    fontSize: 11,
+    fontWeight: '400' as const,
+    lineHeight: 14,
+    letterSpacing: 0.3,
+    textTransform: 'uppercase' as const,
+  },
 
   // --- Deprecated aliases (kept for incremental migration) ---
   display: {

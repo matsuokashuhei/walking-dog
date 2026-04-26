@@ -117,6 +117,7 @@ const styles = StyleSheet.create({
   meta: {
     ...typography.footnote,
     fontSize: 12,
+    fontVariant: ['tabular-nums'],
   },
   eventCounts: {
     flexDirection: 'row',

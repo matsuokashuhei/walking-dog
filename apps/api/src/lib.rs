@@ -14,6 +14,7 @@ use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
 use aws_sdk_dynamodb::Client as DynamoClient;
 use aws_sdk_s3::Client as S3Client;
 use aws_sdk_sqs::Client as SqsClient;
+use axum::http::header::HeaderName;
 use axum::{
     middleware,
     routing::{get, post},
@@ -23,6 +24,10 @@ use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 use tower::ServiceBuilder;
 use tower_http::cors::CorsLayer;
+use tower_http::request_id::{MakeRequestUuid, PropagateRequestIdLayer, SetRequestIdLayer};
+use tower_http::trace::{DefaultOnFailure, DefaultOnRequest, DefaultOnResponse, TraceLayer};
+use tower_http::LatencyUnit;
+use tracing::Level;
 
 pub struct AppState {
     pub db: DatabaseConnection,
@@ -63,6 +68,32 @@ pub fn build_app(
         .layer(sentry_tower::NewSentryLayer::new_from_top())
         .layer(sentry_tower::SentryHttpLayer::new().enable_transaction());
 
+    let x_request_id = HeaderName::from_static("x-request-id");
+
+    let trace_layer = TraceLayer::new_for_http()
+        .make_span_with(|request: &axum::http::Request<_>| {
+            let request_id = request
+                .headers()
+                .get("x-request-id")
+                .and_then(|v| v.to_str().ok())
+                .unwrap_or("-");
+            tracing::info_span!(
+                "http_request",
+                method = %request.method(),
+                path = %request.uri().path(),
+                request_id = %request_id,
+                status = tracing::field::Empty,
+                latency_ms = tracing::field::Empty,
+            )
+        })
+        .on_request(DefaultOnRequest::new().level(Level::INFO))
+        .on_response(
+            DefaultOnResponse::new()
+                .level(Level::INFO)
+                .latency_unit(LatencyUnit::Millis),
+        )
+        .on_failure(DefaultOnFailure::new().level(Level::ERROR));
+
     Router::new()
         .route("/graphql", post(graphql_handler))
         .layer(middleware::from_fn_with_state(
@@ -72,6 +103,13 @@ pub fn build_app(
         .layer(sentry_layer)
         .layer(CorsLayer::permissive())
         .route("/health", get(|| async { "ok" }))
+        // Layer order: the LAST `.layer()` is the outermost wrapper. So request
+        // flow is SetRequestIdLayer → trace_layer → PropagateRequestIdLayer →
+        // handler. SetRequestIdLayer must run first to populate x-request-id
+        // before trace_layer reads it for the span.
+        .layer(PropagateRequestIdLayer::new(x_request_id.clone()))
+        .layer(trace_layer)
+        .layer(SetRequestIdLayer::new(x_request_id, MakeRequestUuid))
         .with_state(schema)
 }
 

@@ -31,7 +31,29 @@ describe('aggregatePackProgress', () => {
 
   it('returns zeros when there are no walks', () => {
     const result = aggregatePackProgress([], 5, now);
-    expect(result).toEqual({ todayKm: 0, goalKm: 5, progressPct: 0, perDog: {} });
+    expect(result).toEqual({
+      todayKm: 0,
+      goalKm: 5,
+      progressPct: 0,
+      packStreakDays: 0,
+      perDog: {},
+    });
+  });
+
+  it('packStreakDays counts consecutive days where ANY dog walked', () => {
+    const walks: Walk[] = [
+      makeWalk('w1', ['coco'], new Date(2026, 3, 19, 8).toISOString(), 1000),
+      makeWalk('w2', ['momo'], new Date(2026, 3, 18, 8).toISOString(), 800),
+      makeWalk('w3', ['coco'], new Date(2026, 3, 16, 8).toISOString(), 500),
+    ];
+    expect(aggregatePackProgress(walks, 5, now).packStreakDays).toBe(2);
+  });
+
+  it('packStreakDays is zero if no recent pack walk', () => {
+    const walks: Walk[] = [
+      makeWalk('w1', ['coco'], new Date(2026, 3, 15, 8).toISOString(), 500),
+    ];
+    expect(aggregatePackProgress(walks, 5, now).packStreakDays).toBe(0);
   });
 
   it('sums today distance across all dogs for the pack card', () => {

@@ -7,20 +7,23 @@ import type { Dog } from '@/types/graphql';
 
 interface WalkTopChipProps {
   dogs: Dog[];
+  label?: string;
 }
 
 const AVATAR = 22;
 
-export function WalkTopChip({ dogs }: WalkTopChipProps) {
+export function WalkTopChip({ dogs, label }: WalkTopChipProps) {
   const { t } = useTranslation();
   const theme = useColors();
 
-  if (dogs.length === 0) return null;
+  if (dogs.length === 0 && !label) return null;
 
   const isSingle = dogs.length === 1;
-  const label = isSingle
-    ? t('walk.recording.walkWith', { name: dogs[0].name })
-    : t('walk.recording.groupWalk');
+  const displayLabel =
+    label ??
+    (isSingle
+      ? t('walk.recording.walkWith', { name: dogs[0].name })
+      : t('walk.recording.groupWalk'));
 
   return (
     <View
@@ -30,7 +33,7 @@ export function WalkTopChip({ dogs }: WalkTopChipProps) {
         elevation.low,
       ]}
     >
-      {isSingle ? null : (
+      {isSingle || dogs.length === 0 ? null : (
         <View style={styles.avatars}>
           {dogs.slice(0, 2).map((dog, i) => (
             <Image
@@ -47,7 +50,7 @@ export function WalkTopChip({ dogs }: WalkTopChipProps) {
         </View>
       )}
       <Text style={[styles.label, { color: theme.onSurface }]} numberOfLines={1}>
-        {label}
+        {displayLabel}
       </Text>
     </View>
   );

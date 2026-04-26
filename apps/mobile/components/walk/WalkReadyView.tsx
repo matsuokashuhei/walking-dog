@@ -1,14 +1,18 @@
 import { useCallback, useEffect, useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Button } from '@/components/ui/Button';
 import { GroupedCard } from '@/components/ui/GroupedCard';
-import { SectionHeader } from '@/components/ui/SectionHeader';
 import { DogPickerCard } from '@/components/walk/DogPickerCard';
+import { NoDogsBody } from '@/components/walk/NoDogsBody';
+import { WalkMap } from '@/components/walk/WalkMap';
+import { WalkMapShell } from '@/components/walk/WalkMapShell';
+import { WalkReadyStatsRow } from '@/components/walk/WalkReadyStatsRow';
+import { WalkStartButton } from '@/components/walk/WalkStartButton';
+import { WalkTopChip } from '@/components/walk/WalkTopChip';
 import { useColors } from '@/hooks/use-colors';
 import { useMe } from '@/hooks/use-me';
 import { useWalkStore } from '@/stores/walk-store';
-import { spacing, typography } from '@/theme/tokens';
+import { elevation, spacing, typography } from '@/theme/tokens';
 import type { Dog } from '@/types/graphql';
 
 interface WalkReadyViewProps {
@@ -49,102 +53,106 @@ export function WalkReadyView({ onStart, isStarting }: WalkReadyViewProps) {
   const selectAllLabel = allSelected
     ? t('walk.ready.deselectAll')
     : t('walk.ready.selectAll');
-  const showSelectAll = dogs.length >= 2;
+  const selectedDogs = dogs.filter((dog) => selectedDogIds.includes(dog.id));
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-    >
-      <Text style={[styles.largeTitle, { color: theme.onSurface }]}>
-        {t('walk.ready.largeTitle')}
-      </Text>
+    <View style={styles.container}>
+      <WalkMapShell
+        map={<WalkMap mode="preview" />}
+        top={<WalkTopChip dogs={selectedDogs} label={t('walk.ready.topLabelStatic')} />}
+        bottom={
+          <GroupedCard
+            style={[
+              styles.bottomCard,
+              { backgroundColor: theme.material, borderColor: theme.border },
+              elevation.mid,
+            ]}
+          >
+            <View style={[styles.grabber, { backgroundColor: theme.textDisabled }]} />
 
-      <View style={styles.walkingWith}>
-        <SectionHeader
-          label={t('walk.ready.walkingWith')}
-          trailing={
-            showSelectAll ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={selectAllLabel}
-                onPress={handleSelectAll}
-                hitSlop={8}
-              >
-                <Text style={[styles.selectAll, { color: theme.interactive }]}>
-                  {selectAllLabel}
-                </Text>
-              </Pressable>
-            ) : null
-          }
-        />
-
-        {dogs.length === 0 ? (
-          <GroupedCard padding="lg">
-            <Text style={[styles.emptyText, { color: theme.onSurfaceVariant }]}>
-              {t('walk.ready.noDogs')}
-            </Text>
+            {dogs.length === 0 ? (
+              <NoDogsBody />
+            ) : isSingleDog ? (
+              <View style={styles.bodyColumn}>
+                <DogPickerCard
+                  dogs={[dogs[0]]}
+                  selectedIds={selectedDogIds}
+                  onToggle={() => undefined}
+                  variant="single"
+                />
+                <WalkReadyStatsRow />
+                <WalkStartButton onPress={onStart} disabled={!canStart} loading={isStarting} />
+              </View>
+            ) : (
+              <View style={styles.bodyColumn}>
+                <View style={styles.sectionHeader}>
+                  <Text style={[styles.sectionTitle, { color: theme.onSurfaceVariant }]}>
+                    {t('walk.ready.walkingWith')}
+                  </Text>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={selectAllLabel}
+                    onPress={handleSelectAll}
+                    hitSlop={8}
+                  >
+                    <Text style={[styles.selectAll, { color: theme.interactive }]}>
+                      {selectAllLabel}
+                    </Text>
+                  </Pressable>
+                </View>
+                <DogPickerCard
+                  dogs={dogs}
+                  selectedIds={selectedDogIds}
+                  onToggle={selectDog}
+                  variant="multi"
+                />
+                <WalkReadyStatsRow />
+                <WalkStartButton onPress={onStart} disabled={!canStart} loading={isStarting} />
+              </View>
+            )}
           </GroupedCard>
-        ) : (
-          <DogPickerCard
-            dogs={dogs}
-            selectedIds={selectedDogIds}
-            onToggle={selectDog}
-            variant={isSingleDog ? 'single' : 'multi'}
-          />
-        )}
-      </View>
-
-      <View style={styles.ctaColumn}>
-        <Button
-          label={t('walk.ready.start')}
-          variant="success"
-          size="circle"
-          onPress={onStart}
-          disabled={!canStart}
-          loading={isStarting}
-        />
-        <Text style={[styles.hint, { color: theme.onSurfaceVariant }]}>
-          {t('walk.ready.hint')}
-        </Text>
-      </View>
-    </ScrollView>
+        }
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: {
-    paddingBottom: spacing.xxl,
+  container: {
+    flex: 1,
   },
-  largeTitle: {
-    ...typography.largeTitle,
-    paddingHorizontal: spacing.lg,
+  bottomCard: {
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
-    paddingBottom: spacing.sm,
+    paddingBottom: spacing.lg,
   },
-  walkingWith: {
-    marginTop: spacing.md,
-    paddingHorizontal: spacing.sm,
+  grabber: {
+    width: 36,
+    height: 5,
+    borderRadius: 3,
+    alignSelf: 'center',
+    marginTop: -spacing.xs,
+    marginBottom: spacing.md,
+    opacity: 0.6,
+  },
+  bodyColumn: {
+    gap: spacing.md,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  sectionTitle: {
+    ...typography.caption,
+    fontSize: 13,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   selectAll: {
     fontSize: 13,
     fontWeight: '500',
-  },
-  emptyText: {
-    ...typography.body,
-    textAlign: 'center',
-  },
-  ctaColumn: {
-    alignItems: 'center',
-    paddingTop: spacing.xl,
-    paddingHorizontal: spacing.lg,
-  },
-  hint: {
-    ...typography.footnote,
-    textAlign: 'center',
-    marginTop: spacing.lg,
-    maxWidth: 300,
   },
 });

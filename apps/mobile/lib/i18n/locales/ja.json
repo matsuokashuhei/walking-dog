@@ -143,13 +143,22 @@
   },
   "walk": {
     "ready": {
-      "largeTitle": "散歩",
-      "walkingWith": "一緒に散歩する犬",
+      "topLabelStatic": "散歩",
+      "noDogsTitle": "まだ犬がいません",
+      "noDogs": "散歩を始める前にパックに犬を追加しましょう。すぐに終わります。",
+      "noDogsCta": "はじめての犬を追加",
+      "walkingWith": "一緒に散歩",
       "selectAll": "すべて選択",
       "deselectAll": "すべて解除",
-      "hint": "タップして開始。ルートを追跡し、そっと記録します。",
-      "start": "START",
-      "noDogs": "先に犬を登録してください",
+      "start": "散歩を開始",
+      "stats": {
+        "today": "今日",
+        "streak": "連続",
+        "goal": "目標",
+        "kmShort": "{{value}} km",
+        "streakDays": "{{count}}日",
+        "goalPercent": "{{value}}%"
+      },
       "lastWalk": {
         "never": "はじめての散歩",
         "justNow": "今さっき散歩しました",

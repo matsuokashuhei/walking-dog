@@ -25,54 +25,18 @@ export function DogPickerCard({
   variant = 'multi',
 }: DogPickerCardProps) {
   const theme = useColors();
-  const { t } = useTranslation();
   const now = useMemo(() => new Date(), []);
-  const showCheckbox = variant === 'multi';
+  const interactive = variant === 'multi';
 
   return (
     <GroupedCard>
       {dogs.map((dog, index) => {
         const isSelected = selectedIds.includes(dog.id);
         const isLast = index === dogs.length - 1;
-        const lastWalkText = formatLastWalk(dog.latestWalk?.endedAt, now, t);
-        const rowContent = (
-          <>
-            <Image
-              source={dog.photoUrl ?? require('@/assets/images/icon.png')}
-              style={styles.avatar}
-              contentFit="cover"
-            />
-            <View style={styles.textCol}>
-              <Text style={[styles.name, { color: theme.onSurface }]} numberOfLines={1}>
-                {dog.name}
-              </Text>
-              <Text
-                style={[styles.lastWalk, { color: theme.onSurfaceVariant }]}
-                numberOfLines={1}
-              >
-                {lastWalkText}
-              </Text>
-            </View>
-            {showCheckbox ? (
-              isSelected ? (
-                <View style={[styles.check, { backgroundColor: theme.interactive }]}>
-                  <Text style={styles.checkMark}>✓</Text>
-                </View>
-              ) : (
-                <View
-                  style={[
-                    styles.check,
-                    styles.checkEmpty,
-                    { borderColor: theme.textDisabled },
-                  ]}
-                />
-              )
-            ) : null}
-          </>
-        );
+
         return (
           <Fragment key={dog.id}>
-            {showCheckbox ? (
+            {interactive ? (
               <Pressable
                 accessibilityRole="checkbox"
                 accessibilityLabel={dog.name}
@@ -80,11 +44,17 @@ export function DogPickerCard({
                 onPress={() => onToggle(dog.id)}
                 style={styles.row}
               >
-                {rowContent}
+                <DogPickerRow dog={dog} isSelected={isSelected} now={now} showSelection />
               </Pressable>
             ) : (
               <View accessibilityLabel={dog.name} style={styles.row}>
-                {rowContent}
+                <DogPickerRow
+                  dog={dog}
+                  isSelected={isSelected}
+                  now={now}
+                  showSelection={false}
+                  showChevron
+                />
               </View>
             )}
             {!isLast ? (
@@ -99,6 +69,71 @@ export function DogPickerCard({
         );
       })}
     </GroupedCard>
+  );
+}
+
+interface DogPickerRowProps {
+  dog: Dog;
+  isSelected: boolean;
+  now: Date;
+  showSelection: boolean;
+  showChevron?: boolean;
+}
+
+function DogPickerRow({
+  dog,
+  isSelected,
+  now,
+  showSelection,
+  showChevron,
+}: DogPickerRowProps) {
+  const theme = useColors();
+  const { t } = useTranslation();
+  const lastWalkText = formatLastWalk(dog.latestWalk?.endedAt, now, t);
+
+  return (
+    <>
+      <Image
+        source={dog.photoUrl ?? require('@/assets/images/icon.png')}
+        style={styles.avatar}
+        contentFit="cover"
+      />
+      <View style={styles.textCol}>
+        <Text style={[styles.name, { color: theme.onSurface }]} numberOfLines={1}>
+          {dog.name}
+        </Text>
+        <Text style={[styles.lastWalk, { color: theme.onSurfaceVariant }]} numberOfLines={1}>
+          {lastWalkText}
+        </Text>
+      </View>
+
+      {showSelection ? <SelectionIndicator isSelected={isSelected} /> : null}
+      {!showSelection && showChevron ? (
+        <Text style={[styles.chevron, { color: theme.textDisabled }]}>›</Text>
+      ) : null}
+    </>
+  );
+}
+
+function SelectionIndicator({ isSelected }: { isSelected: boolean }) {
+  const theme = useColors();
+
+  if (!isSelected) {
+    return (
+      <View
+        style={[
+          styles.check,
+          styles.checkEmpty,
+          { borderColor: theme.textDisabled },
+        ]}
+      />
+    );
+  }
+
+  return (
+    <View style={[styles.check, { backgroundColor: theme.interactive }]}>
+      <Text style={styles.checkMark}>✓</Text>
+    </View>
   );
 }
 
@@ -148,5 +183,10 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: StyleSheet.hairlineWidth,
+  },
+  chevron: {
+    fontSize: 22,
+    fontWeight: '300',
+    paddingLeft: spacing.xs,
   },
 });

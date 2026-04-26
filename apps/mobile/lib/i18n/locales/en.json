@@ -143,13 +143,22 @@
   },
   "walk": {
     "ready": {
-      "largeTitle": "Walk",
+      "topLabelStatic": "Walk",
+      "noDogsTitle": "No dogs yet",
+      "noDogs": "Add a dog to your pack before starting a walk. It only takes a moment.",
+      "noDogsCta": "Add your first dog",
       "walkingWith": "Walking with",
       "selectAll": "Select all",
       "deselectAll": "Deselect all",
-      "hint": "Tap to begin. We'll follow your route and log everything gently.",
-      "start": "START",
-      "noDogs": "Register a dog first",
+      "start": "START WALK",
+      "stats": {
+        "today": "Today",
+        "streak": "Streak",
+        "goal": "Goal",
+        "kmShort": "{{value}} km",
+        "streakDays": "{{count}}d",
+        "goalPercent": "{{value}}%"
+      },
       "lastWalk": {
         "never": "Ready for the first walk",
         "justNow": "Last walk just now",

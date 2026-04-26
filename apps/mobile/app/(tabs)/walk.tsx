@@ -9,9 +9,12 @@ export default function WalkScreen() {
   const theme = useColors();
   const vm = useWalkScreenViewModel();
 
+  if (vm.phase === 'ready') {
+    return <WalkReadyView onStart={vm.handleStart} isStarting={vm.isStarting} />;
+  }
+
   return (
     <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: theme.background }]}>
-      {vm.phase === 'ready' && <WalkReadyView onStart={vm.handleStart} isStarting={vm.isStarting} />}
       {vm.phase === 'finished' && <WalkSummaryCard />}
     </SafeAreaView>
   );

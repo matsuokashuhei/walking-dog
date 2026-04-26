@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useColors } from '@/hooks/use-colors';
 import { useWalkStore } from '@/stores/walk-store';
 import { useMe } from '@/hooks/use-me';
 import { WalkMap } from '@/components/walk/WalkMap';
+import { WalkMapShell } from '@/components/walk/WalkMapShell';
 import { WalkTopChip } from '@/components/walk/WalkTopChip';
-import { spacing } from '@/theme/tokens';
 import type { Dog } from '@/types/graphql';
 
 export default function WalkRecordingScreen() {
@@ -17,7 +16,6 @@ export default function WalkRecordingScreen() {
   const params = useLocalSearchParams<{ action?: string }>();
 
   const { data: me } = useMe();
-  const insets = useSafeAreaInsets();
 
   const hasPushedRef = useRef(false);
   useEffect(() => {
@@ -37,20 +35,11 @@ export default function WalkRecordingScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <WalkMap />
-      <View style={[styles.topOverlay, { top: insets.top + spacing.xs }]}>
-        <WalkTopChip dogs={selectedDogs} />
-      </View>
+      <WalkMapShell map={<WalkMap mode="recording" />} top={<WalkTopChip dogs={selectedDogs} />} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  topOverlay: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-  },
 });

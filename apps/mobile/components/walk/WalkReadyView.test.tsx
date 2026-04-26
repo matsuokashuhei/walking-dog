@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
+import type { ReactNode } from 'react';
 import { WalkReadyView } from './WalkReadyView';
 import type { Dog } from '@/types/graphql';
 
@@ -12,6 +13,34 @@ jest.mock('expo-router', () => ({
 
 jest.mock('expo-image', () => ({
   Image: 'Image',
+}));
+
+jest.mock('@/components/walk/WalkMap', () => ({
+  WalkMap: () => null,
+}));
+
+jest.mock('@/components/walk/WalkMapShell', () => {
+  const { View } = jest.requireActual('react-native');
+  return {
+    WalkMapShell: ({ map, top, bottom }: { map: ReactNode; top: ReactNode; bottom: ReactNode }) => (
+      <View>
+        {map}
+        {top}
+        {bottom}
+      </View>
+    ),
+  };
+});
+
+jest.mock('@/hooks/use-pack-progress', () => ({
+  usePackProgress: () => ({
+    todayKm: 0,
+    goalKm: 5,
+    progressPct: 0,
+    packStreakDays: 0,
+    perDog: {},
+    isLoading: false,
+  }),
 }));
 
 const FIXED_NOW = new Date('2026-04-19T12:00:00Z');
@@ -93,7 +122,7 @@ describe('WalkReadyView', () => {
     mockDogs = [coco, momo];
   });
 
-  it('renders the Walk largeTitle', () => {
+  it('renders the static "Walk" top chip label', () => {
     render(<WalkReadyView onStart={jest.fn()} isStarting={false} />);
     expect(screen.getByText('Walk')).toBeTruthy();
   });
@@ -104,17 +133,24 @@ describe('WalkReadyView', () => {
     expect(screen.getByText('Select all')).toBeTruthy();
   });
 
-  it('disables START when no dog is selected', () => {
+  it('renders the Today / Streak / Goal stats row when dogs exist', () => {
     render(<WalkReadyView onStart={jest.fn()} isStarting={false} />);
-    const btn = screen.getByRole('button', { name: 'START' });
+    expect(screen.getByText('Today')).toBeTruthy();
+    expect(screen.getByText('Streak')).toBeTruthy();
+    expect(screen.getByText('Goal')).toBeTruthy();
+  });
+
+  it('disables START WALK when no dog is selected', () => {
+    render(<WalkReadyView onStart={jest.fn()} isStarting={false} />);
+    const btn = screen.getByRole('button', { name: 'START WALK' });
     expect(btn.props.accessibilityState.disabled).toBe(true);
   });
 
-  it('enables START when at least one dog is selected and calls onStart', () => {
+  it('enables START WALK when at least one dog is selected and calls onStart', () => {
     mockStore = buildStore(['dog-1']);
     const onStart = jest.fn();
     render(<WalkReadyView onStart={onStart} isStarting={false} />);
-    const btn = screen.getByRole('button', { name: 'START' });
+    const btn = screen.getByRole('button', { name: 'START WALK' });
     expect(btn.props.accessibilityState.disabled).toBe(false);
     fireEvent.press(btn);
     expect(onStart).toHaveBeenCalledTimes(1);
@@ -134,25 +170,12 @@ describe('WalkReadyView', () => {
     expect(mockStore.setSelectedDogs).toHaveBeenCalledWith([]);
   });
 
-  it('renders the Precise hint copy', () => {
-    render(<WalkReadyView onStart={jest.fn()} isStarting={false} />);
-    expect(
-      screen.getByText(
-        "Tap to begin. We'll follow your route and log everything gently.",
-      ),
-    ).toBeTruthy();
-  });
-
-  it('does not render a Group walk summary anymore', () => {
-    mockStore = buildStore(['dog-1', 'dog-2']);
-    render(<WalkReadyView onStart={jest.fn()} isStarting={false} />);
-    expect(screen.queryByText('Group walk')).toBeNull();
-  });
-
-  it('shows the noDogs empty state when user has zero dogs', () => {
+  it('shows the noDogs empty state with CTA when user has zero dogs', () => {
     mockDogs = [];
     render(<WalkReadyView onStart={jest.fn()} isStarting={false} />);
-    expect(screen.getByText('Register a dog first')).toBeTruthy();
+    expect(screen.getByText('No dogs yet')).toBeTruthy();
+    expect(screen.getByText(/Add a dog to your pack/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Add your first dog' })).toBeTruthy();
   });
 
   describe('single-dog variant', () => {
@@ -166,14 +189,24 @@ describe('WalkReadyView', () => {
       expect(screen.queryByText('Select all')).toBeNull();
     });
 
-    it('hides the checkbox but still renders the dog', () => {
+    it('hides the Walking with section header (design 04b)', () => {
+      render(<WalkReadyView onStart={jest.fn()} isStarting={false} />);
+      expect(screen.queryByText('Walking with')).toBeNull();
+    });
+
+    it('hides the checkbox but renders the dog with last-walk text', () => {
       render(<WalkReadyView onStart={jest.fn()} isStarting={false} />);
       expect(screen.queryByRole('checkbox', { name: 'Coco' })).toBeNull();
       expect(screen.getByText('Coco')).toBeTruthy();
       expect(screen.getByText('Last walk 14 hours ago')).toBeTruthy();
     });
 
-    it('auto-selects the only dog so START is enabled', () => {
+    it('shows a trailing chevron on the single dog row', () => {
+      render(<WalkReadyView onStart={jest.fn()} isStarting={false} />);
+      expect(screen.getByText('›')).toBeTruthy();
+    });
+
+    it('auto-selects the only dog so START WALK is enabled', () => {
       render(<WalkReadyView onStart={jest.fn()} isStarting={false} />);
       expect(mockStore.setSelectedDogs).toHaveBeenCalledWith(['dog-1']);
     });

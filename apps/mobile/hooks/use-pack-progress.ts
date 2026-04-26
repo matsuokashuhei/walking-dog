@@ -13,6 +13,7 @@ export interface PackProgress {
   todayKm: number;
   goalKm: number;
   progressPct: number;
+  packStreakDays: number;
   perDog: Record<string, DogProgress>;
   isLoading: boolean;
 }
@@ -61,6 +62,7 @@ export function aggregatePackProgress(
   const todayKey = localDayKey(now);
 
   let packTodayM = 0;
+  const packDays = new Set<string>();
   const dogDays = new Map<string, Set<string>>();
   const dogTodayM = new Map<string, number>();
   const dogTotalWalks = new Map<string, number>();
@@ -69,6 +71,7 @@ export function aggregatePackProgress(
     const dayKey = toLocalDayKey(walk.startedAt);
     const distanceM = walk.distanceM ?? 0;
     if (dayKey === todayKey) packTodayM += distanceM;
+    if (dayKey) packDays.add(dayKey);
 
     for (const dog of walk.dogs ?? []) {
       if (!dog?.id) continue;
@@ -98,8 +101,9 @@ export function aggregatePackProgress(
   const todayKm = packTodayM / 1000;
   const progressPct =
     goalKm > 0 ? Math.min(100, Math.round((todayKm / goalKm) * 100)) : 0;
+  const packStreakDays = computeStreak(packDays, now);
 
-  return { todayKm, goalKm, progressPct, perDog };
+  return { todayKm, goalKm, progressPct, packStreakDays, perDog };
 }
 
 export function usePackProgress(goalKm: number = DEFAULT_DAILY_GOAL_KM): PackProgress {

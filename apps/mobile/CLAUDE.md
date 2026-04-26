@@ -32,6 +32,7 @@
 - Use secure storage for tokens — avoid AsyncStorage for sensitive data
 - Conventional Commits: feat:, fix:, refactor:, test:, docs:, chore:
 - UI 実装は **Expo 公式ライブラリを最優先で検討する**（`expo-router/unstable-native-tabs` の `NativeTabs`、`presentation: 'formSheet'`、`expo-glass-effect`、`@expo/ui`、`expo-blur` など）。カスタム実装・community 製パッケージはネイティブ API が足りないことを確認してから採用する。
+- スタイルは **必ず `apps/mobile/theme/tokens.ts` のトークンを使う**。`StyleSheet.create` で `fontSize` / `fontWeight` / `letterSpacing` / `lineHeight` / `padding*` / `margin*` / `borderRadius` / `color` / 影 などを直書きしてはならない。`typography.*` / `spacing.*` / `radius.*` / `colors[scheme].*` / `elevation.*` を spread か参照で利用する。**設計仕様の値が既存トークンに無い場合は、`tokens.ts` に新しいトークンを追加してから使う**（インラインで magic number を書かない）。例外は overlay-on-photo のように意図的にテーマ非依存にしたい色のみで、その場合もファイル内の名前付き定数にしてコメントで根拠を残す。
 
 ## Available Commands
 /plan, /code-review, /tdd, /build-fix, /perf, /upgrade, /debug, /deploy,

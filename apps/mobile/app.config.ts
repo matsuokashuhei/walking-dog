@@ -13,7 +13,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   icon: './assets/images/icon.png',
   scheme: 'walking-dog',
   userInterfaceStyle: 'automatic',
-  newArchEnabled: true,
   ios: {
     supportsTablet: false,
     bundleIdentifier: 'com.walkingdog.app',
@@ -38,7 +37,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       backgroundImage: './assets/images/android-icon-background.png',
       monochromeImage: './assets/images/android-icon-monochrome.png',
     },
-    edgeToEdgeEnabled: true,
     package: 'com.walkingdog.app',
   },
   web: {
@@ -47,6 +45,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   plugins: [
     'expo-router',
+    'expo-font',
+    'expo-image',
+    'expo-localization',
+    'expo-web-browser',
     [
       'expo-splash-screen',
       {

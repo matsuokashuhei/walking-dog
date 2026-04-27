@@ -1,5 +1,4 @@
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { Icon, Label, NativeTabs, VectorIcon } from 'expo-router/unstable-native-tabs';
+import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { useTranslation } from 'react-i18next';
 
 import { useColors } from '@/hooks/use-colors';
@@ -9,27 +8,27 @@ export default function TabLayout() {
   const theme = useColors();
 
   return (
-    <NativeTabs tintColor={theme.interactive} minimizeBehavior="onScrollDown">
-      <NativeTabs.Trigger name="dogs">
-        <Icon
+      <NativeTabs tintColor={theme.interactive} minimizeBehavior="onScrollDown">
+        <NativeTabs.Trigger name="dogs">
+        <NativeTabs.Trigger.Icon
           sf="pawprint.fill"
-          androidSrc={<VectorIcon family={MaterialIcons} name="pets" />}
+          md="pets"
         />
-        <Label>{t('tabs.dogs')}</Label>
+        <NativeTabs.Trigger.Label>{t('tabs.dogs')}</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="walk">
-        <Icon
+        <NativeTabs.Trigger.Icon
           sf="figure.walk"
-          androidSrc={<VectorIcon family={MaterialIcons} name="directions-walk" />}
+          md="directions_walk"
         />
-        <Label>{t('tabs.walk')}</Label>
+        <NativeTabs.Trigger.Label>{t('tabs.walk')}</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="settings">
-        <Icon
+        <NativeTabs.Trigger.Icon
           sf="person.crop.circle"
-          androidSrc={<VectorIcon family={MaterialIcons} name="account-circle" />}
+          md="account_circle"
         />
-        <Label>{t('tabs.me')}</Label>
+        <NativeTabs.Trigger.Label>{t('tabs.me')}</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
     </NativeTabs>
   );

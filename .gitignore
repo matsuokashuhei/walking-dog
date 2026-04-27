@@ -17,3 +17,10 @@ apps/api/.env.production
 .terraform.lock.hcl
 infra/**/lambda/*.zip
 infra/sakura/.env
+
+
+# APM dependencies
+apm_modules/
+.github/agents/
+.github/prompts/
+.github/skills/

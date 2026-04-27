@@ -1,8 +1,13 @@
 use crate::error::{AppError, FieldError};
 use crate::graphql::auth_helpers;
+use crate::graphql::dynamic_helpers::{
+    optional_int_field, optional_string_field, parse_uuid, parse_uuid_with_field_error,
+    string_field, uuid_field,
+};
+use crate::graphql::loaders::{UserLoader, WalkDogsLoader};
 use crate::services::{
-    dog_member_service, user_service, walk_event_service, walk_points_queue_service,
-    walk_points_service, walk_service,
+    dog_member_service, walk_event_service, walk_points_queue_service, walk_points_service,
+    walk_service,
 };
 use crate::AppState;
 use async_graphql::dynamic::{
@@ -59,76 +64,31 @@ impl From<crate::entities::users::Model> for WalkerOutput {
 
 pub fn walk_output_type() -> Object {
     Object::new("WalkOutput")
-        .field(Field::new(
-            "id",
-            TypeRef::named_nn(TypeRef::STRING),
-            |ctx| {
-                FieldFuture::new(async move {
-                    let w = ctx.parent_value.try_downcast_ref::<WalkOutput>()?;
-                    Ok(Some(FieldValue::value(w.id.to_string())))
-                })
-            },
-        ))
-        .field(Field::new(
-            "status",
-            TypeRef::named_nn(TypeRef::STRING),
-            |ctx| {
-                FieldFuture::new(async move {
-                    let w = ctx.parent_value.try_downcast_ref::<WalkOutput>()?;
-                    Ok(Some(FieldValue::value(w.status.clone())))
-                })
-            },
-        ))
-        .field(Field::new(
-            "distanceM",
-            TypeRef::named(TypeRef::INT),
-            |ctx| {
-                FieldFuture::new(async move {
-                    let w = ctx.parent_value.try_downcast_ref::<WalkOutput>()?;
-                    Ok(w.distance_m.map(FieldValue::value))
-                })
-            },
-        ))
-        .field(Field::new(
-            "durationSec",
-            TypeRef::named(TypeRef::INT),
-            |ctx| {
-                FieldFuture::new(async move {
-                    let w = ctx.parent_value.try_downcast_ref::<WalkOutput>()?;
-                    Ok(w.duration_sec.map(FieldValue::value))
-                })
-            },
-        ))
-        .field(Field::new(
-            "startedAt",
-            TypeRef::named_nn(TypeRef::STRING),
-            |ctx| {
-                FieldFuture::new(async move {
-                    let w = ctx.parent_value.try_downcast_ref::<WalkOutput>()?;
-                    Ok(Some(FieldValue::value(w.started_at.clone())))
-                })
-            },
-        ))
-        .field(Field::new(
-            "endedAt",
-            TypeRef::named(TypeRef::STRING),
-            |ctx| {
-                FieldFuture::new(async move {
-                    let w = ctx.parent_value.try_downcast_ref::<WalkOutput>()?;
-                    Ok(w.ended_at.clone().map(FieldValue::value))
-                })
-            },
-        ))
+        .field(uuid_field("id", |w: &WalkOutput| w.id))
+        .field(string_field("status", |w: &WalkOutput| w.status.clone()))
+        .field(optional_int_field("distanceM", |w: &WalkOutput| {
+            w.distance_m
+        }))
+        .field(optional_int_field("durationSec", |w: &WalkOutput| {
+            w.duration_sec
+        }))
+        .field(string_field("startedAt", |w: &WalkOutput| {
+            w.started_at.clone()
+        }))
+        .field(optional_string_field("endedAt", |w: &WalkOutput| {
+            w.ended_at.clone()
+        }))
         .field(Field::new(
             "walker",
             TypeRef::named("WalkerOutput"),
             |ctx| {
                 FieldFuture::new(async move {
                     let w = ctx.parent_value.try_downcast_ref::<WalkOutput>()?;
-                    let state = ctx.data::<Arc<crate::AppState>>()?;
-                    let user = user_service::get_user_by_id(&state.db, w.user_id)
+                    let user = ctx
+                        .data::<Arc<UserLoader>>()?
+                        .load_one(w.user_id)
                         .await
-                        .map_err(AppError::into_graphql_error)?;
+                        .map_err(async_graphql::Error::new)?;
                     Ok(user.map(|u| FieldValue::owned_any(WalkerOutput::from(u))))
                 })
             },
@@ -139,10 +99,12 @@ pub fn walk_output_type() -> Object {
             |ctx| {
                 FieldFuture::new(async move {
                     let w = ctx.parent_value.try_downcast_ref::<WalkOutput>()?;
-                    let state = ctx.data::<Arc<crate::AppState>>()?;
-                    let dogs = walk_service::get_dogs_for_walk(&state.db, w.id)
+                    let dogs = ctx
+                        .data::<Arc<WalkDogsLoader>>()?
+                        .load_one(w.id)
                         .await
-                        .map_err(AppError::into_graphql_error)?;
+                        .map_err(async_graphql::Error::new)?
+                        .unwrap_or_default();
                     let values: Vec<FieldValue> = dogs
                         .into_iter()
                         .map(|d| FieldValue::owned_any(super::dog::DogOutput::from(d)))
@@ -205,36 +167,13 @@ pub fn walk_output_type() -> Object {
 
 pub fn walker_output_type() -> Object {
     Object::new("WalkerOutput")
-        .field(Field::new(
-            "id",
-            TypeRef::named_nn(TypeRef::STRING),
-            |ctx| {
-                FieldFuture::new(async move {
-                    let w = ctx.parent_value.try_downcast_ref::<WalkerOutput>()?;
-                    Ok(Some(FieldValue::value(w.id.to_string())))
-                })
-            },
-        ))
-        .field(Field::new(
-            "displayName",
-            TypeRef::named(TypeRef::STRING),
-            |ctx| {
-                FieldFuture::new(async move {
-                    let w = ctx.parent_value.try_downcast_ref::<WalkerOutput>()?;
-                    Ok(w.display_name.clone().map(FieldValue::value))
-                })
-            },
-        ))
-        .field(Field::new(
-            "avatarUrl",
-            TypeRef::named(TypeRef::STRING),
-            |ctx| {
-                FieldFuture::new(async move {
-                    let w = ctx.parent_value.try_downcast_ref::<WalkerOutput>()?;
-                    Ok(w.avatar_url.clone().map(FieldValue::value))
-                })
-            },
-        ))
+        .field(uuid_field("id", |w: &WalkerOutput| w.id))
+        .field(optional_string_field("displayName", |w: &WalkerOutput| {
+            w.display_name.clone()
+        }))
+        .field(optional_string_field("avatarUrl", |w: &WalkerOutput| {
+            w.avatar_url.clone()
+        }))
 }
 
 pub fn walk_point_input_type() -> InputObject {
@@ -257,7 +196,7 @@ pub fn start_walk_field(state: Arc<AppState>) -> Field {
                 .iter()
                 .map(|v| {
                     let s = v.string()?;
-                    Uuid::parse_str(s).map_err(|_| async_graphql::Error::new("Invalid dog ID"))
+                    parse_uuid(s, "Invalid dog ID")
                 })
                 .collect::<Result<Vec<Uuid>, _>>()?;
 
@@ -285,8 +224,7 @@ pub fn finish_walk_field(state: Arc<AppState>) -> Field {
         let state = state.clone();
         FieldFuture::new(async move {
             let walk_id_str = ctx.args.try_get("walkId")?.string()?;
-            let walk_id = Uuid::parse_str(walk_id_str)
-                .map_err(|_| async_graphql::Error::new("Invalid walk ID"))?;
+            let walk_id = parse_uuid(walk_id_str, "Invalid walk ID")?;
             let distance_m = ctx
                 .args
                 .get("distanceM")
@@ -314,13 +252,8 @@ pub fn add_walk_points_field(state: Arc<AppState>) -> Field {
                 let walk_id_str = ctx.args.try_get("walkId")?.string()?;
 
                 let mut field_errors: Vec<FieldError> = Vec::new();
-                let walk_id_opt = Uuid::parse_str(walk_id_str).ok().or_else(|| {
-                    field_errors.push(FieldError {
-                        field: "walkId".to_string(),
-                        message: "Invalid UUID format".to_string(),
-                    });
-                    None
-                });
+                let walk_id_opt =
+                    parse_uuid_with_field_error(walk_id_str, "walkId", &mut field_errors);
                 if !field_errors.is_empty() {
                     return Err(AppError::ValidationErrors(field_errors).into_graphql_error());
                 }
@@ -357,10 +290,7 @@ pub fn add_walk_points_field(state: Arc<AppState>) -> Field {
                     })?;
 
                 let result = walk_points_queue_service::enqueue_walk_points(
-                    &state.sqs,
-                    queue_url,
-                    walk_id,
-                    points,
+                    &state.sqs, queue_url, walk_id, points,
                 )
                 .await
                 .map_err(AppError::into_graphql_error)?;

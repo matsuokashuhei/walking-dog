@@ -39,6 +39,12 @@ pub struct AppState {
     pub verifier: Arc<dyn JwtVerifier>,
 }
 
+#[derive(Clone)]
+pub struct GraphqlState {
+    pub schema: AppSchema,
+    pub app_state: Arc<AppState>,
+}
+
 pub fn build_app(
     db: DatabaseConnection,
     dynamo: DynamoClient,
@@ -57,7 +63,11 @@ pub fn build_app(
         config,
         verifier: verifier.clone(),
     });
-    let schema = graphql::build_schema(state);
+    let schema = graphql::build_schema(state.clone());
+    let graphql_state = GraphqlState {
+        schema,
+        app_state: state.clone(),
+    };
 
     // Sentry middleware: NewSentryLayer creates a fresh Hub per request so user
     // context, breadcrumbs and transactions do not leak between concurrent requests.
@@ -110,15 +120,25 @@ pub fn build_app(
         .layer(PropagateRequestIdLayer::new(x_request_id.clone()))
         .layer(trace_layer)
         .layer(SetRequestIdLayer::new(x_request_id, MakeRequestUuid))
-        .with_state(schema)
+        .with_state(graphql_state)
 }
 
 async fn graphql_handler(
-    axum::extract::State(schema): axum::extract::State<AppSchema>,
+    axum::extract::State(state): axum::extract::State<GraphqlState>,
     auth_user: Option<axum::Extension<auth::AuthUser>>,
     req: GraphQLRequest,
 ) -> GraphQLResponse {
     let cognito_sub: Option<String> = auth_user.map(|u| u.cognito_sub.clone());
-    let request = req.into_inner().data(cognito_sub);
-    schema.execute(request).await.into()
+    let request = req
+        .into_inner()
+        .data(cognito_sub)
+        .data(graphql::loaders::build_user_loader(&state.app_state.db))
+        .data(graphql::loaders::build_dog_loader(&state.app_state.db))
+        .data(graphql::loaders::build_dog_members_loader(
+            &state.app_state.db,
+        ))
+        .data(graphql::loaders::build_walk_dogs_loader(
+            &state.app_state.db,
+        ));
+    state.schema.execute(request).await.into()
 }

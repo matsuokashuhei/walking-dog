@@ -1,14 +1,15 @@
 use crate::entities::{
-    dogs::{self, Entity as DogEntity, Model as DogModel},
+    dogs::{Entity as DogEntity, Model as DogModel},
     walk_dogs::{self, ActiveModel as WalkDogActiveModel, Entity as WalkDogEntity},
     walks::{self, ActiveModel, Entity as WalkEntity, Model as WalkModel, WalkStatus},
 };
 use crate::error::AppError;
 use chrono::Utc;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect, Set,
-    TransactionTrait,
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter, QueryOrder,
+    QuerySelect, Set, TransactionTrait,
 };
+use std::collections::HashMap;
 use std::fmt;
 use std::str::FromStr;
 use uuid::Uuid;
@@ -262,27 +263,41 @@ pub async fn require_walk_owner(
 }
 
 /// Get the dogs associated with a walk (via `walk_dogs`).
-pub async fn get_dogs_for_walk(
-    db: &sea_orm::DatabaseConnection,
+pub async fn get_dogs_for_walk<C: ConnectionTrait>(
+    db: &C,
     walk_id: Uuid,
 ) -> Result<Vec<DogModel>, AppError> {
-    let dog_ids: Vec<Uuid> = WalkDogEntity::find()
-        .filter(walk_dogs::Column::WalkId.eq(walk_id))
-        .select_only()
-        .column(walk_dogs::Column::DogId)
-        .into_tuple()
+    Ok(get_dogs_for_walk_ids(db, &[walk_id])
+        .await?
+        .remove(&walk_id)
+        .unwrap_or_default())
+}
+
+pub async fn get_dogs_for_walk_ids<C: ConnectionTrait>(
+    db: &C,
+    walk_ids: &[Uuid],
+) -> Result<HashMap<Uuid, Vec<DogModel>>, AppError> {
+    if walk_ids.is_empty() {
+        return Ok(HashMap::new());
+    }
+
+    let walk_dogs = WalkDogEntity::find()
+        .filter(walk_dogs::Column::WalkId.is_in(walk_ids.iter().copied()))
+        .find_also_related(DogEntity)
         .all(db)
         .await?;
 
-    if dog_ids.is_empty() {
-        return Ok(Vec::new());
+    let mut grouped = HashMap::new();
+    for (walk_dog, dog) in walk_dogs {
+        if let Some(dog) = dog {
+            grouped
+                .entry(walk_dog.walk_id)
+                .or_insert_with(Vec::new)
+                .push(dog);
+        }
     }
 
-    DogEntity::find()
-        .filter(dogs::Column::Id.is_in(dog_ids))
-        .all(db)
-        .await
-        .map_err(AppError::Database)
+    Ok(grouped)
 }
 
 #[cfg(test)]

@@ -1,3 +1,4 @@
+use crate::error::external::{dynamodb_batch_write_error, dynamodb_query_error};
 use crate::error::AppError;
 use aws_sdk_dynamodb::{
     types::{AttributeValue, PutRequest, WriteRequest},
@@ -43,8 +44,14 @@ fn build_point_item(walk_id: Uuid, point: &WalkPointInput) -> HashMap<String, At
             SK_ATTR.to_string(),
             AttributeValue::S(walk_point_sort_key(&point.recorded_at)),
         ),
-        (LAT_ATTR.to_string(), AttributeValue::N(point.lat.to_string())),
-        (LNG_ATTR.to_string(), AttributeValue::N(point.lng.to_string())),
+        (
+            LAT_ATTR.to_string(),
+            AttributeValue::N(point.lat.to_string()),
+        ),
+        (
+            LNG_ATTR.to_string(),
+            AttributeValue::N(point.lng.to_string()),
+        ),
         (
             RECORDED_AT_ATTR.to_string(),
             AttributeValue::S(point.recorded_at.clone()),
@@ -129,19 +136,7 @@ pub async fn add_walk_points(
             .request_items(table_name, chunk.to_vec())
             .send()
             .await
-            .map_err(|e| {
-                tracing::error!(
-                    error = ?e,
-                    table = table_name,
-                    walk_id = %walk_id,
-                    batch_size = chunk.len(),
-                    "DynamoDB BatchWriteItem failed"
-                );
-                AppError::Internal(format!(
-                    "DynamoDB BatchWriteItem: {}",
-                    crate::error::format_error_chain(&e)
-                ))
-            })?;
+            .map_err(|e| dynamodb_batch_write_error(&e, table_name, walk_id, chunk.len()))?;
     }
 
     Ok(true)
@@ -161,18 +156,7 @@ pub async fn get_walk_points(
         .expression_attribute_values(":pk", AttributeValue::S(walk_partition_key(walk_id)))
         .send()
         .await
-        .map_err(|e| {
-            tracing::error!(
-                error = ?e,
-                table = table_name,
-                walk_id = %walk_id,
-                "DynamoDB Query failed"
-            );
-            AppError::Internal(format!(
-                "DynamoDB Query: {}",
-                crate::error::format_error_chain(&e)
-            ))
-        })?;
+        .map_err(|e| dynamodb_query_error(&e, table_name, walk_id))?;
 
     let mut points: Vec<WalkPoint> = result.items().iter().filter_map(parse_point_row).collect();
 

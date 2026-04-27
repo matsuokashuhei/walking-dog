@@ -26,7 +26,10 @@ async fn test_walk_points_worker_drains_queue_and_persists_deduped_points() {
     let start_body = support::graphql_as(
         &client,
         &support::USER_A,
-        &format!(r#"mutation {{ startWalk(dogIds: ["{}"]) {{ id }} }}"#, dog_id),
+        &format!(
+            r#"mutation {{ startWalk(dogIds: ["{}"]) {{ id }} }}"#,
+            dog_id
+        ),
     )
     .await;
     let walk_id = start_body["data"]["startWalk"]["id"].as_str().unwrap();
@@ -46,12 +49,19 @@ async fn test_walk_points_worker_drains_queue_and_persists_deduped_points() {
         ),
     )
     .await;
-    assert_eq!(enqueue_body["data"]["addWalkPoints"], true, "got: {:?}", enqueue_body);
+    assert_eq!(
+        enqueue_body["data"]["addWalkPoints"], true,
+        "got: {:?}",
+        enqueue_body
+    );
 
     let before_drain = support::graphql_as(
         &client,
         &support::USER_A,
-        &format!(r#"{{ walkPoints(walkId: "{}") {{ lat lng recordedAt }} }}"#, walk_id),
+        &format!(
+            r#"{{ walkPoints(walkId: "{}") {{ lat lng recordedAt }} }}"#,
+            walk_id
+        ),
     )
     .await;
     let before_points = before_drain["data"]["walkPoints"].as_array().unwrap();
@@ -63,16 +73,17 @@ async fn test_walk_points_worker_drains_queue_and_persists_deduped_points() {
 
     let sqs = client.sqs();
     let dynamo = client.dynamo();
-    let result = walking_dog_api::services::walk_points_queue_service::drain_walk_points_queue_once(
-        &sqs,
-        client.walk_points_queue_url(),
-        &dynamo,
-        client.walk_points_table_name(),
-        1,
-        10,
-    )
-    .await
-    .unwrap();
+    let result =
+        walking_dog_api::services::walk_points_queue_service::drain_walk_points_queue_once(
+            &sqs,
+            client.walk_points_queue_url(),
+            &dynamo,
+            client.walk_points_table_name(),
+            1,
+            10,
+        )
+        .await
+        .unwrap();
 
     assert_eq!(result.received, 1);
     assert_eq!(result.deleted, 1);
@@ -81,11 +92,19 @@ async fn test_walk_points_worker_drains_queue_and_persists_deduped_points() {
     let after_drain = support::graphql_as(
         &client,
         &support::USER_A,
-        &format!(r#"{{ walkPoints(walkId: "{}") {{ lat lng recordedAt }} }}"#, walk_id),
+        &format!(
+            r#"{{ walkPoints(walkId: "{}") {{ lat lng recordedAt }} }}"#,
+            walk_id
+        ),
     )
     .await;
     let points = after_drain["data"]["walkPoints"].as_array().unwrap();
-    assert_eq!(points.len(), 2, "expected deduped points, got: {:?}", after_drain);
+    assert_eq!(
+        points.len(),
+        2,
+        "expected deduped points, got: {:?}",
+        after_drain
+    );
     assert_eq!(points[0]["recordedAt"], "2026-03-21T10:00:00Z");
     assert_eq!(points[0]["lat"], serde_json::json!(35.6769));
     assert_eq!(points[0]["lng"], serde_json::json!(139.6509));

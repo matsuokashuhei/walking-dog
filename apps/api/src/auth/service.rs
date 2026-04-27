@@ -2,6 +2,7 @@ use aws_sdk_cognitoidentityprovider::types::AttributeType;
 use aws_sdk_cognitoidentityprovider::Client;
 use aws_smithy_types::error::metadata::ProvideErrorMetadata;
 
+use crate::error::external::map_cognito_sdk_error;
 use crate::error::AppError;
 use crate::services::user_service;
 
@@ -15,25 +16,11 @@ pub struct SignInResult {
     pub refresh_token: String,
 }
 
-/// Pure function: maps a Cognito error code string to an AppError.
-/// Extracted for unit testability without needing to construct SdkError.
-pub(crate) fn map_error_code(code: Option<&str>) -> AppError {
-    match code {
-        Some("UsernameExistsException") => AppError::BadRequest("USER_EXISTS".to_string()),
-        Some("NotAuthorizedException") => AppError::Unauthorized("INVALID_CREDENTIALS".to_string()),
-        Some("CodeMismatchException") => AppError::BadRequest("INVALID_CODE".to_string()),
-        Some("ExpiredCodeException") => AppError::BadRequest("EXPIRED_CODE".to_string()),
-        Some("InvalidPasswordException") => AppError::BadRequest("INVALID_PASSWORD".to_string()),
-        _ => AppError::Internal("AUTH_ERROR".to_string()),
-    }
-}
-
-/// Maps a Cognito SdkError to an AppError using ProvideErrorMetadata::code().
 fn map_cognito_error<E, R>(err: &aws_smithy_runtime_api::client::result::SdkError<E, R>) -> AppError
 where
     E: ProvideErrorMetadata,
 {
-    map_error_code(err.code())
+    map_cognito_sdk_error(err)
 }
 
 pub async fn sign_up(
@@ -193,48 +180,48 @@ pub async fn sign_out(client: &Client, access_token: &str) -> Result<(), AppErro
 
 #[cfg(test)]
 mod tests {
-    use super::map_error_code;
+    use crate::error::external::map_cognito_error_code;
     use crate::error::AppError;
 
     #[test]
     fn map_error_code_username_exists() {
-        let result = map_error_code(Some("UsernameExistsException"));
+        let result = map_cognito_error_code(Some("UsernameExistsException"));
         assert!(matches!(result, AppError::BadRequest(msg) if msg == "USER_EXISTS"));
     }
 
     #[test]
     fn map_error_code_not_authorized() {
-        let result = map_error_code(Some("NotAuthorizedException"));
+        let result = map_cognito_error_code(Some("NotAuthorizedException"));
         assert!(matches!(result, AppError::Unauthorized(msg) if msg == "INVALID_CREDENTIALS"));
     }
 
     #[test]
     fn map_error_code_code_mismatch() {
-        let result = map_error_code(Some("CodeMismatchException"));
+        let result = map_cognito_error_code(Some("CodeMismatchException"));
         assert!(matches!(result, AppError::BadRequest(msg) if msg == "INVALID_CODE"));
     }
 
     #[test]
     fn map_error_code_expired_code() {
-        let result = map_error_code(Some("ExpiredCodeException"));
+        let result = map_cognito_error_code(Some("ExpiredCodeException"));
         assert!(matches!(result, AppError::BadRequest(msg) if msg == "EXPIRED_CODE"));
     }
 
     #[test]
     fn map_error_code_invalid_password() {
-        let result = map_error_code(Some("InvalidPasswordException"));
+        let result = map_cognito_error_code(Some("InvalidPasswordException"));
         assert!(matches!(result, AppError::BadRequest(msg) if msg == "INVALID_PASSWORD"));
     }
 
     #[test]
     fn map_error_code_unknown() {
-        let result = map_error_code(None);
+        let result = map_cognito_error_code(None);
         assert!(matches!(result, AppError::Internal(msg) if msg == "AUTH_ERROR"));
     }
 
     #[test]
     fn map_error_code_unrecognized() {
-        let result = map_error_code(Some("SomeUnknownException"));
+        let result = map_cognito_error_code(Some("SomeUnknownException"));
         assert!(matches!(result, AppError::Internal(msg) if msg == "AUTH_ERROR"));
     }
 

@@ -2,6 +2,7 @@ use sea_orm::{
     ActiveModelTrait, ColumnTrait, ConnectionTrait, EntityTrait, JoinType, PaginatorTrait,
     QueryFilter, QuerySelect, RelationTrait, Set,
 };
+use std::collections::HashMap;
 use uuid::Uuid;
 
 use crate::entities::{
@@ -38,8 +39,8 @@ pub async fn require_dog_owner<C: ConnectionTrait>(
         .ok_or_else(|| AppError::NotFound(format!("Dog {} not found or not owner", dog_id)))
 }
 
-pub async fn get_dogs_by_member(
-    db: &sea_orm::DatabaseConnection,
+pub async fn get_dogs_by_member<C: ConnectionTrait>(
+    db: &C,
     user_id: Uuid,
 ) -> Result<Vec<DogModel>, AppError> {
     DogEntity::find()
@@ -60,62 +61,76 @@ pub async fn get_dogs_by_member(
 /// tables drift, the dog is omitted rather than being surfaced with a
 /// missing role. The FK constraint on `dog_members.dog_id` makes this a
 /// defensive guard rather than a practical concern.
-pub async fn get_dogs_with_roles_for_user(
-    db: &sea_orm::DatabaseConnection,
+pub async fn get_dogs_with_roles_for_user<C: ConnectionTrait>(
+    db: &C,
     user_id: Uuid,
 ) -> Result<Vec<(DogModel, String)>, AppError> {
-    let memberships = DogMemberEntity::find()
+    let rows = DogMemberEntity::find()
         .filter(dog_members::Column::UserId.eq(user_id))
+        .find_also_related(DogEntity)
         .all(db)
         .await?;
 
-    if memberships.is_empty() {
-        return Ok(Vec::new());
-    }
-
-    let dog_ids: Vec<Uuid> = memberships.iter().map(|m| m.dog_id).collect();
-    let dogs_list = DogEntity::find()
-        .filter(crate::entities::dogs::Column::Id.is_in(dog_ids))
-        .all(db)
-        .await?;
-
-    let results = dogs_list
+    Ok(rows
         .into_iter()
-        .filter_map(|d| {
-            memberships
-                .iter()
-                .find(|m| m.dog_id == d.id)
-                .map(|m| (d, m.role.clone()))
-        })
-        .collect();
-
-    Ok(results)
+        .filter_map(|(membership, dog)| dog.map(|dog| (dog, membership.role)))
+        .collect())
 }
 
-pub async fn get_members_by_dog(
-    db: &sea_orm::DatabaseConnection,
+pub async fn get_members_by_dog<C: ConnectionTrait>(
+    db: &C,
     dog_id: Uuid,
 ) -> Result<Vec<(DogMemberModel, UserModel)>, AppError> {
     let members = DogMemberEntity::find()
         .filter(dog_members::Column::DogId.eq(dog_id))
+        .find_also_related(UserEntity)
         .all(db)
         .await?;
 
-    let user_ids: Vec<Uuid> = members.iter().map(|m| m.user_id).collect();
-    let users = UserEntity::find()
-        .filter(crate::entities::users::Column::Id.is_in(user_ids))
-        .all(db)
-        .await?;
-
-    let results = members
+    Ok(members
         .into_iter()
-        .filter_map(|m| {
-            let user = users.iter().find(|u| u.id == m.user_id)?.clone();
-            Some((m, user))
-        })
-        .collect();
+        .filter_map(|(member, user)| user.map(|user| (member, user)))
+        .collect())
+}
 
-    Ok(results)
+pub async fn get_members_by_dog_ids<C: ConnectionTrait>(
+    db: &C,
+    dog_ids: &[Uuid],
+) -> Result<HashMap<Uuid, Vec<(DogMemberModel, UserModel)>>, AppError> {
+    if dog_ids.is_empty() {
+        return Ok(HashMap::new());
+    }
+
+    let rows = DogMemberEntity::find()
+        .filter(dog_members::Column::DogId.is_in(dog_ids.iter().copied()))
+        .find_also_related(UserEntity)
+        .all(db)
+        .await?;
+
+    let mut grouped = HashMap::new();
+    for (member, user) in rows {
+        if let Some(user) = user {
+            grouped
+                .entry(member.dog_id)
+                .or_insert_with(Vec::new)
+                .push((member, user));
+        }
+    }
+
+    Ok(grouped)
+}
+
+pub async fn require_any_dog_member<C: ConnectionTrait>(
+    db: &C,
+    dog_ids: &[Uuid],
+    user_id: Uuid,
+) -> Result<DogMemberModel, AppError> {
+    DogMemberEntity::find()
+        .filter(dog_members::Column::DogId.is_in(dog_ids.iter().copied()))
+        .filter(dog_members::Column::UserId.eq(user_id))
+        .one(db)
+        .await?
+        .ok_or_else(|| AppError::Unauthorized("Not a member of either dog".to_string()))
 }
 
 pub async fn remove_member(

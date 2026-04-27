@@ -51,8 +51,8 @@ pub async fn upsert_friendship<C: sea_orm::ConnectionTrait>(
 }
 
 /// Update the total_interaction_sec of an existing friendship by a precise delta.
-pub async fn update_friendship_duration(
-    db: &sea_orm::DatabaseConnection,
+pub async fn update_friendship_duration<C: sea_orm::ConnectionTrait>(
+    db: &C,
     pair: DogPair,
     delta_sec: i32,
 ) -> Result<bool, AppError> {

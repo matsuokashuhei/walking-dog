@@ -1,5 +1,9 @@
 use crate::error::AppError;
 use crate::graphql::auth_helpers;
+use crate::graphql::dynamic_helpers::{
+    format_photo_cdn_url, optional_float_field, optional_string_field, parse_uuid, string_field,
+    uuid_field,
+};
 use crate::services::walk_event_service;
 use crate::AppState;
 use async_graphql::dynamic::{
@@ -40,68 +44,19 @@ impl From<crate::entities::walk_events::Model> for WalkEventOutput {
 
 pub fn walk_event_output_type() -> Object {
     Object::new("WalkEventOutput")
-        .field(Field::new(
-            "id",
-            TypeRef::named_nn(TypeRef::STRING),
-            |ctx| {
-                FieldFuture::new(async move {
-                    let e = ctx.parent_value.try_downcast_ref::<WalkEventOutput>()?;
-                    Ok(Some(FieldValue::value(e.id.to_string())))
-                })
-            },
-        ))
-        .field(Field::new(
-            "walkId",
-            TypeRef::named_nn(TypeRef::STRING),
-            |ctx| {
-                FieldFuture::new(async move {
-                    let e = ctx.parent_value.try_downcast_ref::<WalkEventOutput>()?;
-                    Ok(Some(FieldValue::value(e.walk_id.to_string())))
-                })
-            },
-        ))
-        .field(Field::new(
-            "dogId",
-            TypeRef::named(TypeRef::STRING),
-            |ctx| {
-                FieldFuture::new(async move {
-                    let e = ctx.parent_value.try_downcast_ref::<WalkEventOutput>()?;
-                    Ok(e.dog_id.map(|id| FieldValue::value(id.to_string())))
-                })
-            },
-        ))
-        .field(Field::new(
-            "eventType",
-            TypeRef::named_nn(TypeRef::STRING),
-            |ctx| {
-                FieldFuture::new(async move {
-                    let e = ctx.parent_value.try_downcast_ref::<WalkEventOutput>()?;
-                    Ok(Some(FieldValue::value(e.event_type.clone())))
-                })
-            },
-        ))
-        .field(Field::new(
-            "occurredAt",
-            TypeRef::named_nn(TypeRef::STRING),
-            |ctx| {
-                FieldFuture::new(async move {
-                    let e = ctx.parent_value.try_downcast_ref::<WalkEventOutput>()?;
-                    Ok(Some(FieldValue::value(e.occurred_at.clone())))
-                })
-            },
-        ))
-        .field(Field::new("lat", TypeRef::named(TypeRef::FLOAT), |ctx| {
-            FieldFuture::new(async move {
-                let e = ctx.parent_value.try_downcast_ref::<WalkEventOutput>()?;
-                Ok(e.lat.map(FieldValue::value))
-            })
+        .field(uuid_field("id", |e: &WalkEventOutput| e.id))
+        .field(uuid_field("walkId", |e: &WalkEventOutput| e.walk_id))
+        .field(optional_string_field("dogId", |e: &WalkEventOutput| {
+            e.dog_id.map(|id| id.to_string())
         }))
-        .field(Field::new("lng", TypeRef::named(TypeRef::FLOAT), |ctx| {
-            FieldFuture::new(async move {
-                let e = ctx.parent_value.try_downcast_ref::<WalkEventOutput>()?;
-                Ok(e.lng.map(FieldValue::value))
-            })
+        .field(string_field("eventType", |e: &WalkEventOutput| {
+            e.event_type.clone()
         }))
+        .field(string_field("occurredAt", |e: &WalkEventOutput| {
+            e.occurred_at.clone()
+        }))
+        .field(optional_float_field("lat", |e: &WalkEventOutput| e.lat))
+        .field(optional_float_field("lng", |e: &WalkEventOutput| e.lng))
         .field(Field::new(
             "photoUrl",
             TypeRef::named(TypeRef::STRING),
@@ -110,12 +65,7 @@ pub fn walk_event_output_type() -> Object {
                     let e = ctx.parent_value.try_downcast_ref::<WalkEventOutput>()?;
                     let state = ctx.data::<Arc<crate::AppState>>()?;
                     Ok(e.photo_url.clone().map(|key| {
-                        let url = if key.starts_with("http") {
-                            key
-                        } else {
-                            format!("{}/{}", state.config.photo_cdn_url, key)
-                        };
-                        FieldValue::value(url)
+                        FieldValue::value(format_photo_cdn_url(&state.config.photo_cdn_url, &key))
                     }))
                 })
             },
@@ -149,15 +99,13 @@ pub fn record_walk_event_field(state: Arc<AppState>) -> Field {
                 let input = ctx.args.try_get("input")?.object()?;
 
                 let walk_id_str = input.try_get("walkId")?.string()?;
-                let walk_id = Uuid::parse_str(walk_id_str)
-                    .map_err(|_| async_graphql::Error::new("Invalid walkId"))?;
+                let walk_id = parse_uuid(walk_id_str, "Invalid walkId")?;
 
                 let dog_id = input
                     .get("dogId")
                     .and_then(|v| v.string().ok())
-                    .map(Uuid::parse_str)
-                    .transpose()
-                    .map_err(|_| async_graphql::Error::new("Invalid dogId"))?;
+                    .map(|value| parse_uuid(value, "Invalid dogId"))
+                    .transpose()?;
 
                 let event_type = input.try_get("eventType")?.string()?.to_string();
                 let occurred_at_str = input.try_get("occurredAt")?.string()?;

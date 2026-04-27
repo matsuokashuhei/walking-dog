@@ -121,28 +121,8 @@ fi
 docker compose -f "$COMPOSE_FILE" exec -T localstack awslocal s3 mb s3://dog-photos > /dev/null 2>&1 || true
 echo "  S3 bucket dog-photos ensured."
 
-# SQS queues (LocalStack)
-WALK_POINTS_DLQ_URL=$(docker compose -f "$COMPOSE_FILE" exec -T localstack awslocal sqs create-queue \
-  --queue-name walk-points-local-dlq \
-  --query QueueUrl \
-  --output text 2>/dev/null || docker compose -f "$COMPOSE_FILE" exec -T localstack awslocal sqs get-queue-url \
-  --queue-name walk-points-local-dlq \
-  --query QueueUrl \
-  --output text)
-WALK_POINTS_DLQ_ARN=$(docker compose -f "$COMPOSE_FILE" exec -T localstack awslocal sqs get-queue-attributes \
-  --queue-url "$WALK_POINTS_DLQ_URL" \
-  --attribute-names QueueArn \
-  --query 'Attributes.QueueArn' \
-  --output text)
-WALK_POINTS_ATTRIBUTES=$(cat <<EOF
-{"RedrivePolicy":"{\"deadLetterTargetArn\":\"$WALK_POINTS_DLQ_ARN\",\"maxReceiveCount\":\"5\"}","VisibilityTimeout":"60","MessageRetentionPeriod":"345600"}
-EOF
-)
-docker compose -f "$COMPOSE_FILE" exec -T localstack awslocal sqs create-queue \
-  --queue-name walk-points-local \
-  --attributes "$WALK_POINTS_ATTRIBUTES" \
-  > /dev/null
-echo "  SQS queues walk-points-local and walk-points-local-dlq ensured."
+# SQS queues are declared in apps/elasticmq/elasticmq.conf and created
+# automatically when the elasticmq container starts. No setup needed here.
 
 # 5. Start all services
 echo ""

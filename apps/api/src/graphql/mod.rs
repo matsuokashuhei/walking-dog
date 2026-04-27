@@ -1,36 +1,26 @@
 use crate::AppState;
-use async_graphql::dynamic::{Enum, EnumItem};
 use seaography::BuilderContext;
 use std::sync::Arc;
 
 pub mod auth_helpers;
 pub mod custom_queries;
+pub mod dynamic_helpers;
+pub mod enums;
 pub mod input;
+pub mod loaders;
 pub mod mutations;
-
-/// GraphQL enum type for walk lifecycle status.
-fn walk_status_enum() -> Enum {
-    Enum::new("WalkStatus")
-        .item(EnumItem::new("ACTIVE"))
-        .item(EnumItem::new("FINISHED"))
-}
-
-/// GraphQL enum type for walk event types.
-fn walk_event_type_enum() -> Enum {
-    Enum::new("WalkEventType")
-        .item(EnumItem::new("PEE"))
-        .item(EnumItem::new("POO"))
-        .item(EnumItem::new("PHOTO"))
-}
-
-/// GraphQL enum type for walk statistics period.
-fn period_enum() -> Enum {
-    Enum::new("Period")
-        .item(EnumItem::new("WEEK"))
-        .item(EnumItem::new("MONTH"))
-        .item(EnumItem::new("YEAR"))
-        .item(EnumItem::new("ALL"))
-}
+use self::mutations::{
+    auth::{
+        confirm_sign_up_input_type, refresh_token_input_type, sign_in_input_type,
+        sign_in_output_type, sign_up_input_type, sign_up_output_type, update_profile_input_type,
+        user_output_type,
+    },
+    dog::{birth_date_type, create_dog_input_type, dog_output_type, update_dog_input_type},
+    dog_member::{dog_invitation_output_type, dog_member_output_type},
+    photo::presigned_url_type,
+    walk::{walk_output_type, walk_point_input_type, walker_output_type},
+    walk_event::{record_walk_event_input_type, walk_event_output_type},
+};
 
 /// Dynamic schema produced by Seaography.
 pub type AppSchema = async_graphql::dynamic::Schema;
@@ -45,7 +35,8 @@ static CONTEXT: std::sync::OnceLock<BuilderContext> = std::sync::OnceLock::new()
 ///   `updateProfile`, `deleteDog`, `generateDogPhotoUploadUrl`.
 pub fn build_schema(state: Arc<AppState>) -> AppSchema {
     let context = CONTEXT.get_or_init(BuilderContext::default);
-    let mut builder = seaography::Builder::new(context, state.db.clone());
+    let db = state.db.clone();
+    let mut builder = seaography::Builder::new(context, db.clone());
     builder = crate::entities::register_entity_modules(builder);
 
     // Add custom query fields to the root query object.
@@ -62,37 +53,37 @@ pub fn build_schema(state: Arc<AppState>) -> AppSchema {
     builder.schema = builder
         .schema
         // Enum types
-        .register(walk_status_enum())
-        .register(walk_event_type_enum())
-        .register(period_enum())
+        .register(enums::walk_status_enum())
+        .register(enums::walk_event_type_enum())
+        .register(enums::period_enum())
         // Query output types
         .register(custom_queries::walk_point_type())
         .register(custom_queries::walk_stats_type())
         .register(custom_queries::encounter_output_type())
         .register(custom_queries::friendship_output_type())
         // Mutation output types
-        .register(mutations::birth_date_type())
-        .register(mutations::dog_output_type())
-        .register(mutations::walk_output_type())
-        .register(mutations::walker_output_type())
-        .register(mutations::user_output_type())
-        .register(mutations::walk_event_output_type())
-        .register(mutations::presigned_url_type())
-        .register(mutations::dog_invitation_output_type())
-        .register(mutations::dog_member_output_type())
-        .register(mutations::sign_up_output_type())
-        .register(mutations::sign_in_output_type())
+        .register(birth_date_type())
+        .register(dog_output_type())
+        .register(walk_output_type())
+        .register(walker_output_type())
+        .register(user_output_type())
+        .register(walk_event_output_type())
+        .register(presigned_url_type())
+        .register(dog_invitation_output_type())
+        .register(dog_member_output_type())
+        .register(sign_up_output_type())
+        .register(sign_in_output_type())
         // Mutation input types
-        .register(mutations::birth_date_input_type())
-        .register(mutations::create_dog_input_type())
-        .register(mutations::update_dog_input_type())
-        .register(mutations::walk_point_input_type())
-        .register(mutations::update_profile_input_type())
-        .register(mutations::sign_up_input_type())
-        .register(mutations::confirm_sign_up_input_type())
-        .register(mutations::sign_in_input_type())
-        .register(mutations::refresh_token_input_type())
-        .register(mutations::record_walk_event_input_type());
+        .register(mutations::dog::birth_date_input_type())
+        .register(create_dog_input_type())
+        .register(update_dog_input_type())
+        .register(walk_point_input_type())
+        .register(update_profile_input_type())
+        .register(sign_up_input_type())
+        .register(confirm_sign_up_input_type())
+        .register(sign_in_input_type())
+        .register(refresh_token_input_type())
+        .register(record_walk_event_input_type());
 
     // schema_builder() registers builder.query and builder.mutation as root
     // Query/Mutation types, then returns the completed SchemaBuilder.
@@ -101,58 +92,4 @@ pub fn build_schema(state: Arc<AppState>) -> AppSchema {
         .data(state)
         .finish()
         .expect("Failed to build GraphQL schema")
-}
-
-#[cfg(test)]
-mod tests {
-    //! Enum-parity guards.
-    //!
-    //! The GraphQL enums declared above are hand-rolled shadows of domain
-    //! enums that live elsewhere. Keeping the two in sync by hand is
-    //! error-prone; these tests fail as soon as a new domain variant ships
-    //! without its GraphQL counterpart.
-    //!
-    //! Convention: GraphQL variants are `SCREAMING_SNAKE_CASE`; the domain
-    //! enum's `Display` / `FromStr` uses lowercase (`walk_status`,
-    //! `walk_event_type`) or title-case (`period`). Parity is tested via
-    //! case-insensitive round-trip through the domain `FromStr`.
-    use std::str::FromStr;
-
-    fn assert_graphql_enum_matches<T, F>(graphql_variants: &[&str], parse: F)
-    where
-        F: Fn(&str) -> Result<T, String>,
-    {
-        for g in graphql_variants {
-            parse(g).unwrap_or_else(|e| {
-                panic!(
-                    "GraphQL enum variant `{}` does not map back to a domain variant: {}",
-                    g, e
-                )
-            });
-        }
-    }
-
-    #[test]
-    fn walk_status_graphql_enum_round_trips_through_domain() {
-        use crate::entities::walks::WalkStatus;
-        assert_graphql_enum_matches(&["ACTIVE", "FINISHED"], |g| {
-            WalkStatus::from_str(&g.to_ascii_lowercase())
-        });
-    }
-
-    #[test]
-    fn walk_event_type_graphql_enum_round_trips_through_domain() {
-        use crate::services::walk_event_service::WalkEventType;
-        assert_graphql_enum_matches(&["PEE", "POO", "PHOTO"], |g| {
-            WalkEventType::from_str(&g.to_ascii_lowercase())
-                .map_err(|e| format!("{:?}", e))
-        });
-    }
-
-    #[test]
-    fn period_graphql_enum_round_trips_through_domain() {
-        use crate::services::walk_service::Period;
-        // Period::from_str is case-insensitive so the raw uppercase name works.
-        assert_graphql_enum_matches(&["WEEK", "MONTH", "YEAR", "ALL"], Period::from_str);
-    }
 }

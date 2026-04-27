@@ -1,12 +1,13 @@
 use crate::entities::{
-    dogs::{ActiveModel, Entity as DogEntity, Model as DogModel},
+    dogs::{self, ActiveModel, Entity as DogEntity, Model as DogModel},
     walk_dogs::{self, Entity as WalkDogEntity},
     walks::Entity as WalkEntity,
 };
 use crate::error::AppError;
 use crate::services::dog_member_service;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, Set, TransactionTrait,
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, EntityTrait, PaginatorTrait, QueryFilter, Set,
+    TransactionTrait,
 };
 use uuid::Uuid;
 
@@ -71,12 +72,27 @@ pub async fn update_dog(
     Ok(updated)
 }
 
-pub async fn get_dog_by_id(
-    db: &sea_orm::DatabaseConnection,
+pub async fn get_dog_by_id<C: ConnectionTrait>(
+    db: &C,
     dog_id: Uuid,
 ) -> Result<Option<DogModel>, AppError> {
     DogEntity::find_by_id(dog_id)
         .one(db)
+        .await
+        .map_err(AppError::Database)
+}
+
+pub async fn get_dogs_by_ids<C: ConnectionTrait>(
+    db: &C,
+    dog_ids: &[Uuid],
+) -> Result<Vec<DogModel>, AppError> {
+    if dog_ids.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    DogEntity::find()
+        .filter(dogs::Column::Id.is_in(dog_ids.iter().copied()))
+        .all(db)
         .await
         .map_err(AppError::Database)
 }

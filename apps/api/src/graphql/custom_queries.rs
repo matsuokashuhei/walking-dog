@@ -1,9 +1,11 @@
 use super::auth_helpers;
-use super::mutations::{DogOutput, UserOutput, WalkOutput};
+use super::dynamic_helpers::{float_field, int_field, parse_uuid, string_field, uuid_field};
+use super::loaders::DogLoader;
+use super::mutations::{auth::UserOutput, dog::DogOutput, walk::WalkOutput};
 use crate::error::AppError;
 use crate::services::{
-    dog_member_service, dog_pair::DogPair, dog_service, encounter_service, friendship_service,
-    walk_points_service, walk_service,
+    dog_pair::DogPair, dog_service, encounter_service, friendship_service, walk_points_service,
+    walk_service,
 };
 use crate::AppState;
 use async_graphql::dynamic::{Field, FieldFuture, FieldValue, InputValue, Object, TypeRef};
@@ -106,111 +108,41 @@ impl FriendshipOutput {
 
 pub fn walk_point_type() -> Object {
     Object::new("WalkPoint")
-        .field(Field::new(
-            "lat",
-            TypeRef::named_nn(TypeRef::FLOAT),
-            |ctx| {
-                FieldFuture::new(async move {
-                    let p = ctx.parent_value.try_downcast_ref::<WalkPointOutput>()?;
-                    Ok(Some(FieldValue::value(p.lat)))
-                })
-            },
-        ))
-        .field(Field::new(
-            "lng",
-            TypeRef::named_nn(TypeRef::FLOAT),
-            |ctx| {
-                FieldFuture::new(async move {
-                    let p = ctx.parent_value.try_downcast_ref::<WalkPointOutput>()?;
-                    Ok(Some(FieldValue::value(p.lng)))
-                })
-            },
-        ))
-        .field(Field::new(
-            "recordedAt",
-            TypeRef::named_nn(TypeRef::STRING),
-            |ctx| {
-                FieldFuture::new(async move {
-                    let p = ctx.parent_value.try_downcast_ref::<WalkPointOutput>()?;
-                    Ok(Some(FieldValue::value(p.recorded_at.clone())))
-                })
-            },
-        ))
+        .field(float_field("lat", |p: &WalkPointOutput| p.lat))
+        .field(float_field("lng", |p: &WalkPointOutput| p.lng))
+        .field(string_field("recordedAt", |p: &WalkPointOutput| {
+            p.recorded_at.clone()
+        }))
 }
 
 pub fn walk_stats_type() -> Object {
     Object::new("WalkStats")
-        .field(Field::new(
-            "totalWalks",
-            TypeRef::named_nn(TypeRef::INT),
-            |ctx| {
-                FieldFuture::new(async move {
-                    let s = ctx.parent_value.try_downcast_ref::<WalkStatsOutput>()?;
-                    Ok(Some(FieldValue::value(s.total_walks)))
-                })
-            },
-        ))
-        .field(Field::new(
-            "totalDistanceM",
-            TypeRef::named_nn(TypeRef::INT),
-            |ctx| {
-                FieldFuture::new(async move {
-                    let s = ctx.parent_value.try_downcast_ref::<WalkStatsOutput>()?;
-                    Ok(Some(FieldValue::value(s.total_distance_m)))
-                })
-            },
-        ))
-        .field(Field::new(
-            "totalDurationSec",
-            TypeRef::named_nn(TypeRef::INT),
-            |ctx| {
-                FieldFuture::new(async move {
-                    let s = ctx.parent_value.try_downcast_ref::<WalkStatsOutput>()?;
-                    Ok(Some(FieldValue::value(s.total_duration_sec)))
-                })
-            },
-        ))
+        .field(int_field("totalWalks", |s: &WalkStatsOutput| s.total_walks))
+        .field(int_field("totalDistanceM", |s: &WalkStatsOutput| {
+            s.total_distance_m
+        }))
+        .field(int_field("totalDurationSec", |s: &WalkStatsOutput| {
+            s.total_duration_sec
+        }))
 }
 
 pub fn encounter_output_type() -> Object {
     Object::new("EncounterOutput")
-        .field(Field::new(
-            "id",
-            TypeRef::named_nn(TypeRef::STRING),
-            |ctx| {
-                FieldFuture::new(async move {
-                    let e = ctx.parent_value.try_downcast_ref::<EncounterOutput>()?;
-                    Ok(Some(FieldValue::value(e.id.to_string())))
-                })
-            },
-        ))
-        .field(Field::new(
-            "durationSec",
-            TypeRef::named_nn(TypeRef::INT),
-            |ctx| {
-                FieldFuture::new(async move {
-                    let e = ctx.parent_value.try_downcast_ref::<EncounterOutput>()?;
-                    Ok(Some(FieldValue::value(e.duration_sec)))
-                })
-            },
-        ))
-        .field(Field::new(
-            "metAt",
-            TypeRef::named_nn(TypeRef::STRING),
-            |ctx| {
-                FieldFuture::new(async move {
-                    let e = ctx.parent_value.try_downcast_ref::<EncounterOutput>()?;
-                    Ok(Some(FieldValue::value(e.met_at.clone())))
-                })
-            },
-        ))
+        .field(uuid_field("id", |e: &EncounterOutput| e.id))
+        .field(int_field("durationSec", |e: &EncounterOutput| {
+            e.duration_sec
+        }))
+        .field(string_field("metAt", |e: &EncounterOutput| {
+            e.met_at.clone()
+        }))
         .field(Field::new("dog1", TypeRef::named_nn("DogOutput"), |ctx| {
             FieldFuture::new(async move {
                 let e = ctx.parent_value.try_downcast_ref::<EncounterOutput>()?;
-                let state = ctx.data::<Arc<crate::AppState>>()?;
-                let dog = dog_service::get_dog_by_id(&state.db, e.dog_id_1)
+                let dog = ctx
+                    .data::<Arc<DogLoader>>()?
+                    .load_one(e.dog_id_1)
                     .await
-                    .map_err(AppError::into_graphql_error)?
+                    .map_err(async_graphql::Error::new)?
                     .ok_or_else(|| async_graphql::Error::new("Dog not found"))?;
                 Ok(Some(FieldValue::owned_any(DogOutput::from(dog))))
             })
@@ -218,10 +150,11 @@ pub fn encounter_output_type() -> Object {
         .field(Field::new("dog2", TypeRef::named_nn("DogOutput"), |ctx| {
             FieldFuture::new(async move {
                 let e = ctx.parent_value.try_downcast_ref::<EncounterOutput>()?;
-                let state = ctx.data::<Arc<crate::AppState>>()?;
-                let dog = dog_service::get_dog_by_id(&state.db, e.dog_id_2)
+                let dog = ctx
+                    .data::<Arc<DogLoader>>()?
+                    .load_one(e.dog_id_2)
                     .await
-                    .map_err(AppError::into_graphql_error)?
+                    .map_err(async_graphql::Error::new)?
                     .ok_or_else(|| async_graphql::Error::new("Dog not found"))?;
                 Ok(Some(FieldValue::owned_any(DogOutput::from(dog))))
             })
@@ -230,56 +163,19 @@ pub fn encounter_output_type() -> Object {
 
 pub fn friendship_output_type() -> Object {
     Object::new("FriendshipOutput")
-        .field(Field::new(
-            "id",
-            TypeRef::named_nn(TypeRef::STRING),
-            |ctx| {
-                FieldFuture::new(async move {
-                    let f = ctx.parent_value.try_downcast_ref::<FriendshipOutput>()?;
-                    Ok(Some(FieldValue::value(f.id.to_string())))
-                })
-            },
-        ))
-        .field(Field::new(
-            "encounterCount",
-            TypeRef::named_nn(TypeRef::INT),
-            |ctx| {
-                FieldFuture::new(async move {
-                    let f = ctx.parent_value.try_downcast_ref::<FriendshipOutput>()?;
-                    Ok(Some(FieldValue::value(f.encounter_count)))
-                })
-            },
-        ))
-        .field(Field::new(
-            "totalInteractionSec",
-            TypeRef::named_nn(TypeRef::INT),
-            |ctx| {
-                FieldFuture::new(async move {
-                    let f = ctx.parent_value.try_downcast_ref::<FriendshipOutput>()?;
-                    Ok(Some(FieldValue::value(f.total_interaction_sec)))
-                })
-            },
-        ))
-        .field(Field::new(
-            "firstMetAt",
-            TypeRef::named_nn(TypeRef::STRING),
-            |ctx| {
-                FieldFuture::new(async move {
-                    let f = ctx.parent_value.try_downcast_ref::<FriendshipOutput>()?;
-                    Ok(Some(FieldValue::value(f.first_met_at.clone())))
-                })
-            },
-        ))
-        .field(Field::new(
-            "lastMetAt",
-            TypeRef::named_nn(TypeRef::STRING),
-            |ctx| {
-                FieldFuture::new(async move {
-                    let f = ctx.parent_value.try_downcast_ref::<FriendshipOutput>()?;
-                    Ok(Some(FieldValue::value(f.last_met_at.clone())))
-                })
-            },
-        ))
+        .field(uuid_field("id", |f: &FriendshipOutput| f.id))
+        .field(int_field("encounterCount", |f: &FriendshipOutput| {
+            f.encounter_count
+        }))
+        .field(int_field("totalInteractionSec", |f: &FriendshipOutput| {
+            f.total_interaction_sec
+        }))
+        .field(string_field("firstMetAt", |f: &FriendshipOutput| {
+            f.first_met_at.clone()
+        }))
+        .field(string_field("lastMetAt", |f: &FriendshipOutput| {
+            f.last_met_at.clone()
+        }))
         .field(Field::new(
             "friend",
             TypeRef::named_nn("DogOutput"),
@@ -292,10 +188,11 @@ pub fn friendship_output_type() -> Object {
                     } else {
                         f.dog_id_1
                     };
-                    let state = ctx.data::<Arc<crate::AppState>>()?;
-                    let dog = dog_service::get_dog_by_id(&state.db, friend_id)
+                    let dog = ctx
+                        .data::<Arc<DogLoader>>()?
+                        .load_one(friend_id)
                         .await
-                        .map_err(AppError::into_graphql_error)?
+                        .map_err(async_graphql::Error::new)?
                         .ok_or_else(|| async_graphql::Error::new("Dog not found"))?;
                     Ok(Some(FieldValue::owned_any(DogOutput::from(dog))))
                 })
@@ -327,8 +224,7 @@ fn walk_by_id_field(state: Arc<AppState>) -> Field {
             use sea_orm::EntityTrait;
 
             let walk_id_str = ctx.args.try_get("id")?.string()?;
-            let walk_id = Uuid::parse_str(walk_id_str)
-                .map_err(|_| async_graphql::Error::new("Invalid walk ID"))?;
+            let walk_id = parse_uuid(walk_id_str, "Invalid walk ID")?;
 
             auth_helpers::resolve_user_and_walk(&ctx, &state, walk_id).await?;
 
@@ -348,8 +244,7 @@ fn dog_field(state: Arc<AppState>) -> Field {
         let state = state.clone();
         FieldFuture::new(async move {
             let dog_id_str = ctx.args.try_get("id")?.string()?;
-            let dog_id = Uuid::parse_str(dog_id_str)
-                .map_err(|_| async_graphql::Error::new("Invalid dog ID"))?;
+            let dog_id = parse_uuid(dog_id_str, "Invalid dog ID")?;
 
             auth_helpers::resolve_user_and_dog(&ctx, &state, dog_id).await?;
 
@@ -357,7 +252,7 @@ fn dog_field(state: Arc<AppState>) -> Field {
                 .await
                 .map_err(AppError::into_graphql_error)?;
 
-            Ok(dog.map(|d| FieldValue::owned_any(super::mutations::DogOutput::from(d))))
+            Ok(dog.map(|d| FieldValue::owned_any(DogOutput::from(d))))
         })
     })
     .argument(InputValue::new("id", TypeRef::named_nn(TypeRef::ID)))
@@ -411,8 +306,7 @@ fn dog_walk_stats_field(state: Arc<AppState>) -> Field {
         let state = state.clone();
         FieldFuture::new(async move {
             let dog_id_str = ctx.args.try_get("dogId")?.string()?;
-            let dog_id = Uuid::parse_str(dog_id_str)
-                .map_err(|_| async_graphql::Error::new("Invalid dog ID"))?;
+            let dog_id = parse_uuid(dog_id_str, "Invalid dog ID")?;
 
             auth_helpers::resolve_user_and_dog(&ctx, &state, dog_id).await?;
 
@@ -438,8 +332,7 @@ fn walk_points_field(state: Arc<AppState>) -> Field {
             let state = state.clone();
             FieldFuture::new(async move {
                 let walk_id_str = ctx.args.try_get("walkId")?.string()?;
-                let walk_id = Uuid::parse_str(walk_id_str)
-                    .map_err(|_| async_graphql::Error::new("Invalid walk ID"))?;
+                let walk_id = parse_uuid(walk_id_str, "Invalid walk ID")?;
 
                 auth_helpers::resolve_user_and_walk(&ctx, &state, walk_id).await?;
 
@@ -470,8 +363,7 @@ fn dog_friends_field(state: Arc<AppState>) -> Field {
             let state = state.clone();
             FieldFuture::new(async move {
                 let dog_id_str = ctx.args.try_get("dogId")?.string()?;
-                let dog_id = Uuid::parse_str(dog_id_str)
-                    .map_err(|_| async_graphql::Error::new("Invalid dog ID"))?;
+                let dog_id = parse_uuid(dog_id_str, "Invalid dog ID")?;
 
                 auth_helpers::resolve_user_and_dog(&ctx, &state, dog_id).await?;
 
@@ -498,8 +390,7 @@ fn dog_encounters_field(state: Arc<AppState>) -> Field {
             let state = state.clone();
             FieldFuture::new(async move {
                 let dog_id_str = ctx.args.try_get("dogId")?.string()?;
-                let dog_id = Uuid::parse_str(dog_id_str)
-                    .map_err(|_| async_graphql::Error::new("Invalid dog ID"))?;
+                let dog_id = parse_uuid(dog_id_str, "Invalid dog ID")?;
                 let limit = ctx
                     .args
                     .get("limit")
@@ -540,28 +431,10 @@ fn friendship_field(state: Arc<AppState>) -> Field {
             FieldFuture::new(async move {
                 let dog_id_1_str = ctx.args.try_get("dogId1")?.string()?;
                 let dog_id_2_str = ctx.args.try_get("dogId2")?.string()?;
-                let dog_id_1 = Uuid::parse_str(dog_id_1_str)
-                    .map_err(|_| async_graphql::Error::new("Invalid dogId1"))?;
-                let dog_id_2 = Uuid::parse_str(dog_id_2_str)
-                    .map_err(|_| async_graphql::Error::new("Invalid dogId2"))?;
+                let dog_id_1 = parse_uuid(dog_id_1_str, "Invalid dogId1")?;
+                let dog_id_2 = parse_uuid(dog_id_2_str, "Invalid dogId2")?;
 
-                let user = auth_helpers::resolve_user(&ctx, &state).await?;
-
-                // User must be a member of at least one of the two dogs
-                let is_member_of_1 =
-                    dog_member_service::require_dog_member(&state.db, dog_id_1, user.id)
-                        .await
-                        .is_ok();
-                let is_member_of_2 =
-                    dog_member_service::require_dog_member(&state.db, dog_id_2, user.id)
-                        .await
-                        .is_ok();
-                if !is_member_of_1 && !is_member_of_2 {
-                    return Err(
-                        AppError::Unauthorized("Not a member of either dog".to_string())
-                            .into_graphql_error(),
-                    );
-                }
+                auth_helpers::resolve_user_and_any_dog(&ctx, &state, &[dog_id_1, dog_id_2]).await?;
 
                 let Some(pair) = DogPair::new(dog_id_1, dog_id_2) else {
                     return Ok(None);

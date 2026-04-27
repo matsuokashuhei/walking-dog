@@ -1,6 +1,10 @@
 use crate::error::AppError;
 use crate::graphql::auth_helpers;
+use crate::graphql::dynamic_helpers::{
+    optional_int_field, optional_string_field, parse_uuid, string_field, uuid_field,
+};
 use crate::graphql::input::birth_date::parse_birth_date_input;
+use crate::graphql::loaders::DogMembersLoader;
 use crate::services::{dog_member_service, dog_service};
 use crate::AppState;
 use async_graphql::dynamic::{
@@ -47,24 +51,9 @@ impl BirthDate {
 
 pub fn birth_date_type() -> Object {
     Object::new("BirthDate")
-        .field(Field::new("year", TypeRef::named(TypeRef::INT), |ctx| {
-            FieldFuture::new(async move {
-                let bd = ctx.parent_value.try_downcast_ref::<BirthDate>()?;
-                Ok(bd.year.map(FieldValue::value))
-            })
-        }))
-        .field(Field::new("month", TypeRef::named(TypeRef::INT), |ctx| {
-            FieldFuture::new(async move {
-                let bd = ctx.parent_value.try_downcast_ref::<BirthDate>()?;
-                Ok(bd.month.map(FieldValue::value))
-            })
-        }))
-        .field(Field::new("day", TypeRef::named(TypeRef::INT), |ctx| {
-            FieldFuture::new(async move {
-                let bd = ctx.parent_value.try_downcast_ref::<BirthDate>()?;
-                Ok(bd.day.map(FieldValue::value))
-            })
-        }))
+        .field(optional_int_field("year", |bd: &BirthDate| bd.year))
+        .field(optional_int_field("month", |bd: &BirthDate| bd.month))
+        .field(optional_int_field("day", |bd: &BirthDate| bd.day))
 }
 
 pub fn birth_date_input_type() -> InputObject {
@@ -107,46 +96,14 @@ impl From<crate::entities::dogs::Model> for DogOutput {
 
 pub fn dog_output_type() -> Object {
     Object::new("DogOutput")
-        .field(Field::new(
-            "id",
-            TypeRef::named_nn(TypeRef::STRING),
-            |ctx| {
-                FieldFuture::new(async move {
-                    let d = ctx.parent_value.try_downcast_ref::<DogOutput>()?;
-                    Ok(Some(FieldValue::value(d.id.to_string())))
-                })
-            },
-        ))
-        .field(Field::new(
-            "name",
-            TypeRef::named_nn(TypeRef::STRING),
-            |ctx| {
-                FieldFuture::new(async move {
-                    let d = ctx.parent_value.try_downcast_ref::<DogOutput>()?;
-                    Ok(Some(FieldValue::value(d.name.clone())))
-                })
-            },
-        ))
-        .field(Field::new(
-            "breed",
-            TypeRef::named(TypeRef::STRING),
-            |ctx| {
-                FieldFuture::new(async move {
-                    let d = ctx.parent_value.try_downcast_ref::<DogOutput>()?;
-                    Ok(d.breed.clone().map(FieldValue::value))
-                })
-            },
-        ))
-        .field(Field::new(
-            "gender",
-            TypeRef::named(TypeRef::STRING),
-            |ctx| {
-                FieldFuture::new(async move {
-                    let d = ctx.parent_value.try_downcast_ref::<DogOutput>()?;
-                    Ok(d.gender.clone().map(FieldValue::value))
-                })
-            },
-        ))
+        .field(uuid_field("id", |d: &DogOutput| d.id))
+        .field(string_field("name", |d: &DogOutput| d.name.clone()))
+        .field(optional_string_field("breed", |d: &DogOutput| {
+            d.breed.clone()
+        }))
+        .field(optional_string_field("gender", |d: &DogOutput| {
+            d.gender.clone()
+        }))
         .field(Field::new(
             "birthDate",
             TypeRef::named("BirthDate"),
@@ -165,31 +122,19 @@ pub fn dog_output_type() -> Object {
                     let d = ctx.parent_value.try_downcast_ref::<DogOutput>()?;
                     let state = ctx.data::<Arc<crate::AppState>>()?;
                     Ok(d.photo_url.clone().map(|key| {
-                        let url = if key.starts_with("http") {
-                            key
-                        } else {
-                            format!("{}/{}", state.config.photo_cdn_url, key)
-                        };
-                        FieldValue::value(url)
+                        FieldValue::value(crate::graphql::dynamic_helpers::format_photo_cdn_url(
+                            &state.config.photo_cdn_url,
+                            &key,
+                        ))
                     }))
                 })
             },
         ))
-        .field(Field::new(
-            "createdAt",
-            TypeRef::named_nn(TypeRef::STRING),
-            |ctx| {
-                FieldFuture::new(async move {
-                    let d = ctx.parent_value.try_downcast_ref::<DogOutput>()?;
-                    Ok(Some(FieldValue::value(d.created_at.clone())))
-                })
-            },
-        ))
-        .field(Field::new("role", TypeRef::named(TypeRef::STRING), |ctx| {
-            FieldFuture::new(async move {
-                let d = ctx.parent_value.try_downcast_ref::<DogOutput>()?;
-                Ok(d.role.clone().map(FieldValue::value))
-            })
+        .field(string_field("createdAt", |d: &DogOutput| {
+            d.created_at.clone()
+        }))
+        .field(optional_string_field("role", |d: &DogOutput| {
+            d.role.clone()
         }))
         .field(
             Field::new("walkStats", TypeRef::named("WalkStats"), |ctx| {
@@ -222,16 +167,13 @@ pub fn dog_output_type() -> Object {
                     let d = ctx.parent_value.try_downcast_ref::<DogOutput>()?;
                     let dog_id = d.id;
                     let state = ctx.data::<Arc<crate::AppState>>()?;
-                    let walk =
-                        crate::services::walk_service::get_latest_finished_walk_for_dog(
-                            &state.db, dog_id,
-                        )
-                        .await
-                        .map_err(AppError::into_graphql_error)?;
+                    let walk = crate::services::walk_service::get_latest_finished_walk_for_dog(
+                        &state.db, dog_id,
+                    )
+                    .await
+                    .map_err(AppError::into_graphql_error)?;
                     Ok(walk.map(|w| {
-                        FieldValue::owned_any(
-                            crate::graphql::mutations::WalkOutput::from(w),
-                        )
+                        FieldValue::owned_any(crate::graphql::mutations::walk::WalkOutput::from(w))
                     }))
                 })
             },
@@ -243,18 +185,14 @@ pub fn dog_output_type() -> Object {
                 FieldFuture::new(async move {
                     let d = ctx.parent_value.try_downcast_ref::<DogOutput>()?;
                     let dog_id = d.id;
-                    let state = ctx.data::<Arc<crate::AppState>>()?;
-                    let members = dog_member_service::get_members_by_dog(&state.db, dog_id)
+                    let members = ctx
+                        .data::<Arc<DogMembersLoader>>()?
+                        .load_one(dog_id)
                         .await
-                        .map_err(AppError::into_graphql_error)?;
-                    let values: Vec<FieldValue> = members
-                        .into_iter()
-                        .map(|(member, user)| {
-                            FieldValue::owned_any(super::dog_member::DogMemberOutput::from((
-                                member, user,
-                            )))
-                        })
-                        .collect();
+                        .map_err(async_graphql::Error::new)?
+                        .unwrap_or_default();
+                    let values: Vec<FieldValue> =
+                        members.into_iter().map(FieldValue::owned_any).collect();
                     Ok(Some(FieldValue::list(values)))
                 })
             },
@@ -318,8 +256,7 @@ pub fn update_dog_field(state: Arc<AppState>) -> Field {
         let state = state.clone();
         FieldFuture::new(async move {
             let id_str = ctx.args.try_get("id")?.string()?;
-            let dog_id =
-                Uuid::parse_str(id_str).map_err(|_| async_graphql::Error::new("Invalid dog ID"))?;
+            let dog_id = parse_uuid(id_str, "Invalid dog ID")?;
             let input = ctx.args.try_get("input")?.object()?;
             let name = input
                 .get("name")
@@ -363,8 +300,7 @@ pub fn delete_dog_field(state: Arc<AppState>) -> Field {
             let state = state.clone();
             FieldFuture::new(async move {
                 let dog_id_str = ctx.args.try_get("id")?.string()?;
-                let dog_id = Uuid::parse_str(dog_id_str)
-                    .map_err(|_| async_graphql::Error::new("Invalid dog ID"))?;
+                let dog_id = parse_uuid(dog_id_str, "Invalid dog ID")?;
 
                 let user = auth_helpers::resolve_user(&ctx, &state).await?;
                 dog_member_service::require_dog_owner(&state.db, dog_id, user.id)

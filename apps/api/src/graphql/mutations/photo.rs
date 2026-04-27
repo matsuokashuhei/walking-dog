@@ -1,5 +1,6 @@
 use crate::error::AppError;
 use crate::graphql::auth_helpers;
+use crate::graphql::dynamic_helpers::{parse_uuid, string_field};
 use crate::services::s3_service;
 use crate::AppState;
 use async_graphql::dynamic::{Field, FieldFuture, FieldValue, InputValue, Object, TypeRef};
@@ -15,36 +16,11 @@ pub struct PresignedUrlOutput {
 
 pub fn presigned_url_type() -> Object {
     Object::new("PresignedUrlOutput")
-        .field(Field::new(
-            "url",
-            TypeRef::named_nn(TypeRef::STRING),
-            |ctx| {
-                FieldFuture::new(async move {
-                    let p = ctx.parent_value.try_downcast_ref::<PresignedUrlOutput>()?;
-                    Ok(Some(FieldValue::value(p.url.clone())))
-                })
-            },
-        ))
-        .field(Field::new(
-            "key",
-            TypeRef::named_nn(TypeRef::STRING),
-            |ctx| {
-                FieldFuture::new(async move {
-                    let p = ctx.parent_value.try_downcast_ref::<PresignedUrlOutput>()?;
-                    Ok(Some(FieldValue::value(p.key.clone())))
-                })
-            },
-        ))
-        .field(Field::new(
-            "expiresAt",
-            TypeRef::named_nn(TypeRef::STRING),
-            |ctx| {
-                FieldFuture::new(async move {
-                    let p = ctx.parent_value.try_downcast_ref::<PresignedUrlOutput>()?;
-                    Ok(Some(FieldValue::value(p.expires_at.clone())))
-                })
-            },
-        ))
+        .field(string_field("url", |p: &PresignedUrlOutput| p.url.clone()))
+        .field(string_field("key", |p: &PresignedUrlOutput| p.key.clone()))
+        .field(string_field("expiresAt", |p: &PresignedUrlOutput| {
+            p.expires_at.clone()
+        }))
 }
 
 pub fn generate_dog_photo_upload_url_field(state: Arc<AppState>) -> Field {
@@ -55,8 +31,7 @@ pub fn generate_dog_photo_upload_url_field(state: Arc<AppState>) -> Field {
             let state = state.clone();
             FieldFuture::new(async move {
                 let dog_id_str = ctx.args.try_get("dogId")?.string()?;
-                let dog_id = uuid::Uuid::parse_str(dog_id_str)
-                    .map_err(|_| async_graphql::Error::new("Invalid dog ID"))?;
+                let dog_id = parse_uuid(dog_id_str, "Invalid dog ID")?;
                 let content_type = ctx.args.try_get("contentType")?.string()?.to_string();
 
                 auth_helpers::resolve_user_and_dog(&ctx, &state, dog_id).await?;
@@ -93,8 +68,7 @@ pub fn generate_walk_event_photo_upload_url_field(state: Arc<AppState>) -> Field
             let state = state.clone();
             FieldFuture::new(async move {
                 let walk_id_str = ctx.args.try_get("walkId")?.string()?;
-                let walk_id = uuid::Uuid::parse_str(walk_id_str)
-                    .map_err(|_| async_graphql::Error::new("Invalid walk ID"))?;
+                let walk_id = parse_uuid(walk_id_str, "Invalid walk ID")?;
                 let content_type = ctx.args.try_get("contentType")?.string()?.to_string();
 
                 auth_helpers::resolve_user_and_walk(&ctx, &state, walk_id).await?;

@@ -18,10 +18,7 @@ pub struct DrainWalkPointsQueueResult {
     pub failed: usize,
 }
 
-pub fn build_message_body(
-    walk_id: Uuid,
-    points: Vec<WalkPointInput>,
-) -> Result<String, AppError> {
+pub fn build_message_body(walk_id: Uuid, points: Vec<WalkPointInput>) -> Result<String, AppError> {
     let points = walk_points_service::sanitize_points(points)?;
     serde_json::to_string(&WalkPointsQueueMessage { walk_id, points }).map_err(|error| {
         AppError::Internal(format!("Serialize walk points queue message: {error}"))
@@ -172,8 +169,9 @@ async fn process_received_message(
     table_name: &str,
 ) -> Result<(), AppError> {
     let body = body.ok_or_else(|| AppError::Internal("SQS message body is missing".to_string()))?;
-    let message: WalkPointsQueueMessage = serde_json::from_str(body)
-        .map_err(|error| AppError::Internal(format!("Deserialize walk points queue message: {error}")))?;
+    let message: WalkPointsQueueMessage = serde_json::from_str(body).map_err(|error| {
+        AppError::Internal(format!("Deserialize walk points queue message: {error}"))
+    })?;
 
     walk_points_service::add_walk_points(dynamo, table_name, message.walk_id, message.points)
         .await?;

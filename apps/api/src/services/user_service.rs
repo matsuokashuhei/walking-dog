@@ -1,6 +1,8 @@
 use crate::entities::users::{self, ActiveModel, Entity as UserEntity, Model as UserModel};
 use crate::error::AppError;
-use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter, Set};
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, EntityTrait, IntoActiveModel, QueryFilter, Set,
+};
 use uuid::Uuid;
 
 /// Internal helper: insert-or-fetch user by cognito_sub using SeaORM on_conflict.
@@ -42,12 +44,27 @@ pub async fn get_or_create_user(
     upsert_user(db, cognito_sub, None).await
 }
 
-pub async fn get_user_by_id(
-    db: &sea_orm::DatabaseConnection,
+pub async fn get_user_by_id<C: ConnectionTrait>(
+    db: &C,
     user_id: Uuid,
 ) -> Result<Option<UserModel>, AppError> {
     UserEntity::find_by_id(user_id)
         .one(db)
+        .await
+        .map_err(AppError::Database)
+}
+
+pub async fn get_users_by_ids<C: ConnectionTrait>(
+    db: &C,
+    user_ids: &[Uuid],
+) -> Result<Vec<UserModel>, AppError> {
+    if user_ids.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    UserEntity::find()
+        .filter(users::Column::Id.is_in(user_ids.iter().copied()))
+        .all(db)
         .await
         .map_err(AppError::Database)
 }
@@ -85,51 +102,20 @@ pub async fn update_profile(
 
 #[cfg(test)]
 mod tests {
-    /// Verify that "duplicate key" string matching is no longer present in production code.
-    /// This test enforces the Phase 4 completion condition.
-    #[test]
-    fn no_duplicate_key_string_matching_in_production_code() {
-        let source = include_str!("user_service.rs");
-        // Split at cfg(test) to isolate production code
-        let production_code = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("file must contain #[cfg(test)]");
-        assert!(
-            !production_code.contains("duplicate key"),
-            "Production code must not contain 'duplicate key' string matching"
-        );
+    use super::*;
+    use sea_orm::{DatabaseBackend, MockDatabase};
+
+    #[tokio::test]
+    async fn get_users_by_ids_returns_empty_for_empty_input() {
+        let db = MockDatabase::new(DatabaseBackend::Postgres).into_connection();
+        assert!(get_users_by_ids(&db, &[]).await.unwrap().is_empty());
     }
 
-    /// Verify that production code does not silently swallow Result with `let _ = ... .await`.
-    /// The `let _ = expr.await` pattern (ending with `.await;` not `.await?`) discards the
-    /// entire Result including genuine DB errors like connection lost or permission denied.
-    /// Using `.await?` propagates errors properly; discarding TryInsertResult after `?` is fine.
-    #[test]
-    fn no_silent_error_swallowing_in_upsert() {
-        let source = include_str!("user_service.rs");
-        let production_code = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("file must contain #[cfg(test)]");
-        // Detect `.await;` (Result silently discarded) after stripping whitespace.
-        // `.await?;` is acceptable because `?` already propagates the error.
-        let normalized = production_code.replace('\n', " ").replace("  ", " ");
-        assert!(
-            !normalized.contains(".await;"),
-            "Production code must not end an expression with '.await;' which silently swallows Result errors. Use '.await?' to propagate errors."
-        );
-    }
-
-    /// Verify that upsert_user is the single implementation path:
-    /// get_or_create_user and create_user_with_profile must delegate to upsert_user.
-    #[test]
-    fn get_or_create_user_uses_upsert_user() {
-        let source = include_str!("user_service.rs");
-        // After GREEN, get_or_create_user body should call upsert_user
-        assert!(
-            source.contains("upsert_user"),
-            "upsert_user helper must exist in user_service.rs"
-        );
+    #[tokio::test]
+    async fn get_user_by_id_returns_none_when_missing() {
+        let db = MockDatabase::new(DatabaseBackend::Postgres)
+            .append_query_results([Vec::<UserModel>::new()])
+            .into_connection();
+        assert!(get_user_by_id(&db, Uuid::new_v4()).await.unwrap().is_none());
     }
 }

@@ -1,3 +1,5 @@
+pub mod external;
+
 // apps/api/src/error.rs
 use thiserror::Error;
 

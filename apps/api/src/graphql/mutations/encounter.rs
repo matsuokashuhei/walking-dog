@@ -1,11 +1,11 @@
 use crate::error::{AppError, FieldError};
 use crate::graphql::auth_helpers;
 use crate::graphql::custom_queries::EncounterOutput;
+use crate::graphql::dynamic_helpers::{parse_uuid, parse_uuid_with_field_error};
 use crate::services::encounter_service;
 use crate::AppState;
 use async_graphql::dynamic::{Field, FieldFuture, FieldValue, InputValue, TypeRef};
 use std::sync::Arc;
-use uuid::Uuid;
 
 pub fn record_encounter_field(state: Arc<AppState>) -> Field {
     Field::new(
@@ -20,20 +20,13 @@ pub fn record_encounter_field(state: Arc<AppState>) -> Field {
 
                 let mut field_errors: Vec<FieldError> = Vec::new();
 
-                let my_walk_id = Uuid::parse_str(my_walk_id_str).ok().or_else(|| {
-                    field_errors.push(FieldError {
-                        field: "myWalkId".to_string(),
-                        message: "Invalid UUID format".to_string(),
-                    });
-                    None
-                });
-                let their_walk_id = Uuid::parse_str(their_walk_id_str).ok().or_else(|| {
-                    field_errors.push(FieldError {
-                        field: "theirWalkId".to_string(),
-                        message: "Invalid UUID format".to_string(),
-                    });
-                    None
-                });
+                let my_walk_id =
+                    parse_uuid_with_field_error(my_walk_id_str, "myWalkId", &mut field_errors);
+                let their_walk_id = parse_uuid_with_field_error(
+                    their_walk_id_str,
+                    "theirWalkId",
+                    &mut field_errors,
+                );
 
                 if !field_errors.is_empty() {
                     return Err(AppError::ValidationErrors(field_errors).into_graphql_error());
@@ -84,10 +77,8 @@ pub fn update_encounter_duration_field(state: Arc<AppState>) -> Field {
                 let my_walk_id_str = ctx.args.try_get("myWalkId")?.string()?;
                 let their_walk_id_str = ctx.args.try_get("theirWalkId")?.string()?;
                 let duration_sec = ctx.args.try_get("durationSec")?.i64()? as i32;
-                let my_walk_id = Uuid::parse_str(my_walk_id_str)
-                    .map_err(|_| async_graphql::Error::new("Invalid myWalkId"))?;
-                let their_walk_id = Uuid::parse_str(their_walk_id_str)
-                    .map_err(|_| async_graphql::Error::new("Invalid theirWalkId"))?;
+                let my_walk_id = parse_uuid(my_walk_id_str, "Invalid myWalkId")?;
+                let their_walk_id = parse_uuid(their_walk_id_str, "Invalid theirWalkId")?;
 
                 // Auth
                 let user = auth_helpers::resolve_user(&ctx, &state).await?;

@@ -6,15 +6,6 @@ pub mod photo;
 pub mod walk;
 pub mod walk_event;
 
-// Re-export everything so `graphql/mod.rs` can use `mutations::` prefix unchanged.
-pub use auth::*;
-pub use dog::*;
-pub use dog_member::*;
-pub use encounter::*;
-pub use photo::*;
-pub use walk::*;
-pub use walk_event::*;
-
 use crate::AppState;
 use async_graphql::dynamic::Field;
 use std::sync::Arc;

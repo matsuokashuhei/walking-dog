@@ -1,9 +1,6 @@
 /**
  * Uploads a local file to an S3 presigned URL using HTTP PUT.
  * The presigned URL is obtained from the API via generateDogPhotoUploadUrl mutation.
- *
- * Local dev note: If using localstack, the presigned URL hostname may not be reachable
- * from a physical device. Replace 'localstack' with the host machine's LAN IP.
  */
 export async function uploadToPresignedUrl(
   presignedUrl: string,
@@ -12,10 +9,7 @@ export async function uploadToPresignedUrl(
 ): Promise<void> {
   const blob = await uriToBlob(fileUri);
 
-  // Local dev: Docker internal hostname is unreachable from iOS Simulator
-  const url = presignedUrl.replace('://localstack:', '://localhost:');
-
-  const response = await fetch(url, {
+  const response = await fetch(presignedUrl, {
     method: 'PUT',
     headers: { 'Content-Type': contentType },
     body: blob,

@@ -37,7 +37,7 @@ pub fn generate_dog_photo_upload_url_field(state: Arc<AppState>) -> Field {
                 auth_helpers::resolve_user_and_dog(&ctx, &state, dog_id).await?;
 
                 let presigned = s3_service::generate_dog_photo_upload_url(
-                    &state.s3,
+                    &state.s3_presign,
                     &state.config.s3_bucket_dog_photos,
                     dog_id,
                     &content_type,
@@ -74,7 +74,7 @@ pub fn generate_walk_event_photo_upload_url_field(state: Arc<AppState>) -> Field
                 auth_helpers::resolve_user_and_walk(&ctx, &state, walk_id).await?;
 
                 let presigned = s3_service::generate_walk_event_photo_upload_url(
-                    &state.s3,
+                    &state.s3_presign,
                     &state.config.s3_bucket_dog_photos,
                     walk_id,
                     &content_type,

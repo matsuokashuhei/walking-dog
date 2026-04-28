@@ -404,11 +404,13 @@ async fn generate_walk_event_photo_upload_url_returns_presigned_put_with_walks_p
     use walking_dog_api::services::s3_service;
 
     let config = walking_dog_api::config::Config::from_env();
-    let s3 = walking_dog_api::aws::client::build_s3_client(
-        &config.aws_region,
-        config.s3_endpoint_url.as_deref(),
-    )
-    .await;
+    let presign_endpoint_url = config
+        .s3_presign_endpoint_url
+        .as_deref()
+        .or(config.s3_endpoint_url.as_deref());
+    let s3 =
+        walking_dog_api::aws::client::build_s3_client(&config.aws_region, presign_endpoint_url)
+            .await;
 
     let walk_id = uuid::Uuid::new_v4();
     let result = s3_service::generate_walk_event_photo_upload_url(
@@ -431,6 +433,13 @@ async fn generate_walk_event_photo_upload_url_returns_presigned_put_with_walks_p
         result.key
     );
     assert!(!result.url.is_empty(), "URL should not be empty");
+    if let Some(expected_endpoint) = presign_endpoint_url {
+        assert!(
+            result.url.starts_with(expected_endpoint),
+            "URL should use client-reachable presign endpoint {expected_endpoint}, got: {}",
+            result.url
+        );
+    }
 }
 
 #[tokio::test]
@@ -702,6 +711,13 @@ async fn mutation_generate_walk_event_photo_upload_url_returns_key() {
         body
     );
     let result = &body["data"]["generateWalkEventPhotoUploadUrl"];
+    let url = result["url"].as_str().unwrap_or("");
+    if let Some(expected_endpoint) = client.s3_presign_endpoint_url() {
+        assert!(
+            url.starts_with(expected_endpoint),
+            "URL should use client-reachable presign endpoint {expected_endpoint}, got: {url}"
+        );
+    }
     let key = result["key"].as_str().expect("key should be present");
     assert!(
         key.starts_with(&format!("walks/{}/", walk_id)),
@@ -711,7 +727,7 @@ async fn mutation_generate_walk_event_photo_upload_url_returns_key() {
         key.ends_with(".jpg"),
         "Key should end with .jpg, got: {key}"
     );
-    assert!(!result["url"].as_str().unwrap_or("").is_empty());
+    assert!(!url.is_empty());
 }
 
 // ─── T-A6: walk.events resolver Tests ─────────────────────────────────────────

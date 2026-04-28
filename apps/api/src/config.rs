@@ -4,6 +4,7 @@ pub struct Config {
     pub database_url: String,
     pub aws_region: String,
     pub s3_endpoint_url: Option<String>,
+    pub s3_presign_endpoint_url: Option<String>,
     pub dynamodb_endpoint_url: Option<String>,
     pub dynamodb_table_walk_points: String,
     pub sqs_endpoint_url: Option<String>,
@@ -36,6 +37,9 @@ impl Config {
             s3_endpoint_url: std::env::var("S3_ENDPOINT_URL")
                 .ok()
                 .filter(|s| !s.is_empty()),
+            s3_presign_endpoint_url: std::env::var("S3_PRESIGN_ENDPOINT_URL")
+                .ok()
+                .filter(|s| !s.is_empty()),
             dynamodb_endpoint_url: std::env::var("DYNAMODB_ENDPOINT_URL")
                 .ok()
                 .filter(|s| !s.is_empty()),
@@ -50,7 +54,7 @@ impl Config {
             s3_bucket_dog_photos: std::env::var("S3_BUCKET_DOG_PHOTOS")
                 .unwrap_or_else(|_| "dog-photos".to_string()),
             photo_cdn_url: std::env::var("PHOTO_CDN_URL")
-                .unwrap_or_else(|_| "http://localhost:4566/dog-photos".to_string()),
+                .unwrap_or_else(|_| "http://localhost:9000/dog-photos".to_string()),
             cognito_user_pool_id: std::env::var("COGNITO_USER_POOL_ID").unwrap_or_default(),
             cognito_endpoint_url: std::env::var("COGNITO_ENDPOINT_URL")
                 .ok()

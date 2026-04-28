@@ -30,4 +30,21 @@ describe('uploadToPresignedUrl', () => {
       uploadToPresignedUrl('https://s3.example.com/key', 'file:///tmp/photo.jpg', 'image/jpeg')
     ).rejects.toThrow('Upload failed: 403 Forbidden');
   });
+
+  it('passes through MinIO presigned URLs unchanged', async () => {
+    (fetch as jest.Mock)
+      .mockResolvedValueOnce({ blob: () => Promise.resolve(new Blob()) }) // uriToBlob
+      .mockResolvedValueOnce({ ok: true, status: 200 }); // PUT request
+
+    await uploadToPresignedUrl(
+      'http://minio:9000/dog-photos/key?X-Amz-Signature=test',
+      'file:///tmp/photo.jpg',
+      'image/jpeg'
+    );
+
+    expect(fetch).toHaveBeenCalledWith(
+      'http://minio:9000/dog-photos/key?X-Amz-Signature=test',
+      expect.objectContaining({ method: 'PUT' })
+    );
+  });
 });

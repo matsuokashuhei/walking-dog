@@ -36,6 +36,8 @@ pub enum AppError {
     NotFound(String),
     #[error("Unauthorized: {0}")]
     Unauthorized(String),
+    #[error("Forbidden: {0}")]
+    Forbidden(String),
     #[error("Bad request: {0}")]
     BadRequest(String),
     #[error("Internal error: {0}")]
@@ -49,7 +51,7 @@ impl AppError {
     pub fn into_graphql_error(self) -> async_graphql::Error {
         use async_graphql::ErrorExtensions;
         // Report unexpected failures to Sentry. Expected user-facing errors
-        // (NotFound, Unauthorized, BadRequest, ValidationErrors) are skipped.
+        // (NotFound, Unauthorized, Forbidden, BadRequest, ValidationErrors) are skipped.
         if matches!(&self, AppError::Internal(_) | AppError::Database(_)) {
             sentry::capture_error(&self);
         }
@@ -62,6 +64,9 @@ impl AppError {
             }),
             AppError::Unauthorized(msg) => async_graphql::Error::new(msg).extend_with(|_, ext| {
                 ext.set("code", "UNAUTHENTICATED");
+            }),
+            AppError::Forbidden(msg) => async_graphql::Error::new(msg).extend_with(|_, ext| {
+                ext.set("code", "FORBIDDEN");
             }),
             AppError::ValidationErrors(errors) => {
                 let json =
@@ -184,5 +189,16 @@ mod tests {
         let code_val = ext.get("code").expect("code must be in extensions");
         // async_graphql::Value::String can be compared as string
         assert_eq!(code_val, &async_graphql::Value::from("BAD_USER_INPUT"));
+    }
+
+    #[test]
+    fn forbidden_sets_forbidden_code_and_preserves_message() {
+        let gql_err =
+            AppError::Forbidden("Not a member of either dog".to_string()).into_graphql_error();
+
+        let ext = gql_err.extensions.expect("extensions must be set");
+        let code_val = ext.get("code").expect("code must be in extensions");
+        assert_eq!(code_val, &async_graphql::Value::from("FORBIDDEN"));
+        assert_eq!(gql_err.message, "Not a member of either dog");
     }
 }

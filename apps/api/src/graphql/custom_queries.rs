@@ -143,7 +143,9 @@ pub fn encounter_output_type() -> Object {
                     .load_one(e.dog_id_1)
                     .await
                     .map_err(async_graphql::Error::new)?
-                    .ok_or_else(|| async_graphql::Error::new("Dog not found"))?;
+                    .ok_or_else(|| {
+                        AppError::NotFound("Dog not found".to_string()).into_graphql_error()
+                    })?;
                 Ok(Some(FieldValue::owned_any(DogOutput::from(dog))))
             })
         }))
@@ -155,7 +157,9 @@ pub fn encounter_output_type() -> Object {
                     .load_one(e.dog_id_2)
                     .await
                     .map_err(async_graphql::Error::new)?
-                    .ok_or_else(|| async_graphql::Error::new("Dog not found"))?;
+                    .ok_or_else(|| {
+                        AppError::NotFound("Dog not found".to_string()).into_graphql_error()
+                    })?;
                 Ok(Some(FieldValue::owned_any(DogOutput::from(dog))))
             })
         }))
@@ -193,7 +197,9 @@ pub fn friendship_output_type() -> Object {
                         .load_one(friend_id)
                         .await
                         .map_err(async_graphql::Error::new)?
-                        .ok_or_else(|| async_graphql::Error::new("Dog not found"))?;
+                        .ok_or_else(|| {
+                        AppError::NotFound("Dog not found".to_string()).into_graphql_error()
+                    })?;
                     Ok(Some(FieldValue::owned_any(DogOutput::from(dog))))
                 })
             },

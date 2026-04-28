@@ -142,7 +142,9 @@ pub async fn get_walk_stats(
     dog_id: Uuid,
     period: &str,
 ) -> Result<WalkStats, AppError> {
-    let period: Period = period.parse().unwrap_or(Period::All);
+    let period: Period = period
+        .parse()
+        .map_err(|err| AppError::BadRequest(format!("Invalid period '{period}': {err}")))?;
     let since = period.since();
 
     let walk_ids: Vec<Uuid> = WalkDogEntity::find()

@@ -127,7 +127,7 @@ pub async fn drain_walk_points_queue_once(
             Err(error) => {
                 failed += 1;
                 tracing::error!(
-                    error = %error,
+                    error = ?error,
                     message_id,
                     "Failed to process walk points queue message"
                 );

@@ -142,7 +142,9 @@ pub fn accept_dog_invitation_field(state: Arc<AppState>) -> Field {
                 let dog = dog_service::get_dog_by_id(&state.db, member.dog_id)
                     .await
                     .map_err(AppError::into_graphql_error)?
-                    .ok_or_else(|| async_graphql::Error::new("Dog not found"))?;
+                    .ok_or_else(|| {
+                        AppError::NotFound("Dog not found".to_string()).into_graphql_error()
+                    })?;
 
                 Ok(Some(FieldValue::owned_any(super::dog::DogOutput::from(
                     dog,
@@ -174,9 +176,10 @@ pub fn remove_dog_member_field(state: Arc<AppState>) -> Field {
 
                 // Cannot remove yourself (owner) via this mutation
                 if target_user_id == user.id {
-                    return Err(async_graphql::Error::new(
-                        "Cannot remove yourself. Use leaveDog instead.",
-                    ));
+                    return Err(AppError::BadRequest(
+                        "Cannot remove yourself. Use leaveDog instead.".to_string(),
+                    )
+                    .into_graphql_error());
                 }
 
                 let result = dog_member_service::remove_member(&state.db, dog_id, target_user_id)
@@ -206,9 +209,11 @@ pub fn leave_dog_field(state: Arc<AppState>) -> Field {
 
                 // Owners cannot leave their own dog
                 if membership.role == "owner" {
-                    return Err(async_graphql::Error::new(
-                        "Owners cannot leave their dog. Transfer ownership or delete the dog.",
-                    ));
+                    return Err(AppError::BadRequest(
+                        "Owners cannot leave their dog. Transfer ownership or delete the dog."
+                            .to_string(),
+                    )
+                    .into_graphql_error());
                 }
 
                 let result = dog_member_service::remove_member(&state.db, dog_id, user.id)

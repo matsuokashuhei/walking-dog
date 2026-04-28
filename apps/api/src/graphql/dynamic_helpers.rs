@@ -1,4 +1,4 @@
-use crate::error::FieldError;
+use crate::error::{AppError, FieldError};
 use async_graphql::dynamic::{Field, FieldFuture, FieldValue, TypeRef};
 use uuid::Uuid;
 
@@ -102,7 +102,8 @@ where
 }
 
 pub fn parse_uuid(value: &str, invalid_message: &'static str) -> async_graphql::Result<Uuid> {
-    Uuid::parse_str(value).map_err(|_| async_graphql::Error::new(invalid_message))
+    Uuid::parse_str(value)
+        .map_err(|_| AppError::BadRequest(invalid_message.to_string()).into_graphql_error())
 }
 
 pub fn parse_uuid_with_field_error(

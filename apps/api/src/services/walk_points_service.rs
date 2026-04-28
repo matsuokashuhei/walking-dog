@@ -123,11 +123,16 @@ pub async fn add_walk_points(
         .iter()
         .map(|point| {
             let item = build_point_item(walk_id, point);
-            WriteRequest::builder()
-                .put_request(PutRequest::builder().set_item(Some(item)).build().unwrap())
-                .build()
+            let put = PutRequest::builder().set_item(Some(item)).build().map_err(|e| {
+                AppError::Internal(format!(
+                    "PutRequest build failed for walk {}: {}",
+                    walk_id,
+                    crate::error::format_error_chain(&e)
+                ))
+            })?;
+            Ok(WriteRequest::builder().put_request(put).build())
         })
-        .collect();
+        .collect::<Result<Vec<_>, AppError>>()?;
 
     // DynamoDBは1バッチ最大 DYNAMODB_BATCH_WRITE_LIMIT 件のため分割送信
     for chunk in all_requests.chunks(DYNAMODB_BATCH_WRITE_LIMIT) {

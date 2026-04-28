@@ -27,9 +27,11 @@ pub async fn upsert_friendship<C: sea_orm::ConnectionTrait>(
         .await?;
 
     let friendship = if let Some(existing) = existing {
+        let new_encounter_count = existing.encounter_count + 1;
+        let new_total_interaction_sec = existing.total_interaction_sec + duration_sec;
         let mut active: friendships::ActiveModel = existing.into();
-        active.encounter_count = Set(active.encounter_count.unwrap() + 1);
-        active.total_interaction_sec = Set(active.total_interaction_sec.unwrap() + duration_sec);
+        active.encounter_count = Set(new_encounter_count);
+        active.total_interaction_sec = Set(new_total_interaction_sec);
         active.last_met_at = Set(met_at.into());
         active.update(db).await?
     } else {

@@ -33,10 +33,19 @@ pub struct AppState {
     pub db: DatabaseConnection,
     pub dynamo: DynamoClient,
     pub s3: S3Client,
+    pub s3_presign: S3Client,
     pub cognito: aws_sdk_cognitoidentityprovider::Client,
     pub sqs: SqsClient,
     pub config: Config,
     pub verifier: Arc<dyn JwtVerifier>,
+}
+
+pub struct AwsClients {
+    pub dynamo: DynamoClient,
+    pub s3: S3Client,
+    pub s3_presign: S3Client,
+    pub cognito: aws_sdk_cognitoidentityprovider::Client,
+    pub sqs: SqsClient,
 }
 
 #[derive(Clone)]
@@ -47,19 +56,17 @@ pub struct GraphqlState {
 
 pub fn build_app(
     db: DatabaseConnection,
-    dynamo: DynamoClient,
-    s3: S3Client,
-    cognito: aws_sdk_cognitoidentityprovider::Client,
-    sqs: SqsClient,
+    clients: AwsClients,
     config: Config,
     verifier: Arc<dyn JwtVerifier>,
 ) -> Router {
     let state = Arc::new(AppState {
         db,
-        dynamo,
-        s3,
-        cognito,
-        sqs,
+        dynamo: clients.dynamo,
+        s3: clients.s3,
+        s3_presign: clients.s3_presign,
+        cognito: clients.cognito,
+        sqs: clients.sqs,
         config,
         verifier: verifier.clone(),
     });

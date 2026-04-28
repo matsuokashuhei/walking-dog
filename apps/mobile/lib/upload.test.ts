@@ -31,7 +31,7 @@ describe('uploadToPresignedUrl', () => {
     ).rejects.toThrow('Upload failed: 403 Forbidden');
   });
 
-  it('rewrites Docker-internal MinIO host to localhost for local uploads', async () => {
+  it('passes through MinIO presigned URLs unchanged', async () => {
     (fetch as jest.Mock)
       .mockResolvedValueOnce({ blob: () => Promise.resolve(new Blob()) }) // uriToBlob
       .mockResolvedValueOnce({ ok: true, status: 200 }); // PUT request
@@ -43,7 +43,7 @@ describe('uploadToPresignedUrl', () => {
     );
 
     expect(fetch).toHaveBeenCalledWith(
-      'http://localhost:9000/dog-photos/key?X-Amz-Signature=test',
+      'http://minio:9000/dog-photos/key?X-Amz-Signature=test',
       expect.objectContaining({ method: 'PUT' })
     );
   });

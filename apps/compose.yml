@@ -79,6 +79,7 @@ services:
     build:
       context: ./api
       dockerfile: Dockerfile.dev
+    command: ["cargo", "watch", "-x", "run --bin walking-dog-api"]
     ports:
       - "3000:3000"
     volumes:

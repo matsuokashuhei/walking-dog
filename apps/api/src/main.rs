@@ -68,6 +68,13 @@ async fn run(config: Config) {
         config.s3_endpoint_url.as_deref(),
     )
     .await;
+    let s3_presign_endpoint_url = config
+        .s3_presign_endpoint_url
+        .as_deref()
+        .or(config.s3_endpoint_url.as_deref());
+    let s3_presign =
+        walking_dog_api::aws::client::build_s3_client(&config.aws_region, s3_presign_endpoint_url)
+            .await;
     let cognito = walking_dog_api::aws::client::build_cognito_client(
         &config.aws_region,
         config.cognito_endpoint_url.as_deref(),
@@ -84,7 +91,14 @@ async fn run(config: Config) {
     let addr = std::net::SocketAddr::from(([0, 0, 0, 0], config.port));
     tracing::info!("Listening on {}", addr);
 
-    let app = walking_dog_api::build_app(db, dynamo, s3, cognito, sqs, config, verifier);
+    let clients = walking_dog_api::AwsClients {
+        dynamo,
+        s3,
+        s3_presign,
+        cognito,
+        sqs,
+    };
+    let app = walking_dog_api::build_app(db, clients, config, verifier);
 
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();

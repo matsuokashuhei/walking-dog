@@ -129,6 +129,14 @@ async fn test_generate_dog_photo_upload_url() {
         "URL should be an HTTP URL, got: {}",
         url
     );
+    if let Some(expected_endpoint) = client.s3_presign_endpoint_url() {
+        assert!(
+            url.starts_with(expected_endpoint),
+            "URL should use client-reachable presign endpoint {}, got: {}",
+            expected_endpoint,
+            url
+        );
+    }
     let key = body["data"]["generateDogPhotoUploadUrl"]["key"]
         .as_str()
         .unwrap();

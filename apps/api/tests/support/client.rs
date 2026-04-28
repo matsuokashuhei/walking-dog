@@ -39,6 +39,13 @@ impl TestClient {
         &self.config.dynamodb_table_walk_points
     }
 
+    pub fn s3_presign_endpoint_url(&self) -> Option<&str> {
+        self.config
+            .s3_presign_endpoint_url
+            .as_deref()
+            .or(self.config.s3_endpoint_url.as_deref())
+    }
+
     pub fn dynamo(&self) -> DynamoClient {
         self.dynamo.clone()
     }
@@ -86,6 +93,13 @@ pub async fn test_client() -> TestClient {
         config.s3_endpoint_url.as_deref(),
     )
     .await;
+    let s3_presign_endpoint_url = config
+        .s3_presign_endpoint_url
+        .as_deref()
+        .or(config.s3_endpoint_url.as_deref());
+    let s3_presign =
+        walking_dog_api::aws::client::build_s3_client(&config.aws_region, s3_presign_endpoint_url)
+            .await;
     let cognito = walking_dog_api::aws::client::build_cognito_client(
         &config.aws_region,
         config.cognito_endpoint_url.as_deref(),
@@ -119,15 +133,14 @@ pub async fn test_client() -> TestClient {
     // "test-token" maps to "test-user-cognito-sub" for backwards compatibility.
     let verifier = Arc::new(walking_dog_api::auth::jwt::NoOpJwtVerifier);
 
-    let app = walking_dog_api::build_app(
-        db,
-        dynamo.clone(),
+    let clients = walking_dog_api::AwsClients {
+        dynamo: dynamo.clone(),
         s3,
+        s3_presign,
         cognito,
-        sqs.clone(),
-        config.clone(),
-        verifier,
-    );
+        sqs: sqs.clone(),
+    };
+    let app = walking_dog_api::build_app(db, clients, config.clone(), verifier);
 
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr: SocketAddr = listener.local_addr().unwrap();

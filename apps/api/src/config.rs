@@ -4,6 +4,7 @@ pub struct Config {
     pub database_url: String,
     pub aws_region: String,
     pub s3_endpoint_url: Option<String>,
+    pub s3_presign_endpoint_url: Option<String>,
     pub dynamodb_endpoint_url: Option<String>,
     pub dynamodb_table_walk_points: String,
     pub sqs_endpoint_url: Option<String>,
@@ -34,6 +35,9 @@ impl Config {
             aws_region: std::env::var("AWS_REGION")
                 .unwrap_or_else(|_| "ap-northeast-1".to_string()),
             s3_endpoint_url: std::env::var("S3_ENDPOINT_URL")
+                .ok()
+                .filter(|s| !s.is_empty()),
+            s3_presign_endpoint_url: std::env::var("S3_PRESIGN_ENDPOINT_URL")
                 .ok()
                 .filter(|s| !s.is_empty()),
             dynamodb_endpoint_url: std::env::var("DYNAMODB_ENDPOINT_URL")

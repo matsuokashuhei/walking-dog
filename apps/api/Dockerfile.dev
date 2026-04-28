@@ -1,7 +1,7 @@
 FROM rust:1-slim-bookworm
 RUN apt-get update && apt-get install -y curl pkg-config libssl-dev && rm -rf /var/lib/apt/lists/*
 RUN cargo install cargo-watch
-RUN rustup component add clippy
+RUN rustup component add clippy rustfmt
 WORKDIR /app
 # キャッシュ用に先にCargo.tomlだけコピーしてビルド
 COPY Cargo.toml ./

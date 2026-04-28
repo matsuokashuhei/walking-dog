@@ -19,20 +19,26 @@ pub struct CognitoJwtVerifier;
 #[async_trait]
 impl JwtVerifier for CognitoJwtVerifier {
     async fn verify(&self, token: &str) -> Result<Claims, AppError> {
-        let sub = verify_cognito_jwt(token)
-            .await
-            .map_err(AppError::Unauthorized)?;
+        let sub = verify_cognito_jwt(token).await?;
         Ok(Claims { sub })
     }
 }
 
-async fn verify_cognito_jwt(token: &str) -> Result<String, String> {
+async fn verify_cognito_jwt(token: &str) -> Result<String, AppError> {
+    use crate::error::format_error_chain;
     use jsonwebtoken::{decode, decode_header, Algorithm, DecodingKey, Validation};
 
-    let header = decode_header(token).map_err(|e| e.to_string())?;
-    let kid = header.kid.ok_or("missing kid")?;
+    // Malformed tokens are caller mistakes → Unauthorized.
+    let header = decode_header(token)
+        .map_err(|err| AppError::Unauthorized(format!("Invalid token header: {err}")))?;
+    let kid = header
+        .kid
+        .ok_or_else(|| AppError::Unauthorized("Token missing kid".to_string()))?;
 
-    let user_pool_id = std::env::var("COGNITO_USER_POOL_ID").map_err(|e| e.to_string())?;
+    // Missing config is a server-side problem → Internal so the client gets 500
+    // and retries instead of looping on token refresh.
+    let user_pool_id = std::env::var("COGNITO_USER_POOL_ID")
+        .map_err(|_| AppError::Internal("COGNITO_USER_POOL_ID env var not set".to_string()))?;
     let region = std::env::var("AWS_REGION").unwrap_or_else(|_| "ap-northeast-1".to_string());
 
     // COGNITO_ENDPOINT_URL が設定されている場合は cognito-local を使う
@@ -47,19 +53,30 @@ async fn verify_cognito_jwt(token: &str) -> Result<String, String> {
 
     let jwks: serde_json::Value = reqwest::get(&jwks_url)
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|err| {
+            AppError::Internal(format!("JWKS fetch failed: {}", format_error_chain(&err)))
+        })?
         .json()
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|err| {
+            AppError::Internal(format!("JWKS parse failed: {}", format_error_chain(&err)))
+        })?;
 
+    // Token signed by an unknown kid is a token-side issue → Unauthorized.
     let key = jwks["keys"]
         .as_array()
         .and_then(|keys| keys.iter().find(|k| k["kid"] == kid))
-        .ok_or("key not found")?;
+        .ok_or_else(|| AppError::Unauthorized("Token signed by unknown kid".to_string()))?;
 
-    let n = key["n"].as_str().ok_or("missing n")?;
-    let e = key["e"].as_str().ok_or("missing e")?;
-    let decoding_key = DecodingKey::from_rsa_components(n, e).map_err(|e| e.to_string())?;
+    // Malformed JWKS payload from Cognito is a server/upstream issue → Internal.
+    let n = key["n"]
+        .as_str()
+        .ok_or_else(|| AppError::Internal("JWKS key missing 'n' component".to_string()))?;
+    let exp = key["e"]
+        .as_str()
+        .ok_or_else(|| AppError::Internal("JWKS key missing 'e' component".to_string()))?;
+    let decoding_key = DecodingKey::from_rsa_components(n, exp)
+        .map_err(|err| AppError::Internal(format!("JWKS RSA key decode failed: {err}")))?;
 
     let mut validation = Validation::new(Algorithm::RS256);
     // Skip issuer validation for local development
@@ -76,8 +93,9 @@ async fn verify_cognito_jwt(token: &str) -> Result<String, String> {
         sub: String,
     }
 
-    let token_data =
-        decode::<CognitoClaims>(token, &decoding_key, &validation).map_err(|e| e.to_string())?;
+    // Signature/expiry validation failure is a token-side issue → Unauthorized.
+    let token_data = decode::<CognitoClaims>(token, &decoding_key, &validation)
+        .map_err(|err| AppError::Unauthorized(format!("Token validation failed: {err}")))?;
 
     Ok(token_data.claims.sub)
 }

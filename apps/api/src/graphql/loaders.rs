@@ -33,7 +33,15 @@ impl Loader<Uuid> for UserByIdLoader {
             user_service::get_users_by_ids(&db, &keys)
                 .await
                 .map(|users| users.into_iter().map(|user| (user.id, user)).collect())
-                .map_err(|err| err.to_string())
+                .map_err(|err| {
+                    tracing::error!(
+                        error = ?err,
+                        loader = "UserByIdLoader",
+                        batch_size = keys.len(),
+                        "loader query failed"
+                    );
+                    err.to_string()
+                })
         }
     }
 }
@@ -64,7 +72,15 @@ impl Loader<Uuid> for DogByIdLoader {
             dog_service::get_dogs_by_ids(&db, &keys)
                 .await
                 .map(|dogs| dogs.into_iter().map(|dog| (dog.id, dog)).collect())
-                .map_err(|err| err.to_string())
+                .map_err(|err| {
+                    tracing::error!(
+                        error = ?err,
+                        loader = "DogByIdLoader",
+                        batch_size = keys.len(),
+                        "loader query failed"
+                    );
+                    err.to_string()
+                })
         }
     }
 }
@@ -107,7 +123,15 @@ impl Loader<Uuid> for DogMembersByDogIdLoader {
                         })
                         .collect()
                 })
-                .map_err(|err| err.to_string())
+                .map_err(|err| {
+                    tracing::error!(
+                        error = ?err,
+                        loader = "DogMembersByDogIdLoader",
+                        batch_size = keys.len(),
+                        "loader query failed"
+                    );
+                    err.to_string()
+                })
         }
     }
 }
@@ -137,7 +161,15 @@ impl Loader<Uuid> for DogsByWalkIdLoader {
         async move {
             walk_service::get_dogs_for_walk_ids(&db, &keys)
                 .await
-                .map_err(|err| err.to_string())
+                .map_err(|err| {
+                    tracing::error!(
+                        error = ?err,
+                        loader = "DogsByWalkIdLoader",
+                        batch_size = keys.len(),
+                        "loader query failed"
+                    );
+                    err.to_string()
+                })
         }
     }
 }

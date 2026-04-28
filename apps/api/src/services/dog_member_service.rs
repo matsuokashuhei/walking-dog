@@ -130,7 +130,7 @@ pub async fn require_any_dog_member<C: ConnectionTrait>(
         .filter(dog_members::Column::UserId.eq(user_id))
         .one(db)
         .await?
-        .ok_or_else(|| AppError::Unauthorized("Not a member of either dog".to_string()))
+        .ok_or_else(|| AppError::Forbidden("Not a member of either dog".to_string()))
 }
 
 pub async fn remove_member(

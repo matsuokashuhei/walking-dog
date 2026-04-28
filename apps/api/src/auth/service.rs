@@ -164,7 +164,7 @@ pub async fn sign_out(client: &Client, access_token: &str) -> Result<(), AppErro
 
     match result {
         Ok(_) => Ok(()),
-        Err(ref e) => {
+        Err(e) => {
             let code = e.code();
             // cognito-local does not implement GlobalSignOut; treat as success in dev.
             if code
@@ -173,7 +173,7 @@ pub async fn sign_out(client: &Client, access_token: &str) -> Result<(), AppErro
             {
                 return Ok(());
             }
-            Err(map_cognito_error(&result.unwrap_err()))
+            Err(map_cognito_error(&e))
         }
     }
 }

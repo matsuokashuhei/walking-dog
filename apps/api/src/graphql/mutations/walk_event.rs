@@ -110,8 +110,9 @@ pub fn record_walk_event_field(state: Arc<AppState>) -> Field {
                 let event_type = input.try_get("eventType")?.string()?.to_string();
                 let occurred_at_str = input.try_get("occurredAt")?.string()?;
                 let occurred_at: chrono::DateTime<chrono::FixedOffset> =
-                    chrono::DateTime::parse_from_rfc3339(occurred_at_str).map_err(|_| {
-                        async_graphql::Error::new("Invalid occurredAt: must be RFC3339")
+                    chrono::DateTime::parse_from_rfc3339(occurred_at_str).map_err(|e| {
+                        AppError::BadRequest(format!("Invalid occurredAt (must be RFC3339): {e}"))
+                            .into_graphql_error()
                     })?;
 
                 let lat = input.get("lat").and_then(|v| v.f64().ok());

@@ -76,7 +76,11 @@ pub fn update_encounter_duration_field(state: Arc<AppState>) -> Field {
                 // Input parse
                 let my_walk_id_str = ctx.args.try_get("myWalkId")?.string()?;
                 let their_walk_id_str = ctx.args.try_get("theirWalkId")?.string()?;
-                let duration_sec = ctx.args.try_get("durationSec")?.i64()? as i32;
+                let duration_sec = i32::try_from(ctx.args.try_get("durationSec")?.i64()?)
+                    .map_err(|_| {
+                        AppError::BadRequest("durationSec out of i32 range".to_string())
+                            .into_graphql_error()
+                    })?;
                 let my_walk_id = parse_uuid(my_walk_id_str, "Invalid myWalkId")?;
                 let their_walk_id = parse_uuid(their_walk_id_str, "Invalid theirWalkId")?;
 

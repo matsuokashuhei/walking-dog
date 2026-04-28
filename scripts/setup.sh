@@ -27,7 +27,7 @@ echo "  Done."
 # 2. Start infrastructure services
 echo ""
 echo "[2/5] Starting infrastructure services..."
-docker compose -f "$COMPOSE_FILE" up -d postgres dynamodb-local localstack cognito-local
+docker compose -f "$COMPOSE_FILE" up -d postgres dynamodb-local minio elasticmq cognito-local
 
 # 3. Wait for PostgreSQL, then run migrations
 echo ""
@@ -70,14 +70,14 @@ for i in $(seq 1 30); do
   sleep 1
 done
 
-echo "  Waiting for LocalStack..."
+echo "  Waiting for MinIO..."
 for i in $(seq 1 30); do
-  if docker compose -f "$COMPOSE_FILE" exec -T localstack awslocal s3 ls > /dev/null 2>&1; then
-    echo "  LocalStack is ready."
+  if curl -fsS "http://localhost:9000/minio/health/ready" > /dev/null 2>&1; then
+    echo "  MinIO is ready."
     break
   fi
   if [ "$i" -eq 30 ]; then
-    echo "Error: LocalStack did not become ready in time." >&2
+    echo "Error: MinIO did not become ready in time." >&2
     exit 1
   fi
   sleep 1
@@ -117,8 +117,8 @@ else
   echo "  DynamoDB table WalkPoints created."
 fi
 
-# S3 bucket (LocalStack — recreated on each container start)
-docker compose -f "$COMPOSE_FILE" exec -T localstack awslocal s3 mb s3://dog-photos > /dev/null 2>&1 || true
+# S3 bucket (MinIO — initialized by the minio-init compose service)
+docker compose -f "$COMPOSE_FILE" up minio-init
 echo "  S3 bucket dog-photos ensured."
 
 # SQS queues are declared in apps/elasticmq/elasticmq.conf and created
@@ -136,7 +136,8 @@ echo "GraphQL:        http://localhost:3000/graphql"
 echo "Cognito Local:  http://localhost:9229"
 echo "PostgreSQL:     localhost:5432"
 echo "DynamoDB Local: http://localhost:8000"
-echo "LocalStack(S3): http://localhost:4566"
+echo "MinIO(S3):      http://localhost:9000"
+echo "MinIO Console:  http://localhost:9001"
 echo ""
 echo "User Pool ID:   local_2yovNmW0"
 echo "Client ID:      418806fx3afm9cp1mdhxwpxw3"

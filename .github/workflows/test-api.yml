@@ -23,7 +23,7 @@ jobs:
 
       - name: Create DynamoDB table and S3 bucket
         run: |
-          docker compose -f apps/compose.yml up -d dynamodb-local localstack
+          docker compose -f apps/compose.yml up -d dynamodb-local minio
           sleep 3
           curl -s -X POST http://localhost:8000 \
             -H 'Content-Type: application/x-amz-json-1.0' \
@@ -42,7 +42,7 @@ jobs:
               ],
               "BillingMode": "PAY_PER_REQUEST"
             }'
-          docker compose -f apps/compose.yml exec -T localstack awslocal s3 mb s3://dog-photos || true
+          docker compose -f apps/compose.yml up minio-init
 
       - name: Run tests
         run: docker compose -f apps/compose.yml run --rm api cargo test --features test-utils -- --test-threads=1

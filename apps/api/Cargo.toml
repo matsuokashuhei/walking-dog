@@ -13,7 +13,7 @@ tower-http = { version = "0.6", features = ["cors", "trace", "request-id"] }
 tokio = { version = "1", features = ["full"] }
 async-graphql = { version = "~7.0.17", features = ["chrono", "uuid", "dataloader", "dynamic-schema"] }
 async-graphql-axum = "7"
-sea-orm = { version = "~2.0.0-rc", features = ["sqlx-postgres", "runtime-tokio-rustls", "macros", "with-uuid", "with-chrono", "with-json", "seaography"] }
+sea-orm = { version = "~2.0.0-rc.38.38", features = ["sqlx-postgres", "runtime-tokio-rustls", "macros", "with-uuid", "with-chrono", "with-json", "seaography"] }
 seaography = { version = "~2.0.0-rc", features = ["field-camel-case", "schema-meta", "macros"] }
 aws-config = { version = "1", features = ["behavior-version-latest"] }
 aws-sdk-dynamodb = "1"

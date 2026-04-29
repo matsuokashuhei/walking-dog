@@ -33,16 +33,6 @@
             "timeout": 120
           }
         ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/plan-preview.sh",
-            "timeout": 10
-          }
-        ]
       }
     ]
   },
@@ -64,7 +54,68 @@
     "rust-analyzer-lsp@claude-plugins-official": true,
     "swift-lsp@claude-plugins-official": true,
     "agent-skills@addy-agent-skills": true,
-    "sentry@claude-plugins-official": true
+    "everything-claude-code@everything-claude-code": true,
+    "evolutionary-naming@kawasima-skills": true,
+    "modularity@vladikk-modularity": true,
+    "backend-development@claude-code-workflows": true
   },
-  "plansDirectory": "$CLAUDE_PROJECT_DIR/.claude/plans"
+  "extraKnownMarketplaces": {
+    "claude-plugins-official": {
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-plugins-official"
+      },
+      "autoUpdate": true
+    },
+    "anthropic-agent-skills": {
+      "source": {
+        "source": "github",
+        "repo": "anthropics/skills"
+      },
+      "autoUpdate": true
+    },
+    "everything-claude-code": {
+      "source": {
+        "source": "git",
+        "url": "https://github.com/affaan-m/everything-claude-code.git"
+      },
+      "autoUpdate": true
+    },
+    "agent-plugins-for-aws": {
+      "source": {
+        "source": "github",
+        "repo": "awslabs/agent-plugins"
+      },
+      "autoUpdate": true
+    },
+    "addy-agent-skills": {
+      "source": {
+        "source": "github",
+        "repo": "addyosmani/agent-skills"
+      },
+      "autoUpdate": true
+    },
+    "kawasima-skills": {
+      "source": {
+        "source": "github",
+        "repo": "kawasima/evolutionary-naming"
+      },
+      "autoUpdate": true
+    },
+    "vladikk-modularity": {
+      "source": {
+        "source": "github",
+        "repo": "vladikk/modularity"
+      },
+      "autoUpdate": true
+    },
+    "claude-code-workflows": {
+      "source": {
+        "source": "github",
+        "repo": "wshobson/agents"
+      },
+      "autoUpdate": true
+    }
+  },
+  "plansDirectory": ".claude/plans"
 }

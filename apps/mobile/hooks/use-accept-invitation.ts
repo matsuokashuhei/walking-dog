@@ -4,6 +4,7 @@ import { ACCEPT_DOG_INVITATION_MUTATION } from '@/lib/graphql/mutations/dog';
 import { useInvalidateUserQueries } from './use-invalidate-user-queries';
 import type { Dog, AcceptDogInvitationResponse } from '@/types/graphql';
 
+// 招待トークンを受け入れ、犬・ユーザー関連のキャッシュを更新します。
 export function useAcceptInvitation() {
   const invalidateUserQueries = useInvalidateUserQueries();
   return useMutation<Dog, Error, string>({

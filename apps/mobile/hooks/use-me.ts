@@ -5,6 +5,7 @@ import { meKeys } from '@/lib/graphql/keys';
 import { useIsAuthenticated } from './use-is-authenticated';
 import type { MeResponse, User } from '@/types/graphql';
 
+// 認証済みのときだけ現在ユーザー情報を取得します。
 export function useMe() {
   const isAuthenticated = useIsAuthenticated();
   return useQuery<User>({

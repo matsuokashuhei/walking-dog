@@ -9,6 +9,7 @@ import { WalkMapShell } from '@/components/walk/WalkMapShell';
 import { WalkTopChip } from '@/components/walk/WalkTopChip';
 import type { Dog } from '@/types/graphql';
 
+// 記録中画面は全画面マップを表示し、操作パネル route を重ねて開きます。
 export default function WalkRecordingScreen() {
   const theme = useColors();
   const phase = useWalkStore((s) => s.phase);
@@ -19,6 +20,7 @@ export default function WalkRecordingScreen() {
 
   const hasPushedRef = useRef(false);
   useEffect(() => {
+    // 記録フェーズに入った最初の 1 回だけ form sheet の操作パネルを表示します。
     if (phase !== 'recording') return;
     if (hasPushedRef.current) return;
     hasPushedRef.current = true;
@@ -28,6 +30,7 @@ export default function WalkRecordingScreen() {
     });
   }, [phase, params.action]);
 
+  // 選択済み犬 ID から表示用の犬情報を引き直し、上部チップの単一情報源にします。
   const selectedDogs = useMemo<Dog[]>(
     () => (me?.dogs ?? []).filter((d) => selectedDogIds.includes(d.id)),
     [me?.dogs, selectedDogIds],

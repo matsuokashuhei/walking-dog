@@ -16,6 +16,7 @@ interface WalkMinimizedControlsProps {
 
 const AVATAR = 28;
 
+// 記録中パネルを畳んだ状態で、経過時間と距離を確認しながら再展開できます。
 export function WalkMinimizedControls({ dogs }: WalkMinimizedControlsProps) {
   const { t } = useTranslation();
   const theme = useColors();
@@ -25,6 +26,7 @@ export function WalkMinimizedControls({ dogs }: WalkMinimizedControlsProps) {
   const units = useSettingsStore((s) => s.units);
   const elapsedSec = useWalkElapsed({ startedAt, isPaused: false, totalPausedMs: 0 });
 
+  // ミニ表示全体を 1 つの再展開ボタンとして扱います。
   const expand = () => setMinimized(false);
 
   return (

@@ -18,6 +18,7 @@ interface DogPickerCardProps {
 const AVATAR_SIZE = 44;
 const SEPARATOR_INSET = AVATAR_SIZE + spacing.md + spacing.md;
 
+// 散歩前の犬選択カードです。複数選択と単体表示の差分だけをここで吸収します。
 export function DogPickerCard({
   dogs,
   selectedIds,
@@ -25,6 +26,7 @@ export function DogPickerCard({
   variant = 'multi',
 }: DogPickerCardProps) {
   const theme = useColors();
+  // 「前回の散歩」表示がレンダー中に揺れないよう、基準時刻を固定します。
   const now = useMemo(() => new Date(), []);
   const interactive = variant === 'multi';
 
@@ -89,6 +91,7 @@ function DogPickerRow({
 }: DogPickerRowProps) {
   const theme = useColors();
   const { t } = useTranslation();
+  // 犬ごとの最新散歩日時を、現在時刻から見た相対的な文言に整えます。
   const lastWalkText = formatLastWalk(dog.latestWalk?.endedAt, now, t);
 
   return (
@@ -118,6 +121,7 @@ function DogPickerRow({
 function SelectionIndicator({ isSelected }: { isSelected: boolean }) {
   const theme = useColors();
 
+  // 未選択時は空の円だけを表示し、選択済みとの差を明確にします。
   if (!isSelected) {
     return (
       <View

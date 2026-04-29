@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 
 import { useColors } from '@/hooks/use-colors';
 
+// タブレイアウトは犬一覧・散歩・設定の主要導線を NativeTabs で提供します。
 export default function TabLayout() {
   const { t } = useTranslation();
   const theme = useColors();

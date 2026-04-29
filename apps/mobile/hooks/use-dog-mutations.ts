@@ -18,6 +18,7 @@ import type {
   GenerateDogPhotoUploadUrlResponse,
 } from '@/types/graphql';
 
+// 犬の作成後、ユーザー関連キャッシュを更新して一覧へ反映します。
 export function useCreateDog() {
   const invalidateUserQueries = useInvalidateUserQueries();
   return useMutation<Dog, Error, CreateDogInput>({
@@ -29,6 +30,7 @@ export function useCreateDog() {
   });
 }
 
+// 犬のプロフィール更新後、詳細と一覧で使うユーザー関連キャッシュを更新します。
 export function useUpdateDog() {
   const invalidateUserQueries = useInvalidateUserQueries();
   return useMutation<Dog, Error, { id: string; input: UpdateDogInput }>({
@@ -43,6 +45,7 @@ export function useUpdateDog() {
   });
 }
 
+// 犬の削除後、所属犬一覧が変わるためユーザー関連キャッシュを更新します。
 export function useDeleteDog() {
   const invalidateUserQueries = useInvalidateUserQueries();
   return useMutation<boolean, Error, string>({
@@ -54,6 +57,7 @@ export function useDeleteDog() {
   });
 }
 
+// 犬プロフィール写真を直接アップロードするための署名付き URL を発行します。
 export function useGeneratePhotoUploadUrl() {
   return useMutation<PresignedUrl, Error, { dogId: string; contentType: string }>({
     mutationFn: async ({ dogId, contentType }) => {

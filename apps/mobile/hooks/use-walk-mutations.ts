@@ -14,6 +14,7 @@ import type {
   AddWalkPointsResponse,
 } from '@/types/graphql';
 
+// 選択した犬 ID で散歩を開始します。
 export function useStartWalk() {
   return useMutation<Walk, Error, string[]>({
     mutationFn: async (dogIds) => {
@@ -26,6 +27,7 @@ export function useStartWalk() {
   });
 }
 
+// 散歩終了後、散歩一覧・詳細のキャッシュを更新します。
 export function useFinishWalk() {
   const queryClient = useQueryClient();
   return useMutation<Walk, Error, { walkId: string; distanceM?: number }>({
@@ -42,6 +44,7 @@ export function useFinishWalk() {
   });
 }
 
+// GPS 点をサーバーへまとめて追加します。
 export function useAddWalkPoints() {
   return useMutation<boolean, Error, { walkId: string; points: WalkPointInput[] }>({
     mutationFn: async ({ walkId, points }) => {

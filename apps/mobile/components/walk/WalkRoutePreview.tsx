@@ -19,6 +19,7 @@ interface WalkRoutePreviewProps {
 const MAP_HEIGHT = 180;
 const DOT_SIZE = 14;
 
+// 散歩終了後に、記録されたルートと主要メトリクスをコンパクトにプレビューします。
 export function WalkRoutePreview({
   points,
   totalDistanceM,
@@ -26,10 +27,12 @@ export function WalkRoutePreview({
 }: WalkRoutePreviewProps) {
   const theme = useColors();
 
+  // 記録点を地図座標へ変換し、ルートの始点と終点をマーカー表示に使います。
   const coordinates = points.map((p) => ({ latitude: p.lat, longitude: p.lng }));
   const start = coordinates[0];
   const end = coordinates[coordinates.length - 1];
 
+  // ルートがない場合も地図が安定して表示されるよう、東京駅をフォールバックにします。
   const region = start
     ? {
         latitude: (start.latitude + (end?.latitude ?? start.latitude)) / 2,
@@ -112,6 +115,7 @@ interface PillProps {
   theme: ReturnType<typeof useColors>;
 }
 
+// 地図上に重ねる読み取り専用のメトリクス表示です。
 function Pill({ label, theme }: PillProps) {
   return (
     <View

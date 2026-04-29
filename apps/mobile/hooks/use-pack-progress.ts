@@ -3,12 +3,14 @@ import { DEFAULT_DAILY_GOAL_KM } from '@/constants/walk';
 import { useMyWalks } from './use-walks';
 import type { Walk } from '@/types/graphql';
 
+// 犬ごとの今日の距離、総散歩数、継続日数を表します。
 export interface DogProgress {
   todayKm: number;
   totalWalks: number;
   streakDays: number;
 }
 
+// パック全体と犬ごとの散歩進捗を、ホームや犬一覧で使う形にまとめた値です。
 export interface PackProgress {
   todayKm: number;
   goalKm: number;
@@ -38,6 +40,7 @@ function shiftDay(date: Date, delta: number): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate() + delta);
 }
 
+// ローカル日付で連続散歩日数を計算し、昨日まで継続中の場合も streak として扱います。
 function computeStreak(dayKeys: Set<string>, now: Date): number {
   if (dayKeys.size === 0) return 0;
   const today = localDayKey(now);
@@ -54,6 +57,7 @@ function computeStreak(dayKeys: Set<string>, now: Date): number {
   return streak;
 }
 
+// 散歩履歴から、パック全体と犬ごとの今日の進捗・連続日数を集計します。
 export function aggregatePackProgress(
   walks: Walk[],
   goalKm: number = DEFAULT_DAILY_GOAL_KM,
@@ -67,6 +71,7 @@ export function aggregatePackProgress(
   const dogTodayM = new Map<string, number>();
   const dogTotalWalks = new Map<string, number>();
 
+  // 散歩単位の距離をパック全体へ、参加犬ごとには個別進捗へ積み上げます。
   for (const walk of walks) {
     const dayKey = toLocalDayKey(walk.startedAt);
     const distanceM = walk.distanceM ?? 0;
@@ -106,6 +111,7 @@ export function aggregatePackProgress(
   return { todayKm, goalKm, progressPct, packStreakDays, perDog };
 }
 
+// 最新の散歩履歴をもとに、パック進捗をメモ化して返します。
 export function usePackProgress(goalKm: number = DEFAULT_DAILY_GOAL_KM): PackProgress {
   const { data, isLoading } = useMyWalks(100);
   return useMemo(() => {

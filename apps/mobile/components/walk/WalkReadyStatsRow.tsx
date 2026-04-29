@@ -10,11 +10,13 @@ interface StatCell {
   icon?: string;
 }
 
+// 散歩開始前に、今日の距離・連続日数・目標進捗を小さくまとめて表示します。
 export function WalkReadyStatsRow() {
   const { t } = useTranslation();
   const theme = useColors();
   const pack = usePackProgress();
 
+  // pack progress の数値を、表示用の短い統計セルに変換します。
   const cells: StatCell[] = [
     {
       label: t('walk.ready.stats.today'),

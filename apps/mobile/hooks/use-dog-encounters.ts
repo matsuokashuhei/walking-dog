@@ -5,6 +5,7 @@ import { encounterKeys } from '@/lib/graphql/keys';
 import { useIsAuthenticated } from './use-is-authenticated';
 import type { DogEncountersResponse, Encounter } from '@/types/graphql';
 
+// 犬ごとの遭遇履歴をページング条件つきで取得します。
 export function useDogEncounters(dogId: string, limit = 20, offset = 0) {
   const isAuthenticated = useIsAuthenticated();
   return useQuery<Encounter[]>({

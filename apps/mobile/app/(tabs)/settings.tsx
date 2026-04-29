@@ -11,6 +11,7 @@ import { PreferencesSection } from '@/components/settings/PreferencesSection';
 import { LegalSection } from '@/components/settings/LegalSection';
 import { SignOutRow } from '@/components/settings/SignOutRow';
 
+// 設定タブはプロフィール、表示設定、法務リンク、サインアウト導線をまとめます。
 export default function SettingsScreen() {
   const { t } = useTranslation();
   const theme = useColors();
@@ -18,6 +19,7 @@ export default function SettingsScreen() {
 
   if (vm.status === 'loading') return <LoadingScreen />;
   if (vm.status === 'error') {
+    // 設定の取得に失敗した場合は、同じ view-model の再試行だけを許可します。
     return <ErrorScreen message={t('settings.loadError')} onRetry={vm.handleRetry} />;
   }
 

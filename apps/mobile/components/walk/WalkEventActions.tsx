@@ -18,6 +18,7 @@ interface WalkEventActionsProps {
   dogs: Dog[];
 }
 
+// 記録中の Pee/Poo/Photo イベントを、単独犬と複数犬の UI に分けて提供します。
 export function WalkEventActions({ dogs }: WalkEventActionsProps) {
   const { t } = useTranslation();
   const theme = useColors();
@@ -31,6 +32,7 @@ export function WalkEventActions({ dogs }: WalkEventActionsProps) {
 
   const isSingleDog = dogs.length === 1;
   const singleDogId = isSingleDog ? dogs[0].id : undefined;
+  // イベントには直近の GPS 座標を付与し、地図上のマーカーと履歴に反映できるようにします。
   const latestPoint = points.length
     ? {
         lat: points[points.length - 1].lat,
@@ -44,6 +46,7 @@ export function WalkEventActions({ dogs }: WalkEventActionsProps) {
   });
   const isDisabled = !walkId || isPending;
 
+  // Pee/Poo は共通のイベント記録フックに委譲し、失敗時の復旧処理も同じ経路に寄せます。
   const handlePeeOrPoo = useCallback(
     async (eventType: Extract<WalkEventType, 'pee' | 'poo'>, dogId?: string) => {
       await commitEvent(() => recordEvent(eventType, dogId));
@@ -51,6 +54,7 @@ export function WalkEventActions({ dogs }: WalkEventActionsProps) {
     [commitEvent, recordEvent],
   );
 
+  // 写真イベントは権限確認、カメラ起動、アップロード付きイベント記録を順番に実行します。
   const handlePhoto = useCallback(
     async (dogId?: string) => {
       if (!walkId) return;
@@ -88,6 +92,7 @@ export function WalkEventActions({ dogs }: WalkEventActionsProps) {
     [walkId, t, runWithAlert, commitEvent, recordPhoto],
   );
 
+  // 画面遷移時に渡されたカメラ起動要求を、記録画面の準備完了後に処理します。
   useCameraEventTrigger({
     cameraRequestedAt,
     walkId,
@@ -96,6 +101,7 @@ export function WalkEventActions({ dogs }: WalkEventActionsProps) {
     triggerPhoto: handlePhoto,
   });
 
+  // UI 側はイベント種別だけを渡し、写真と通常イベントの実行経路をここで振り分けます。
   const fire = useCallback(
     (type: WalkEventType, dogId?: string) => {
       if (type === 'photo') {
@@ -108,8 +114,10 @@ export function WalkEventActions({ dogs }: WalkEventActionsProps) {
     [handlePhoto, handlePeeOrPoo],
   );
 
+  // 犬がいない状態ではイベントの紐付け先がないため、操作 UI を出しません。
   if (dogs.length === 0) return null;
 
+  // 単独犬ではイベント種別ごとの横並びボタンで、現在回数も一緒に見せます。
   if (isSingleDog) {
     const counts = countEventsByType(events);
     return (
@@ -131,6 +139,7 @@ export function WalkEventActions({ dogs }: WalkEventActionsProps) {
     );
   }
 
+  // 複数犬では犬ごとの行に分け、押した行の犬 ID へイベントを紐付けます。
   return (
     <View style={styles.multiList}>
       {dogs.map((dog, index) => {

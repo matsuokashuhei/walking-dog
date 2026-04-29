@@ -10,6 +10,7 @@ import {
 } from '@/lib/walk/format';
 import type { Walk, WalkEvent } from '@/types/graphql';
 
+// Walk 詳細画面に必要な表示用データをまとめた ViewModel です。
 export interface WalkDetailViewModel {
   coordinates: { latitude: number; longitude: number }[];
   events: WalkEvent[];
@@ -30,10 +31,12 @@ export interface WalkDetailViewModel {
   } | null;
 }
 
+// 散歩データを距離・時間・地図・イベント表示用の値へ整形します。
 export function useWalkDetailViewModel(walk: Walk | null | undefined): WalkDetailViewModel | null {
   const { i18n } = useTranslation();
 
   return useMemo(() => {
+    // データ取得前は画面側が空状態として扱えるよう null を返します。
     if (!walk) return null;
 
     const distanceM = walk.distanceM ?? 0;

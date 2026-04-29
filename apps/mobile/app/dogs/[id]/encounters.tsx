@@ -9,6 +9,7 @@ import { useColors } from '@/hooks/use-colors';
 import { spacing, typography } from '@/theme/tokens';
 import type { Encounter } from '@/types/graphql';
 
+// 遭遇履歴画面は指定された犬 ID の encounter 一覧を取得して時系列カードで表示します。
 export default function DogEncountersScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -30,6 +31,7 @@ export default function DogEncountersScreen() {
       </View>
 
       {!encounters || encounters.length === 0 ? (
+        // まだ散歩中の遭遇がない場合は、履歴リストの代わりに空状態を表示します。
         <EmptyState
           message={t('dogs.encounters.empty', 'No encounters yet. Start a walk to meet other dogs!')}
         />

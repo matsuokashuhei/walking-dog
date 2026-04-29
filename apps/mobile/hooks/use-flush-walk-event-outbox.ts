@@ -12,18 +12,7 @@ export interface FlushOutcome {
   remaining: number;
 }
 
-/**
- * Replay queued walk events one-by-one. Stops on the first failure on the
- * assumption that we are still offline (or the server is unhappy); the
- * remaining items stay in the outbox for the next attempt.
- *
- * Each successfully replayed event is appended to the in-memory walk store
- * and triggers a light haptic so the UI counter and feedback match what the
- * user did at the original tap. This intentionally mirrors the post-mutation
- * step in `WalkEventActions` rather than going through `useCommitWalkEvent`,
- * which is part of a separate facade refactor (M1) that may not be merged
- * yet.
- */
+// outbox に残った散歩イベントを順番に再送し、最初の失敗で次回へ持ち越します。
 export function useFlushWalkEventOutbox() {
   const recordWalkEvent = useRecordWalkEvent();
   const addEvent = useWalkStore((s) => s.addEvent);
@@ -33,6 +22,7 @@ export function useFlushWalkEventOutbox() {
     let flushed = 0;
     for (const item of pending) {
       try {
+        // 再送に成功したイベントはストアにも反映し、元のタップ操作と同じ触覚反応を返します。
         const event = await recordWalkEvent.mutateAsync({
           walkId: item.walkId,
           ...(item.dogId !== undefined ? { dogId: item.dogId } : {}),
@@ -47,6 +37,7 @@ export function useFlushWalkEventOutbox() {
         await removePendingEvent(item.id);
         flushed += 1;
       } catch {
+        // まだオフラインまたはサーバー側で失敗している前提で、残りは outbox に残します。
         break;
       }
     }

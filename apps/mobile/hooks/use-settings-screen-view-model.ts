@@ -14,11 +14,13 @@ interface SettingsScreenReadyViewModel extends SettingsScreenBaseViewModel {
   me: User;
 }
 
+// Settings 画面が loading/error/ready を分岐するための ViewModel です。
 export type SettingsScreenViewModel =
   | (SettingsScreenBaseViewModel & { status: 'loading' })
   | (SettingsScreenBaseViewModel & { status: 'error' })
   | SettingsScreenReadyViewModel;
 
+// ユーザー情報取得と再試行操作を Settings 画面向けにまとめます。
 export function useSettingsScreenViewModel(): SettingsScreenViewModel {
   const { data: me, isLoading, error, refetch } = useMe();
 
@@ -26,6 +28,7 @@ export function useSettingsScreenViewModel(): SettingsScreenViewModel {
     void refetch();
   }, [refetch]);
 
+  // 画面側がデータ有無を意識せず表示分岐できるよう、状態ごとに返却形を固定します。
   if (isLoading) {
     return { status: 'loading', handleRetry };
   }

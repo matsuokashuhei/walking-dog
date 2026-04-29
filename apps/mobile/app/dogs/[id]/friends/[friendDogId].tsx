@@ -10,6 +10,7 @@ import { useColors } from '@/hooks/use-colors';
 import { formatDuration, formatShortDate } from '@/lib/walk/format';
 import { spacing, radius, typography } from '@/theme/tokens';
 
+// 友達犬詳細画面は自分の犬 ID と相手の犬 ID から関係サマリーを表示します。
 export default function FriendDogDetailScreen() {
   const { t, i18n } = useTranslation();
   const { id, friendDogId } = useLocalSearchParams<{ id: string; friendDogId: string }>();
@@ -42,6 +43,7 @@ export default function FriendDogDetailScreen() {
       </View>
 
       <View style={styles.statsGrid}>
+        {/* 関係の強さが分かるよう、遭遇回数と合計時間を先に並べます。 */}
         <OutlinedCard padding="md">
           <Text style={[styles.statLabel, { color: theme.onSurfaceVariant }]}>
             {t('dogs.friends.encounters', 'Encounters').toUpperCase()}
@@ -61,6 +63,7 @@ export default function FriendDogDetailScreen() {
       </View>
 
       <View style={styles.statsGrid}>
+        {/* 初回と直近の遭遇日を並べ、関係がいつ始まり更新されたかを見せます。 */}
         <OutlinedCard padding="md">
           <Text style={[styles.statLabel, { color: theme.onSurfaceVariant }]}>
             {t('dogs.friends.firstMet', 'First Met').toUpperCase()}

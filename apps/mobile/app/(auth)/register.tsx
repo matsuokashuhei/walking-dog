@@ -9,6 +9,7 @@ import { spacing, typography } from '@/theme/tokens';
 
 type Step = 'register' | 'confirm';
 
+// 登録画面はアカウント作成と確認コード入力の 2 ステップを同じ route 内で切り替えます。
 export default function RegisterScreen() {
   const router = useRouter();
   const theme = useColors();
@@ -17,6 +18,7 @@ export default function RegisterScreen() {
   const [step, setStep] = useState<Step>('register');
   const [pendingEmail, setPendingEmail] = useState('');
 
+  // サインアップ結果に応じて、確認済みならログインへ、未確認なら確認ステップへ進めます。
   function handleRegisterSuccess(email: string, userConfirmed: boolean) {
     if (userConfirmed) {
       router.replace('/(auth)/login');
@@ -35,6 +37,7 @@ export default function RegisterScreen() {
       contentContainerStyle={[styles.container, { backgroundColor: theme.background }]}
       keyboardShouldPersistTaps="handled"
     >
+      {/* 現在の登録ステップに合わせて、入力フォームと確認コードフォームを切り替えます。 */}
       {step === 'register' ? (
         <>
           <Pressable

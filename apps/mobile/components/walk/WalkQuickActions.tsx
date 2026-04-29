@@ -15,11 +15,7 @@ interface WalkQuickActionsProps {
   dogs: Dog[];
 }
 
-/**
- * Compact floating event pills shown above the minimized walk panel.
- * Single dog → Pee / Poop pills (labelled) + Photo icon.
- * Multi dog → `💧 <name>` + `💩 <name>` per dog + one shared Photo icon.
- */
+// ミニ表示中でも使えるイベント記録ボタンです。犬の数に応じて表示粒度を切り替えます。
 export function WalkQuickActions({ dogs }: WalkQuickActionsProps) {
   const { t } = useTranslation();
   const theme = useColors();
@@ -33,6 +29,7 @@ export function WalkQuickActions({ dogs }: WalkQuickActionsProps) {
   const latestPoint = points[points.length - 1];
   const isDisabled = !walkId || recordWalkEvent.isPending || photoUpload.isPending;
 
+  // Pee/Poo は最新位置と一緒に API へ送り、成功したイベントをローカル store に反映します。
   const handlePeeOrPoo = useCallback(
     async (eventType: 'pee' | 'poo', dogId?: string) => {
       if (!walkId) return;
@@ -56,6 +53,7 @@ export function WalkQuickActions({ dogs }: WalkQuickActionsProps) {
     [walkId, latestPoint, recordWalkEvent, addEvent, runWithAlert],
   );
 
+  // 写真は権限確認、撮影、アップロード、イベント登録までを 1 つの操作として扱います。
   const handlePhoto = useCallback(
     async (dogId?: string) => {
       if (!walkId) return;
@@ -110,6 +108,7 @@ export function WalkQuickActions({ dogs }: WalkQuickActionsProps) {
     [walkId, latestPoint, t, photoUpload, addEvent, runWithAlert],
   );
 
+  // 犬が選ばれていない場合は、記録先がないためクイック操作を隠します。
   if (dogs.length === 0) return null;
 
   return (
@@ -119,6 +118,7 @@ export function WalkQuickActions({ dogs }: WalkQuickActionsProps) {
       contentContainerStyle={styles.content}
       style={styles.scroll}
     >
+      {/* 単独犬はイベント名、複数犬は犬名を前面に出して誤記録を防ぎます。 */}
       {isSingleDog ? (
         <>
           <Pill
@@ -189,6 +189,7 @@ interface PillProps {
   compact?: boolean;
 }
 
+// クイック操作の各ボタンは、非同期処理でも Pressable 側へ Promise を漏らさないよう包みます。
 function Pill({ label, onPress, disabled, bg, border, color, accessibilityLabel, compact }: PillProps) {
   return (
     <Pressable

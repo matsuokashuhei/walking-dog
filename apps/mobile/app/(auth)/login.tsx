@@ -6,6 +6,7 @@ import { LoginForm } from '@/components/auth/LoginForm';
 import { useColors } from '@/hooks/use-colors';
 import { spacing, typography } from '@/theme/tokens';
 
+// ログイン画面は認証フォームだけを担当し、成功後の遷移はルートの認証ガードに任せます。
 export default function LoginScreen() {
   const router = useRouter();
   const { t } = useTranslation();
@@ -25,7 +26,7 @@ export default function LoginScreen() {
         </View>
         <LoginForm
           onSuccess={() => {
-            // Navigation guard in _layout.tsx handles redirect to (tabs)
+            // 認証後の遷移は _layout.tsx の NavigationGuard が一元管理します。
           }}
         />
       </View>

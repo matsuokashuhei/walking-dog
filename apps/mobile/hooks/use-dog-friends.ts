@@ -5,6 +5,7 @@ import { friendshipKeys } from '@/lib/graphql/keys';
 import { useIsAuthenticated } from './use-is-authenticated';
 import type { DogFriendsResponse, Friendship } from '@/types/graphql';
 
+// 認証済みかつ犬 ID がある場合だけ、犬の友だち一覧を取得します。
 export function useDogFriends(dogId: string) {
   const isAuthenticated = useIsAuthenticated();
   return useQuery<Friendship[]>({

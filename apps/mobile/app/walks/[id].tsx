@@ -11,6 +11,7 @@ import { useWalkDetailViewModel } from '@/hooks/use-walk-detail-view-model';
 import { WalkEventTimeline } from '@/components/walk/WalkEventTimeline';
 import { MAP_EVENT_EMOJIS } from '@/lib/walk/events';
 
+// 散歩詳細画面は保存済み散歩のルート、メトリクス、担当者、イベント履歴を表示します。
 export default function WalkDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t } = useTranslation();
@@ -19,6 +20,7 @@ export default function WalkDetailScreen() {
   const vm = useWalkDetailViewModel(walk);
 
   if (isLoading || !walk || !vm) {
+    // 詳細データまたは表示用モデルが揃うまでは、地図を描画せずローディングに留めます。
     return (
       <View style={[styles.center, { backgroundColor: theme.background }]}>
         <ActivityIndicator />
@@ -27,6 +29,7 @@ export default function WalkDetailScreen() {
   }
 
   const separator = t('walk.detail.timeSeparator');
+  // スクリーンリーダー向けには開始・終了の文脈を含めた時刻ラベルを組み立てます。
   const timeLabel = vm.endTime
     ? `${t('walk.detail.startTime')} ${vm.startTime}${separator}${t('walk.detail.endTime')} ${vm.endTime}`
     : `${t('walk.detail.startTime')} ${vm.startTime}`;
@@ -47,6 +50,7 @@ export default function WalkDetailScreen() {
               longitudeDelta: 0.01,
             }}
           >
+            {/* GPS 点が 2 点以上ある場合だけルート線を描き、単一点の誤表示を避けます。 */}
             {vm.coordinates.length >= 2 ? (
               <Polyline
                 coordinates={vm.coordinates}
@@ -59,6 +63,7 @@ export default function WalkDetailScreen() {
             {vm.events
               .filter((e) => e.lat != null && e.lng != null)
               .map((e) => (
+                // 座標を持つイベントだけを、種別ごとの絵文字マーカーとして地図に重ねます。
                 <Marker
                   key={e.id}
                   coordinate={{ latitude: e.lat!, longitude: e.lng! }}
@@ -112,6 +117,7 @@ export default function WalkDetailScreen() {
         </GroupedCard>
 
         {vm.walker ? (
+          // 担当者情報がある散歩だけ、アバターまたはイニシャル付きで表示します。
           <View style={styles.walkerSection}>
             <Text style={[styles.walkerLabel, { color: theme.onSurfaceVariant }]}>
               {t('walk.detail.walker')}
@@ -146,6 +152,7 @@ export default function WalkDetailScreen() {
         ) : null}
 
         {vm.events.length > 0 ? (
+          // 記録イベントがある場合だけ、詳細タイムラインを追加します。
           <GroupedCard style={styles.timelineCard}>
             <WalkEventTimeline events={vm.events} />
           </GroupedCard>
@@ -155,6 +162,7 @@ export default function WalkDetailScreen() {
   );
 }
 
+// メトリクスセルは距離・時間・ペースで同じ見た目を共有します。
 function Metric({
   label,
   value,

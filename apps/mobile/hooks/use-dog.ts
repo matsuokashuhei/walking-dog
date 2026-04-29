@@ -4,6 +4,7 @@ import { DOG_QUERY } from '@/lib/graphql/queries/dog';
 import { dogKeys } from '@/lib/graphql/keys';
 import type { DogResponse, DogWithStats, StatsPeriod } from '@/types/graphql';
 
+// 犬の詳細と期間別統計を取得し、ID が未確定の間は問い合わせを止めます。
 export function useDog(id: string, period: StatsPeriod = 'ALL') {
   return useQuery<DogWithStats | null>({
     queryKey: dogKeys.detail(id, period),

@@ -4,6 +4,7 @@ import { useMe } from '@/hooks/use-me';
 import { usePackProgress } from '@/hooks/use-pack-progress';
 import type { Dog } from '@/types/graphql';
 
+// Dogs 画面へ渡す犬一覧、パック進捗、画面操作をまとめた ViewModel です。
 export interface DogsScreenViewModel {
   dogs: Dog[];
   pack: ReturnType<typeof usePackProgress>;
@@ -13,6 +14,7 @@ export interface DogsScreenViewModel {
   handleRefresh: () => void;
 }
 
+// 現在ユーザーの犬一覧と画面遷移ハンドラを Dogs 画面向けに組み立てます。
 export function useDogsScreenViewModel(): DogsScreenViewModel {
   const router = useRouter();
   const { data: me, isLoading, refetch } = useMe();

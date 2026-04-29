@@ -6,12 +6,14 @@ import { DogForm, type DogFormValues } from '@/components/dogs/DogForm';
 import { useColors } from '@/hooks/use-colors';
 import { spacing } from '@/theme/tokens';
 
+// 新規犬登録画面はフォーム送信後、作成した犬の詳細へ遷移します。
 export default function NewDogScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const theme = useColors();
   const { mutateAsync: createDog } = useCreateDog();
 
+  // フォーム値を API 入力へ整え、作成完了後にモーダルを閉じて詳細画面へ進みます。
   async function handleSubmit(values: DogFormValues) {
     const dog = await createDog({
       name: values.name,

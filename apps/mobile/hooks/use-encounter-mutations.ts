@@ -11,6 +11,7 @@ import type {
   UpdateEncounterDurationResponse,
 } from '@/types/graphql';
 
+// 犬同士の遭遇を記録し、友だち・遭遇関連のキャッシュを更新します。
 export function useRecordEncounter() {
   const queryClient = useQueryClient();
   return useMutation<Encounter[], Error, { myWalkId: string; theirWalkId: string }>({
@@ -28,6 +29,7 @@ export function useRecordEncounter() {
   });
 }
 
+// 確定した遭遇時間をサーバーへ反映します。
 export function useUpdateEncounterDuration() {
   return useMutation<
     boolean,

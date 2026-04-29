@@ -2,6 +2,7 @@ import { Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
 
+// 犬詳細配下の編集、メンバー、友達、遭遇履歴 route のヘッダー設定を集約します。
 export default function DogDetailLayout() {
   const { t } = useTranslation();
   const theme = useColors();

@@ -9,6 +9,7 @@ interface UseCameraEventTriggerArgs {
   triggerPhoto: (dogId?: string) => void | Promise<void>;
 }
 
+// 画面遷移で受け取ったカメラ起動要求を、アプリが active になってから実行します。
 export function useCameraEventTrigger({
   cameraRequestedAt,
   walkId,
@@ -18,6 +19,7 @@ export function useCameraEventTrigger({
 }: UseCameraEventTriggerArgs) {
   const cameraTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // カメラ画面へ戻った直後の競合を避けるため、短い遅延を置いて写真操作を起動します。
   useEffect(() => {
     if (cameraTimerRef.current !== null) {
       clearTimeout(cameraTimerRef.current);

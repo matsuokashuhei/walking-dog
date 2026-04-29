@@ -11,6 +11,7 @@ interface WalkHistoryItemProps {
   walk: Walk;
 }
 
+// 散歩履歴の 1 件を、日付・犬・担当者・主要メトリクスに絞って表示します。
 export function WalkHistoryItem({ walk }: WalkHistoryItemProps) {
   const { t, i18n } = useTranslation();
   const router = useRouter();
@@ -22,6 +23,7 @@ export function WalkHistoryItem({ walk }: WalkHistoryItemProps) {
   const dogNames = walk.dogs.map((d) => d.name).join(', ');
 
   const walker = walk.walker;
+  // 担当者の画像がない場合に備え、表示名の先頭文字をフォールバックにします。
   const walkerInitial = walker?.displayName?.charAt(0)?.toUpperCase() ?? '?';
 
   return (

@@ -17,6 +17,7 @@ import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { useColors } from '@/hooks/use-colors';
 import { spacing } from '@/theme/tokens';
 
+// メンバー画面は招待、メンバー削除、自分の退出を権限に応じて切り替えます。
 export default function DogMembersScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -44,6 +45,7 @@ export default function DogMembersScreen() {
     (m) => m.userId === currentUserId && m.role === 'owner',
   );
 
+  // 招待作成後はアプリの deep link を共有シートへ渡し、相手が参加できるようにします。
   async function handleInvite() {
     const invitation = await runWithAlert(
       () => generateInvitation.mutateAsync(id),
@@ -54,6 +56,7 @@ export default function DogMembersScreen() {
     }
   }
 
+  // メンバー削除は確認ダイアログで選ばれたユーザーだけを対象にします。
   async function handleRemove() {
     if (!confirmRemove) return;
     const ok = await runWithAlert(
@@ -63,6 +66,7 @@ export default function DogMembersScreen() {
     if (ok) setConfirmRemove(null);
   }
 
+  // owner 以外の退出は成功後に犬一覧へ戻し、参照できない犬詳細に残らないようにします。
   async function handleLeave() {
     const ok = await runWithAlert(
       () => leaveDog.mutateAsync(id),
@@ -83,6 +87,7 @@ export default function DogMembersScreen() {
       </View>
 
       <View style={styles.actions}>
+        {/* owner は招待、member は退出だけを表示して誤操作を防ぎます。 */}
         {isOwner ? (
           <Button
             label={t('dogs.members.invite')}

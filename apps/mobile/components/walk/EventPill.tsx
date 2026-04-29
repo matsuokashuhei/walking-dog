@@ -12,6 +12,7 @@ export interface EventPillProps {
   countColor: string;
 }
 
+// 単独犬の散歩で、イベント種別ごとの記録ボタンと現在回数を表示します。
 export function EventPill({
   label,
   emoji,

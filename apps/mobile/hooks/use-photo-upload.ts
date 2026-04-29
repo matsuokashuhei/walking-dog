@@ -3,11 +3,13 @@ import {
   useGenerateWalkEventPhotoUploadUrl,
   useRecordWalkEvent,
 } from '@/hooks/use-walk-event-mutations';
-import { uploadToPresignedUrl } from '@/lib/upload';
+import { normalizeImageContentType, uploadToPresignedUrl } from '@/lib/upload';
 import type { WalkEvent } from '@/types/graphql';
 
+// 写真アップロード処理のどの段階で失敗したかを表します。
 export type PhotoUploadPhase = 'presign' | 'upload' | 'record';
 
+// アラート文言を切り替えるため、失敗した段階を保持するエラーです。
 export class PhotoUploadError extends Error {
   readonly phase: PhotoUploadPhase;
   override readonly cause: unknown;
@@ -27,6 +29,7 @@ interface UploadPhotoArgs {
   latestPoint?: { lat: number; lng: number };
 }
 
+// 署名付き URL の発行、画像アップロード、写真イベント記録を順に実行します。
 export function usePhotoUpload() {
   const generatePhotoUploadUrl = useGenerateWalkEventPhotoUploadUrl();
   const recordWalkEvent = useRecordWalkEvent();
@@ -35,7 +38,8 @@ export function usePhotoUpload() {
     async (args: UploadPhotoArgs): Promise<WalkEvent> => {
       let phase: PhotoUploadPhase = 'presign';
       try {
-        const contentType = args.asset.mimeType ?? 'image/jpeg';
+        // 各段階の直前に phase を更新し、失敗箇所を呼び出し元へ伝えます。
+        const contentType = normalizeImageContentType(args.asset.mimeType);
         const { url, key } = await generatePhotoUploadUrl.mutateAsync({
           walkId: args.walkId,
           contentType,
@@ -50,14 +54,13 @@ export function usePhotoUpload() {
           dogId: args.dogId,
           eventType: 'photo',
           occurredAt: new Date().toISOString(),
-          ...(args.latestPoint
-            ? { lat: args.latestPoint.lat, lng: args.latestPoint.lng }
-            : {}),
+          ...(args.latestPoint ?? {}),
           photoKey: key,
         });
 
         return event;
       } catch (cause) {
+        // 元の例外は cause に残し、UI では phase ごとの文言に変換できるようにします。
         throw new PhotoUploadError(phase, cause);
       }
     },

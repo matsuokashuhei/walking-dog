@@ -8,10 +8,11 @@ import { useMutationWithAlert } from '@/hooks/use-mutation-with-alert';
 import { DogForm, type DogFormValues } from '@/components/dogs/DogForm';
 import { PhotoPicker } from '@/components/dogs/PhotoPicker';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
-import { uploadToPresignedUrl } from '@/lib/upload';
+import { normalizeImageContentType, uploadToPresignedUrl } from '@/lib/upload';
 import { useColors } from '@/hooks/use-colors';
 import { spacing } from '@/theme/tokens';
 
+// 犬編集画面はプロフィールフォームと写真アップロードを同じ route で扱います。
 export default function EditDogScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -27,18 +28,27 @@ export default function EditDogScreen() {
 
   if (isLoading || !dog) return <LoadingScreen />;
 
+  // 写真は先に署名付き URL へアップロードし、成功した key だけを犬プロフィールへ保存します。
   async function handlePhotoChange(uri: string, contentType: string) {
+    const normalizedContentType = normalizeImageContentType(contentType);
     setPreviewUri(uri);
     setPhotoLoading(true);
-    await runWithAlert(async () => {
-      const { url, key } = await generateUploadUrl({ dogId: id, contentType });
-      await uploadToPresignedUrl(url, uri, contentType);
-      await updateDog({ id, input: { photoUrl: key } });
-    }, 'dogs.edit.photoUploadError');
-    setPreviewUri(null);
-    setPhotoLoading(false);
+    try {
+      await runWithAlert(async () => {
+        const { url, key } = await generateUploadUrl({
+          dogId: id,
+          contentType: normalizedContentType,
+        });
+        await uploadToPresignedUrl(url, uri, normalizedContentType);
+        await updateDog({ id, input: { photoUrl: key } });
+      }, 'dogs.edit.photoUploadError');
+    } finally {
+      setPreviewUri(null);
+      setPhotoLoading(false);
+    }
   }
 
+  // 基本情報の更新後は元の詳細画面へ戻り、変更結果は query の再取得に任せます。
   async function handleSubmit(values: DogFormValues) {
     await updateDog({
       id,

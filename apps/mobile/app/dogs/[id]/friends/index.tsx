@@ -9,6 +9,7 @@ import { useColors } from '@/hooks/use-colors';
 import { spacing, typography } from '@/theme/tokens';
 import type { Friendship } from '@/types/graphql';
 
+// 友達一覧画面は遭遇から生まれた犬同士の関係を一覧化し、個別詳細へつなげます。
 export default function DogFriendsScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -31,6 +32,7 @@ export default function DogFriendsScreen() {
       </View>
 
       {!friends || friends.length === 0 ? (
+        // 友達がまだいない場合は、散歩開始を促す空状態だけを表示します。
         <EmptyState
           message={t('dogs.friends.empty', 'No friends yet. Start a walk to meet other dogs!')}
         />

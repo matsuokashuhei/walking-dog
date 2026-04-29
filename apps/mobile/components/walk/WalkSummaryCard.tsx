@@ -15,6 +15,7 @@ import type { Dog } from '@/types/graphql';
 
 const AVATAR = 22;
 
+// 散歩終了直後のサマリー画面です。ルート、犬別集計、保存導線をまとめます。
 export function WalkSummaryCard() {
   const router = useRouter();
   const { t } = useTranslation();
@@ -30,6 +31,7 @@ export function WalkSummaryCard() {
   const reset = useWalkStore((s) => s.reset);
 
   const { data: me } = useMe();
+  // 終了時点で選択されていた犬だけを、プロフィール情報から引き直して表示します。
   const dogs = useMemo<Dog[]>(
     () => (me?.dogs ?? []).filter((d) => selectedDogIds.includes(d.id)),
     [me?.dogs, selectedDogIds],
@@ -42,6 +44,7 @@ export function WalkSummaryCard() {
 
   const isSingle = dogs.length <= 1;
   const firstDog = dogs[0];
+  // 単独犬と複数犬で、完了メッセージと保存メモの文脈を切り替えます。
   const title = isSingle
     ? t('walk.finished.titleSingle', { name: firstDog?.name ?? '' })
     : t('walk.finished.titleMulti');
@@ -64,6 +67,7 @@ export function WalkSummaryCard() {
         b: dogs[1]?.name ?? '',
       });
 
+  // 保存後は記録中 store をリセットしてから、保存済み散歩の詳細へ移動します。
   const handleSave = () => {
     const id = walkId;
     reset();
@@ -107,6 +111,7 @@ export function WalkSummaryCard() {
           elapsedSec={elapsedSec}
         />
 
+        {/* 複数犬の散歩だけ、犬ごとのイベント内訳を追加で表示します。 */}
         {!isSingle ? (
           <PerDogSummaryCard
             dogs={dogs}
@@ -145,6 +150,7 @@ interface AvatarStackProps {
 }
 
 function AvatarStack({ dogs, borderColor }: AvatarStackProps) {
+  // 犬が取得できない場合は、サブタイトル横のアバターだけを省略します。
   if (dogs.length === 0) return null;
   return (
     <View style={styles.avatars}>
@@ -165,6 +171,7 @@ function AvatarStack({ dogs, borderColor }: AvatarStackProps) {
 }
 
 function joinNames(dogs: Dog[], t: (key: string) => string): string {
+  // 複数犬の名前を、翻訳された接続詞を使って自然な文章にします。
   if (dogs.length === 0) return '';
   if (dogs.length === 1) return dogs[0].name;
   const joiner = t('walk.finished.joinerAnd');

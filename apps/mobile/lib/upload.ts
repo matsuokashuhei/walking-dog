@@ -1,26 +1,36 @@
+import * as FileSystem from 'expo-file-system/legacy';
+
 /**
  * Uploads a local file to an S3 presigned URL using HTTP PUT.
- * The presigned URL is obtained from the API via generateDogPhotoUploadUrl mutation.
  */
 export async function uploadToPresignedUrl(
   presignedUrl: string,
   fileUri: string,
   contentType: string
 ): Promise<void> {
-  const blob = await uriToBlob(fileUri);
-
-  const response = await fetch(presignedUrl, {
-    method: 'PUT',
+  const response = await FileSystem.uploadAsync(presignedUrl, fileUri, {
+    httpMethod: 'PUT',
+    uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
     headers: { 'Content-Type': contentType },
-    body: blob,
   });
 
-  if (!response.ok) {
-    throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
+  if (response.status < 200 || response.status >= 300) {
+    throw new Error(`Upload failed: ${response.status}`);
   }
 }
 
-async function uriToBlob(uri: string): Promise<Blob> {
-  const response = await fetch(uri);
-  return response.blob();
+export function normalizeImageContentType(contentType?: string | null): string {
+  const normalized = contentType?.split(';', 1)[0]?.trim().toLowerCase();
+
+  if (!normalized) return 'image/jpeg';
+
+  switch (normalized) {
+    case 'image/jpg':
+    case 'image/pjpeg':
+      return 'image/jpeg';
+    case 'image/x-png':
+      return 'image/png';
+    default:
+      return normalized;
+  }
 }

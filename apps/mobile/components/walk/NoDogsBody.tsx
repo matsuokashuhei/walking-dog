@@ -4,12 +4,14 @@ import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
 import { radius, spacing, typography } from '@/theme/tokens';
 
+// 登録済みの犬がいない場合の案内と、犬登録画面への導線を表示します。
 export function NoDogsBody() {
   const { t } = useTranslation();
   const theme = useColors();
   const router = useRouter();
 
   const ctaLabel = t('walk.ready.noDogsCta');
+  // 空状態からすぐ散歩準備へ戻れるよう、犬の新規登録へ送ります。
   const handleAdd = () => router.push('/dogs/new');
 
   return (

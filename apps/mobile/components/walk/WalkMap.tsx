@@ -5,21 +5,18 @@ import { useWalkStore } from '@/stores/walk-store';
 import { MAP_EVENT_EMOJIS } from '@/lib/walk/events';
 import { TOKYO_STATION_COORDINATE } from '@/lib/walk/constants';
 
-/**
- * Live recording map. Reads both the GPS trail (`points`) and recorded events
- * from `walk-store` so the entire visible state comes from one source of
- * truth. Event markers update in lockstep with `WalkEventActions` writes.
- */
 interface WalkMapProps {
   mode?: 'preview' | 'recording';
 }
 
+// 散歩マップは GPS 軌跡と記録イベントを store から読み、地図表示の単一の情報源にします。
 export function WalkMap({ mode = 'recording' }: WalkMapProps) {
   const theme = useColors();
   const points = useWalkStore((s) => s.points);
   const events = useWalkStore((s) => s.events);
   const isRecording = mode === 'recording';
 
+  // 地図ライブラリ用の座標形式へ変換し、最後の地点を現在地表示の基準にします。
   const coordinates = points.map((p) => ({ latitude: p.lat, longitude: p.lng }));
   const lastPoint = coordinates[coordinates.length - 1];
 
@@ -29,6 +26,7 @@ export function WalkMap({ mode = 'recording' }: WalkMapProps) {
         style={styles.map}
         showsUserLocation={isRecording}
         followsUserLocation={isRecording}
+        // 位置情報がまだないプレビューでは東京駅を初期表示にして、空の地図を避けます。
         initialRegion={
           lastPoint
             ? {
@@ -53,6 +51,7 @@ export function WalkMap({ mode = 'recording' }: WalkMapProps) {
           />
         ) : null}
         {isRecording && lastPoint ? <Marker coordinate={lastPoint} /> : null}
+        {/* 座標を持つイベントだけをマーカー化し、記録操作と地図表示を同期させます。 */}
         {isRecording
           ? events
               .filter((e) => e.lat != null && e.lng != null)

@@ -10,6 +10,7 @@ import { SectionHeader } from '@/components/ui/SectionHeader';
 import { useColors } from '@/hooks/use-colors';
 import { spacing, typography } from '@/theme/tokens';
 
+// 犬一覧タブは pack 全体の進捗と登録済み犬の一覧操作を view-model へ委譲します。
 export default function DogsScreen() {
   const { t } = useTranslation();
   const theme = useColors();
@@ -17,6 +18,7 @@ export default function DogsScreen() {
 
   if (vm.isLoading) return <LoadingScreen />;
 
+  // 一覧の先頭には画面タイトル、追加導線、pack の集計カードをまとめて表示します。
   const ListHeader = (
     <View style={styles.headerContainer}>
       <View style={styles.titleRow}>
@@ -70,6 +72,7 @@ export default function DogsScreen() {
         onRefresh={vm.handleRefresh}
         refreshing={vm.isLoading}
         ListEmptyComponent={
+          // 登録済みの犬がいない場合だけ、犬追加への導線を空状態として表示します。
           <EmptyState
             message={t('dogs.list.empty')}
             ctaLabel={t('dogs.list.addDog')}

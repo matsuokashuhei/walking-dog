@@ -15,10 +15,11 @@ interface WalkControlsProps {
   dogs: Dog[];
   onStop: () => void;
   isStopping: boolean;
-  /** Pee/Poo/Photo controls — supplied by <WalkEventActions /> from walk.tsx. */
+  /** Pee/Poo/Photo 操作は walk.tsx から <WalkEventActions /> として差し込みます。 */
   children?: ReactNode;
 }
 
+// 記録中の下部パネルとして、犬の表示、メトリクス、イベント操作、停止操作をまとめます。
 export function WalkControls({ dogs, onStop, isStopping, children }: WalkControlsProps) {
   const { t } = useTranslation();
   const startedAt = useWalkStore((s) => s.startedAt);
@@ -31,12 +32,14 @@ export function WalkControls({ dogs, onStop, isStopping, children }: WalkControl
   const pausedAtMsRef = useRef<number | null>(null);
   const elapsedSec = useWalkElapsed({ startedAt, isPaused, totalPausedMs });
 
+  // 新しい散歩が始まったら、一時停止状態を前回セッションから持ち越さないよう初期化します。
   useEffect(() => {
     pausedAtMsRef.current = null;
     setIsPaused(false);
     setTotalPausedMs(0);
   }, [startedAtMs]);
 
+  // 一時停止の開始時刻だけを ref に残し、再開時に累計停止時間へ加算します。
   const togglePause = () => {
     if (isPaused && pausedAtMsRef.current !== null) {
       setTotalPausedMs((ms) => ms + (Date.now() - pausedAtMsRef.current!));
@@ -48,6 +51,7 @@ export function WalkControls({ dogs, onStop, isStopping, children }: WalkControl
     }
   };
 
+  // 記録中パネルのメトリクスは、設定単位に合わせた表示文字列へ変換して渡します。
   const { value: distanceValue, unit: distanceUnit } = formatDistanceParts(totalDistanceM, units);
   const pace = formatPace(elapsedSec, totalDistanceM, units);
   const metrics = [
@@ -61,6 +65,7 @@ export function WalkControls({ dogs, onStop, isStopping, children }: WalkControl
   ];
 
   const isSingleDog = dogs.length === 1;
+  // 単独散歩では時間帯ラベル、複数犬ではグループ散歩ラベルを表示します。
   const title = isSingleDog ? dogs[0].name : dogs.map((d) => d.name).join(' + ');
   const subtitle = isSingleDog
     ? contextualWalkLabel(startedAt, t)
@@ -84,6 +89,7 @@ export function WalkControls({ dogs, onStop, isStopping, children }: WalkControl
 }
 
 function contextualWalkLabel(startedAt: Date | null, t: (key: string) => string) {
+  // 散歩開始時刻を使って、朝・昼・夜の自然なラベルに切り替えます。
   const hour = (startedAt ?? new Date()).getHours();
   if (hour < 12) return t('walk.recording.morningWalk');
   if (hour < 18) return t('walk.recording.afternoonWalk');

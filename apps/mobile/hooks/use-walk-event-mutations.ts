@@ -12,6 +12,7 @@ import type {
   GenerateWalkEventPhotoUploadUrlResponse,
 } from '@/types/graphql';
 
+// 散歩中のイベントをサーバーへ記録します。
 export function useRecordWalkEvent() {
   return useMutation<WalkEvent, Error, RecordWalkEventInput>({
     mutationFn: async (input) => {
@@ -24,6 +25,7 @@ export function useRecordWalkEvent() {
   });
 }
 
+// 散歩イベント写真を直接アップロードするための署名付き URL を発行します。
 export function useGenerateWalkEventPhotoUploadUrl() {
   return useMutation<PresignedUrl, Error, { walkId: string; contentType: string }>({
     mutationFn: async ({ walkId, contentType }) => {

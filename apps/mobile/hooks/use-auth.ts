@@ -2,6 +2,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import * as authApi from '@/lib/auth/api';
 import type { SignUpResult } from '@/lib/auth/api';
 
+// 認証 API と永続化ストアをつなぎ、画面側へ認証状態と操作を提供します。
 export function useAuth() {
   const { isAuthenticated, isLoading, accessToken, setAuth, clearAuth } = useAuthStore();
 
@@ -23,6 +24,7 @@ export function useAuth() {
   }
 
   async function signOut(): Promise<void> {
+    // アクセストークンがある場合だけ、サーバーへサインアウトを通知します。
     if (accessToken) {
       await authApi.signOut(accessToken);
     }

@@ -5,6 +5,7 @@ import { walkKeys } from '@/lib/graphql/keys';
 import { useIsAuthenticated } from './use-is-authenticated';
 import type { Walk, WalkResponse, MyWalksResponse } from '@/types/graphql';
 
+// 認証済みかつ散歩 ID がある場合だけ、散歩詳細を取得します。
 export function useWalk(id: string) {
   const isAuthenticated = useIsAuthenticated();
   return useQuery<Walk | null>({
@@ -17,6 +18,7 @@ export function useWalk(id: string) {
   });
 }
 
+// 現在ユーザーの散歩履歴を、指定件数まで取得します。
 export function useMyWalks(limit = 20) {
   const isAuthenticated = useIsAuthenticated();
   return useQuery<Walk[]>({

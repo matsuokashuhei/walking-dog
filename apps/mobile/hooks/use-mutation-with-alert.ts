@@ -5,15 +5,14 @@ import { useTranslation } from 'react-i18next';
 type ErrorMessageKey = string;
 type ErrorMessageResolver = (error: unknown) => ErrorMessageKey;
 
+// ミューテーション失敗時のアラート表示を共通化し、成功時だけ結果を返します。
 export function useMutationWithAlert() {
   const { t } = useTranslation();
   return useCallback(
     async <T>(
       fn: () => Promise<T>,
       errorMessage: ErrorMessageKey | ErrorMessageResolver,
-      // Retained on the signature for back-compat with callers that pass
-      // observability metadata; it has no effect now that the Sentry
-      // integration has been removed.
+      // 監視用メタデータを渡す既存呼び出しとの互換性のために残しています。
       _context?: Record<string, unknown>,
     ): Promise<T | null> => {
       try {

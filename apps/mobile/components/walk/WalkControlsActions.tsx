@@ -11,6 +11,7 @@ interface WalkControlsActionsProps {
   onStop: () => void;
 }
 
+// 記録中パネル下部の一時停止/再開と終了操作を表示します。
 export function WalkControlsActions({
   isPaused,
   isStopping,

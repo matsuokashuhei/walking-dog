@@ -9,6 +9,7 @@ import { usePackProgress } from '@/hooks/use-pack-progress';
 import { useMyWalks } from '@/hooks/use-walks';
 import type { Dog, DogWithStats, Walk } from '@/types/graphql';
 
+// 犬の生年月日から、詳細画面に出す短い年齢表示を作ります。
 function computeAgeLabel(birthDate: Dog['birthDate'], now: Date = new Date()): string | null {
   if (!birthDate?.year) return null;
   const month = birthDate.month ?? 1;
@@ -31,6 +32,7 @@ function buildMeta(dog: Dog): string {
   return parts.join(' · ');
 }
 
+// Dog 詳細画面で loading/ready を分岐するための ViewModel です。
 interface DogDetailLoadingViewModel {
   status: 'loading';
 }
@@ -54,6 +56,7 @@ interface DogDetailReadyViewModel {
 
 export type DogDetailViewModel = DogDetailLoadingViewModel | DogDetailReadyViewModel;
 
+// URL パラメータを起点に犬詳細、散歩履歴、権限、操作ハンドラを集約します。
 export function useDogDetailViewModel(): DogDetailViewModel {
   const { id: rawId } = useLocalSearchParams<{ id: string }>();
   const dogId = Array.isArray(rawId) ? rawId[0] : rawId;
@@ -68,6 +71,7 @@ export function useDogDetailViewModel(): DogDetailViewModel {
   const { isOwner } = useDogDetailAuthorization(dog ?? undefined, me ?? undefined);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  // 全散歩履歴から、現在表示している犬が参加した散歩だけを抽出します。
   const dogWalks = useMemo(
     () => (dog ? walks.filter((walk) => walk.dogs.some((walkDog) => walkDog.id === dog.id)) : []),
     [dog, walks],
@@ -98,6 +102,7 @@ export function useDogDetailViewModel(): DogDetailViewModel {
     setShowDeleteConfirm(false);
   }, []);
 
+  // 削除は共通のアラート処理を通し、成功時だけ犬一覧へ戻します。
   const handleDelete = useCallback(async () => {
     if (!dogId) return;
     const ok = await runWithAlert(() => deleteDog(dogId), 'dogs.detail.deleteError');
@@ -106,6 +111,7 @@ export function useDogDetailViewModel(): DogDetailViewModel {
     }
   }, [deleteDog, dogId, router, runWithAlert]);
 
+  // 詳細表示に必要なデータが揃うまで、画面側へ loading として返します。
   if (isLoading || !dog) {
     return { status: 'loading' };
   }

@@ -7,6 +7,7 @@ import { spacing, typography } from '@/theme/tokens';
 import { useAcceptInviteFlow } from '@/hooks/use-accept-invite-flow';
 import { Button } from '@/components/ui/Button';
 
+// 招待受け入れ画面は URL の token を検証し、参加処理の状態ごとに表示を切り替えます。
 export default function AcceptInviteScreen() {
   const { token } = useLocalSearchParams<{ token: string }>();
   const { t } = useTranslation();
@@ -16,6 +17,7 @@ export default function AcceptInviteScreen() {
   const bg = { backgroundColor: theme.background };
 
   if (flow.status === 'loading') {
+    // token 検証・受け入れ処理中は、追加操作を出さずに進行中だけを示します。
     return (
       <View style={[styles.container, bg]}>
         <ActivityIndicator size="large" />
@@ -25,6 +27,7 @@ export default function AcceptInviteScreen() {
   }
 
   if (flow.status === 'error') {
+    // 招待が無効または通信に失敗した場合は、前の画面へ戻る導線に限定します。
     return (
       <View style={[styles.container, bg]}>
         <Text style={[styles.errorText, { color: theme.error }]}>
@@ -36,6 +39,7 @@ export default function AcceptInviteScreen() {
   }
 
   if (flow.status === 'success') {
+    // 参加完了後は犬一覧へ戻し、参加した犬を pack の中で確認できるようにします。
     return (
       <View style={[styles.container, bg]}>
         <Text style={[styles.successText, { color: theme.onSurface }]}>

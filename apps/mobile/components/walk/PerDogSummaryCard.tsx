@@ -15,6 +15,7 @@ interface PerDogSummaryCardProps {
 
 const AVATAR = 36;
 
+// 散歩終了後に、犬ごとのイベント集計を一覧で確認できるカードです。
 export function PerDogSummaryCard({
   dogs,
   events,
@@ -45,6 +46,7 @@ export function PerDogSummaryCard({
 
       <GroupedCard>
         {dogs.map((dog, i) => {
+          // 表示直前に犬 ID でイベントを絞り込み、犬別の回数だけを集計します。
           const counts = countEventsByType(events, { dogId: dog.id });
           return (
             <View key={dog.id}>

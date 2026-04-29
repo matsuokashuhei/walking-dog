@@ -9,6 +9,7 @@ interface WalkStartButtonProps {
   loading?: boolean;
 }
 
+// 散歩開始の主操作ボタンです。開始中は押せない状態にして二重実行を防ぎます。
 export function WalkStartButton({ onPress, disabled, loading }: WalkStartButtonProps) {
   const { t } = useTranslation();
   const theme = useColors();
@@ -31,6 +32,7 @@ export function WalkStartButton({ onPress, disabled, loading }: WalkStartButtonP
         elevation.accentStart,
       ]}
     >
+      {/* 開始処理中だけローディング表示に切り替え、通常時のラベルは保ちます。 */}
       {loading ? (
         <ActivityIndicator color={theme.onInteractive} />
       ) : (

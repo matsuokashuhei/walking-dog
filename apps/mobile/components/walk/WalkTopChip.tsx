@@ -12,13 +12,16 @@ interface WalkTopChipProps {
 
 const AVATAR = 22;
 
+// マップ上部に、散歩対象の犬または固定ラベルを小さなチップとして表示します。
 export function WalkTopChip({ dogs, label }: WalkTopChipProps) {
   const { t } = useTranslation();
   const theme = useColors();
 
+  // 表示する犬も固定ラベルもない場合は、上部チップ自体を出しません。
   if (dogs.length === 0 && !label) return null;
 
   const isSingle = dogs.length === 1;
+  // 親から明示ラベルが渡された場合は、犬の頭数よりもその文言を優先します。
   const displayLabel =
     label ??
     (isSingle

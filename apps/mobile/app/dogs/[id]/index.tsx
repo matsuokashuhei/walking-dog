@@ -13,6 +13,7 @@ import { GroupedRow } from '@/components/ui/GroupedRow';
 import { useColors } from '@/hooks/use-colors';
 import { spacing, typography } from '@/theme/tokens';
 
+// 犬詳細画面はヒーロー表示、散歩統計、メンバー/友達導線、削除操作をまとめます。
 export default function DogDetailScreen() {
   const { t } = useTranslation();
   const theme = useColors();
@@ -47,6 +48,7 @@ export default function DogDetailScreen() {
         </View>
 
         <GroupedCard style={styles.group}>
+          {/* 共有中の犬だけメンバー管理導線を出し、友達一覧は常に確認できるようにします。 */}
           {vm.memberCount > 0 ? (
             <GroupedRow
               label={t('dogs.detail.members')}
@@ -63,6 +65,7 @@ export default function DogDetailScreen() {
         </GroupedCard>
 
         {vm.isOwner ? (
+          // 削除操作は owner のみに限定し、確認ダイアログを経由して実行します。
           <View style={styles.actions}>
             <Button
               label={t('dogs.detail.delete')}

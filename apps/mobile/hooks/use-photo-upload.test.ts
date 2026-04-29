@@ -9,6 +9,7 @@ jest.mock('./use-walk-event-mutations', () => ({
 }));
 
 jest.mock('@/lib/upload', () => ({
+  normalizeImageContentType: jest.requireActual('@/lib/upload').normalizeImageContentType,
   uploadToPresignedUrl: jest.fn(),
 }));
 
@@ -103,6 +104,31 @@ describe('usePhotoUpload', () => {
       walkId: 'walk-1',
       contentType: 'image/jpeg',
     });
+  });
+
+  it('normalizes native image MIME aliases before presigning and uploading', async () => {
+    mockPresignMutateAsync.mockResolvedValue({ url: 'u', key: 'k', expiresAt: 'e' });
+    (upload.uploadToPresignedUrl as jest.Mock).mockResolvedValue(undefined);
+    mockRecordMutateAsync.mockResolvedValue({ id: 'e' });
+
+    const { result } = renderHook(() => usePhotoUpload());
+
+    await act(async () => {
+      await result.current.uploadPhoto({
+        walkId: 'walk-1',
+        asset: { uri: 'file:///photo.jpg', mimeType: 'image/jpg' },
+      });
+    });
+
+    expect(mockPresignMutateAsync).toHaveBeenCalledWith({
+      walkId: 'walk-1',
+      contentType: 'image/jpeg',
+    });
+    expect(upload.uploadToPresignedUrl).toHaveBeenCalledWith(
+      'u',
+      'file:///photo.jpg',
+      'image/jpeg',
+    );
   });
 
   it('omits lat/lng when latestPoint is not given', async () => {

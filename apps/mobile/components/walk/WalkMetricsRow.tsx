@@ -13,6 +13,7 @@ interface WalkMetricsRowProps {
   metrics: WalkMetricItem[];
 }
 
+// 記録中メトリクスを横並びで表示し、各セルの色は現在テーマに合わせます。
 export function WalkMetricsRow({ metrics }: WalkMetricsRowProps) {
   const theme = useColors();
 

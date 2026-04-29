@@ -3,15 +3,7 @@ import * as Haptics from 'expo-haptics';
 import { useWalkStore } from '@/stores/walk-store';
 import type { WalkEvent } from '@/types/graphql';
 
-/**
- * Facade for the post-mutation step of recording a walk event: append the
- * server-confirmed event to the walk-store cache and fire the user-feedback
- * haptic. Wraps the previously inline `commitEvent` helper from
- * `WalkEventActions.tsx` so consumers don't have to know about the store
- * shape or the exact haptic style — they call `commit(() => recordEvent(...))`
- * and get back the recorded event (or `null` if the mutation didn't return
- * one).
- */
+// 散歩イベント記録後のストア反映とハプティック通知をまとめるフックです。
 export function useCommitWalkEvent() {
   const addEvent = useWalkStore((s) => s.addEvent);
 
@@ -20,6 +12,7 @@ export function useCommitWalkEvent() {
       const event = await run();
       if (!event) return null;
 
+      // サーバー確定済みイベントだけをストアへ追加し、UI の件数表示と触覚反応を揃えます。
       addEvent(event);
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       return event;

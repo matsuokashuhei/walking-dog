@@ -20,6 +20,7 @@ interface WalkReadyViewProps {
   isStarting: boolean;
 }
 
+// 散歩開始前の画面です。犬の選択、統計、開始ボタンをマップ上の下部カードにまとめます。
 export function WalkReadyView({ onStart, isStarting }: WalkReadyViewProps) {
   const { t } = useTranslation();
   const theme = useColors();
@@ -31,7 +32,7 @@ export function WalkReadyView({ onStart, isStarting }: WalkReadyViewProps) {
 
   const isSingleDog = dogs.length === 1;
 
-  // With a single dog, there is no picker — keep the selection in sync so START works.
+  // 犬が 1 匹だけのときは選択 UI を出さないため、開始できるよう選択状態を同期します。
   useEffect(() => {
     if (isSingleDog && selectedDogIds.length === 0) {
       setSelectedDogs([dogs[0].id]);
@@ -41,6 +42,7 @@ export function WalkReadyView({ onStart, isStarting }: WalkReadyViewProps) {
   const allSelected =
     dogs.length > 0 && dogs.every((d) => selectedDogIds.includes(d.id));
 
+  // 複数犬の選択をまとめて切り替え、全選択済みなら解除にします。
   const handleSelectAll = useCallback(() => {
     if (allSelected) {
       setSelectedDogs([]);
@@ -70,6 +72,7 @@ export function WalkReadyView({ onStart, isStarting }: WalkReadyViewProps) {
           >
             <View style={[styles.grabber, { backgroundColor: theme.textDisabled }]} />
 
+            {/* 犬の登録状態と頭数に応じて、空状態・単体・複数選択の表示を切り替えます。 */}
             {dogs.length === 0 ? (
               <NoDogsBody />
             ) : isSingleDog ? (

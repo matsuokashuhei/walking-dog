@@ -12,6 +12,7 @@ import { WalkEventActions } from '@/components/walk/WalkEventActions';
 import { spacing } from '@/theme/tokens';
 import type { Dog } from '@/types/graphql';
 
+// 記録操作パネルは form sheet として表示され、イベント記録と停止操作を担当します。
 export default function WalkRecordingControlsScreen() {
   const { t } = useTranslation();
   const walkId = useWalkStore((s) => s.walkId);
@@ -28,12 +29,14 @@ export default function WalkRecordingControlsScreen() {
   const [isStopping, setIsStopping] = useState(false);
   const lastDetentRef = useRef(0);
 
+  // 操作対象の犬は store の選択 ID と me.dogs を突き合わせて復元します。
   const selectedDogs = useMemo<Dog[]>(
     () => (me?.dogs ?? []).filter((d) => selectedDogIds.includes(d.id)),
     [me?.dogs, selectedDogIds],
   );
 
   useEffect(() => {
+    // クイック操作からカメラ指定で開かれた場合だけ、準備完了後に撮影要求へ変換します。
     if (params.action !== 'camera') return;
     if (phase === 'recording' && walkId) {
       requestCamera();
@@ -44,7 +47,7 @@ export default function WalkRecordingControlsScreen() {
   const handleLayout = useCallback(
     (e: LayoutChangeEvent) => {
       const { height: screenH } = Dimensions.get('window');
-      // Grabber + padding beyond measured content area (~28pt for grabber & inset).
+      // 実測した操作パネルの高さに grabber と inset 分を足し、sheet の detent を更新します。
       const sheetHeight = e.nativeEvent.layout.height + 28;
       const fraction = Math.min(0.9, Math.max(0.25, sheetHeight / screenH));
       if (Math.abs(fraction - lastDetentRef.current) < 0.01) return;
@@ -56,6 +59,7 @@ export default function WalkRecordingControlsScreen() {
     [navigation],
   );
 
+  // 停止時は BLE と遭遇検知を先に止めてから散歩セッションを終了し、サマリーへ戻します。
   const handleStop = useCallback(async () => {
     if (!walkId) return;
     setIsStopping(true);

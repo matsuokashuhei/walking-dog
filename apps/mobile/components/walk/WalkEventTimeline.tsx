@@ -18,17 +18,20 @@ interface WalkEventTimelineProps {
   events: WalkEvent[];
 }
 
+// 散歩中に記録したイベントを時系列で並べ、写真は全画面プレビューへつなげます。
 export function WalkEventTimeline({ events }: WalkEventTimelineProps) {
   const { t } = useTranslation();
   const theme = useColors();
   const insets = useSafeAreaInsets();
   const [fullScreenPhoto, setFullScreenPhoto] = useState<string | null>(null);
 
+  // 表示するイベントがない場合は、タイムライン領域自体を省略します。
   if (events.length === 0) return null;
 
   return (
     <View style={styles.container}>
       {events.map((event) => {
+        // イベント種別から表示アイコンと翻訳ラベルを決め、発生時刻と一緒に表示します。
         const config = EVENT_CONFIG[event.eventType];
         const label = t(`walk.event.${event.eventType}`);
         const time = formatClockTime(event.occurredAt);
@@ -38,6 +41,7 @@ export function WalkEventTimeline({ events }: WalkEventTimelineProps) {
             <Text style={styles.time}>{time}</Text>
             <Text style={styles.emoji}>{config.emoji}</Text>
             <Text style={[styles.label, { color: theme.onSurface }]}>{label}</Text>
+            {/* 写真イベントだけサムネイルを押せるようにし、通常イベントは文字表示に留めます。 */}
             {event.eventType === 'photo' && event.photoUrl ? (
               <Pressable
                 onPress={() => {
@@ -63,6 +67,7 @@ export function WalkEventTimeline({ events }: WalkEventTimelineProps) {
         );
       })}
 
+      {/* サムネイル選択中だけ、セーフエリアを考慮した写真プレビューを重ねます。 */}
       <Modal
         visible={fullScreenPhoto !== null}
         animationType="fade"

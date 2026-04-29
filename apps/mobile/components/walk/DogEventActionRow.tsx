@@ -19,6 +19,7 @@ interface DogEventActionRowProps {
   onPress: (type: WalkEventType, dogId: string) => void;
 }
 
+// 複数犬の散歩中に、犬ごとのイベント回数と記録ボタンを 1 行にまとめます。
 export function DogEventActionRow({
   dog,
   counts,
@@ -57,6 +58,7 @@ export function DogEventActionRow({
         </Text>
       </View>
       <View style={styles.buttons}>
+        {/* イベント種別の表示順は共通定義に合わせ、画面間で操作順を揃えます。 */}
         {EVENT_ORDER.map((type) => (
           <Pressable
             key={type}

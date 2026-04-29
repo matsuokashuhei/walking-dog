@@ -5,11 +5,13 @@ import { useWalkScreenViewModel } from '@/hooks/use-walk-screen-view-model';
 import { WalkReadyView } from '@/components/walk/WalkReadyView';
 import { WalkSummaryCard } from '@/components/walk/WalkSummaryCard';
 
+// 散歩タブは現在の散歩フェーズに応じて、開始前または終了後サマリーを表示します。
 export default function WalkScreen() {
   const theme = useColors();
   const vm = useWalkScreenViewModel();
 
   if (vm.phase === 'ready') {
+    // 開始前はマップ付きの準備画面に開始操作を委譲します。
     return <WalkReadyView onStart={vm.handleStart} isStarting={vm.isStarting} />;
   }
 

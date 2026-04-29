@@ -3,6 +3,7 @@ import { Pressable, Text, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
 
+// 散歩詳細 Stack は独自の戻るボタンを使い、タブ内の履歴から自然に戻します。
 export default function WalksLayout() {
   const { t } = useTranslation();
   const router = useRouter();

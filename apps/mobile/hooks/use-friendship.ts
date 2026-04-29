@@ -5,6 +5,7 @@ import { friendshipKeys } from '@/lib/graphql/keys';
 import { useIsAuthenticated } from './use-is-authenticated';
 import type { FriendshipResponse, Friendship } from '@/types/graphql';
 
+// 2 頭の犬の友だち関係を、両方の ID が揃ったときだけ取得します。
 export function useFriendship(dogId1: string, dogId2: string) {
   const isAuthenticated = useIsAuthenticated();
   return useQuery<Friendship | null>({

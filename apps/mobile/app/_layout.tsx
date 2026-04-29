@@ -17,6 +17,7 @@ import {
   deletePendingInviteToken,
 } from '@/lib/auth/pending-invite-token';
 
+// 認証状態と現在の route group を見て、ログイン画面とアプリ本体の行き先を制御します。
 function NavigationGuard() {
   const { isAuthenticated, isLoading } = useAuthStore();
   const segments = useSegments();
@@ -30,7 +31,7 @@ function NavigationGuard() {
     if (!isAuthenticated && !inAuthGroup) {
       router.replace('/(auth)/login');
     } else if (isAuthenticated && inAuthGroup) {
-      // Check for pending invite token from deep link before auth
+      // 未ログイン時に受け取った招待 deep link は、認証完了後に本来の招待画面へ戻します。
       getPendingInviteToken().then((token) => {
         if (token) {
           deletePendingInviteToken();
@@ -49,6 +50,7 @@ export const unstable_settings = {
   anchor: '(tabs)',
 };
 
+// ルートレイアウトは provider、テーマ、認証ガード、主要 Stack 構成をまとめます。
 function RootLayout() {
   const colorScheme = useColorScheme();
   const isLoading = useAuthStore((s) => s.isLoading);
@@ -58,6 +60,7 @@ function RootLayout() {
   const { t } = useTranslation();
 
   useEffect(() => {
+    // アプリ起動時に認証情報と設定を復元し、以降の画面が同じ前提で動けるようにします。
     initialize();
     initializeSettings();
   }, [initialize, initializeSettings]);
@@ -89,6 +92,7 @@ function RootLayout() {
             options={{
               headerShown: false,
               presentation: 'formSheet',
+              // 記録操作はマップ上に重ねるため、form sheet の高さだけをこの route で固定します。
               sheetAllowedDetents: [0.15, 0.45],
               sheetInitialDetentIndex: 1,
               sheetGrabberVisible: true,

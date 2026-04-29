@@ -6,6 +6,7 @@ import { savePendingInviteToken } from '@/lib/auth/pending-invite-token';
 import { extractGraphQLErrorMessage } from '@/lib/graphql/errors';
 import { mapInviteErrorKey, type InviteErrorKey } from '@/lib/errors/invite-error-map';
 
+// 招待受け入れ画面で表示する状態を表します。
 export type AcceptInviteStatus = 'idle' | 'loading' | 'success' | 'error';
 export type AcceptInviteErrorKey = InviteErrorKey | 'invite.error.saveFailed';
 
@@ -21,6 +22,7 @@ const INITIAL_STATE: AcceptInviteFlowState = {
   errorKey: null,
 };
 
+// 認証状態に応じて、招待トークンの保存・ログイン誘導・受け入れを切り替えます。
 export function useAcceptInviteFlow(token: string | undefined) {
   const isAuthenticated = useIsAuthenticated();
   const acceptInvitation = useAcceptInvitation();
@@ -28,6 +30,7 @@ export function useAcceptInviteFlow(token: string | undefined) {
 
   const [state, setState] = useState<AcceptInviteFlowState>(INITIAL_STATE);
 
+  // GraphQL エラーは画面で翻訳できるキーへ寄せてから状態へ反映します。
   const runAccept = useCallback(
     async (inviteToken: string) => {
       setState({ status: 'loading', dogName: null, errorKey: null });
@@ -42,6 +45,7 @@ export function useAcceptInviteFlow(token: string | undefined) {
     [acceptInvitation],
   );
 
+  // 未ログイン時は招待トークンを保留し、ログイン後に再開できるようにします。
   useEffect(() => {
     if (!token) return;
 

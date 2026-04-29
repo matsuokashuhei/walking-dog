@@ -13,6 +13,7 @@ interface WalkIdentityHeaderProps {
 
 const AVATAR = 32;
 
+// 記録中パネルのヘッダーとして、散歩中の犬と LIVE 状態を簡潔に示します。
 export function WalkIdentityHeader({ dogs, title, subtitle }: WalkIdentityHeaderProps) {
   const theme = useColors();
 

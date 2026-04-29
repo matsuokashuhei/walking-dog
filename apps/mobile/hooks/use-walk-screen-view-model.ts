@@ -9,12 +9,14 @@ import { useWalkPermissions } from '@/hooks/use-walk-permissions';
 import { useWalkSession } from '@/hooks/use-walk-session';
 import { useWalkStore } from '@/stores/walk-store';
 
+// Walk 画面へ渡す表示状態と操作をまとめた ViewModel の型です。
 export interface WalkScreenViewModel {
   phase: 'ready' | 'recording' | 'finished';
   isStarting: boolean;
   handleStart: () => Promise<void>;
 }
 
+// Walk 画面で必要な状態取得、画面遷移、散歩開始処理をまとめるフックです。
 export function useWalkScreenViewModel(): WalkScreenViewModel {
   const { t } = useTranslation();
   const router = useRouter();
@@ -28,6 +30,7 @@ export function useWalkScreenViewModel(): WalkScreenViewModel {
   const encounterSession = useEncounterSession();
   const permissions = useWalkPermissions();
 
+  // 散歩記録中になったら、必要なアクションを引き継いで記録画面へ移動します。
   useEffect(() => {
     if (phase !== 'recording') return;
     router.push({
@@ -36,6 +39,7 @@ export function useWalkScreenViewModel(): WalkScreenViewModel {
     });
   }, [action, phase]);
 
+  // 散歩開始時は GPS 権限を確認し、散歩セッションと必要に応じて遭遇検知を開始します。
   const handleStart = useCallback(async () => {
     const gpsGranted = await permissions.requestGpsPermission();
     if (!gpsGranted) {
@@ -44,12 +48,14 @@ export function useWalkScreenViewModel(): WalkScreenViewModel {
     }
 
     try {
+      // Live Activity に表示する文言は、選択中の犬の数に合わせて切り替えます。
       const liveActivityDogName =
         selectedDogIds.length === 1
           ? t('walk.liveActivity.walking')
           : t('walk.liveActivity.walkingWithDogs', { count: selectedDogIds.length });
       const walkId = await walkSession.start({ selectedDogIds, liveActivityDogName });
 
+      // ユーザー設定で有効な場合のみ、BLE 権限を確認して犬同士の遭遇検知を開始します。
       if (me?.encounterDetectionEnabled ?? true) {
         const bleGranted = await permissions.requestBlePermission();
         if (bleGranted) {
@@ -62,6 +68,7 @@ export function useWalkScreenViewModel(): WalkScreenViewModel {
     }
   }, [bleSession, encounterSession, me, permissions, selectedDogIds, t, walkSession]);
 
+  // 画面側が表示分岐と開始ボタン制御に使う値だけを返します。
   return {
     phase,
     isStarting: walkSession.isStarting,

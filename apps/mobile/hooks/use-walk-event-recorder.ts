@@ -17,6 +17,7 @@ interface RecordPhotoArgs {
   asset: { uri: string; mimeType?: string | null };
 }
 
+// 散歩イベントの即時記録、写真アップロード、オフライン時の outbox 保存をまとめます。
 export function useWalkEventRecorder({
   walkId,
   latestPoint,
@@ -27,15 +28,14 @@ export function useWalkEventRecorder({
   const runWithAlert = useMutationWithAlert();
   const flushOutbox = useFlushWalkEventOutbox();
 
-  // Drain any events queued during a previous offline session as soon as
-  // the recorder mounts (typically when the user reopens the recording sheet
-  // after coming back online).
+  // レコーダー起動時に、過去のオフライン操作で溜まったイベントを再送します。
   useEffect(() => {
     void flushOutbox().catch(() => {
-      /* swallow — best-effort, will retry on next successful record */
+      /* ベストエフォートのため、次回の記録成功時に再試行します。 */
     });
   }, [flushOutbox]);
 
+  // 通常イベントは失敗時に outbox へ積み、オンライン復帰後に再送できるようにします。
   const recordEvent = useCallback(
     async (eventType: Extract<WalkEventType, 'pee' | 'poo'>, dogId?: string) => {
       if (!walkId) return null;
@@ -55,7 +55,7 @@ export function useWalkEventRecorder({
       );
 
       if (!result) {
-        // Mutation failed — persist for retry. Photo events stay online-only.
+        // 失敗した通常イベントだけを再送対象として保存します。写真イベントはオンライン専用です。
         await enqueuePendingEvent({
           walkId,
           ...(dogId !== undefined ? { dogId } : {}),
@@ -63,20 +63,21 @@ export function useWalkEventRecorder({
           occurredAt,
           ...(latestPoint ? { lat: latestPoint.lat, lng: latestPoint.lng } : {}),
         }).catch(() => {
-          /* swallow — alert already shown to the user */
+          /* アラート表示済みのため、保存失敗はここでは握りつぶします。 */
         });
         return null;
       }
 
-      // Success — opportunistically drain any backlog from earlier failures.
+      // 成功時に、以前の失敗で残っているイベントも可能な範囲で再送します。
       void flushOutbox().catch(() => {
-        /* swallow */
+        /* ベストエフォートのため握りつぶします。 */
       });
       return result;
     },
     [walkId, latestPoint, recordWalkEvent, runWithAlert, source, flushOutbox],
   );
 
+  // 写真イベントは presign/upload/record のどこで失敗したかをアラート文言へ反映します。
   const recordPhoto = useCallback(
     async ({ dogId, asset }: RecordPhotoArgs) => {
       if (!walkId) return null;

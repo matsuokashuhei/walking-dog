@@ -1,10 +1,3 @@
-.remember/
-.worktrees/
-.superpowers/brainstorm/
-
-# Claude Code local-only hookify rules
-.claude/hookify.*.local.md
-
 # Environment files
 apps/api/.env
 apps/api/.env.development
@@ -18,6 +11,19 @@ apps/api/.env.production
 infra/**/lambda/*.zip
 infra/sakura/.env
 
+# Claude Code
+.remember/
+.worktrees/
+.superpowers/brainstorm/
+.claude/hookify.*.local.md
+
+# Agents
+.agents/
+
+# Local-only symlinked skills (resolve to .agents/skills/* which is gitignored)
+.claude/skills/grill-me
+.claude/skills/improve-codebase-architecture
+.claude/skills/request-refactor-plan
 
 # APM dependencies
 apm_modules/

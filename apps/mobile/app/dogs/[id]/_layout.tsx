@@ -10,13 +10,7 @@ export default function DogDetailLayout() {
   return (
     <Stack>
       <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="edit"
-        options={{
-          title: t('dogs.edit.title'),
-          headerStyle: { backgroundColor: theme.background },
-        }}
-      />
+      <Stack.Screen name="edit" options={{ headerShown: false }} />
       <Stack.Screen
         name="members"
         options={{

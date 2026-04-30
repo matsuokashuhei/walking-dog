@@ -79,9 +79,13 @@
       "streak": "🔥 {{days}}日",
       "todayStats": "今日 {{km}} km · {{count}}回"
     },
+    "action": {
+      "cancel": "キャンセル",
+      "save": "保存"
+    },
     "new": {
-      "title": "新しい犬を登録",
-      "submit": "登録"
+      "title": "犬を登録",
+      "photoUploadError": "写真のアップロードに失敗しました。Edit 画面から再度お試しください。"
     },
     "detail": {
       "title": "犬のプロフィール",
@@ -117,8 +121,7 @@
       "leaveError": "グループの離脱に失敗しました"
     },
     "edit": {
-      "title": "犬のプロフィールを編集",
-      "submit": "更新",
+      "title": "犬を編集",
       "photoUploadError": "写真のアップロードに失敗しました。もう一度お試しください。"
     },
     "form": {

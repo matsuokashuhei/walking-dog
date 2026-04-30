@@ -1,9 +1,7 @@
-import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Button } from '@/components/ui/Button';
+import { GroupedCard } from '@/components/ui/GroupedCard';
 import { TextInput } from '@/components/ui/TextInput';
-import { spacing } from '@/theme/tokens';
 
 export interface DogFormValues {
   name: string;
@@ -12,66 +10,52 @@ export interface DogFormValues {
 }
 
 interface DogFormProps {
-  onSubmit: (values: DogFormValues) => Promise<void>;
-  submitLabel: string;
-  initialValues?: Partial<DogFormValues>;
+  values: DogFormValues;
+  onChange: (values: DogFormValues) => void;
 }
 
-export function DogForm({ onSubmit, submitLabel, initialValues }: DogFormProps) {
+// 02b. Dog edit の inset-grouped 形式: 1 枚のカードに行を積み上げ、hairline で区切る。
+// 純粋な controlled component — values と onChange のみ受け取る。Submit / loading は呼び出し元の
+// 画面（Cancel/Save header）が担う。
+export function DogForm({ values, onChange }: DogFormProps) {
   const { t } = useTranslation();
-  const [name, setName] = useState(initialValues?.name ?? '');
-  const [breed, setBreed] = useState(initialValues?.breed ?? '');
-  const [gender, setGender] = useState(initialValues?.gender ?? '');
-  const [loading, setLoading] = useState(false);
-
-  const isValid = name.trim().length > 0 && gender.trim().length > 0;
-
-  async function handleSubmit() {
-    if (!isValid) return;
-    setLoading(true);
-    try {
-      await onSubmit({
-        name: name.trim(),
-        breed: breed.trim(),
-        gender: gender.trim(),
-      });
-    } finally {
-      setLoading(false);
-    }
-  }
+  const set = (patch: Partial<DogFormValues>) => onChange({ ...values, ...patch });
 
   return (
     <View style={styles.container}>
-      <TextInput
-        label={t('dogs.form.name')}
-        value={name}
-        onChangeText={setName}
-        placeholder={t('dogs.form.namePlaceholder')}
-      />
-      <TextInput
-        label={t('dogs.form.breed')}
-        value={breed}
-        onChangeText={setBreed}
-        placeholder={t('dogs.form.breedPlaceholder')}
-      />
-      <TextInput
-        label={t('dogs.form.gender')}
-        value={gender}
-        onChangeText={setGender}
-        placeholder={t('dogs.form.genderPlaceholder')}
-      />
-      <Button
-        label={submitLabel}
-        onPress={handleSubmit}
-        loading={loading}
-        disabled={!isValid}
-        style={styles.button}
-      />
+      <GroupedCard>
+        <TextInput
+          label={t('dogs.form.name')}
+          labelPosition="inline"
+          separator
+          value={values.name}
+          onChangeText={(name) => set({ name })}
+          placeholder={t('dogs.form.namePlaceholder')}
+        />
+        <TextInput
+          label={t('dogs.form.breed')}
+          labelPosition="inline"
+          separator
+          value={values.breed}
+          onChangeText={(breed) => set({ breed })}
+          placeholder={t('dogs.form.breedPlaceholder')}
+        />
+        <TextInput
+          label={t('dogs.form.gender')}
+          labelPosition="inline"
+          value={values.gender}
+          onChangeText={(gender) => set({ gender })}
+          placeholder={t('dogs.form.genderPlaceholder')}
+        />
+      </GroupedCard>
     </View>
   );
 }
 
+export function isDogFormValid(values: DogFormValues): boolean {
+  return values.name.trim().length > 0 && values.gender.trim().length > 0;
+}
+
 const styles = StyleSheet.create({
   container: { width: '100%' },
-  button: { marginTop: spacing.sm },
 });

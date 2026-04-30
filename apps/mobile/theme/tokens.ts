@@ -94,6 +94,7 @@ export const spacing = {
   xxl: 48,
 
   step12: 12, // between sm and md — Precise row gap
+  step14: 14, // 02b inset-grouped row vertical padding (Edit dog rows)
   step20: 20, // between lg and xl — Precise screen padding
   step44: 44, // tap target minimum
   step60: 60, // Precise huge (section margin)

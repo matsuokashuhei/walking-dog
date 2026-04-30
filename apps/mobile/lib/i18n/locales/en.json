@@ -79,9 +79,13 @@
       "streak": "🔥 {{days}}d",
       "todayStats": "{{km}} km today · {{count}} walks"
     },
+    "action": {
+      "cancel": "Cancel",
+      "save": "Save"
+    },
     "new": {
-      "title": "Register New Dog",
-      "submit": "Register"
+      "title": "Register dog",
+      "photoUploadError": "Failed to upload photo. You can try again from Edit."
     },
     "detail": {
       "title": "Dog Profile",
@@ -117,8 +121,7 @@
       "leaveError": "Failed to leave group"
     },
     "edit": {
-      "title": "Edit Dog Profile",
-      "submit": "Update",
+      "title": "Edit dog",
       "photoUploadError": "Failed to upload photo. Please try again."
     },
     "form": {

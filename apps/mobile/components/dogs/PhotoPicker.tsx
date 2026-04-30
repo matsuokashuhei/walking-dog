@@ -1,9 +1,15 @@
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
+import { Ionicons } from '@expo/vector-icons';
 import { useColors } from '@/hooks/use-colors';
 import { spacing, radius, typography } from '@/theme/tokens';
+
+// 02b camera badge — 写真円 (120) の右下にオーバーレイ。tokens.ts に sizing 系トークンが
+// 無いため UI 慣性のためのローカル定数とする。
+const BADGE_SIZE = 32;
+const BADGE_ICON_SIZE = 16;
 
 interface PhotoPickerProps {
   currentPhotoUrl: string | null;
@@ -14,6 +20,7 @@ interface PhotoPickerProps {
 export function PhotoPicker({ currentPhotoUrl, onPick, loading = false }: PhotoPickerProps) {
   const { t } = useTranslation();
   const theme = useColors();
+  const ctaLabel = currentPhotoUrl ? t('dogs.photo.change') : t('dogs.photo.add');
 
   async function handlePress() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -34,48 +41,78 @@ export function PhotoPicker({ currentPhotoUrl, onPick, loading = false }: PhotoP
   }
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={t('dogs.photo.change')}
-      onPress={handlePress}
-      disabled={loading}
-      style={[styles.container, { borderColor: theme.border }]}
-    >
-      {currentPhotoUrl ? (
-        <Image
-          source={currentPhotoUrl}
-          style={styles.photo}
-          contentFit="cover"
-          cachePolicy="memory-disk"
-        />
-      ) : (
-        <Text style={[styles.placeholder, { color: theme.onSurfaceVariant }]}>
-          {t('dogs.photo.add')}
-        </Text>
-      )}
-    </Pressable>
+    <View style={styles.wrapper}>
+      <View style={styles.photoFrame}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={ctaLabel}
+          onPress={handlePress}
+          disabled={loading}
+          style={[styles.circle, { borderColor: theme.border }]}
+        >
+          {currentPhotoUrl ? (
+            <Image
+              source={currentPhotoUrl}
+              style={styles.photo}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+            />
+          ) : null}
+        </Pressable>
+        <View
+          style={[
+            styles.badge,
+            { backgroundColor: theme.interactive, borderColor: theme.surface },
+          ]}
+          pointerEvents="none"
+        >
+          <Ionicons name="camera" size={BADGE_ICON_SIZE} color={theme.onInteractive} />
+        </View>
+      </View>
+      <Text style={[styles.cta, { color: theme.interactive }]}>{ctaLabel}</Text>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  wrapper: {
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  // photoFrame は relative 容器。circle 側だけが overflow:'hidden' で写真をクロップし、
+  // badge はその外側に絶対配置するため clip されない。
+  photoFrame: {
+    position: 'relative',
     width: 120,
     height: 120,
+  },
+  circle: {
+    width: '100%',
+    height: '100%',
     borderRadius: radius.full,
     borderWidth: 2,
     borderStyle: 'dashed',
-    alignSelf: 'center',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing.lg,
     overflow: 'hidden',
+  },
+  badge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: BADGE_SIZE,
+    height: BADGE_SIZE,
+    borderRadius: BADGE_SIZE / 2,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   photo: {
     width: '100%',
     height: '100%',
   },
-  placeholder: {
-    ...typography.caption,
-    textAlign: 'center',
+  cta: {
+    ...typography.subheadline,
+    marginTop: spacing.sm,
   },
 });

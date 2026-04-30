@@ -1,64 +1,64 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
-import { DogForm } from './DogForm';
+import { render, screen, fireEvent } from '@testing-library/react-native';
+import { DogForm, isDogFormValid, type DogFormValues } from './DogForm';
 
 describe('DogForm', () => {
-  it('renders name field', () => {
-    render(<DogForm onSubmit={jest.fn()} submitLabel="Register" />);
+  function setup(initial: DogFormValues = { name: '', breed: '', gender: '' }) {
+    const onChange = jest.fn();
+    const utils = render(<DogForm values={initial} onChange={onChange} />);
+    return { onChange, ...utils };
+  }
+
+  it('renders name/breed/gender fields', () => {
+    setup();
     expect(screen.getByLabelText('Name')).toBeTruthy();
+    expect(screen.getByLabelText('Breed')).toBeTruthy();
+    expect(screen.getByLabelText('Gender')).toBeTruthy();
   });
 
-  it('disables submit when name is empty', () => {
-    render(<DogForm onSubmit={jest.fn()} submitLabel="Register" />);
-    expect(screen.getByRole('button', { name: 'Register' })).toBeDisabled();
-  });
-
-  it('disables submit when gender is empty', () => {
-    render(
-      <DogForm
-        onSubmit={jest.fn()}
-        submitLabel="Register"
-        initialValues={{ name: 'Hana' }}
-      />
-    );
-    expect(screen.getByRole('button', { name: 'Register' })).toBeDisabled();
-  });
-
-  it('enables submit when both name and gender are filled', () => {
-    render(
-      <DogForm
-        onSubmit={jest.fn()}
-        submitLabel="Register"
-        initialValues={{ name: 'Hana', gender: 'male' }}
-      />
-    );
-    expect(screen.getByRole('button', { name: 'Register' })).not.toBeDisabled();
-  });
-
-  it('calls onSubmit with form values', async () => {
-    const onSubmit = jest.fn().mockResolvedValue(undefined);
-    render(<DogForm onSubmit={onSubmit} submitLabel="Register" />);
-
+  it('calls onChange with patched values when name changes', () => {
+    const { onChange } = setup({ name: '', breed: 'Poodle', gender: 'male' });
     fireEvent.changeText(screen.getByLabelText('Name'), 'Hana');
-    fireEvent.changeText(screen.getByLabelText('Breed'), 'Poodle');
-    fireEvent.changeText(screen.getByLabelText('Gender'), 'male');
-    fireEvent.press(screen.getByRole('button', { name: 'Register' }));
-
-    await waitFor(() => {
-      expect(onSubmit).toHaveBeenCalledWith(
-        expect.objectContaining({ name: 'Hana', breed: 'Poodle' })
-      );
-    });
+    expect(onChange).toHaveBeenCalledWith({ name: 'Hana', breed: 'Poodle', gender: 'male' });
   });
 
-  it('pre-fills initial values when editing', () => {
-    render(
-      <DogForm
-        onSubmit={jest.fn()}
-        submitLabel="Update"
-        initialValues={{ name: 'Kuro', breed: 'Labrador' }}
-      />
-    );
+  it('calls onChange with patched values when breed changes', () => {
+    const { onChange } = setup({ name: 'Hana', breed: '', gender: 'male' });
+    fireEvent.changeText(screen.getByLabelText('Breed'), 'Poodle');
+    expect(onChange).toHaveBeenCalledWith({ name: 'Hana', breed: 'Poodle', gender: 'male' });
+  });
+
+  it('calls onChange with patched values when gender changes', () => {
+    const { onChange } = setup({ name: 'Hana', breed: 'Poodle', gender: '' });
+    fireEvent.changeText(screen.getByLabelText('Gender'), 'male');
+    expect(onChange).toHaveBeenCalledWith({ name: 'Hana', breed: 'Poodle', gender: 'male' });
+  });
+
+  it('pre-fills initial values', () => {
+    setup({ name: 'Kuro', breed: 'Labrador', gender: 'male' });
     expect(screen.getByDisplayValue('Kuro')).toBeTruthy();
     expect(screen.getByDisplayValue('Labrador')).toBeTruthy();
+    expect(screen.getByDisplayValue('male')).toBeTruthy();
+  });
+});
+
+describe('isDogFormValid', () => {
+  it('returns false when name is empty', () => {
+    expect(isDogFormValid({ name: '', breed: '', gender: 'male' })).toBe(false);
+  });
+
+  it('returns false when name is whitespace only', () => {
+    expect(isDogFormValid({ name: '   ', breed: '', gender: 'male' })).toBe(false);
+  });
+
+  it('returns false when gender is empty', () => {
+    expect(isDogFormValid({ name: 'Hana', breed: '', gender: '' })).toBe(false);
+  });
+
+  it('returns false when gender is whitespace only', () => {
+    expect(isDogFormValid({ name: 'Hana', breed: '', gender: '  ' })).toBe(false);
+  });
+
+  it('returns true when both name and gender are filled', () => {
+    expect(isDogFormValid({ name: 'Hana', breed: '', gender: 'male' })).toBe(true);
   });
 });

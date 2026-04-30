@@ -114,7 +114,7 @@ const inlineStyles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     paddingHorizontal: spacing.md,
-    paddingVertical: 14,
+    paddingVertical: spacing.step14,
     minHeight: 44,
   },
   label: {

@@ -60,11 +60,11 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.md,
   },
   sectionLabel: {
-    ...typography.label,
+    ...typography.metricLabel,
     marginBottom: spacing.xs,
   },
   heroTitle: {
-    ...typography.hero,
+    ...typography.title1,
   },
   list: {
     paddingHorizontal: spacing.lg,

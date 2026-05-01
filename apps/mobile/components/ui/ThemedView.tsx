@@ -3,7 +3,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { colors } from '@/theme/tokens';
 
 interface ThemedViewProps extends ViewProps {
-  surface?: 'background' | 'surface' | 'surfaceContainer' | 'surfaceContainerHigh' | 'surfaceContainerLowest';
+  surface?: 'background' | 'surface' | 'surfaceContainer';
 }
 
 export function ThemedView({ style, surface = 'background', ...rest }: ThemedViewProps) {

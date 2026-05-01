@@ -23,11 +23,6 @@ export const colors = {
 
     overlay: 'rgba(0,0,0,0.4)',
 
-    // --- Deprecated aliases (kept for incremental migration) ---
-    surfaceContainerHigh: 'rgba(118,118,128,0.18)',
-    surfaceContainerLowest: '#ffffff',
-    cardBorder: 'rgba(60,60,67,0.12)',
-    primaryContainer: '#0a84ff',
   },
   dark: {
     background: '#000000',
@@ -49,11 +44,6 @@ export const colors = {
 
     overlay: 'rgba(0,0,0,0.6)',
 
-    // --- Deprecated aliases ---
-    surfaceContainerHigh: '#2c2c2e',
-    surfaceContainerLowest: '#1c1c1e',
-    cardBorder: 'rgba(84,84,88,0.4)',
-    primaryContainer: '#0a84ff',
   },
 } as const;
 
@@ -75,16 +65,19 @@ export interface ColorTokens {
   error: string;
   overlay: string;
 
-  // Deprecated aliases — kept for incremental migration.
-  surfaceContainerHigh: string;
-  surfaceContainerLowest: string;
-  cardBorder: string;
-  primaryContainer: string;
 }
+
+export const materials = {
+  light: 'rgba(249,249,249,0.85)',
+  dark: 'rgba(22,22,23,0.85)',
+  blur: 20,
+} as const;
+
+export type MaterialTokens = typeof materials;
 
 // 4-point grid. Legacy keys (xs/sm/md/lg/xl/xxl) keep their original values to
 // preserve layout geometry across the 40+ existing call sites; Precise extras
-// (step12, step20, step44, step60) are additive.
+// (step6, step10, step12, step14, step20, step44, step60) are additive.
 export const spacing = {
   xs: 4,
   sm: 8,
@@ -93,12 +86,16 @@ export const spacing = {
   xl: 32,
   xxl: 48,
 
+  step6: 6, // compact inline gap
+  step10: 10, // row/icon gap
   step12: 12, // between sm and md — Precise row gap
   step14: 14, // 02b inset-grouped row vertical padding (Edit dog rows)
   step20: 20, // between lg and xl — Precise screen padding
   step44: 44, // tap target minimum
   step60: 60, // Precise huge (section margin)
 } as const;
+
+export type SpacingTokens = typeof spacing;
 
 // Six-step radius — chips 4 / small 8 / rows 12 / cards 16 / sheets 24 / phone 44
 export const radius = {
@@ -113,9 +110,13 @@ export const radius = {
   full: 9999,
 } as const;
 
+export type RadiusTokens = typeof radius;
+
 export const shadow = {
   primary: colors.light.interactive,
 } as const;
+
+export type ShadowTokens = typeof shadow;
 
 // Soft layered shadows — never hard
 export const elevation = {
@@ -141,13 +142,46 @@ export const elevation = {
     elevation: 6,
   },
   accentStart: {
-    shadowColor: '#30d158',
+    shadowColor: colors.light.success,
     shadowOffset: { width: 0, height: 20 },
-    shadowOpacity: 0.4,
-    shadowRadius: 30,
+    shadowOpacity: 0.35,
+    shadowRadius: 60,
     elevation: 12,
   },
+  accentButton: {
+    shadowColor: colors.light.success,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.35,
+    shadowRadius: 36,
+    elevation: 8,
+  },
 } as const;
+
+export type ElevationTokens = typeof elevation;
+
+export const layout = {
+  statusBar: 54,
+  navBar: 44,
+  largeTitleBlock: 52,
+  tabBar: 83,
+  safeTop: 54,
+  safeBottom: 34,
+  sidePadding: 20,
+  contentPadding: 16,
+  groupGap: 24,
+} as const;
+
+export type LayoutTokens = typeof layout;
+
+export const tagColors = {
+  live: { bg: 'rgba(255,59,48,0.1)', text: '#FF453A' },
+  success: { bg: 'rgba(48,209,88,0.14)', text: '#1F7A38' },
+  warning: { bg: 'rgba(255,159,10,0.15)', text: '#B15E00' },
+  tint: { bg: 'rgba(10,132,255,0.14)', text: '#0A4FA3' },
+  accent: { bg: 'rgba(191,90,242,0.14)', text: '#7A2FB0' },
+} as const;
+
+export type TagColorTokens = typeof tagColors;
 
 // iOS text styles — Precise scale
 export const typography = {
@@ -189,40 +223,77 @@ export const typography = {
     letterSpacing: 0.3,
     textTransform: 'uppercase' as const,
   },
-
-  // --- Deprecated aliases (kept for incremental migration) ---
-  display: {
-    fontSize: 34,
-    fontWeight: '700' as const,
-    lineHeight: 41,
-    letterSpacing: -0.6,
-  },
-  hero: {
-    fontSize: 28,
-    fontWeight: '700' as const,
-    lineHeight: 34,
-    letterSpacing: -0.5,
-  },
-  h1: {
-    fontSize: 28,
-    fontWeight: '700' as const,
-    lineHeight: 34,
-    letterSpacing: -0.5,
-  },
-  h2: {
-    fontSize: 22,
-    fontWeight: '700' as const,
-    lineHeight: 28,
-    letterSpacing: -0.4,
-  },
-  h3: { fontSize: 17, fontWeight: '600' as const, lineHeight: 22 },
-  bodyMedium: { fontSize: 17, fontWeight: '500' as const, lineHeight: 22 },
-  label: {
-    fontSize: 12,
-    fontWeight: '600' as const,
-    lineHeight: 16,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase' as const,
-  },
-  button: { fontSize: 17, fontWeight: '600' as const, lineHeight: 22 },
 } as const;
+
+export type TypographyTokens = typeof typography;
+
+export const components = {
+  button: {
+    height: 50,
+    padding: 22,
+    radius: 14,
+    fontPrimary: typography.headline,
+    fontGhost: { fontSize: 16, fontWeight: '500' as const, lineHeight: 22 },
+  },
+  buttonCircle: {
+    size: 80,
+    radius: 40,
+    fontSize: 15,
+    fontWeight: '700' as const,
+    letterSpacing: 1,
+  },
+  row: {
+    minHeight: 44,
+    paddingV: 12,
+    paddingH: 16,
+    gap: 10,
+    fontSize: 15,
+  },
+  groupTable: {
+    radius: 14,
+  },
+  tag: {
+    paddingV: 4,
+    paddingH: 10,
+    radius: radius.pill,
+    gap: spacing.step6,
+    dot: spacing.step6,
+    fontSize: 12,
+    fontWeight: '500' as const,
+  },
+  iconTile: {
+    size: 30,
+    radius: 7,
+    fillLight: 'rgba(118,118,128,0.12)',
+    fillDark: 'rgba(118,118,128,0.24)',
+  },
+  icon: {
+    strokeWidth: 1.8,
+    viewBox: 26,
+  },
+  progressRing: {
+    strokeWidth: 10,
+    lineCap: 'round' as const,
+    rotation: -90,
+  },
+  metric: {
+    gap: 2,
+    labelFontWeight: '600' as const,
+    value: {
+      fontSize: 28,
+      fontWeight: '700' as const,
+      letterSpacing: -1,
+      lineHeight: 32,
+    },
+    unitGap: 2,
+    unitFontWeight: '500' as const,
+  },
+  textInput: {
+    height: 52,
+    borderWidth: 1,
+    inputPadding: 0,
+    inlineLabelWidth: 70,
+  },
+} as const;
+
+export type ComponentTokens = typeof components;

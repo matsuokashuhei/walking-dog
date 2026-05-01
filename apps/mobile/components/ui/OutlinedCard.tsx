@@ -19,8 +19,8 @@ export function OutlinedCard({
       style={[
         styles.base,
         {
-          backgroundColor: theme.surfaceContainerLowest,
-          borderColor: theme.cardBorder,
+          backgroundColor: theme.surface,
+          borderColor: theme.border,
           padding: spacing[padding],
         },
         style,

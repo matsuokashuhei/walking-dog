@@ -56,7 +56,7 @@ export default function AcceptInviteScreen() {
 
   return (
     <View style={[styles.container, bg]}>
-      <View style={[styles.iconContainer, { backgroundColor: theme.surfaceContainerHigh }]}>
+      <View style={[styles.iconContainer, { backgroundColor: theme.surfaceContainer }]}>
         <Ionicons name="mail" size={36} color={theme.onSurface} />
       </View>
       <Text style={[styles.heroText, { color: theme.onSurface }]}>{t('invite.title')}</Text>
@@ -85,15 +85,13 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 80,
     height: 80,
-    borderRadius: 40,
+    borderRadius: spacing.step44 - spacing.xs,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.xl,
   },
   heroText: {
-    fontSize: 28,
-    fontWeight: '800',
-    letterSpacing: -0.56,
+    ...typography.title1,
     textAlign: 'center',
     marginBottom: spacing.md,
   },
@@ -102,7 +100,7 @@ const styles = StyleSheet.create({
   declineButton: { paddingVertical: spacing.sm, marginBottom: spacing.xl },
   declineText: { ...typography.body },
   message: { ...typography.body, marginTop: spacing.lg },
-  successText: { ...typography.h2, textAlign: 'center' },
+  successText: { ...typography.title2, textAlign: 'center' },
   errorText: { ...typography.body, textAlign: 'center' },
   button: { marginTop: spacing.lg, minWidth: 200 },
 });

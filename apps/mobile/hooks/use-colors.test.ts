@@ -1,4 +1,5 @@
 import { renderHook } from '@testing-library/react-native';
+import { colors } from '@/theme/tokens';
 import { useColors } from './use-colors';
 
 jest.mock('@/hooks/use-color-scheme', () => ({
@@ -12,8 +13,8 @@ describe('useColors', () => {
 
     const { result } = renderHook(() => useColors());
 
-    expect(result.current.background).toBe('#f2f2f7');
-    expect(result.current.onSurface).toBe('#000000');
+    expect(result.current.background).toBe(colors.light.background);
+    expect(result.current.onSurface).toBe(colors.light.onSurface);
   });
 
   it('returns dark color tokens when scheme is dark', () => {
@@ -22,25 +23,25 @@ describe('useColors', () => {
 
     const { result } = renderHook(() => useColors());
 
-    expect(result.current.background).toBe('#000000');
-    expect(result.current.onSurface).toBe('#ffffff');
+    expect(result.current.background).toBe(colors.dark.background);
+    expect(result.current.onSurface).toBe(colors.dark.onSurface);
   });
 
-  it('returns tokens including new surfaceContainerLowest', () => {
+  it('returns semantic surface container tokens', () => {
     const { useColorScheme } = require('@/hooks/use-color-scheme');
     (useColorScheme as jest.Mock).mockReturnValue('light');
 
     const { result } = renderHook(() => useColors());
 
-    expect(result.current.surfaceContainerLowest).toBe('#ffffff');
+    expect(result.current.surfaceContainer).toBe(colors.light.surfaceContainer);
   });
 
-  it('returns tokens including new primaryContainer', () => {
+  it('returns semantic interactive tokens', () => {
     const { useColorScheme } = require('@/hooks/use-color-scheme');
     (useColorScheme as jest.Mock).mockReturnValue('light');
 
     const { result } = renderHook(() => useColors());
 
-    expect(result.current.primaryContainer).toBe('#0a84ff');
+    expect(result.current.interactive).toBe(colors.light.interactive);
   });
 });

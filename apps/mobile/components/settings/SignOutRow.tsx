@@ -5,7 +5,7 @@ import { GroupedCard } from '@/components/ui/GroupedCard';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useColors } from '@/hooks/use-colors';
 import { useAuth } from '@/hooks/use-auth';
-import { spacing } from '@/theme/tokens';
+import { components, spacing, typography } from '@/theme/tokens';
 
 export function SignOutRow() {
   const { t } = useTranslation();
@@ -58,14 +58,13 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   row: {
-    paddingVertical: 13,
+    paddingVertical: spacing.step12,
     paddingHorizontal: spacing.md,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 44,
+    minHeight: components.row.minHeight,
   },
   label: {
-    fontSize: 17,
-    fontWeight: '500',
+    ...typography.body,
   },
 });

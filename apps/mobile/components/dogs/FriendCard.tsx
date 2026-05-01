@@ -25,8 +25,8 @@ export function FriendCard({ friendship, onPress }: FriendCardProps) {
       style={[
         styles.card,
         {
-          backgroundColor: theme.surfaceContainerLowest,
-          borderColor: theme.border + '33',
+          backgroundColor: theme.surface,
+          borderColor: theme.border,
         },
       ]}
       onPress={onPress}
@@ -50,7 +50,7 @@ export function FriendCard({ friendship, onPress }: FriendCardProps) {
         <Text style={[styles.date, { color: theme.onSurfaceVariant }]}>
           {lastMetDate}
         </Text>
-        <Text style={{ color: theme.onSurfaceVariant, fontSize: 20 }}>{'>'}</Text>
+        <Text style={[styles.chevron, { color: theme.onSurfaceVariant }]}>{'>'}</Text>
       </View>
     </Pressable>
   );
@@ -75,17 +75,20 @@ const styles = StyleSheet.create({
     marginLeft: spacing.md,
   },
   name: {
-    ...typography.bodyMedium,
+    ...typography.body,
   },
   meta: {
     ...typography.caption,
-    marginTop: 2,
+    marginTop: spacing.xs / 2,
   },
   trailing: {
     alignItems: 'flex-end',
-    gap: 4,
+    gap: spacing.xs,
   },
   date: {
     ...typography.caption,
+  },
+  chevron: {
+    ...typography.title2,
   },
 });

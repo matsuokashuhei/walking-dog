@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react-native';
 import { Text } from 'react-native';
+import { colors } from '@/theme/tokens';
 import { OutlinedCard } from './OutlinedCard';
 
 jest.mock('@/hooks/use-color-scheme', () => ({
@@ -16,7 +17,7 @@ describe('OutlinedCard', () => {
     expect(screen.getByText('inside card')).toBeTruthy();
   });
 
-  it('applies surfaceContainerLowest background and cardBorder color', () => {
+  it('applies surface background and border color tokens', () => {
     render(
       <OutlinedCard testID="card">
         <Text>x</Text>
@@ -25,7 +26,7 @@ describe('OutlinedCard', () => {
     const node = screen.getByTestId('card');
     const styles = (
       Array.isArray(node.props.style) ? node.props.style : [node.props.style]
-    ).flat() as Array<Record<string, unknown> | undefined>;
+    ).flat() as (Record<string, unknown> | undefined)[];
     const flat: Record<string, unknown> = styles.reduce<Record<string, unknown>>(
       (acc: Record<string, unknown>, s: Record<string, unknown> | undefined) => ({
         ...acc,
@@ -33,8 +34,8 @@ describe('OutlinedCard', () => {
       }),
       {},
     );
-    expect(flat.backgroundColor).toBe('#ffffff');
-    expect(flat.borderColor).toBe('rgba(60,60,67,0.12)');
+    expect(flat.backgroundColor).toBe(colors.light.surface);
+    expect(flat.borderColor).toBe(colors.light.border);
     expect(flat.borderWidth).toBe(1);
   });
 
@@ -47,7 +48,7 @@ describe('OutlinedCard', () => {
     const node = screen.getByTestId('card');
     const styles = (
       Array.isArray(node.props.style) ? node.props.style : [node.props.style]
-    ).flat() as Array<Record<string, unknown> | undefined>;
+    ).flat() as (Record<string, unknown> | undefined)[];
     const flat: Record<string, unknown> = styles.reduce<Record<string, unknown>>(
       (acc: Record<string, unknown>, s: Record<string, unknown> | undefined) => ({
         ...acc,

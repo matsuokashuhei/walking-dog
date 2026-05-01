@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import { radius } from '@/theme/tokens';
+import { colors, components } from '@/theme/tokens';
+import { appleButton } from '@/theme/overrides';
 import { Button } from './Button';
 
 jest.mock('@/hooks/use-color-scheme', () => ({
@@ -48,30 +49,30 @@ describe('Button', () => {
     render(<Button label="Start" variant="success" />);
     const node = screen.getByRole('button', { name: 'Start' });
     const flat = flattenStyle(node.props.style);
-    expect(flat.backgroundColor).toBe('#30d158');
+    expect(flat.backgroundColor).toBe(colors.light.success);
   });
 
-  it('applies the Precise circle size — 200×200 with half radius', () => {
+  it('applies the tokenized Precise circle size', () => {
     render(<Button label="START" size="circle" variant="success" />);
     const node = screen.getByRole('button', { name: 'START' });
     const flat = flattenStyle(node.props.style);
-    expect(flat.width).toBe(200);
-    expect(flat.height).toBe(200);
-    expect(flat.borderRadius).toBe(radius.pill);
+    expect(flat.width).toBe(components.buttonCircle.size);
+    expect(flat.height).toBe(components.buttonCircle.size);
+    expect(flat.borderRadius).toBe(components.buttonCircle.radius);
   });
 
   it('applies the default (Precise 50 px) height when size is omitted', () => {
     render(<Button label="Save walk" />);
     const node = screen.getByRole('button', { name: 'Save walk' });
     const flat = flattenStyle(node.props.style);
-    expect(flat.height).toBe(50);
+    expect(flat.height).toBe(components.button.height);
   });
 
   it('renders apple variant with black fill in light mode', () => {
     render(<Button label="Continue with Apple" variant="apple" />);
     const node = screen.getByRole('button', { name: 'Continue with Apple' });
     const flat = flattenStyle(node.props.style);
-    expect(flat.backgroundColor).toBe('#000000');
+    expect(flat.backgroundColor).toBe(appleButton.background.light);
   });
 });
 

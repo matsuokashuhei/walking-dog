@@ -2,6 +2,7 @@ import { Stack, useRouter } from 'expo-router';
 import { Pressable, Text, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
+import { spacing, typography } from '@/theme/tokens';
 
 // 散歩詳細 Stack は独自の戻るボタンを使い、タブ内の履歴から自然に戻します。
 export default function WalksLayout() {
@@ -36,8 +37,8 @@ export default function WalksLayout() {
 
 const styles = StyleSheet.create({
   backButton: {
-    fontSize: 32,
-    lineHeight: 36,
-    paddingRight: 8,
+    fontSize: typography.numericBig.fontSize,
+    lineHeight: spacing.step44 - spacing.sm,
+    paddingRight: spacing.sm,
   },
 });

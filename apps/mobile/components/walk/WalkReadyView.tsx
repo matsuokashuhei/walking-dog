@@ -12,7 +12,7 @@ import { WalkTopChip } from '@/components/walk/WalkTopChip';
 import { useColors } from '@/hooks/use-colors';
 import { useMe } from '@/hooks/use-me';
 import { useWalkStore } from '@/stores/walk-store';
-import { elevation, spacing, typography } from '@/theme/tokens';
+import { components, elevation, spacing, typography } from '@/theme/tokens';
 import type { Dog } from '@/types/graphql';
 
 interface WalkReadyViewProps {
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
   grabber: {
     width: 36,
     height: 5,
-    borderRadius: 3,
+    borderRadius: spacing.step6 / 2,
     alignSelf: 'center',
     marginTop: -spacing.xs,
     marginBottom: spacing.md,
@@ -148,14 +148,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   sectionTitle: {
-    ...typography.caption,
-    fontSize: 13,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    ...typography.metricLabel,
   },
   selectAll: {
-    fontSize: 13,
-    fontWeight: '500',
+    ...typography.footnote,
+    fontWeight: components.button.fontPrimary.fontWeight,
   },
 });

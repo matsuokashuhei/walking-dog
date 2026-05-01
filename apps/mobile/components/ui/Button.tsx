@@ -8,7 +8,8 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { colors, elevation, radius, spacing, typography } from '@/theme/tokens';
+import { appleButton } from '@/theme/overrides';
+import { colors, components, elevation } from '@/theme/tokens';
 
 type ButtonVariant =
   | 'primary'
@@ -38,7 +39,8 @@ export function Button({
   ...props
 }: ButtonProps) {
   const colorScheme = useColorScheme();
-  const theme = colors[colorScheme ?? 'light'];
+  const scheme = colorScheme ?? 'light';
+  const theme = colors[scheme];
   const isDisabled = disabled || loading;
 
   const variantStyles = {
@@ -68,16 +70,16 @@ export function Button({
       textColor: theme.onInteractive,
     },
     apple: {
-      backgroundColor: colorScheme === 'dark' ? '#ffffff' : '#000000',
+      backgroundColor: appleButton.background[scheme],
       borderColor: 'transparent',
-      textColor: colorScheme === 'dark' ? '#000000' : '#ffffff',
+      textColor: appleButton.text[scheme],
     },
   }[variant];
 
   const sizeStyle = size === 'circle' ? styles.circle : styles.default;
   const labelStyle = size === 'circle' ? styles.labelCircle : styles.label;
   const circleShadow =
-    size === 'circle' && variant === 'success' ? elevation.accentStart : null;
+    size === 'circle' && variant === 'success' ? elevation.accentButton : null;
 
   return (
     <Pressable
@@ -108,27 +110,27 @@ export function Button({
 
 const styles = StyleSheet.create({
   default: {
-    height: 50,
-    borderRadius: radius.xl,
+    height: components.button.height,
+    borderRadius: components.button.radius,
     borderWidth: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: components.button.padding,
   },
   circle: {
-    width: 200,
-    height: 200,
-    borderRadius: radius.pill,
+    width: components.buttonCircle.size,
+    height: components.buttonCircle.size,
+    borderRadius: components.buttonCircle.radius,
     borderWidth: 0,
     alignItems: 'center',
     justifyContent: 'center',
   },
   label: {
-    ...typography.button,
+    ...components.button.fontPrimary,
   },
   labelCircle: {
-    fontSize: 32,
-    fontWeight: '700',
-    letterSpacing: 2,
+    fontSize: components.buttonCircle.fontSize,
+    fontWeight: components.buttonCircle.fontWeight,
+    letterSpacing: components.buttonCircle.letterSpacing,
   },
 });

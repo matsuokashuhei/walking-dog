@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View, type ViewProps } from 'react-native';
 import { useColors } from '@/hooks/use-colors';
-import { radius } from '@/theme/tokens';
+import { components, tagColors } from '@/theme/tokens';
 
 export type TagTone =
   | 'neutral'
@@ -40,15 +40,15 @@ function tonePalette(
 ): { background: string; text: string } {
   switch (tone) {
     case 'live':
-      return { background: 'rgba(255,59,48,0.1)', text: theme.error };
+      return { background: tagColors.live.bg, text: tagColors.live.text };
     case 'success':
-      return { background: 'rgba(48,209,88,0.14)', text: '#1f7a38' };
+      return { background: tagColors.success.bg, text: tagColors.success.text };
     case 'warning':
-      return { background: 'rgba(255,159,10,0.15)', text: '#b15e00' };
+      return { background: tagColors.warning.bg, text: tagColors.warning.text };
     case 'info':
-      return { background: 'rgba(10,132,255,0.14)', text: '#0a4fa3' };
+      return { background: tagColors.tint.bg, text: tagColors.tint.text };
     case 'accent':
-      return { background: 'rgba(191,90,242,0.14)', text: '#7a2fb0' };
+      return { background: tagColors.accent.bg, text: tagColors.accent.text };
     case 'neutral':
     default:
       return { background: theme.surfaceContainer, text: theme.onSurface };
@@ -60,18 +60,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: radius.pill,
-    gap: 6,
+    paddingVertical: components.tag.paddingV,
+    paddingHorizontal: components.tag.paddingH,
+    borderRadius: components.tag.radius,
+    gap: components.tag.gap,
   },
   dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: components.tag.dot,
+    height: components.tag.dot,
+    borderRadius: components.tag.dot / 2,
   },
   label: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: components.tag.fontSize,
+    fontWeight: components.tag.fontWeight,
   },
 });

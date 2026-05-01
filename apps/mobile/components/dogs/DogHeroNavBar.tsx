@@ -3,20 +3,19 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { spacing, typography } from '@/theme/tokens';
+import { components, layout, spacing, typography } from '@/theme/tokens';
+import { heroPhotoOverlay } from '@/theme/overrides';
 
 interface DogHeroNavBarProps {
   dogId: string;
   isOwner: boolean;
 }
 
-// Hero overlay text always renders on the photo hero (photo, not surface),
-// so colors are intentionally hard-coded white rather than themed.
 const HERO_OVERLAY_TEXT = {
-  color: '#ffffff',
-  textShadowColor: 'rgba(0,0,0,0.3)',
+  color: heroPhotoOverlay.text,
+  textShadowColor: heroPhotoOverlay.textShadow,
   textShadowOffset: { width: 0, height: 1 },
-  textShadowRadius: 4,
+  textShadowRadius: spacing.xs,
 } as const;
 
 const NAV_HIT_SLOP = { top: 12, bottom: 12, left: 12, right: 12 } as const;
@@ -43,7 +42,12 @@ export function DogHeroNavBar({ dogId, isOwner }: DogHeroNavBarProps) {
         hitSlop={NAV_HIT_SLOP}
         style={styles.backRow}
       >
-        <IconSymbol name="chevron.backward" size={20} color="#ffffff" weight="medium" />
+        <IconSymbol
+          name="chevron.backward"
+          size={20}
+          color={heroPhotoOverlay.text}
+          weight="medium"
+        />
         <Text style={styles.back}>{t('dogs.detail.back')}</Text>
       </Pressable>
       {isOwner ? (
@@ -65,7 +69,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    height: 44,
+    height: layout.navBar,
     paddingHorizontal: spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
@@ -79,7 +83,7 @@ const styles = StyleSheet.create({
   },
   back: {
     ...typography.body,
-    fontWeight: '500',
+    fontWeight: components.button.fontGhost.fontWeight,
     ...HERO_OVERLAY_TEXT,
   },
   edit: {

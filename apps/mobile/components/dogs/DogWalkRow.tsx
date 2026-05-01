@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
-import { radius, spacing, typography } from '@/theme/tokens';
+import { components, radius, spacing, typography } from '@/theme/tokens';
 import { UI_EVENT_EMOJIS, countWalkActivityEvents } from '@/lib/walk/events';
 import {
   formatDistance,
@@ -95,8 +95,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.step12,
     paddingHorizontal: spacing.md,
-    paddingVertical: 12,
-    minHeight: 44,
+    paddingVertical: components.row.paddingV,
+    minHeight: components.row.minHeight,
   },
   iconTile: {
     width: 36,
@@ -111,27 +111,26 @@ const styles = StyleSheet.create({
   },
   title: {
     ...typography.subheadline,
-    fontWeight: '500',
-    fontSize: 15,
+    fontWeight: components.button.fontGhost.fontWeight,
+    fontSize: components.row.fontSize,
   },
   meta: {
     ...typography.footnote,
-    fontSize: 12,
     fontVariant: ['tabular-nums'],
   },
   eventCounts: {
     flexDirection: 'row',
-    gap: 4,
+    gap: spacing.xs,
   },
   eventText: {
-    fontSize: 11,
+    ...typography.metricLabel,
   },
   chevron: {
-    fontSize: 20,
+    ...typography.title2,
     marginLeft: spacing.xs,
   },
   separator: {
     height: StyleSheet.hairlineWidth,
-    marginLeft: 64,
+    marginLeft: spacing.xxl + spacing.md,
   },
 });

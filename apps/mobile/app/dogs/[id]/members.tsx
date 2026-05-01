@@ -130,5 +130,5 @@ export default function DogMembersScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   listSection: { padding: spacing.lg },
-  actions: { padding: spacing.lg, paddingTop: 0 },
+  actions: { padding: spacing.lg, paddingTop: spacing.xs - spacing.xs },
 });

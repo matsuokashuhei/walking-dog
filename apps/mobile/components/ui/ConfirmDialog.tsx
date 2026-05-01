@@ -1,5 +1,6 @@
 import { Modal, StyleSheet, Text, View } from 'react-native';
 import { useColors } from '@/hooks/use-colors';
+import { confirmDialogBackdrop } from '@/theme/overrides';
 import { spacing, radius, typography } from '@/theme/tokens';
 import { Button } from './Button';
 
@@ -29,7 +30,7 @@ export function ConfirmDialog({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <View style={styles.overlay}>
-        <View style={[styles.dialog, { backgroundColor: theme.surfaceContainerLowest }]}>
+        <View style={[styles.dialog, { backgroundColor: theme.surface }]}>
           <Text style={[styles.title, { color: theme.onSurface }]}>{title}</Text>
           <Text style={[styles.message, { color: theme.onSurfaceVariant }]}>{message}</Text>
           <View style={styles.actions}>
@@ -50,7 +51,7 @@ export function ConfirmDialog({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: confirmDialogBackdrop,
     alignItems: 'center',
     justifyContent: 'center',
     padding: spacing.lg,
@@ -61,7 +62,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
   },
   title: {
-    ...typography.h3,
+    ...typography.headline,
     marginBottom: spacing.sm,
   },
   message: {

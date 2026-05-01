@@ -5,7 +5,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { GroupedCard } from '@/components/ui/GroupedCard';
 import { useColors } from '@/hooks/use-colors';
-import { radius, spacing, typography } from '@/theme/tokens';
+import { components, radius, spacing, typography } from '@/theme/tokens';
 import { useWalk } from '@/hooks/use-walks';
 import { useWalkDetailViewModel } from '@/hooks/use-walk-detail-view-model';
 import { WalkEventTimeline } from '@/components/walk/WalkEventTimeline';
@@ -136,7 +136,7 @@ export default function WalkDetailScreen() {
                   style={[
                     styles.walkerAvatar,
                     styles.walkerInitialBg,
-                    { backgroundColor: theme.primaryContainer },
+                    { backgroundColor: theme.interactive },
                   ]}
                 >
                   <Text style={[styles.walkerInitialText, { color: theme.onInteractive }]}>
@@ -197,18 +197,16 @@ const styles = StyleSheet.create({
 
   hero: { paddingHorizontal: spacing.lg, marginTop: spacing.xl },
   caption: {
-    fontSize: 13,
-    fontWeight: '600',
-    letterSpacing: 0.5,
+    ...typography.metricLabel,
+    fontSize: typography.footnote.fontSize,
+    fontWeight: typography.headline.fontWeight,
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
-    letterSpacing: -0.5,
+    ...typography.title1,
     marginTop: spacing.xs,
   },
   dogs: { ...typography.subheadline, marginTop: spacing.xs },
-  time: { ...typography.footnote, marginTop: 2 },
+  time: { ...typography.footnote, marginTop: spacing.xs / 2 },
 
   metrics: {
     marginHorizontal: spacing.lg,
@@ -216,30 +214,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.xs,
   },
-  metric: { flex: 1, gap: 4 },
+  metric: { flex: 1, gap: spacing.xs },
   metricLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
+    ...typography.metricLabel,
+    fontWeight: typography.headline.fontWeight,
   },
   metricRow: { flexDirection: 'row', alignItems: 'baseline' },
   metricValue: {
-    fontSize: 26,
-    fontWeight: '700',
-    letterSpacing: -0.8,
+    fontSize: components.icon.viewBox,
+    fontWeight: typography.largeTitle.fontWeight,
+    letterSpacing: typography.numericBig.letterSpacing + typography.metricLabel.letterSpacing + typography.metricLabel.letterSpacing,
     fontVariant: ['tabular-nums'],
-    lineHeight: 30,
+    lineHeight: components.iconTile.size,
   },
-  metricUnit: { fontSize: 12, fontWeight: '500', marginLeft: 2 },
+  metricUnit: {
+    ...typography.caption,
+    fontWeight: components.tag.fontWeight,
+    marginLeft: spacing.xs / 2,
+  },
 
   walkerSection: { paddingHorizontal: spacing.lg, marginTop: spacing.lg },
-  walkerLabel: { ...typography.label, marginBottom: spacing.xs },
+  walkerLabel: { ...typography.metricLabel, marginBottom: spacing.xs },
   walkerRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   walkerAvatar: { width: 32, height: 32, borderRadius: radius.full },
   walkerInitialBg: { alignItems: 'center', justifyContent: 'center' },
-  walkerInitialText: { fontSize: 14, fontWeight: '600' as const },
-  walkerName: { ...typography.bodyMedium },
+  walkerInitialText: {
+    fontSize: components.button.radius,
+    fontWeight: typography.headline.fontWeight,
+  },
+  walkerName: { ...typography.body },
 
   timelineCard: {
     marginHorizontal: spacing.lg,
@@ -247,5 +250,5 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
   },
 
-  eventMarker: { fontSize: 20 },
+  eventMarker: { fontSize: typography.title2.fontSize - spacing.xs / 2 },
 });

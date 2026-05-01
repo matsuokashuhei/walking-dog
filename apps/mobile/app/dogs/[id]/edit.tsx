@@ -150,10 +150,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.step12,
-    minHeight: 44,
+    minHeight: spacing.step44,
   },
   navTitle: { ...typography.headline },
   navAction: { ...typography.body },
-  navActionStrong: { ...typography.body, fontWeight: '600' },
+  navActionStrong: { ...typography.body, fontWeight: typography.headline.fontWeight },
   scrollContent: { flexGrow: 1, padding: spacing.lg },
 });

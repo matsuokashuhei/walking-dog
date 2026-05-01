@@ -17,7 +17,7 @@ export function SegmentedControl({ options, selected, onChange }: SegmentedContr
   const theme = useColors();
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.surfaceContainerHigh }]}>
+    <View style={[styles.container, { backgroundColor: theme.surfaceContainer }]}>
       {options.map((opt) => {
         const isSelected = opt.value === selected;
         return (
@@ -29,7 +29,7 @@ export function SegmentedControl({ options, selected, onChange }: SegmentedContr
             onPress={() => onChange(opt.value)}
             style={[
               styles.segment,
-              isSelected && [styles.selectedSegment, { backgroundColor: theme.surfaceContainerLowest }],
+              isSelected && [styles.selectedSegment, { backgroundColor: theme.surface }],
             ]}
           >
             <Text
@@ -51,17 +51,17 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     borderRadius: radius.md,
-    padding: 2,
+    padding: spacing.xs / 2,
   },
   segment: {
     flex: 1,
     paddingVertical: spacing.xs,
     paddingHorizontal: spacing.sm,
     alignItems: 'center',
-    borderRadius: radius.md - 2,
+    borderRadius: radius.md - spacing.xs / 2,
   },
   selectedSegment: {},
   label: {
-    ...typography.label,
+    ...typography.metricLabel,
   },
 });

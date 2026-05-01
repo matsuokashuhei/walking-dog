@@ -67,7 +67,7 @@ export function ConfirmForm({ email, onSuccess }: ConfirmFormProps) {
               styles.codeBox,
               {
                 borderColor: otp.focusedIndex === index ? theme.interactive : theme.border,
-                backgroundColor: theme.surfaceContainerLowest,
+                backgroundColor: theme.surface,
                 color: theme.onSurface,
               },
             ]}
@@ -134,8 +134,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderWidth: 1,
     textAlign: 'center',
-    fontSize: 24,
-    fontWeight: '700',
+    ...typography.title2,
   },
   error: {
     ...typography.caption,
@@ -147,7 +146,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   resendText: {
-    ...typography.label,
+    ...typography.metricLabel,
   },
   footer: {
     ...typography.caption,

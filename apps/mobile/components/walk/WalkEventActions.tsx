@@ -152,7 +152,7 @@ export function WalkEventActions({ dogs }: WalkEventActionsProps) {
             disabled={isDisabled}
             borderTopColor={index > 0 ? theme.border : undefined}
             surfaceColor={theme.surfaceContainer}
-            pressedSurfaceColor={theme.surfaceContainerHigh}
+            pressedSurfaceColor={theme.surfaceContainer}
             textColor={theme.onSurface}
             secondaryTextColor={theme.onSurfaceVariant}
             eventLabels={{
@@ -174,6 +174,6 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   multiList: {
-    gap: 0,
+    gap: spacing.xs - spacing.xs,
   },
 });

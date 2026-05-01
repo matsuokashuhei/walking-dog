@@ -227,15 +227,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   pill: {
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: spacing.xs + 2,
+    paddingHorizontal: spacing.step10,
+    paddingVertical: spacing.step6,
     borderRadius: radius.full,
     borderWidth: StyleSheet.hairlineWidth,
   },
   pillCompact: { paddingHorizontal: spacing.sm },
   pillLabel: {
     ...typography.footnote,
-    fontWeight: '600',
+    fontWeight: typography.headline.fontWeight,
   },
   disabled: { opacity: 0.4 },
 });

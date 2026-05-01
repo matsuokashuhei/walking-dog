@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
   avatar: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: ICON_SIZE / 2,
   },
   textContainer: {
     flex: 1,
@@ -101,15 +101,15 @@ const styles = StyleSheet.create({
   },
   name: {
     ...typography.subheadline,
-    fontWeight: '600',
+    fontWeight: typography.headline.fontWeight,
   },
   counts: {
     ...typography.caption,
-    marginTop: 1,
+    marginTop: StyleSheet.hairlineWidth,
   },
   buttons: {
     flexDirection: 'row',
-    gap: 6,
+    gap: spacing.step6,
   },
   iconButton: {
     width: ICON_SIZE,
@@ -118,6 +118,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  iconEmoji: { fontSize: 16 },
+  iconEmoji: { fontSize: spacing.md },
   buttonDisabled: { opacity: 0.4 },
 });

@@ -8,7 +8,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { useColors } from '@/hooks/use-colors';
-import { radius, spacing, typography } from '@/theme/tokens';
+import { components, spacing, typography } from '@/theme/tokens';
 
 interface GroupedRowProps extends Omit<PressableProps, 'style' | 'children'> {
   label: string;
@@ -29,7 +29,7 @@ export function GroupedRow({
   value,
   leading,
   separator = true,
-  separatorInset = 58,
+  separatorInset = components.iconTile.size + spacing.md + spacing.step12,
   showChevron,
   onPress,
   style,
@@ -85,15 +85,15 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: 11,
-    minHeight: 44,
+    gap: components.row.gap,
+    paddingHorizontal: components.row.paddingH,
+    paddingVertical: components.row.paddingV,
+    minHeight: components.row.minHeight,
   },
   leading: {
-    width: 30,
-    height: 30,
-    borderRadius: radius.md,
+    width: components.iconTile.size,
+    height: components.iconTile.size,
+    borderRadius: components.iconTile.radius,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -105,8 +105,7 @@ const styles = StyleSheet.create({
     ...typography.subheadline,
   },
   chevron: {
-    fontSize: 20,
-    lineHeight: 22,
+    ...typography.body,
     marginLeft: spacing.xs,
   },
   separator: {

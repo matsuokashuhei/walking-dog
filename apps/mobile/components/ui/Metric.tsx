@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { typography } from '@/theme/tokens';
+import { components, typography } from '@/theme/tokens';
 
 interface MetricProps {
   label: string;
@@ -24,28 +24,23 @@ export function Metric({ label, value, unit, color, subColor }: MetricProps) {
 const styles = StyleSheet.create({
   metric: {
     flex: 1,
-    gap: 2,
+    gap: components.metric.gap,
   },
   metricLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
+    ...typography.metricLabel,
+    fontWeight: components.metric.labelFontWeight,
   },
   metricRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
   },
   metricValue: {
-    fontSize: 28,
-    fontWeight: '700',
-    letterSpacing: -1,
+    ...components.metric.value,
     fontVariant: ['tabular-nums'],
-    lineHeight: 32,
   },
   metricUnit: {
     ...typography.footnote,
-    fontWeight: '500',
-    marginLeft: 2,
+    fontWeight: components.metric.unitFontWeight,
+    marginLeft: components.metric.unitGap,
   },
 });

@@ -34,7 +34,7 @@ export function WalkHistoryItem({ walk }: WalkHistoryItemProps) {
       style={[
         styles.container,
         {
-          backgroundColor: theme.surfaceContainerLowest,
+          backgroundColor: theme.surface,
           borderColor: theme.border + '33',
         },
       ]}
@@ -93,14 +93,14 @@ const styles = StyleSheet.create({
   },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   headerLeft: { flex: 1 },
-  date: { ...typography.label },
+  date: { ...typography.metricLabel },
   dogs: { ...typography.caption, marginTop: spacing.xs },
   walkerRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   walkerAvatar: { width: 24, height: 24, borderRadius: radius.full },
   walkerInitialBg: { alignItems: 'center', justifyContent: 'center' },
-  walkerInitialText: { fontSize: 12, fontWeight: '600' as const },
+  walkerInitialText: { ...typography.caption, fontWeight: typography.headline.fontWeight },
   walkerName: { ...typography.caption },
   stats: { flexDirection: 'row', gap: spacing.lg, marginTop: spacing.sm },
   stat: { ...typography.body },
-  distanceStat: { ...typography.h3 },
+  distanceStat: { ...typography.headline },
 });

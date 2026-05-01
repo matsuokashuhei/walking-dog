@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
   },
   forgotWrapper: {
     alignSelf: 'flex-end',
-    marginTop: 12,
+    marginTop: spacing.step12,
     marginBottom: spacing.lg,
   },
   forgotText: {
@@ -142,8 +142,8 @@ const styles = StyleSheet.create({
   orRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginVertical: 20,
+    gap: spacing.step12,
+    marginVertical: spacing.step20,
   },
   orLine: {
     flex: 1,

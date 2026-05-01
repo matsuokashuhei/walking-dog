@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
-import { radius, spacing, typography } from '@/theme/tokens';
+import { components, radius, spacing, typography } from '@/theme/tokens';
 
 // 登録済みの犬がいない場合の案内と、犬登録画面への導線を表示します。
 export function NoDogsBody() {
@@ -49,13 +49,13 @@ const styles = StyleSheet.create({
   illustration: {
     width: 96,
     height: 96,
-    borderRadius: 48,
+    borderRadius: spacing.xxl,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.sm,
   },
   illustrationEmoji: {
-    fontSize: 44,
+    fontSize: spacing.step44,
   },
   title: {
     ...typography.title2,
@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
     ...typography.subheadline,
     textAlign: 'center',
     maxWidth: 280,
-    lineHeight: 22,
+    lineHeight: typography.body.lineHeight,
   },
   cta: {
     marginTop: spacing.md,
@@ -77,8 +77,7 @@ const styles = StyleSheet.create({
     minWidth: 220,
   },
   ctaLabel: {
-    ...typography.button,
-    fontSize: 17,
-    fontWeight: '600',
+    ...components.button.fontPrimary,
+    fontWeight: typography.headline.fontWeight,
   },
 });

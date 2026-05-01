@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { GroupedCard } from '@/components/ui/GroupedCard';
 import { useColors } from '@/hooks/use-colors';
 import { formatLastWalk } from '@/lib/walk/lastWalk';
-import { radius, spacing, typography } from '@/theme/tokens';
+import { colors, components, radius, spacing, typography } from '@/theme/tokens';
 import type { Dog } from '@/types/graphql';
 
 interface DogPickerCardProps {
@@ -162,35 +162,34 @@ const styles = StyleSheet.create({
   },
   name: {
     ...typography.body,
-    fontWeight: '600',
+    fontWeight: typography.headline.fontWeight,
   },
   lastWalk: {
     ...typography.caption,
-    marginTop: 2,
+    marginTop: spacing.xs / 2,
   },
   check: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: components.icon.viewBox,
+    height: components.icon.viewBox,
+    borderRadius: components.icon.viewBox / 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkEmpty: {
     borderWidth: 1.5,
-    backgroundColor: 'transparent',
   },
   checkMark: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '700',
-    lineHeight: 16,
+    color: colors.light.onInteractive,
+    fontSize: typography.caption.fontSize + spacing.xs / 2,
+    fontWeight: typography.largeTitle.fontWeight,
+    lineHeight: typography.caption.lineHeight,
   },
   separator: {
     height: StyleSheet.hairlineWidth,
   },
   chevron: {
-    fontSize: 22,
-    fontWeight: '300',
+    ...typography.title2,
+    fontWeight: typography.footnote.fontWeight,
     paddingLeft: spacing.xs,
   },
 });

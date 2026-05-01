@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
+import { components, typography } from '@/theme/tokens';
 
 interface RingProgressProps {
   size: number;
@@ -53,9 +54,9 @@ export function RingProgress({
           strokeWidth={strokeWidth}
           strokeDasharray={`${circumference}, ${circumference}`}
           strokeDashoffset={dashOffset}
-          strokeLinecap="round"
+          strokeLinecap={components.progressRing.lineCap}
           fill="none"
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+          transform={`rotate(${components.progressRing.rotation} ${size / 2} ${size / 2})`}
         />
       </Svg>
       {label ? (
@@ -80,6 +81,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   label: {
-    fontWeight: '700',
+    ...typography.headline,
   },
 });

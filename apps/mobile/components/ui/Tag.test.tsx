@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react-native';
-import { radius } from '@/theme/tokens';
+import { components, tagColors } from '@/theme/tokens';
 import { Tag } from './Tag';
 
 jest.mock('@/hooks/use-color-scheme', () => ({
@@ -15,21 +15,33 @@ describe('Tag', () => {
   it('applies the Precise pill radius (100)', () => {
     render(<Tag label="x" testID="tag" />);
     const flat = flatten(screen.getByTestId('tag').props.style);
-    expect(flat.borderRadius).toBe(radius.pill);
+    expect(flat.borderRadius).toBe(components.tag.radius);
   });
 
   it('renders the live tone with a 6 px pulse dot', () => {
     render(<Tag label="LIVE" tone="live" testID="tag" />);
     expect(screen.getByTestId('tag-dot')).toBeTruthy();
     const dot = flatten(screen.getByTestId('tag-dot').props.style);
-    expect(dot.width).toBe(6);
-    expect(dot.height).toBe(6);
+    expect(dot.width).toBe(components.tag.dot);
+    expect(dot.height).toBe(components.tag.dot);
   });
 
   it('uses the success tone green background at low alpha', () => {
     render(<Tag label="Done" tone="success" testID="tag" />);
     const flat = flatten(screen.getByTestId('tag').props.style);
-    expect(flat.backgroundColor).toBe('rgba(48,209,88,0.14)');
+    expect(flat.backgroundColor).toBe(tagColors.success.bg);
+  });
+
+  it('maps info tone to the tint tag color token', () => {
+    render(<Tag label="Info" tone="info" testID="tag" />);
+    const flat = flatten(screen.getByTestId('tag').props.style);
+    expect(flat.backgroundColor).toBe(tagColors.tint.bg);
+  });
+
+  it('maps accent tone to the accent tag color token', () => {
+    render(<Tag label="Rare" tone="accent" testID="tag" />);
+    const flat = flatten(screen.getByTestId('tag').props.style);
+    expect(flat.backgroundColor).toBe(tagColors.accent.bg);
   });
 });
 

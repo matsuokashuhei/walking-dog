@@ -104,26 +104,26 @@ const styles = StyleSheet.create({
   avatarOverlap: { marginLeft: -10 },
   time: {
     ...typography.body,
-    fontWeight: '700',
+    fontWeight: typography.largeTitle.fontWeight,
     fontVariant: ['tabular-nums'],
   },
   distance: {
     ...typography.caption,
     fontVariant: ['tabular-nums'],
   },
-  tagWrap: { marginLeft: 'auto' },
+  tagWrap: { flex: 1, alignItems: 'flex-end' },
   chevronButton: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: radius.xxl - spacing.step10,
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: spacing.xs,
   },
   chevron: {
-    fontSize: 18,
-    fontWeight: '700',
-    lineHeight: 18,
+    fontSize: typography.headline.fontSize + StyleSheet.hairlineWidth,
+    fontWeight: typography.largeTitle.fontWeight,
+    lineHeight: typography.headline.fontSize + StyleSheet.hairlineWidth,
   },
   hint: {
     ...typography.caption,

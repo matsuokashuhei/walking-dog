@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dogName: {
-    ...typography.hero,
+    ...typography.title1,
     textAlign: 'center',
   },
   breed: {
@@ -121,13 +121,11 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   statLabel: {
-    ...typography.label,
+    ...typography.metricLabel,
     marginBottom: spacing.xs,
   },
   statValue: {
-    fontSize: 28,
-    fontWeight: '900',
-    letterSpacing: -0.56,
+    ...typography.title1,
   },
   actions: {
     padding: spacing.lg,

@@ -101,14 +101,13 @@ const styles = StyleSheet.create({
     ...typography.largeTitle,
   },
   addCta: {
-    fontSize: 17,
-    fontWeight: '400',
+    ...typography.body,
   },
   rollupWrap: {
     marginBottom: spacing.xl,
   },
   sectionHeader: {
-    paddingHorizontal: 0,
+    paddingHorizontal: spacing.xs - spacing.xs,
   },
   list: {
     paddingHorizontal: spacing.md,

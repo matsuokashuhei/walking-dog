@@ -121,14 +121,14 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
         {t('auth.register.agreePrefix')}
         <Text
           onPress={() => showComingSoon('auth.register.terms')}
-          style={{ color: theme.interactive }}
+          style={[styles.legalLink, { color: theme.interactive }]}
         >
           {t('auth.register.terms')}
         </Text>
         {t('auth.register.agreeAnd')}
         <Text
           onPress={() => showComingSoon('auth.register.privacyPolicy')}
-          style={{ color: theme.interactive }}
+          style={[styles.legalLink, { color: theme.interactive }]}
         >
           {t('auth.register.privacyPolicy')}
         </Text>
@@ -144,8 +144,8 @@ const styles = StyleSheet.create({
   },
   hint: {
     ...typography.footnote,
-    marginTop: 10,
-    marginBottom: 22,
+    marginTop: spacing.step10,
+    marginBottom: spacing.step20 + spacing.xs / 2,
     paddingHorizontal: spacing.xs,
   },
   error: {
@@ -157,6 +157,9 @@ const styles = StyleSheet.create({
     ...typography.caption,
     textAlign: 'center',
     marginTop: spacing.md,
-    lineHeight: 18,
+    lineHeight: typography.footnote.lineHeight,
+  },
+  legalLink: {
+    ...typography.caption,
   },
 });

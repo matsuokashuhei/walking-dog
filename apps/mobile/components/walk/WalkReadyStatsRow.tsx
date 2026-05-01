@@ -2,7 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
 import { usePackProgress } from '@/hooks/use-pack-progress';
-import { radius, spacing, typography } from '@/theme/tokens';
+import { components, radius, spacing, typography } from '@/theme/tokens';
 
 interface StatCell {
   label: string;
@@ -58,21 +58,18 @@ const styles = StyleSheet.create({
   cell: {
     flex: 1,
     alignItems: 'center',
-    gap: 2,
+    gap: spacing.xs / 2,
   },
   label: {
-    ...typography.caption,
-    fontSize: 11,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
+    ...typography.metricLabel,
+    fontWeight: typography.headline.fontWeight,
   },
   value: {
     ...typography.title2,
-    fontSize: 20,
-    lineHeight: 24,
+    fontSize: typography.title2.fontSize - spacing.xs / 2,
+    lineHeight: spacing.lg,
   },
   icon: {
-    fontSize: 14,
+    fontSize: components.button.radius,
   },
 });

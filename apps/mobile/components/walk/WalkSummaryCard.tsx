@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { useColors } from '@/hooks/use-colors';
 import { useMe } from '@/hooks/use-me';
 import { useWalkStore } from '@/stores/walk-store';
-import { spacing, typography } from '@/theme/tokens';
+import { components, spacing, typography } from '@/theme/tokens';
 import { PerDogSummaryCard } from './PerDogSummaryCard';
 import { WalkRoutePreview } from './WalkRoutePreview';
 import type { Dog } from '@/types/graphql';
@@ -194,9 +194,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   caption: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 1,
+    ...typography.metricLabel,
+    fontWeight: typography.largeTitle.fontWeight,
+    letterSpacing: components.buttonCircle.letterSpacing,
     textTransform: 'uppercase',
     marginBottom: spacing.xs,
   },
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
   subtitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs + 2,
+    gap: spacing.step6,
     marginTop: spacing.sm,
   },
   subtitle: {

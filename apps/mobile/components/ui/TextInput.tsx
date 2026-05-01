@@ -1,6 +1,14 @@
-import { StyleSheet, Text, TextInput as RNTextInput, View, type TextInputProps as RNTextInputProps, type StyleProp, type TextStyle } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  TextInput as RNTextInput,
+  View,
+  type StyleProp,
+  type TextInputProps as RNTextInputProps,
+  type TextStyle,
+} from 'react-native';
 import { useColors } from '@/hooks/use-colors';
-import { spacing, radius, typography } from '@/theme/tokens';
+import { components, spacing, radius, typography } from '@/theme/tokens';
 
 type LabelPosition = 'top' | 'inline';
 
@@ -69,7 +77,7 @@ export function TextInput({
         style={[
           styles.input,
           {
-            backgroundColor: theme.surfaceContainerLowest,
+            backgroundColor: theme.surface,
             color: theme.onSurface,
             borderColor: error ? theme.error : theme.border,
           },
@@ -92,12 +100,12 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   label: {
-    ...typography.label,
+    ...typography.metricLabel,
     marginBottom: spacing.sm,
   },
   input: {
-    height: 52,
-    borderWidth: 1,
+    height: components.textInput.height,
+    borderWidth: components.textInput.borderWidth,
     borderRadius: radius.lg,
     paddingHorizontal: spacing.md,
     ...typography.body,
@@ -112,19 +120,19 @@ const inlineStyles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: components.row.gap,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.step14,
-    minHeight: 44,
+    minHeight: components.row.minHeight,
   },
   label: {
     ...typography.subheadline,
-    width: 70,
+    width: components.textInput.inlineLabelWidth,
   },
   input: {
     flex: 1,
     ...typography.body,
-    padding: 0,
+    padding: components.textInput.inputPadding,
   },
   separator: {
     height: StyleSheet.hairlineWidth,

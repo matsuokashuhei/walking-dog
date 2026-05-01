@@ -1,5 +1,6 @@
 import { renderHook } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
+import { colors } from '@/theme/tokens';
 import { useThemedStyles } from './use-themed-styles';
 
 jest.mock('@/hooks/use-color-scheme', () => ({
@@ -16,7 +17,7 @@ describe('useThemedStyles', () => {
 
     expect(result.current.container).toBeDefined();
     expect(factory).toHaveBeenCalledWith(
-      expect.objectContaining({ background: '#f2f2f7' }),
+      expect.objectContaining({ background: colors.light.background }),
     );
   });
 
@@ -32,7 +33,7 @@ describe('useThemedStyles', () => {
 
     expect(result.current.container).toBeDefined();
     expect(factory).toHaveBeenCalledWith(
-      expect.objectContaining({ background: '#000000' }),
+      expect.objectContaining({ background: colors.dark.background }),
     );
   });
 

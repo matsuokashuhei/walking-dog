@@ -51,9 +51,6 @@ describe('colors (Precise palette)', () => {
       expect(colors.light.border).toBe('rgba(60,60,67,0.18)');
     });
 
-    it('keeps deprecated surfaceContainerLowest alias for migration', () => {
-      expect(colors.light.surfaceContainerLowest).toBe('#ffffff');
-    });
   });
 
   describe('dark theme', () => {
@@ -85,12 +82,6 @@ describe('ColorTokens interface', () => {
     expect(token.warning).toBeDefined();
   });
 
-  it('keeps deprecated aliases for migration', () => {
-    const token: ColorTokens = colors.light;
-    expect(token.surfaceContainerLowest).toBeDefined();
-    expect(token.primaryContainer).toBeDefined();
-    expect(token.cardBorder).toBeDefined();
-  });
 });
 
 describe('spacing (4-point grid)', () => {
@@ -186,6 +177,7 @@ describe('tagColors', () => {
     expect(token.success).toEqual({ bg: 'rgba(48,209,88,0.14)', text: '#1F7A38' });
     expect(token.warning).toEqual({ bg: 'rgba(255,159,10,0.15)', text: '#B15E00' });
     expect(token.tint).toEqual({ bg: 'rgba(10,132,255,0.14)', text: '#0A4FA3' });
+    expect(token.accent).toEqual({ bg: 'rgba(191,90,242,0.14)', text: '#7A2FB0' });
   });
 });
 
@@ -227,20 +219,10 @@ describe('typography (iOS text styles)', () => {
     expect(typography.numericBig.letterSpacing).toBe(-1.2);
   });
 
-  it('label keeps textTransform uppercase for caption chrome', () => {
-    expect(typography.label.textTransform).toBe('uppercase');
-  });
-
   it('metricLabel is 11 · 400 · uppercase (stat grid labels)', () => {
     expect(typography.metricLabel.fontSize).toBe(11);
     expect(typography.metricLabel.fontWeight).toBe('400');
     expect(typography.metricLabel.textTransform).toBe('uppercase');
-  });
-
-  it('keeps deprecated display/hero/h1 aliases pointing to Precise sizes', () => {
-    expect(typography.display.fontSize).toBe(34);
-    expect(typography.hero.fontSize).toBe(28);
-    expect(typography.h1.fontSize).toBe(28);
   });
 });
 
@@ -266,6 +248,7 @@ describe('components', () => {
     });
     expect(components.groupTable.radius).toBe(14);
     expect(components.tag.radius).toBe(radius.pill);
+    expect(components.tag.dot).toBe(6);
     expect(components.iconTile.fillLight).toBe('rgba(118,118,128,0.12)');
     expect(components.icon.strokeWidth).toBe(1.8);
     expect(components.progressRing).toMatchObject({
@@ -273,6 +256,19 @@ describe('components', () => {
       lineCap: 'round',
       rotation: -90,
     });
+  });
+
+  it('exposes narrow metric and text input tokens for UI primitives', () => {
+    expect(components.metric.value).toMatchObject({
+      fontSize: 28,
+      fontWeight: '700',
+      letterSpacing: -1,
+      lineHeight: 32,
+    });
+    expect(components.metric.gap).toBe(2);
+    expect(components.metric.labelFontWeight).toBe('600');
+    expect(components.textInput.height).toBe(52);
+    expect(components.textInput.inlineLabelWidth).toBe(70);
   });
 });
 

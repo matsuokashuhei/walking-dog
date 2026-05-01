@@ -23,11 +23,6 @@ export const colors = {
 
     overlay: 'rgba(0,0,0,0.4)',
 
-    // --- Deprecated aliases (kept for incremental migration) ---
-    surfaceContainerHigh: 'rgba(118,118,128,0.18)',
-    surfaceContainerLowest: '#ffffff',
-    cardBorder: 'rgba(60,60,67,0.12)',
-    primaryContainer: '#0a84ff',
   },
   dark: {
     background: '#000000',
@@ -49,11 +44,6 @@ export const colors = {
 
     overlay: 'rgba(0,0,0,0.6)',
 
-    // --- Deprecated aliases ---
-    surfaceContainerHigh: '#2c2c2e',
-    surfaceContainerLowest: '#1c1c1e',
-    cardBorder: 'rgba(84,84,88,0.4)',
-    primaryContainer: '#0a84ff',
   },
 } as const;
 
@@ -75,11 +65,6 @@ export interface ColorTokens {
   error: string;
   overlay: string;
 
-  // Deprecated aliases — kept for incremental migration.
-  surfaceContainerHigh: string;
-  surfaceContainerLowest: string;
-  cardBorder: string;
-  primaryContainer: string;
 }
 
 export const materials = {
@@ -193,6 +178,7 @@ export const tagColors = {
   success: { bg: 'rgba(48,209,88,0.14)', text: '#1F7A38' },
   warning: { bg: 'rgba(255,159,10,0.15)', text: '#B15E00' },
   tint: { bg: 'rgba(10,132,255,0.14)', text: '#0A4FA3' },
+  accent: { bg: 'rgba(191,90,242,0.14)', text: '#7A2FB0' },
 } as const;
 
 export type TagColorTokens = typeof tagColors;
@@ -237,42 +223,6 @@ export const typography = {
     letterSpacing: 0.3,
     textTransform: 'uppercase' as const,
   },
-
-  // --- Deprecated aliases (kept for incremental migration) ---
-  display: {
-    fontSize: 34,
-    fontWeight: '700' as const,
-    lineHeight: 41,
-    letterSpacing: -0.6,
-  },
-  hero: {
-    fontSize: 28,
-    fontWeight: '700' as const,
-    lineHeight: 34,
-    letterSpacing: -0.5,
-  },
-  h1: {
-    fontSize: 28,
-    fontWeight: '700' as const,
-    lineHeight: 34,
-    letterSpacing: -0.5,
-  },
-  h2: {
-    fontSize: 22,
-    fontWeight: '700' as const,
-    lineHeight: 28,
-    letterSpacing: -0.4,
-  },
-  h3: { fontSize: 17, fontWeight: '600' as const, lineHeight: 22 },
-  bodyMedium: { fontSize: 17, fontWeight: '500' as const, lineHeight: 22 },
-  label: {
-    fontSize: 12,
-    fontWeight: '600' as const,
-    lineHeight: 16,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase' as const,
-  },
-  button: { fontSize: 17, fontWeight: '600' as const, lineHeight: 22 },
 } as const;
 
 export type TypographyTokens = typeof typography;
@@ -306,6 +256,8 @@ export const components = {
     paddingV: 4,
     paddingH: 10,
     radius: radius.pill,
+    gap: spacing.step6,
+    dot: spacing.step6,
     fontSize: 12,
     fontWeight: '500' as const,
   },
@@ -323,6 +275,24 @@ export const components = {
     strokeWidth: 10,
     lineCap: 'round' as const,
     rotation: -90,
+  },
+  metric: {
+    gap: 2,
+    labelFontWeight: '600' as const,
+    value: {
+      fontSize: 28,
+      fontWeight: '700' as const,
+      letterSpacing: -1,
+      lineHeight: 32,
+    },
+    unitGap: 2,
+    unitFontWeight: '500' as const,
+  },
+  textInput: {
+    height: 52,
+    borderWidth: 1,
+    inputPadding: 0,
+    inlineLabelWidth: 70,
   },
 } as const;
 

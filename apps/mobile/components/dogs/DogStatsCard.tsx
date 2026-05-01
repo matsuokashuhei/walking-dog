@@ -54,6 +54,6 @@ const styles = StyleSheet.create({
   },
   label: {
     ...typography.metricLabel,
-    marginTop: 2,
+    marginTop: spacing.xs / 2,
   },
 });

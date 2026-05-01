@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { AppMark } from '@/components/auth/AppMark';
 import { LoginForm } from '@/components/auth/LoginForm';
 import { useColors } from '@/hooks/use-colors';
-import { spacing, typography } from '@/theme/tokens';
+import { components, spacing, typography } from '@/theme/tokens';
 
 // ログイン画面は認証フォームだけを担当し、成功後の遷移はルートの認証ガードに任せます。
 export default function LoginScreen() {
@@ -50,7 +50,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: 32,
+    paddingHorizontal: spacing.xl,
   },
   content: {
     flex: 1,
@@ -69,13 +69,13 @@ const styles = StyleSheet.create({
   },
   footer: {
     alignItems: 'center',
-    paddingBottom: 50,
+    paddingBottom: spacing.step60 - spacing.step10,
     paddingTop: spacing.md,
   },
   footerText: {
     ...typography.subheadline,
   },
   footerLink: {
-    fontWeight: '500',
+    fontWeight: components.button.fontPrimary.fontWeight,
   },
 });

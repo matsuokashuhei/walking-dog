@@ -8,7 +8,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { useColors } from '@/hooks/use-colors';
-import { spacing } from '@/theme/tokens';
+import { spacing, typography } from '@/theme/tokens';
 
 interface SectionHeaderProps extends Omit<TextProps, 'children' | 'style'> {
   label: string;
@@ -57,10 +57,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   label: {
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
+    ...typography.metricLabel,
   },
   trailing: {
     marginLeft: spacing.md,

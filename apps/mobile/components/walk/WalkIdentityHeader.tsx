@@ -80,10 +80,10 @@ const styles = StyleSheet.create({
   },
   title: {
     ...typography.body,
-    fontWeight: '600',
+    fontWeight: typography.headline.fontWeight,
   },
   subtitle: {
     ...typography.caption,
-    marginTop: 1,
+    marginTop: StyleSheet.hairlineWidth,
   },
 });

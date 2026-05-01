@@ -5,11 +5,9 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useColors } from '@/hooks/use-colors';
 import { spacing, radius, typography } from '@/theme/tokens';
+import { cameraBadge } from '@/theme/overrides';
 
-// 02b camera badge — 写真円 (120) の右下にオーバーレイ。tokens.ts に sizing 系トークンが
-// 無いため UI 慣性のためのローカル定数とする。
-const BADGE_SIZE = 32;
-const BADGE_ICON_SIZE = 16;
+const BADGE_ICON_SIZE = cameraBadge.size / 2;
 
 interface PhotoPickerProps {
   currentPhotoUrl: string | null;
@@ -100,9 +98,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    width: BADGE_SIZE,
-    height: BADGE_SIZE,
-    borderRadius: BADGE_SIZE / 2,
+    width: cameraBadge.size,
+    height: cameraBadge.size,
+    borderRadius: cameraBadge.radius,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',

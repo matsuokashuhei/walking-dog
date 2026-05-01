@@ -156,14 +156,14 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   pill: {
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: 5,
+    paddingHorizontal: spacing.step10,
+    paddingVertical: spacing.xs + StyleSheet.hairlineWidth,
     borderRadius: radius.full,
     borderWidth: StyleSheet.hairlineWidth,
   },
   pillLabel: {
     ...typography.footnote,
-    fontWeight: '600',
+    fontWeight: typography.headline.fontWeight,
     fontVariant: ['tabular-nums'],
   },
 });

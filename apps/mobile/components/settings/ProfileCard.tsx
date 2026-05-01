@@ -2,14 +2,12 @@ import { StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
-import { radius, spacing } from '@/theme/tokens';
+import { radius, spacing, typography } from '@/theme/tokens';
 import { GroupedCard } from '@/components/ui/GroupedCard';
 
 interface ProfileCardProps {
   displayName: string | null;
 }
-
-const AVATAR_GRADIENT_START = '#bf5af2';
 
 export function ProfileCard({ displayName }: ProfileCardProps) {
   const { t } = useTranslation();
@@ -21,7 +19,7 @@ export function ProfileCard({ displayName }: ProfileCardProps) {
     <GroupedCard padding="md" elevated={false} style={styles.card}>
       <View style={styles.row}>
         <LinearGradient
-          colors={[AVATAR_GRADIENT_START, theme.interactive]}
+          colors={[theme.success, theme.interactive]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.avatar}
@@ -54,7 +52,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    gap: spacing.step14,
   },
   avatar: {
     width: 60,
@@ -64,26 +62,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarInitial: {
-    fontSize: 22,
-    fontWeight: '700',
+    ...typography.title2,
   },
   textBlock: {
     flex: 1,
     minWidth: 0,
   },
   name: {
-    fontSize: 19,
-    fontWeight: '600',
-    lineHeight: 24,
+    ...typography.headline,
   },
   email: {
-    fontSize: 13,
-    lineHeight: 18,
-    marginTop: 2,
+    ...typography.footnote,
+    marginTop: spacing.xs / 2,
   },
   link: {
-    fontSize: 12,
-    lineHeight: 16,
+    ...typography.caption,
     marginTop: spacing.xs,
   },
 });

@@ -1,7 +1,7 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
-import { elevation, typography } from '@/theme/tokens';
+import { components, elevation, radius, spacing, typography } from '@/theme/tokens';
 
 interface WalkStartButtonProps {
   onPress: () => void;
@@ -48,23 +48,23 @@ export function WalkStartButton({ onPress, disabled, loading }: WalkStartButtonP
 const styles = StyleSheet.create({
   button: {
     width: '100%',
-    height: 56,
-    borderRadius: 28,
+    height: spacing.step60 - spacing.xs,
+    borderRadius: radius.xxl + spacing.xs,
     alignItems: 'center',
     justifyContent: 'center',
   },
   content: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: spacing.step10,
   },
   icon: {
-    fontSize: 16,
+    fontSize: spacing.md,
   },
   label: {
-    ...typography.button,
-    fontSize: 18,
-    fontWeight: '700',
-    letterSpacing: 1.5,
+    ...components.button.fontPrimary,
+    fontSize: typography.headline.fontSize + StyleSheet.hairlineWidth,
+    fontWeight: typography.largeTitle.fontWeight,
+    letterSpacing: components.buttonCircle.letterSpacing + StyleSheet.hairlineWidth,
   },
 });

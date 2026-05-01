@@ -76,16 +76,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
-    paddingTop: 4,
+    paddingTop: spacing.xs,
     paddingBottom: spacing.sm,
   },
   title: {
     ...typography.title2,
-    fontSize: 20,
   },
   seeAll: {
     ...typography.subheadline,
-    fontSize: 15,
   },
   empty: {
     padding: spacing.lg,

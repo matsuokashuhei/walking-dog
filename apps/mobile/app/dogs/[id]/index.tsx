@@ -103,13 +103,11 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
   },
   dogName: {
-    ...typography.title1,
-    fontSize: 32,
-    letterSpacing: -0.6,
+    ...typography.numericBig,
   },
   dogMeta: {
-    fontSize: 14,
-    marginTop: 2,
+    ...typography.subheadline,
+    marginTop: spacing.xs / 2,
   },
   statsSection: {
     paddingHorizontal: spacing.md,

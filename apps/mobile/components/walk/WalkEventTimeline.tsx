@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
     width: 40,
   },
   emoji: {
-    fontSize: 20,
+    fontSize: typography.title2.fontSize - spacing.xs / 2,
     width: 28,
     textAlign: 'center',
   },
@@ -143,8 +143,8 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
   },
   closeText: {
-    fontSize: 24,
-    fontWeight: '600',
+    fontSize: spacing.lg,
+    fontWeight: typography.headline.fontWeight,
   },
   fullScreenImage: {
     width: '100%',

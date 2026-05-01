@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { GroupedCard } from '@/components/ui/GroupedCard';
 import { useColors } from '@/hooks/use-colors';
 import { UI_EVENT_EMOJIS, countEventsByType } from '@/lib/walk/events';
-import { radius, spacing, typography } from '@/theme/tokens';
+import { components, radius, spacing, typography } from '@/theme/tokens';
 import type { Dog, WalkEvent } from '@/types/graphql';
 
 interface PerDogSummaryCardProps {
@@ -101,18 +101,18 @@ const styles = StyleSheet.create({
   },
   link: {
     ...typography.subheadline,
-    fontWeight: '500',
+    fontWeight: components.button.fontGhost.fontWeight,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm + 4,
+    gap: spacing.step12,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 2,
+    paddingVertical: spacing.step10,
   },
   divider: {
     height: StyleSheet.hairlineWidth,
-    marginLeft: spacing.md + AVATAR + spacing.sm + 4,
+    marginLeft: spacing.md + AVATAR + spacing.step12,
   },
   avatar: {
     width: AVATAR,
@@ -122,19 +122,19 @@ const styles = StyleSheet.create({
   body: {
     flex: 1,
     minWidth: 0,
-    gap: 2,
+    gap: spacing.xs / 2,
   },
   name: {
     ...typography.body,
-    fontWeight: '600',
+    fontWeight: typography.headline.fontWeight,
   },
   counts: {
     ...typography.footnote,
     fontVariant: ['tabular-nums'],
   },
   chevron: {
-    fontSize: 22,
-    fontWeight: '400',
+    ...typography.title2,
+    fontWeight: typography.body.fontWeight,
     marginLeft: spacing.xs,
   },
 });

@@ -77,22 +77,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.step12,
-    padding: 14,
+    padding: spacing.step14,
   },
   info: {
     flex: 1,
   },
   title: {
-    ...typography.headline,
-    fontWeight: '600',
-    fontSize: 15,
+    ...typography.subheadline,
+    fontWeight: typography.headline.fontWeight,
   },
   subtitle: {
     ...typography.footnote,
-    marginTop: 2,
+    marginTop: spacing.xs / 2,
   },
   chevron: {
-    fontSize: 22,
+    ...typography.title2,
     marginLeft: spacing.xs,
   },
 });

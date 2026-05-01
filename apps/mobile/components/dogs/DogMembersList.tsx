@@ -2,7 +2,7 @@ import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
-import { spacing, radius, typography } from '@/theme/tokens';
+import { components, spacing, radius, typography } from '@/theme/tokens';
 import { OutlinedCard } from '@/components/ui/OutlinedCard';
 import type { DogMember } from '@/types/graphql';
 
@@ -39,7 +39,7 @@ export function DogMembersList({ members, currentUserId, isOwner, onRemove }: Do
               />
             ) : (
               <View
-                style={[styles.avatar, styles.initialBg, { backgroundColor: theme.primaryContainer }]}
+                style={[styles.avatar, styles.initialBg, { backgroundColor: theme.interactive }]}
               >
                 <Text style={[styles.initialText, { color: theme.onInteractive }]}>{initial}</Text>
               </View>
@@ -80,9 +80,9 @@ const styles = StyleSheet.create({
   separator: { height: spacing.sm },
   avatar: { width: 40, height: 40, borderRadius: radius.full },
   initialBg: { alignItems: 'center', justifyContent: 'center' },
-  initialText: { fontSize: 16, fontWeight: '600' as const },
+  initialText: { ...components.button.fontGhost },
   info: { flex: 1, marginLeft: spacing.md },
-  name: { ...typography.bodyMedium },
-  role: { ...typography.label, marginTop: 2 },
-  removeText: { ...typography.body, fontWeight: '500' as const },
+  name: { ...typography.body },
+  role: { ...typography.metricLabel, marginTop: spacing.xs / 2 },
+  removeText: { ...components.button.fontGhost },
 });

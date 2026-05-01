@@ -4,6 +4,7 @@ import { useColors } from '@/hooks/use-colors';
 import { useWalkStore } from '@/stores/walk-store';
 import { MAP_EVENT_EMOJIS } from '@/lib/walk/events';
 import { TOKYO_STATION_COORDINATE } from '@/lib/walk/constants';
+import { spacing, typography } from '@/theme/tokens';
 
 interface WalkMapProps {
   mode?: 'preview' | 'recording';
@@ -74,5 +75,5 @@ export function WalkMap({ mode = 'recording' }: WalkMapProps) {
 const styles = StyleSheet.create({
   container: { flex: 1, overflow: 'hidden' },
   map: { flex: 1 },
-  eventMarker: { fontSize: 20 },
+  eventMarker: { fontSize: typography.title2.fontSize - spacing.xs / 2 },
 });

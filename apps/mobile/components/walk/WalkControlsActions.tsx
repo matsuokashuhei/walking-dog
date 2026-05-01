@@ -33,7 +33,7 @@ export function WalkControlsActions({
           styles.pauseButton,
           {
             backgroundColor: pressed
-              ? theme.surfaceContainerHigh
+              ? theme.surfaceContainer
               : theme.surfaceContainer,
           },
           isStopping && styles.buttonDisabled,
@@ -72,16 +72,16 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
     borderRadius: radius.lg,
-    gap: 6,
+    gap: spacing.step6,
     flex: 1,
   },
   pauseEmoji: {
-    fontSize: 12,
-    fontWeight: '800',
+    ...typography.caption,
+    fontWeight: typography.largeTitle.fontWeight,
   },
   pauseLabel: {
     ...typography.footnote,
-    fontWeight: '600',
+    fontWeight: typography.headline.fontWeight,
   },
   buttonDisabled: {
     opacity: 0.4,

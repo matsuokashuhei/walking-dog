@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.xs + 2,
+    paddingVertical: spacing.step6,
     paddingHorizontal: spacing.md,
     borderRadius: radius.full,
     borderWidth: StyleSheet.hairlineWidth,
@@ -86,6 +86,6 @@ const styles = StyleSheet.create({
   },
   label: {
     ...typography.subheadline,
-    fontWeight: '600',
+    fontWeight: typography.headline.fontWeight,
   },
 });

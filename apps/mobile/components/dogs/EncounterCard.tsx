@@ -61,17 +61,17 @@ const styles = StyleSheet.create({
     marginLeft: spacing.md,
   },
   name: {
-    ...typography.bodyMedium,
+    ...typography.body,
   },
   meta: {
     ...typography.caption,
-    marginTop: 2,
+    marginTop: spacing.xs / 2,
   },
   duration: {
     alignItems: 'flex-end',
   },
   durationValue: {
-    ...typography.bodyMedium,
+    ...typography.body,
   },
   durationLabel: {
     ...typography.caption,

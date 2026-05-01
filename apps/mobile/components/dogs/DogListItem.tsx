@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
-import { elevation, radius, spacing, typography } from '@/theme/tokens';
+import { components, elevation, radius, spacing, typography } from '@/theme/tokens';
 import type { Dog } from '@/types/graphql';
 
 interface DogProgressSummary {
@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 14,
+    padding: spacing.step14,
     borderRadius: radius.xl,
     marginBottom: spacing.md,
   },
@@ -101,32 +101,30 @@ const styles = StyleSheet.create({
   },
   name: {
     ...typography.headline,
-    fontWeight: '600' as const,
   },
   badge: {
     paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
+    paddingVertical: spacing.xs / 2,
     borderRadius: radius.sm,
   },
   badgeText: {
-    fontSize: 10,
-    fontWeight: '600' as const,
+    ...typography.metricLabel,
   },
   streakBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: spacing.step6,
+    paddingVertical: spacing.xs / 2,
     borderRadius: radius.sm,
   },
   streakText: {
-    fontSize: 10,
-    fontWeight: '700' as const,
+    ...typography.metricLabel,
+    fontWeight: components.button.fontPrimary.fontWeight,
   },
   breed: {
     ...typography.footnote,
-    marginTop: 2,
+    marginTop: spacing.xs / 2,
   },
   chevron: {
-    fontSize: 22,
+    ...typography.title2,
     marginLeft: spacing.sm,
   },
 });

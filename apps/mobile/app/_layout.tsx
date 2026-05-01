@@ -16,6 +16,7 @@ import {
   getPendingInviteToken,
   deletePendingInviteToken,
 } from '@/lib/auth/pending-invite-token';
+import { nativeStackHeader } from '@/theme/overrides';
 
 // 認証状態と現在の route group を見て、ログイン画面とアプリ本体の行き先を制御します。
 function NavigationGuard() {
@@ -96,9 +97,9 @@ function RootLayout() {
               sheetAllowedDetents: [0.15, 0.45],
               sheetInitialDetentIndex: 1,
               sheetGrabberVisible: true,
-              sheetCornerRadius: 24,
+              sheetCornerRadius: nativeStackHeader.sheetCornerRadius,
               gestureEnabled: false,
-              contentStyle: { backgroundColor: 'transparent' },
+              contentStyle: { backgroundColor: nativeStackHeader.transparentBackground },
             }}
           />
         </Stack>

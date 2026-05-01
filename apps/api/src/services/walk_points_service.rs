@@ -1,4 +1,7 @@
-use crate::error::external::{dynamodb_batch_write_error, dynamodb_query_error};
+use crate::error::external::{
+    dynamodb_batch_write_error, dynamodb_query_error, map_dynamodb_walk_points_error,
+    DynamoDbWalkPointsOperation,
+};
 use crate::error::AppError;
 use aws_sdk_dynamodb::{
     types::{AttributeValue, PutRequest, WriteRequest},
@@ -123,13 +126,17 @@ pub async fn add_walk_points(
         .iter()
         .map(|point| {
             let item = build_point_item(walk_id, point);
-            let put = PutRequest::builder().set_item(Some(item)).build().map_err(|e| {
-                AppError::Internal(format!(
-                    "PutRequest build failed for walk {}: {}",
-                    walk_id,
-                    crate::error::format_error_chain(&e)
-                ))
-            })?;
+            let put = PutRequest::builder()
+                .set_item(Some(item))
+                .build()
+                .map_err(|e| {
+                    map_dynamodb_walk_points_error(
+                        &e,
+                        table_name,
+                        walk_id,
+                        DynamoDbWalkPointsOperation::BuildPutRequest,
+                    )
+                })?;
             Ok(WriteRequest::builder().put_request(put).build())
         })
         .collect::<Result<Vec<_>, AppError>>()?;

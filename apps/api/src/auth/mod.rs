@@ -43,9 +43,12 @@ async fn authenticate_token(
     }))
 }
 
-fn attach_auth_user(request: &mut Request, auth_user: AuthUser) {
-    observability::on_authentication_success(&auth_user.cognito_sub);
+fn insert_auth_user(request: &mut Request, auth_user: AuthUser) {
     request.extensions_mut().insert(auth_user);
+}
+
+fn run_authentication_success_hooks(auth_user: &AuthUser) {
+    observability::on_authentication_success(auth_user);
 }
 
 /// JWT検証ミドルウェア
@@ -56,7 +59,8 @@ pub async fn auth_middleware(
     next: Next,
 ) -> Result<Response, StatusCode> {
     if let Some(auth_user) = authenticate_token(&verifier, bearer_token(&request)).await? {
-        attach_auth_user(&mut request, auth_user);
+        run_authentication_success_hooks(&auth_user);
+        insert_auth_user(&mut request, auth_user);
     }
     Ok(next.run(request).await)
 }
@@ -89,5 +93,19 @@ mod tests {
             .headers_mut()
             .insert("Authorization", "Bearer token-123".parse().unwrap());
         assert_eq!(bearer_token(&request).as_deref(), Some("token-123"));
+    }
+
+    #[test]
+    fn insert_auth_user_attaches_request_context() {
+        let mut request = Request::new(Body::empty());
+        insert_auth_user(
+            &mut request,
+            AuthUser {
+                cognito_sub: "user-sub".to_string(),
+            },
+        );
+
+        let auth_user = request.extensions().get::<AuthUser>().unwrap();
+        assert_eq!(auth_user.cognito_sub, "user-sub");
     }
 }

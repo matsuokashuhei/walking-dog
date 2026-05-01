@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, Condition, EntityTrait, QueryFilter, QueryOrder, Set,
+    ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, EntityTrait, QueryFilter,
+    QueryOrder, Set,
 };
 use uuid::Uuid;
 
@@ -14,7 +15,7 @@ use crate::services::dog_pair::DogPair;
 /// Insert or update a friendship between two dogs. The canonical
 /// `dog_id_1 < dog_id_2` ordering is enforced by the `DogPair` type, so
 /// callers can no longer pass an out-of-order tuple.
-pub async fn upsert_friendship<C: sea_orm::ConnectionTrait>(
+pub async fn upsert_friendship<C: ConnectionTrait>(
     db: &C,
     pair: DogPair,
     duration_sec: i32,
@@ -53,7 +54,7 @@ pub async fn upsert_friendship<C: sea_orm::ConnectionTrait>(
 }
 
 /// Update the total_interaction_sec of an existing friendship by a precise delta.
-pub async fn update_friendship_duration<C: sea_orm::ConnectionTrait>(
+pub async fn update_friendship_duration<C: ConnectionTrait>(
     db: &C,
     pair: DogPair,
     delta_sec: i32,
@@ -78,9 +79,33 @@ pub async fn update_friendship_duration<C: sea_orm::ConnectionTrait>(
     Ok(true)
 }
 
+/// Update an existing deduplicated encounter projection without incrementing encounter count.
+pub async fn update_friendship_duration_and_last_met<C: ConnectionTrait>(
+    db: &C,
+    pair: DogPair,
+    delta_sec: i32,
+    met_at: DateTime<Utc>,
+) -> Result<bool, AppError> {
+    let existing = FriendshipEntity::find()
+        .filter(friendships::Column::DogId1.eq(pair.first()))
+        .filter(friendships::Column::DogId2.eq(pair.second()))
+        .one(db)
+        .await?;
+
+    if let Some(existing) = existing {
+        let new_total = (existing.total_interaction_sec + delta_sec).max(0);
+        let mut active: friendships::ActiveModel = existing.into();
+        active.total_interaction_sec = Set(new_total);
+        active.last_met_at = Set(met_at.into());
+        active.update(db).await?;
+    }
+
+    Ok(true)
+}
+
 /// Get all friends of a dog, ordered by last_met_at DESC.
-pub async fn get_friends_for_dog(
-    db: &sea_orm::DatabaseConnection,
+pub async fn get_friends_for_dog<C: ConnectionTrait>(
+    db: &C,
     dog_id: Uuid,
 ) -> Result<Vec<FriendshipModel>, AppError> {
     let friends = FriendshipEntity::find()
@@ -97,8 +122,8 @@ pub async fn get_friends_for_dog(
 }
 
 /// Get the friendship record for a specific pair of dogs.
-pub async fn get_friendship(
-    db: &sea_orm::DatabaseConnection,
+pub async fn get_friendship<C: ConnectionTrait>(
+    db: &C,
     pair: DogPair,
 ) -> Result<Option<FriendshipModel>, AppError> {
     let friendship = FriendshipEntity::find()
@@ -108,4 +133,19 @@ pub async fn get_friendship(
         .await?;
 
     Ok(friendship)
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn read_apis_are_available_for_database_connections_and_transactions() {
+        let _friends_for_connection = super::get_friends_for_dog::<sea_orm::DatabaseConnection>;
+        let _friends_for_transaction = super::get_friends_for_dog::<sea_orm::DatabaseTransaction>;
+        let _friendship_for_connection = super::get_friendship::<sea_orm::DatabaseConnection>;
+        let _friendship_for_transaction = super::get_friendship::<sea_orm::DatabaseTransaction>;
+        let _update_duration_and_last_met_for_connection =
+            super::update_friendship_duration_and_last_met::<sea_orm::DatabaseConnection>;
+        let _update_duration_and_last_met_for_transaction =
+            super::update_friendship_duration_and_last_met::<sea_orm::DatabaseTransaction>;
+    }
 }

@@ -4,8 +4,7 @@ use super::loaders::DogLoader;
 use super::mutations::{auth::UserOutput, dog::DogOutput, walk::WalkOutput};
 use crate::error::AppError;
 use crate::services::{
-    dog_pair::DogPair, dog_service, encounter_service, friendship_service, walk_points_service,
-    walk_service,
+    dog_pair::DogPair, encounter_service, friendship_service, walk_points_service, walk_service,
 };
 use crate::AppState;
 use async_graphql::dynamic::{Field, FieldFuture, FieldValue, InputValue, Object, TypeRef};
@@ -198,8 +197,8 @@ pub fn friendship_output_type() -> Object {
                         .await
                         .map_err(async_graphql::Error::new)?
                         .ok_or_else(|| {
-                        AppError::NotFound("Dog not found".to_string()).into_graphql_error()
-                    })?;
+                            AppError::NotFound("Dog not found".to_string()).into_graphql_error()
+                        })?;
                     Ok(Some(FieldValue::owned_any(DogOutput::from(dog))))
                 })
             },
@@ -254,9 +253,11 @@ fn dog_field(state: Arc<AppState>) -> Field {
 
             auth_helpers::resolve_user_and_dog(&ctx, &state, dog_id).await?;
 
-            let dog = dog_service::get_dog_by_id(&state.db, dog_id)
+            let dog = ctx
+                .data::<Arc<DogLoader>>()?
+                .load_one(dog_id)
                 .await
-                .map_err(AppError::into_graphql_error)?;
+                .map_err(async_graphql::Error::new)?;
 
             Ok(dog.map(|d| FieldValue::owned_any(DogOutput::from(d))))
         })

@@ -71,10 +71,14 @@ pub async fn get_dogs_with_roles_for_user<C: ConnectionTrait>(
         .all(db)
         .await?;
 
-    Ok(rows
-        .into_iter()
-        .filter_map(|(membership, dog)| dog.map(|dog| (dog, membership.role)))
-        .collect())
+    let mut dogs_with_roles = Vec::with_capacity(rows.len());
+    for (membership, dog) in rows {
+        if let Some(dog) = dog {
+            dogs_with_roles.push((dog, membership.role));
+        }
+    }
+
+    Ok(dogs_with_roles)
 }
 
 pub async fn get_members_by_dog<C: ConnectionTrait>(
@@ -87,10 +91,14 @@ pub async fn get_members_by_dog<C: ConnectionTrait>(
         .all(db)
         .await?;
 
-    Ok(members
-        .into_iter()
-        .filter_map(|(member, user)| user.map(|user| (member, user)))
-        .collect())
+    let mut members_with_users = Vec::with_capacity(members.len());
+    for (member, user) in members {
+        if let Some(user) = user {
+            members_with_users.push((member, user));
+        }
+    }
+
+    Ok(members_with_users)
 }
 
 pub async fn get_members_by_dog_ids<C: ConnectionTrait>(
@@ -133,8 +141,8 @@ pub async fn require_any_dog_member<C: ConnectionTrait>(
         .ok_or_else(|| AppError::Forbidden("Not a member of either dog".to_string()))
 }
 
-pub async fn remove_member(
-    db: &sea_orm::DatabaseConnection,
+pub async fn remove_member<C: ConnectionTrait>(
+    db: &C,
     dog_id: Uuid,
     user_id: Uuid,
 ) -> Result<bool, AppError> {
@@ -185,4 +193,27 @@ pub async fn add_member<C: ConnectionTrait>(
     .insert(db)
     .await?;
     Ok(model)
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn read_apis_are_available_for_database_connections_and_transactions() {
+        let _dogs_by_member_for_connection =
+            super::get_dogs_by_member::<sea_orm::DatabaseConnection>;
+        let _dogs_by_member_for_transaction =
+            super::get_dogs_by_member::<sea_orm::DatabaseTransaction>;
+        let _dogs_with_roles_for_connection =
+            super::get_dogs_with_roles_for_user::<sea_orm::DatabaseConnection>;
+        let _dogs_with_roles_for_transaction =
+            super::get_dogs_with_roles_for_user::<sea_orm::DatabaseTransaction>;
+        let _members_by_dog_for_connection =
+            super::get_members_by_dog::<sea_orm::DatabaseConnection>;
+        let _members_by_dog_for_transaction =
+            super::get_members_by_dog::<sea_orm::DatabaseTransaction>;
+        let _members_by_dog_ids_for_connection =
+            super::get_members_by_dog_ids::<sea_orm::DatabaseConnection>;
+        let _members_by_dog_ids_for_transaction =
+            super::get_members_by_dog_ids::<sea_orm::DatabaseTransaction>;
+    }
 }

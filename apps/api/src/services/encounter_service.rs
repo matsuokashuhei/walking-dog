@@ -1,14 +1,16 @@
 use chrono::Utc;
 use sea_orm::{
-    ColumnTrait, Condition, EntityTrait, QueryFilter, QueryOrder, QuerySelect, TransactionTrait,
+    ColumnTrait, Condition, ConnectionTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect,
+    TransactionTrait,
 };
 use uuid::Uuid;
 
 use crate::entities::encounters::{self, Entity as EncounterEntity, Model as EncounterModel};
 use crate::error::AppError;
 mod access_policy;
+mod encounter_repository;
+mod friendship_projection;
 mod pairs;
-mod persistence;
 
 /// Record encounters between all dog pairs from two walks.
 /// Creates or updates `encounters` and `friendships` rows.
@@ -22,19 +24,13 @@ pub async fn record_encounter(
     duration_sec: i32,
     acting_user_id: Uuid,
 ) -> Result<Vec<EncounterModel>, AppError> {
-    // Verify acting user ownership + encounter detection enabled
-    access_policy::verify_encounter_detection(db, my_walk_id, acting_user_id).await?;
-
-    // Verify all counterparty users have encounter detection enabled (fixed 2-3 queries)
-    access_policy::verify_counterparty_encounter_detection(db, their_walk_id).await?;
-
-    let my_dog_ids = pairs::dog_ids_for_walk(db, my_walk_id).await?;
-    let their_dog_ids = pairs::dog_ids_for_walk(db, their_walk_id).await?;
-    let dog_pairs = pairs::expand_pairs(&my_dog_ids, &their_dog_ids)?;
-
+    access_policy::verify_record_encounter_allowed(db, my_walk_id, their_walk_id, acting_user_id)
+        .await?;
+    let dog_pairs = load_dog_pairs(db, my_walk_id, their_walk_id).await?;
     let met_at = Utc::now();
+
     let txn = db.begin().await?;
-    let result = persistence::record_pairs(
+    let result = record_pairs_and_project_friendships(
         &txn,
         &dog_pairs,
         my_walk_id,
@@ -59,12 +55,76 @@ pub async fn update_encounter_duration(
     duration_sec: i32,
     acting_user_id: Uuid,
 ) -> Result<bool, AppError> {
-    // Verify acting user ownership + encounter detection enabled
     access_policy::verify_encounter_detection(db, my_walk_id, acting_user_id).await?;
-    let their_dog_ids = pairs::dog_ids_for_walk(db, their_walk_id).await?;
+    let dog_pairs = load_dog_pairs(db, my_walk_id, their_walk_id).await?;
+    update_pair_durations_and_project_friendships(db, &dog_pairs, my_walk_id, duration_sec).await
+}
+
+async fn load_dog_pairs<C: ConnectionTrait>(
+    db: &C,
+    my_walk_id: Uuid,
+    their_walk_id: Uuid,
+) -> Result<Vec<crate::services::dog_pair::DogPair>, AppError> {
     let my_dog_ids = pairs::dog_ids_for_walk(db, my_walk_id).await?;
-    let dog_pairs = pairs::expand_pairs(&my_dog_ids, &their_dog_ids)?;
-    persistence::update_pair_durations(db, &dog_pairs, my_walk_id, duration_sec).await
+    let their_dog_ids = pairs::dog_ids_for_walk(db, their_walk_id).await?;
+    pairs::expand_pairs(&my_dog_ids, &their_dog_ids)
+}
+
+async fn record_pairs_and_project_friendships<C: ConnectionTrait>(
+    db: &C,
+    dog_pairs: &[crate::services::dog_pair::DogPair],
+    my_walk_id: Uuid,
+    their_walk_id: Uuid,
+    duration_sec: i32,
+    met_at: chrono::DateTime<Utc>,
+) -> Result<Vec<EncounterModel>, AppError> {
+    let mut encounters = Vec::with_capacity(dog_pairs.len());
+
+    for pair in dog_pairs {
+        let upsert = encounter_repository::upsert_pair(
+            db,
+            *pair,
+            my_walk_id,
+            their_walk_id,
+            duration_sec,
+            met_at,
+        )
+        .await?;
+
+        if upsert.created {
+            friendship_projection::record_new_encounter(db, *pair, duration_sec, met_at).await?;
+        } else {
+            friendship_projection::record_existing_encounter_update(
+                db,
+                *pair,
+                upsert.duration_delta_sec,
+                met_at,
+            )
+            .await?;
+        }
+
+        encounters.push(upsert.encounter);
+    }
+
+    Ok(encounters)
+}
+
+async fn update_pair_durations_and_project_friendships<C: ConnectionTrait>(
+    db: &C,
+    dog_pairs: &[crate::services::dog_pair::DogPair],
+    my_walk_id: Uuid,
+    duration_sec: i32,
+) -> Result<bool, AppError> {
+    for pair in dog_pairs {
+        if let Some(delta_sec) =
+            encounter_repository::extend_duration_if_present(db, *pair, my_walk_id, duration_sec)
+                .await?
+        {
+            friendship_projection::apply_duration_delta(db, *pair, delta_sec).await?;
+        }
+    }
+
+    Ok(true)
 }
 
 /// Get encounter history for a dog, ordered by met_at DESC.

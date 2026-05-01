@@ -1,7 +1,8 @@
 use crate::error::AppError;
 use crate::graphql::auth_helpers;
 use crate::graphql::dynamic_helpers::{parse_uuid, string_field, uuid_field};
-use crate::services::{dog_invitation_service, dog_member_service, dog_service};
+use crate::graphql::loaders::DogLoader;
+use crate::services::{dog_invitation_service, dog_member_service};
 use crate::AppState;
 use async_graphql::dynamic::{Field, FieldFuture, FieldValue, InputValue, Object, TypeRef};
 use std::sync::Arc;
@@ -139,9 +140,11 @@ pub fn accept_dog_invitation_field(state: Arc<AppState>) -> Field {
                     .await
                     .map_err(AppError::into_graphql_error)?;
 
-                let dog = dog_service::get_dog_by_id(&state.db, member.dog_id)
+                let dog = ctx
+                    .data::<Arc<DogLoader>>()?
+                    .load_one(member.dog_id)
                     .await
-                    .map_err(AppError::into_graphql_error)?
+                    .map_err(async_graphql::Error::new)?
                     .ok_or_else(|| {
                         AppError::NotFound("Dog not found".to_string()).into_graphql_error()
                     })?;

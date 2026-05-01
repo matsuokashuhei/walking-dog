@@ -90,7 +90,7 @@ pub async fn accept_invitation(
 }
 
 fn generate_token() -> String {
-    let bytes: [u8; 16] = rand::thread_rng().gen();
+    let bytes: [u8; 16] = rand::rng().random();
     hex::encode(bytes)
 }
 

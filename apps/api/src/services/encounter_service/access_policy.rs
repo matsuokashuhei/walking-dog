@@ -38,6 +38,16 @@ pub async fn verify_encounter_detection<C: ConnectionTrait>(
     Ok(())
 }
 
+pub async fn verify_record_encounter_allowed<C: ConnectionTrait>(
+    db: &C,
+    my_walk_id: Uuid,
+    their_walk_id: Uuid,
+    acting_user_id: Uuid,
+) -> Result<(), AppError> {
+    verify_encounter_detection(db, my_walk_id, acting_user_id).await?;
+    verify_counterparty_encounter_detection(db, their_walk_id).await
+}
+
 pub async fn verify_counterparty_encounter_detection<C: ConnectionTrait>(
     db: &C,
     their_walk_id: Uuid,

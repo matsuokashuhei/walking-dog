@@ -78,14 +78,15 @@ services:
   api:
     build:
       context: ./api
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
+      target: dev
     command: ["cargo", "watch", "-x", "run --bin walking-dog-api"]
     ports:
       - "3000:3000"
     volumes:
-      - ./api:/app                          # ソースコードをマウント
-      - cargo_cache:/usr/local/cargo    # cargoキャッシュを永続化
-      - target_cache:/app/target        # ビルドキャッシュを永続化
+      - ./api:/apps/api
+      - cargo_cache:/usr/local/cargo
+      - target_cache:/apps/api/target
     env_file:
       - ./api/.env.local
     depends_on:
@@ -111,9 +112,9 @@ services:
       dockerfile: Dockerfile.dev
     command: ["cargo", "watch", "-x", "run --bin walk_points_worker"]
     volumes:
-      - ./api:/app
+      - ./api:/apps/api
       - cargo_cache:/usr/local/cargo
-      - target_cache:/app/target
+      - target_cache:/apps/api/target
     env_file:
       - ./api/.env.local
     depends_on:
@@ -140,7 +141,7 @@ services:
   web:
     image: nginx
     ports:
-      - "80:80"
+      - "1433:80"
     volumes:
       - ./schemaspy/output:/usr/share/nginx/html
 

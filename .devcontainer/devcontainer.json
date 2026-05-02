@@ -1,0 +1,54 @@
+{
+    "name": "walking-dog",
+    "image": "mcr.microsoft.com/devcontainers/base:bookworm",
+    // "image": "mcr.microsoft.com/devcontainers/typescript-node:16",
+    "forwardPorts": [
+        1433,
+        3000,
+        5432,
+        8000,
+        9000,
+        9001,
+        9229,
+        9324,
+        9325
+    ],
+    "mounts": [
+        {
+            "source": "${localEnv:HOME}/.claude",
+            "target": "/home/vscode/.claude",
+            "type": "bind"
+        },
+        {
+            "source": "${localEnv:HOME}/.copilot",
+            "target": "/home/vscode/.copilot",
+            "type": "bind"
+        }
+    ],
+    "postCreateCommand": "sh .devcontainer/post-create.sh",
+    "features": {
+        "ghcr.io/devcontainers/features/common-utils:2": {},
+        "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+        "ghcr.io/devcontainers/features/aws-cli:1": {},
+        "ghcr.io/devcontainers/features/github-cli:1": {},
+        "ghcr.io/devcontainers/features/copilot-cli:1": {},
+        "ghcr.io/devcontainers/features/rust:1": {
+            "version": "1.95"
+        },
+        "ghcr.io/devcontainer-community/devcontainer-features/jq:1": {},
+        "ghcr.io/devcontainers/features/node:2": {}
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "rust-lang.rust-analyzer",
+                "fill-labs.dependi",
+                "tamasfe.even-better-toml",
+                "vadimcn.vscode-lldb",
+                "GitHub.vscode-pull-request-github",
+                "anthropic.claude-code"
+            ]
+        },
+        "settings": {}
+    }
+}

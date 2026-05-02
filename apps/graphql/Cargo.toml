@@ -1,0 +1,11 @@
+[package]
+name = "graphql"
+version = "0.1.0"
+edition = "2024"
+
+[workspace]
+members = [".", "migration"]
+
+[dependencies]
+migration = { path = "./migration" }
+sea-orm = { version = "2.0.0-rc", features = [ "sqlx-postgres", "runtime-tokio-native-tls", "macros", "debug-print", "mock", "seaography", "with-chrono", "with-json", "with-uuid" ] }

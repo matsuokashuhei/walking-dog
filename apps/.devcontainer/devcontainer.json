@@ -1,0 +1,43 @@
+{
+    "name": "graphql",
+    "dockerComposeFile": [
+        "../compose.yml",
+        "compose.yml"
+    ],
+    "service": "graphql",
+    "workspaceFolder": "/walking-dog",
+    "mounts": [
+        {
+            "source": "${localEnv:HOME}/.claude",
+            "target": "/home/vscode/.claude",
+            "type": "bind"
+        },
+        {
+            "source": "${localEnv:HOME}/.copilot",
+            "target": "/home/vscode/.copilot",
+            "type": "bind"
+        }
+    ],
+    "postCreateCommand": "sh .devcontainer/post-create.sh",
+    "features": {
+        "ghcr.io/devcontainers/features/common-utils:2": {},
+        "ghcr.io/devcontainers/features/aws-cli:1": {},
+        "ghcr.io/devcontainers/features/github-cli:1": {},
+        "ghcr.io/devcontainers/features/copilot-cli:1": {},
+        "ghcr.io/devcontainers/features/node:2": {}
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "anthropic.claude-code",
+                "fill-labs.dependi",
+                "GitHub.copilot",
+                "GitHub.vscode-pull-request-github",
+                "rust-lang.rust-analyzer",
+                "tamasfe.even-better-toml",
+                "vadimcn.vscode-lldb"
+            ]
+        },
+        "settings": {}
+    }
+}

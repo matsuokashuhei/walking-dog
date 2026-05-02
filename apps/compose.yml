@@ -75,19 +75,20 @@ services:
     volumes:
       - ./cognito-local/db:/app/.cognito/db
 
-  api:
+  graphql:
     build:
-      context: ./api
-      dockerfile: Dockerfile.dev
+      context: .
+      dockerfile: ./graphql/Dockerfile
+      target: dev
     command: ["cargo", "watch", "-x", "run --bin walking-dog-api"]
     ports:
       - "3000:3000"
     volumes:
-      - ./api:/app                          # ソースコードをマウント
-      - cargo_cache:/usr/local/cargo    # cargoキャッシュを永続化
-      - target_cache:/app/target        # ビルドキャッシュを永続化
+      - ..:/walking-dog
+      - cargo_cache:/usr/local/cargo
+      - target_cache:/walking-dog/apps/graphql/target
     env_file:
-      - ./api/.env.local
+      - graphql/.env.local
     depends_on:
       postgres:
         condition: service_healthy
@@ -104,29 +105,6 @@ services:
       interval: 30s
       timeout: 5s
       retries: 5
-
-  worker:
-    build:
-      context: ./api
-      dockerfile: Dockerfile.dev
-    command: ["cargo", "watch", "-x", "run --bin walk_points_worker"]
-    volumes:
-      - ./api:/app
-      - cargo_cache:/usr/local/cargo
-      - target_cache:/app/target
-    env_file:
-      - ./api/.env.local
-    depends_on:
-      postgres:
-        condition: service_healthy
-      dynamodb-local:
-        condition: service_started
-      minio-init:
-        condition: service_completed_successfully
-      elasticmq:
-        condition: service_healthy
-      cognito-local:
-        condition: service_started
 
   schemaspy:
     image: schemaspy/schemaspy

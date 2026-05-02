@@ -1,11 +1,29 @@
 [package]
-name = "graphql"
+edition = "2021"
+name = "walking-dog"
 version = "0.1.0"
-edition = "2024"
-
-[workspace]
-members = [".", "migration"]
 
 [dependencies]
 migration = { path = "./migration" }
-sea-orm = { version = "2.0.0-rc", features = [ "sqlx-postgres", "runtime-tokio-native-tls", "macros", "debug-print", "mock", "seaography", "with-chrono", "with-json", "with-uuid" ] }
+
+axum = { version = "0.8.9" }
+async-graphql-axum = { version = "7.0.19" }
+dotenv = "0.15.0"
+tokio = { version = "1.52.1", features = ["macros", "rt-multi-thread"] }
+tracing = { version = "0.1.44" }
+tracing-subscriber = { version = "0.3.23" }
+
+[dependencies.sea-orm]
+version = "~2.0.0-rc"
+features = ["sqlx-postgres", "runtime-tokio-native-tls", "seaography"]
+# features = [ "sqlx-postgres", "runtime-tokio-native-tls", "macros", "debug-print", "mock", "seaography", "with-chrono", "with-json", "with-uuid" ]
+
+[dependencies.seaography]
+version = "~2.0.0-rc.8" # seaography version
+features = ["graphql-playground", "with-decimal", "with-chrono"]
+
+[dev-dependencies]
+serde_json = { version = "1.0.103" }
+
+[workspace]
+members = [".", "migration"]

@@ -18,7 +18,7 @@
             "type": "bind"
         }
     ],
-    "postCreateCommand": "sh .devcontainer/post-create.sh",
+    "postCreateCommand": "sh ./apps/.devcontainer/post-create.sh",
     "features": {
         "ghcr.io/devcontainers/features/common-utils:2": {},
         "ghcr.io/devcontainers/features/aws-cli:1": {},

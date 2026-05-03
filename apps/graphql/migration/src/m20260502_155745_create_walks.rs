@@ -16,8 +16,16 @@ impl MigrationTrait for Migration {
                     .col(timestamp_with_time_zone("started_at").not_null())
                     .col(timestamp_with_time_zone_null("ended_at"))
                     .col(integer_null("distance"))
-                    .col(timestamp_with_time_zone("created_at").not_null().extra("DEFAULT now()"))
-                    .col(timestamp_with_time_zone("updated_at").not_null().extra("DEFAULT now()"))
+                    .col(
+                        timestamp_with_time_zone("created_at")
+                            .not_null()
+                            .extra("DEFAULT now()"),
+                    )
+                    .col(
+                        timestamp_with_time_zone("updated_at")
+                            .not_null()
+                            .extra("DEFAULT now()"),
+                    )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_walks_caretaker_id")

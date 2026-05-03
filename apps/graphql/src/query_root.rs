@@ -5,6 +5,10 @@ use async_graphql::dynamic::*;
 use sea_orm::Database;
 use seaography::{Builder, BuilderContext, async_graphql};
 
+mod mutations;
+mod queries;
+mod types;
+
 static CONTEXT: LazyLock<BuilderContext> = LazyLock::new(|| {
     let mut ctx = BuilderContext::default();
     ctx.types.timestamp_rfc3339 = true;
@@ -18,6 +22,10 @@ pub async fn build_schema() -> Result<Schema, SchemaError> {
     let mut builder = Builder::new(&CONTEXT, connection.clone());
     builder = register_entity_modules(builder);
     builder = register_active_enums(builder);
+    seaography::register_custom_inputs!(builder, [types::TrackPointCreateInput]);
+    seaography::register_custom_outputs!(builder, [types::TrackPointBasic]);
+    seaography::register_custom_queries!(builder, [queries::Operations]);
+    seaography::register_custom_mutations!(builder, [mutations::Operations]);
     builder
         .schema_builder()
         .data(connection)
@@ -26,9 +34,10 @@ pub async fn build_schema() -> Result<Schema, SchemaError> {
 }
 
 async fn new_dynamodb_client() -> aws_sdk_dynamodb::Client {
-    let config = aws_config::from_env()
-        .endpoint_url("dynamodb://dynamodb:8000")
-        .load()
-        .await;
+    let config_loader = aws_config::from_env();
+    let config = match env::var("DYNAMODB_ENDPOINT") {
+        Ok(endpoint) => config_loader.endpoint_url(endpoint).load().await,
+        Err(_) => config_loader.load().await,
+    };
     aws_sdk_dynamodb::Client::new(&config)
 }

@@ -2,10 +2,8 @@
   "includeCoAuthoredBy": true,
   "permissions": {
     "deny": [
-      "Bash(cargo*)",
       "Bash(npx playwright*)",
       "Bash(playwright test*)",
-      "Bash(playwright-cli*)",
       "mcp__plugin_sentry_sentry__search_issues",
       "mcp__plugin_sentry_sentry__search_events",
       "mcp__plugin_sentry_sentry__find_projects"
@@ -117,5 +115,6 @@
       "autoUpdate": true
     }
   },
-  "plansDirectory": ".claude/plans"
+  "plansDirectory": ".claude/plans",
+  "useAutoModeDuringPlan": true
 }

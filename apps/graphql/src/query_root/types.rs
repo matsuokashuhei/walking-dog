@@ -1,22 +1,164 @@
 use std::{collections::HashMap, env};
 
 use async_graphql::Error;
+use async_graphql::dynamic::{
+    Field, FieldFuture, FieldValue, InputObject, InputValue, Object, TypeRef,
+};
 use aws_sdk_dynamodb::types::AttributeValue;
 use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::Uuid;
-use seaography::{CustomInputType, CustomOutputType, async_graphql};
+use seaography::{CustomInputType, CustomOutputType, PageInfo, PaginationInfo, async_graphql};
 
 const DEFAULT_TRACK_POINTS_TABLE: &str = "track_points";
 pub const MAX_BATCH_WRITE_POINTS: usize = 25;
 pub const DEFAULT_QUERY_LIMIT: i32 = 1000;
 pub const MAX_QUERY_LIMIT: i32 = 5000;
 
-#[derive(Clone, CustomOutputType)]
+pub const TRACK_POINTS_FILTER_INPUT: &str = "TrackPointsFilterInput";
+pub const TRACK_POINTS_HAVING_INPUT: &str = "TrackPointsHavingInput";
+pub const TRACK_POINTS_ORDER_INPUT: &str = "TrackPointsOrderInput";
+pub const TRACK_POINTS_EDGE: &str = "TrackPointsEdge";
+pub const TRACK_POINTS_CONNECTION: &str = "TrackPointsConnection";
+
+#[derive(Clone, Debug, CustomOutputType)]
 pub struct TrackPointBasic {
     pub walk_id: String,
     pub recorded_at: String,
     pub latitude: f64,
     pub longitude: f64,
+}
+
+#[derive(Clone, Debug)]
+pub struct TrackPointsEdge {
+    pub cursor: String,
+    pub node: TrackPointBasic,
+}
+
+#[derive(Clone, Debug)]
+pub struct TrackPointsConnection {
+    pub page_info: PageInfo,
+    pub pagination_info: Option<PaginationInfo>,
+    pub edges: Vec<TrackPointsEdge>,
+}
+
+pub fn track_points_input_objects() -> Vec<InputObject> {
+    vec![
+        track_points_filter_input(TRACK_POINTS_FILTER_INPUT),
+        track_points_filter_input(TRACK_POINTS_HAVING_INPUT),
+        InputObject::new(TRACK_POINTS_ORDER_INPUT)
+            .field(InputValue::new("walkId", TypeRef::named("OrderByEnum")))
+            .field(InputValue::new("recordedAt", TypeRef::named("OrderByEnum")))
+            .field(InputValue::new("latitude", TypeRef::named("OrderByEnum")))
+            .field(InputValue::new("longitude", TypeRef::named("OrderByEnum"))),
+    ]
+}
+
+pub fn track_points_output_objects() -> Vec<Object> {
+    vec![
+        Object::new(TRACK_POINTS_EDGE)
+            .field(Field::new(
+                "cursor",
+                TypeRef::named_nn(TypeRef::STRING),
+                |ctx| {
+                    FieldFuture::new(async move {
+                        let edge = ctx.parent_value.try_downcast_ref::<TrackPointsEdge>()?;
+                        Ok(Some(async_graphql::Value::from(edge.cursor.as_str())))
+                    })
+                },
+            ))
+            .field(Field::new(
+                "node",
+                TypeRef::named_nn("TrackPointBasic"),
+                |ctx| {
+                    FieldFuture::new(async move {
+                        let edge = ctx.parent_value.try_downcast_ref::<TrackPointsEdge>()?;
+                        Ok(Some(FieldValue::borrowed_any(&edge.node)))
+                    })
+                },
+            )),
+        Object::new(TRACK_POINTS_CONNECTION)
+            .field(Field::new(
+                "pageInfo",
+                TypeRef::named_nn("PageInfo"),
+                |ctx| {
+                    FieldFuture::new(async move {
+                        let connection = ctx
+                            .parent_value
+                            .try_downcast_ref::<TrackPointsConnection>()?;
+                        Ok(Some(FieldValue::borrowed_any(&connection.page_info)))
+                    })
+                },
+            ))
+            .field(Field::new(
+                "paginationInfo",
+                TypeRef::named("PaginationInfo"),
+                |ctx| {
+                    FieldFuture::new(async move {
+                        let connection = ctx
+                            .parent_value
+                            .try_downcast_ref::<TrackPointsConnection>()?;
+                        Ok(connection
+                            .pagination_info
+                            .as_ref()
+                            .map(|pagination_info| FieldValue::borrowed_any(pagination_info)))
+                    })
+                },
+            ))
+            .field(Field::new(
+                "nodes",
+                TypeRef::named_nn_list_nn("TrackPointBasic"),
+                |ctx| {
+                    FieldFuture::new(async move {
+                        let connection = ctx
+                            .parent_value
+                            .try_downcast_ref::<TrackPointsConnection>()?;
+                        Ok(Some(FieldValue::list(
+                            connection
+                                .edges
+                                .iter()
+                                .map(|edge| FieldValue::borrowed_any(&edge.node)),
+                        )))
+                    })
+                },
+            ))
+            .field(Field::new(
+                "edges",
+                TypeRef::named_nn_list_nn(TRACK_POINTS_EDGE),
+                |ctx| {
+                    FieldFuture::new(async move {
+                        let connection = ctx
+                            .parent_value
+                            .try_downcast_ref::<TrackPointsConnection>()?;
+                        Ok(Some(FieldValue::list(
+                            connection
+                                .edges
+                                .iter()
+                                .map(|edge| FieldValue::borrowed_any(edge)),
+                        )))
+                    })
+                },
+            )),
+    ]
+}
+
+fn track_points_filter_input(type_name: &str) -> InputObject {
+    InputObject::new(type_name)
+        .field(InputValue::new("walkId", TypeRef::named("TextFilterInput")))
+        .field(InputValue::new(
+            "recordedAt",
+            TypeRef::named("TextFilterInput"),
+        ))
+        .field(InputValue::new(
+            "latitude",
+            TypeRef::named("FloatFilterInput"),
+        ))
+        .field(InputValue::new(
+            "longitude",
+            TypeRef::named("FloatFilterInput"),
+        ))
+        .field(InputValue::new("and", TypeRef::named_nn_list(type_name)))
+        .field(InputValue::new("or", TypeRef::named_nn_list(type_name)))
+        .field(InputValue::new("not", TypeRef::named(type_name)))
 }
 
 #[derive(Clone, CustomInputType)]
@@ -106,16 +248,6 @@ pub fn validate_walk_id(walk_id: &str) -> async_graphql::Result<()> {
     Uuid::parse_str(walk_id)
         .map(|_| ())
         .map_err(|e| Error::new(format!("walk_id must be a valid UUID: {e}")))
-}
-
-pub fn normalize_query_limit(limit: Option<i32>) -> async_graphql::Result<i32> {
-    let limit = limit.unwrap_or(DEFAULT_QUERY_LIMIT);
-    if !(1..=MAX_QUERY_LIMIT).contains(&limit) {
-        return Err(Error::new(format!(
-            "limit must be between 1 and {MAX_QUERY_LIMIT}"
-        )));
-    }
-    Ok(limit)
 }
 
 fn parse_recorded_at(value: &str) -> async_graphql::Result<DateTime<Utc>> {

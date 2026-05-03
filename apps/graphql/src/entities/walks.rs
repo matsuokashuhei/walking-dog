@@ -8,11 +8,11 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub caretaker_id: Uuid,
-    pub started_at: DateTime,
-    pub ended_at: Option<DateTime>,
+    pub started_at: DateTimeUtc,
+    pub ended_at: Option<DateTimeUtc>,
     pub distance: Option<i32>,
-    pub created_at: DateTime,
-    pub updated_at: DateTime,
+    pub created_at: DateTimeUtc,
+    pub updated_at: DateTimeUtc,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

@@ -27,7 +27,7 @@ features = ["sqlx-postgres", "runtime-tokio-native-tls", "seaography"]
 
 [dependencies.seaography]
 version = "~2.0.0-rc.8" # seaography version
-features = ["graphql-playground", "with-decimal", "with-chrono"]
+features = ["graphql-playground", "with-decimal", "with-chrono", "with-uuid"]
 
 [dev-dependencies]
 serde_json = { version = "1.0.103" }

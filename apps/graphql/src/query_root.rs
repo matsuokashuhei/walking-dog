@@ -5,7 +5,11 @@ use async_graphql::dynamic::*;
 use sea_orm::Database;
 use seaography::{Builder, BuilderContext, async_graphql};
 
-static CONTEXT: LazyLock<BuilderContext> = LazyLock::new(BuilderContext::default);
+static CONTEXT: LazyLock<BuilderContext> = LazyLock::new(|| {
+    let mut ctx = BuilderContext::default();
+    ctx.types.timestamp_rfc3339 = true;
+    ctx
+});
 
 pub async fn build_schema() -> Result<Schema, SchemaError> {
     let connection = Database::connect(env::var("DATABASE_URL").unwrap())
@@ -15,8 +19,6 @@ pub async fn build_schema() -> Result<Schema, SchemaError> {
     builder = register_entity_modules(builder);
     builder = register_active_enums(builder);
     builder
-        // .set_depth_limit(depth)
-        // .set_complexity_limit(complexity)
         .schema_builder()
         .data(connection)
         .data(new_dynamodb_client().await)

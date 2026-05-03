@@ -11,8 +11,8 @@ pub struct Model {
     pub walk_id: Uuid,
     #[sea_orm(unique_key = "idx_walk_dogs_walk_id_dog_id")]
     pub dog_id: Uuid,
-    pub created_at: DateTime,
-    pub updated_at: DateTime,
+    pub created_at: DateTimeUtc,
+    pub updated_at: DateTimeUtc,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

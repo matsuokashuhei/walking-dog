@@ -33,11 +33,11 @@ impl MigrationTrait for Migration {
                             .custom(Alias::new("event_type"))
                             .not_null(),
                     )
-                    .col(timestamp("occurred_at").not_null())
+                    .col(timestamp_with_time_zone("occurred_at").not_null())
                     .col(double("latitude").not_null())
                     .col(double("longitude").not_null())
-                    .col(timestamp("created_at").not_null().extra("DEFAULT now()"))
-                    .col(timestamp("updated_at").not_null().extra("DEFAULT now()"))
+                    .col(timestamp_with_time_zone("created_at").not_null().extra("DEFAULT now()"))
+                    .col(timestamp_with_time_zone("updated_at").not_null().extra("DEFAULT now()"))
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_walk_events_walk_dog_id")

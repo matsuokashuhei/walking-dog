@@ -6,6 +6,7 @@ pub mod caretakers;
 pub mod caretakers_dogs;
 pub mod dogs;
 pub mod sea_orm_active_enums;
+pub mod track_points;
 pub mod walk_dogs;
 pub mod walk_events;
 pub mod walk_photos;

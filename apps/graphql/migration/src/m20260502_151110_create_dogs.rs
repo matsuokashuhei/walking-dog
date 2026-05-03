@@ -16,12 +16,12 @@ impl MigrationTrait for Migration {
                     .col(string("breed"))
                     .col(string("gender"))
                     .col(
-                        timestamp("created_at")
+                        timestamp_with_time_zone("created_at")
                             .not_null()
                             .extra("DEFAULT CURRENT_TIMESTAMP"),
                     )
                     .col(
-                        timestamp("updated_at")
+                        timestamp_with_time_zone("updated_at")
                             .not_null()
                             .extra("DEFAULT CURRENT_TIMESTAMP"),
                     )

@@ -8,14 +8,14 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub walk_id: Uuid,
-    pub occurred_at: DateTime,
+    pub occurred_at: DateTimeUtc,
     pub file: String,
     #[sea_orm(column_type = "Double")]
     pub latitude: f64,
     #[sea_orm(column_type = "Double")]
     pub longitude: f64,
-    pub created_at: DateTime,
-    pub updated_at: DateTime,
+    pub created_at: DateTimeUtc,
+    pub updated_at: DateTimeUtc,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

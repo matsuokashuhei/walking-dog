@@ -15,8 +15,16 @@ impl MigrationTrait for Migration {
                     .col(string("name").not_null())
                     .col(string("breed"))
                     .col(string("gender"))
-                    .col(timestamp("created_at").not_null().extra("DEFAULT CURRENT_TIMESTAMP"))
-                    .col(timestamp("updated_at").not_null().extra("DEFAULT CURRENT_TIMESTAMP"))
+                    .col(
+                        timestamp("created_at")
+                            .not_null()
+                            .extra("DEFAULT CURRENT_TIMESTAMP"),
+                    )
+                    .col(
+                        timestamp("updated_at")
+                            .not_null()
+                            .extra("DEFAULT CURRENT_TIMESTAMP"),
+                    )
                     .to_owned(),
             )
             .await

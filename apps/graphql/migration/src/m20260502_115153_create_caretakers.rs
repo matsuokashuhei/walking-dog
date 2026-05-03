@@ -14,8 +14,16 @@ impl MigrationTrait for Migration {
                     .col(pk_uuid("id").extra("DEFAULT gen_random_uuid()"))
                     .col(string("avatar"))
                     .col(string("cognito_sub").not_null().unique_key())
-                    .col(timestamp("created_at").not_null().extra("DEFAULT CURRENT_TIMESTAMP"))
-                    .col(timestamp("updated_at").not_null().extra("DEFAULT CURRENT_TIMESTAMP"))
+                    .col(
+                        timestamp("created_at")
+                            .not_null()
+                            .extra("DEFAULT CURRENT_TIMESTAMP"),
+                    )
+                    .col(
+                        timestamp("updated_at")
+                            .not_null()
+                            .extra("DEFAULT CURRENT_TIMESTAMP"),
+                    )
                     .to_owned(),
             )
             .await

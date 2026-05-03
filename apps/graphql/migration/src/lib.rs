@@ -7,6 +7,7 @@ mod m20260502_155745_create_walks;
 mod m20260502_155756_create_walk_dogs;
 mod m20260502_155759_create_walk_photos;
 mod m20260502_155803_create_walk_events;
+mod m20260503_052813_create_track_points;
 
 pub struct Migrator;
 
@@ -21,6 +22,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20260502_155756_create_walk_dogs::Migration),
             Box::new(m20260502_155759_create_walk_photos::Migration),
             Box::new(m20260502_155803_create_walk_events::Migration),
+            Box::new(m20260503_052813_create_track_points::Migration),
         ]
     }
 }

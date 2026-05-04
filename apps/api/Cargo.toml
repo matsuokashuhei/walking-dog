@@ -40,7 +40,7 @@ reqwest = { version = "0.13", features = ["json"] }
 base64 = "0.22"
 async-trait = "0.1"
 tower = "0.5"
-sentry = "0.47"
+sentry = "0.48"
 sentry-tower = { version = "0.47", features = ["http"] }
 sentry-tracing = "0.47"
 

@@ -20,7 +20,14 @@ chrono = { version = "0.4.44", default-features = false, features = ["std"] }
 
 [dependencies.sea-orm]
 version = "~2.0.0-rc"
-features = ["sqlx-postgres", "runtime-tokio-native-tls", "seaography"]
+features = [
+    "sqlx-postgres",
+    "runtime-tokio-native-tls",
+    "debug-print",
+    "with-bigdecimal",
+    "with-chrono",
+    "with-uuid",
+]
 
 # [dependencies.seaography]
 # version = "~2.0.0-rc.8" # seaography version

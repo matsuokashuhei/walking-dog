@@ -34,14 +34,14 @@ impl MigrationTrait for Migration {
                     .attribute_name("walk_id")
                     .key_type(aws_sdk_dynamodb::types::KeyType::Hash)
                     .build()
-                    .expect("Failed to build KeySchemaElement"),
+                    .unwrap(),
             )
             .key_schema(
                 aws_sdk_dynamodb::types::KeySchemaElement::builder()
                     .attribute_name("recorded_at")
                     .key_type(aws_sdk_dynamodb::types::KeyType::Range)
                     .build()
-                    .expect("Failed to build KeySchemaElement"),
+                    .unwrap(),
             )
             .send()
             .await

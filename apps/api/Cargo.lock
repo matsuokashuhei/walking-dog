@@ -3643,7 +3643,6 @@ dependencies = [
  "heck 0.5.0",
  "itertools",
  "pluralizer",
- "proc-macro-crate",
  "proc-macro2",
  "quote",
  "sea-bae",
@@ -3673,6 +3672,7 @@ version = "1.0.0-rc.33"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b04cdb0135c16e829504e93fbe7880513578d56f07aaea152283526590111828"
 dependencies = [
+ "bigdecimal",
  "chrono",
  "inherent",
  "ordered-float",
@@ -4032,6 +4032,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ee6798b1838b6a0f69c007c133b8df5866302197e404e8b6ee8ed3e3a5e68dc6"
 dependencies = [
  "base64",
+ "bigdecimal",
  "bytes",
  "chrono",
  "crc",
@@ -4110,6 +4111,7 @@ checksum = "aa003f0038df784eb8fecbbac13affe3da23b45194bd57dba231c8f48199c526"
 dependencies = [
  "atoi",
  "base64",
+ "bigdecimal",
  "bitflags",
  "byteorder",
  "bytes",
@@ -4156,6 +4158,7 @@ checksum = "db58fcd5a53cf07c184b154801ff91347e4c30d17a3562a635ff028ad5deda46"
 dependencies = [
  "atoi",
  "base64",
+ "bigdecimal",
  "bitflags",
  "byteorder",
  "chrono",
@@ -4173,6 +4176,7 @@ dependencies = [
  "log",
  "md-5 0.10.6",
  "memchr",
+ "num-bigint",
  "once_cell",
  "rand 0.8.6",
  "rust_decimal",

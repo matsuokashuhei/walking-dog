@@ -19,4 +19,7 @@ version = "~2.0.0-rc"
 features = [
     "runtime-tokio-native-tls",
     "sqlx-postgres",
+    "with-bigdecimal",
+    "with-chrono",
+    "with-uuid",
 ]

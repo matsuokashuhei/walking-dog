@@ -12,6 +12,7 @@ impl MigrationTrait for Migration {
                     .table("caretakers")
                     .if_not_exists()
                     .col(pk_uuid("id").extra("DEFAULT gen_random_uuid()"))
+                    .col(string("name"))
                     .col(string("avatar"))
                     .col(string("cognito_sub").not_null().unique_key())
                     .col(

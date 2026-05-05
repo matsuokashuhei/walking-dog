@@ -10,13 +10,13 @@ rustup component add clippy rustfmt
 EOT
 
 FROM base AS builder
-WORKDIR /apps/graphql
+WORKDIR /apps/api
 COPY . .
 RUN cargo build --release
 
 # --- Runtime Stage ---
 FROM public.ecr.aws/debian/debian:stable-slim AS runtime
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && update-ca-certificates
-COPY --from=builder /apps/graphql/target/release/walking-dog-api .
+COPY --from=builder /apps/api/target/release/walking-dog-api .
 EXPOSE 3000
 CMD ["./walking-dog-api"]

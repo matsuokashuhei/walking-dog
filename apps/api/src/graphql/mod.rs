@@ -1,14 +1,54 @@
+pub mod mutation;
 pub mod object;
 pub mod query;
 
-use crate::graphql::query::Query;
-use async_graphql::{EmptyMutation, EmptySubscription};
+use std::env;
 
-pub async fn build_schema() -> async_graphql::Schema<Query, EmptyMutation, EmptySubscription> {
-    let db = sea_orm::Database::connect(std::env::var("DATABASE_URL").unwrap())
+use crate::graphql::query::Query;
+use async_graphql::EmptySubscription;
+
+pub async fn build_schema() -> async_graphql::Schema<Query, mutation::Mutation, EmptySubscription> {
+    async_graphql::Schema::build(
+        Query::default(),
+        mutation::Mutation::default(),
+        EmptySubscription,
+    )
+    .data(build_database_connection().await)
+    .data(build_cognitoidentityprovider_client().await)
+    .data(build_dynamodb_client().await)
+    .data(build_s3_client().await)
+    .finish()
+}
+
+async fn build_database_connection() -> sea_orm::DatabaseConnection {
+    sea_orm::Database::connect(std::env::var("DATABASE_URL").unwrap())
         .await
-        .unwrap();
-    async_graphql::Schema::build(Query::default(), EmptyMutation, EmptySubscription)
-        .data(db)
-        .finish()
+        .unwrap()
+}
+
+pub async fn build_cognitoidentityprovider_client() -> aws_sdk_cognitoidentityprovider::Client {
+    let config_loader = aws_config::from_env();
+    let config = match env::var("AWS_COGNITO_ENDPOINT") {
+        Ok(endpoint) => config_loader.endpoint_url(endpoint).load().await,
+        Err(_) => config_loader.load().await,
+    };
+    aws_sdk_cognitoidentityprovider::Client::new(&config)
+}
+
+async fn build_dynamodb_client() -> aws_sdk_dynamodb::Client {
+    let config_loader = aws_config::from_env();
+    let config = match env::var("AWS_DYNAMODB_ENDPOINT") {
+        Ok(endpoint) => config_loader.endpoint_url(endpoint).load().await,
+        Err(_) => config_loader.load().await,
+    };
+    aws_sdk_dynamodb::Client::new(&config)
+}
+
+async fn build_s3_client() -> aws_sdk_s3::Client {
+    let config_loader = aws_config::from_env();
+    let config = match env::var("AWS_S3_ENDPOINT") {
+        Ok(endpoint) => config_loader.endpoint_url(endpoint).load().await,
+        Err(_) => config_loader.load().await,
+    };
+    aws_sdk_s3::Client::new(&config)
 }

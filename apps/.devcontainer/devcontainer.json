@@ -1,10 +1,10 @@
 {
-    "name": "graphql",
+    "name": "api",
     "dockerComposeFile": [
         "../compose.yml",
         "compose.yml"
     ],
-    "service": "graphql",
+    "service": "api",
     "workspaceFolder": "/walking-dog",
     "mounts": [
         {
@@ -19,6 +19,9 @@
         }
     ],
     "postCreateCommand": "sh ./apps/.devcontainer/post-create.sh",
+    "containerEnv": {
+        "CLAUDE_PROJECT_DIR": "/walking-dog"
+    },
     "features": {
         "ghcr.io/devcontainers/features/common-utils:2": {},
         "ghcr.io/devcontainers/features/aws-cli:1": {},
@@ -36,8 +39,17 @@
                 "rust-lang.rust-analyzer",
                 "tamasfe.even-better-toml",
                 "vadimcn.vscode-lldb"
-            ]
-        },
-        "settings": {}
+            ],
+            "settings": {
+                "[rust]": {
+                    "editor.defaultFormatter": "rust-lang.rust-analyzer",
+                    "editor.formatOnSave": true,
+                    "editor.codeActionsOnSave": {
+                        "source.organizeImports": "always"
+                    },
+                    "rust-analyzer.checkOnSave.command": "clippy"
+                },
+            }
+        }
     }
 }

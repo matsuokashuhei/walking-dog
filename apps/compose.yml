@@ -15,6 +15,14 @@ services:
       timeout: 5s
       retries: 5
 
+  pgadmin4:
+    image: dpage/pgadmin4:latest
+    environment:
+      PGADMIN_DEFAULT_EMAIL: "user@domain.com"
+      PGADMIN_DEFAULT_PASSWORD: "password"
+    ports:
+      - "8080:80"
+
   dynamodb-local:
     image: amazon/dynamodb-local:latest
     user: root
@@ -87,20 +95,20 @@ services:
     volumes:
       - ./cognito-local/db:/app/.cognito/db
 
-  graphql:
+  api:
     build:
       context: .
-      dockerfile: ./graphql/Dockerfile
+      dockerfile: ./api/Dockerfile
       target: dev
-    command: ["cargo", "watch", "-x", "run --bin walking-dog-graphql"]
+    command: ["cargo", "watch", "-x", "run --bin walking-dog-api"]
     ports:
       - "3000:3000"
     volumes:
       - ..:/walking-dog
       - cargo_cache:/usr/local/cargo
-      - target_cache:/walking-dog/apps/graphql/target
+      - target_cache:/walking-dog/apps/api/target
     env_file:
-      - graphql/.env.local
+      - api/.env.local
     depends_on:
       postgres:
         condition: service_healthy

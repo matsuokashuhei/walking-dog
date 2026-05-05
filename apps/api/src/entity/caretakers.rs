@@ -8,8 +8,8 @@ use sea_orm::entity::prelude::*;
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
-    pub name: String,
-    pub avatar: String,
+    pub name: Option<String>,
+    pub avatar: Option<String>,
     #[sea_orm(unique)]
     pub cognito_sub: String,
     pub created_at: DateTimeWithTimeZone,

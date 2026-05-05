@@ -12,9 +12,9 @@ impl MigrationTrait for Migration {
                     .table("caretakers")
                     .if_not_exists()
                     .col(pk_uuid("id").extra("DEFAULT gen_random_uuid()"))
-                    .col(string("name"))
-                    .col(string("avatar"))
-                    .col(string("cognito_sub").not_null().unique_key())
+                    .col(string("name").null())
+                    .col(string("avatar").null())
+                    .col(string("cognito_sub").unique_key())
                     .col(
                         timestamp_with_time_zone("created_at")
                             .not_null()

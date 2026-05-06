@@ -1,8 +1,18 @@
-use crate::auth::autenticate_token;
-use async_graphql::http::GraphiQLSource;
-use async_graphql_axum::GraphQL;
-use axum::{Router, http::StatusCode, middleware, response::Html, routing::get};
+use std::net::SocketAddr;
+
+use crate::graphql::{mutation, query::Query};
+use async_graphql::{EmptySubscription, Schema, http::GraphiQLSource};
+use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
+use axum::{
+    Router,
+    extract::State,
+    http::StatusCode,
+    middleware,
+    response::{Html, IntoResponse},
+    routing::get,
+};
 use tokio::net::TcpListener;
+
 mod auth;
 mod entity;
 mod graphql;
@@ -15,14 +25,28 @@ async fn main() {
         .init();
     let schema = graphql::build_schema().await;
     let app = Router::new()
+        .route("/", get(graphql_playground).post(graphql_handler))
+        .route_layer(middleware::from_fn(auth::autenticate_token))
         .route("/health", get(|| async { StatusCode::OK }))
-        .route(
-            "/",
-            get(Html(GraphiQLSource::build().finish())).post_service(GraphQL::new(schema)),
-        )
-        .layer(middleware::from_fn(autenticate_token));
-    let addr = std::net::SocketAddr::from(([0, 0, 0, 0], 3000));
+        .with_state(schema);
+    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
     axum::serve(TcpListener::bind(addr).await.unwrap(), app)
         .await
         .unwrap();
+}
+
+async fn graphql_handler(
+    State(schema): State<Schema<Query, mutation::Mutation, EmptySubscription>>,
+    claims: Option<axum::Extension<auth::Claims>>,
+    request: GraphQLRequest,
+) -> GraphQLResponse {
+    let mut request = request.into_inner();
+    if let Some(claims) = claims {
+        request = request.data(claims);
+    }
+    schema.execute(request).await.into()
+}
+
+async fn graphql_playground() -> impl IntoResponse {
+    Html(GraphiQLSource::build().finish())
 }

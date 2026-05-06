@@ -11,7 +11,7 @@ pub struct Model {
     pub user_id: Uuid,
     pub started_at: DateTimeWithTimeZone,
     pub ended_at: Option<DateTimeWithTimeZone>,
-    pub distance: Option<i32>,
+    pub distance: Option<i64>,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
     #[sea_orm(

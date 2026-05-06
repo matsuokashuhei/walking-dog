@@ -21,9 +21,9 @@ pub struct DogMutation;
 impl DogMutation {
     #[graphql(guard = "AuthGuard")]
     async fn create_dog(&self, ctx: &Context<'_>, input: CreateDogInput) -> Result<Dog> {
+        let user = ctx.data::<user::Model>().unwrap();
         let db = ctx.data::<sea_orm::DatabaseConnection>().unwrap();
         let txn = db.begin().await?;
-        let user = ctx.data::<user::Model>().unwrap();
         let active_model = input.into_active_model();
         let dog = active_model.insert(db).await?;
         let active_moodel = crate::entity::user_dog::ActiveModel {
@@ -40,7 +40,7 @@ impl DogMutation {
     async fn update_dog(&self, ctx: &Context<'_>, input: UpdateDogInput) -> Result<Dog> {
         let db = ctx.data::<sea_orm::DatabaseConnection>().unwrap();
         let user = ctx.data::<user::Model>().unwrap();
-        let Ok(Some(dog)) = dog::Entity::find_by_id(input.id)
+        let Ok(Some(_)) = dog::Entity::find_by_id(input.id)
             .has_related(user_dog::Entity, user_dog::Column::UserId.eq(user.id))
             .one(db)
             .await
@@ -79,7 +79,7 @@ impl DogMutation {
     }
 }
 
-#[derive(Debug, InputObject)]
+#[derive(Clone, Debug, InputObject)]
 struct CreateDogInput {
     name: String,
     breed: Option<String>,

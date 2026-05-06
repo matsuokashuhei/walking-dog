@@ -15,7 +15,7 @@ impl MigrationTrait for Migration {
                     .col(uuid("user_id").not_null())
                     .col(timestamp_with_time_zone("started_at").not_null())
                     .col(timestamp_with_time_zone_null("ended_at"))
-                    .col(integer_null("distance"))
+                    .col(big_integer_null("distance"))
                     .col(
                         timestamp_with_time_zone("created_at")
                             .not_null()

@@ -1,14 +1,15 @@
-use crate::{entity::caretakers, graphql::object::caretaker::Caretaker};
+use crate::{auth, entity::user};
 use anyhow::{Result, anyhow};
 use async_graphql::{Context, Object, SimpleObject};
 use aws_sdk_cognitoidentityprovider::operation::initiate_auth::InitiateAuthOutput;
 use sea_orm::{ActiveModelTrait, ActiveValue::Set};
+use tracing::info;
 
 #[derive(Default, Debug)]
-pub struct CaretakerMutation;
+pub struct AuthMutation;
 
 #[Object]
-impl CaretakerMutation {
+impl AuthMutation {
     async fn sign_up(&self, ctx: &Context<'_>, email: String, password: String) -> Result<bool> {
         let cognitoidentityprovider_client = ctx
             .data::<aws_sdk_cognitoidentityprovider::Client>()
@@ -21,6 +22,12 @@ impl CaretakerMutation {
             .send()
             .await
             .map_err(|e| anyhow!(e.into_service_error()))?;
+        let db = ctx.data::<sea_orm::DatabaseConnection>().unwrap();
+        let user = user::ActiveModel {
+            cognito_sub: Set(output.user_sub),
+            ..Default::default()
+        };
+        user.insert(db).await?;
         Ok(true)
     }
 
@@ -48,6 +55,9 @@ impl CaretakerMutation {
         let cognitoidentityprovider_client = ctx
             .data::<aws_sdk_cognitoidentityprovider::Client>()
             .unwrap();
+        if let Ok(claims) = ctx.data::<axum::Extension<auth::Claims>>() {
+            info!("Claims in sign_in: {:?}", claims.sub);
+        }
         let output = cognitoidentityprovider_client
             .initiate_auth()
             .client_id(std::env::var("AWS_COGNITO_CLIENT_ID").unwrap())
@@ -59,16 +69,6 @@ impl CaretakerMutation {
             .map_err(|e| anyhow!(e.into_service_error()))?;
         Ok(output.into())
     }
-
-    // async fn update_caretaker(&self, ctx: &Context<'_>) -> Result<Caretaker> {
-    //     let db = ctx.data::<sea_orm::DatabaseConnection>().unwrap();
-    //     let caretaker = caretakers::ActiveModel {
-    //         id: Set(uuid::Uuid::new_v4()),
-    //     }
-    //     .insert(db)
-    //     .await?;
-    //     Ok(caretaker.into())
-    // }
 }
 
 #[derive(SimpleObject)]

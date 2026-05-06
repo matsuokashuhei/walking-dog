@@ -4,7 +4,7 @@ use sea_orm::entity::prelude::*;
 
 #[sea_orm::model]
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel)]
-#[sea_orm(table_name = "caretakers")]
+#[sea_orm(table_name = "user")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
@@ -15,9 +15,9 @@ pub struct Model {
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
     #[sea_orm(has_many)]
-    pub caretakers_dogs: HasMany<super::caretakers_dogs::Entity>,
+    pub user_dogs: HasMany<super::user_dog::Entity>,
     #[sea_orm(has_many)]
-    pub walks: HasMany<super::walks::Entity>,
+    pub walks: HasMany<super::walk::Entity>,
 }
 
 impl ActiveModelBehavior for ActiveModel {}

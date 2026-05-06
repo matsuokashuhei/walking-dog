@@ -55,7 +55,8 @@
     "everything-claude-code@everything-claude-code": true,
     "evolutionary-naming@kawasima-skills": true,
     "modularity@vladikk-modularity": true,
-    "backend-development@claude-code-workflows": true
+    "backend-development@claude-code-workflows": true,
+    "apollo-skills@apollo-marketplace": true
   },
   "extraKnownMarketplaces": {
     "claude-plugins-official": {
@@ -113,6 +114,12 @@
         "repo": "wshobson/agents"
       },
       "autoUpdate": true
+    },
+    "apollo-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "apollographql/skills"
+      }
     }
   },
   "plansDirectory": ".claude/plans",

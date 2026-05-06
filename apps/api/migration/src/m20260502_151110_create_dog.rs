@@ -9,12 +9,12 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table("caretakers")
+                    .table("dog")
                     .if_not_exists()
                     .col(pk_uuid("id").extra("DEFAULT gen_random_uuid()"))
-                    .col(string("name").null())
-                    .col(string("avatar").null())
-                    .col(string("cognito_sub").unique_key())
+                    .col(string("name").not_null())
+                    .col(string("breed"))
+                    .col(string("gender"))
                     .col(
                         timestamp_with_time_zone("created_at")
                             .not_null()
@@ -32,7 +32,7 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table("caretakers").to_owned())
+            .drop_table(Table::drop().table("dog").to_owned())
             .await
     }
 }

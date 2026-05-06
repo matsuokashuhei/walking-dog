@@ -4,34 +4,28 @@ use sea_orm::entity::prelude::*;
 
 #[sea_orm::model]
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel)]
-#[sea_orm(table_name = "walk_dogs")]
+#[sea_orm(table_name = "walk")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
-    #[sea_orm(unique_key = "idx_walk_dogs_walk_id_dog_id")]
-    pub walk_id: Uuid,
-    #[sea_orm(unique_key = "idx_walk_dogs_walk_id_dog_id")]
-    pub dog_id: Uuid,
+    pub user_id: Uuid,
+    pub started_at: DateTimeWithTimeZone,
+    pub ended_at: Option<DateTimeWithTimeZone>,
+    pub distance: Option<i32>,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
     #[sea_orm(
         belongs_to,
-        from = "dog_id",
+        from = "user_id",
         to = "id",
         on_update = "NoAction",
         on_delete = "Cascade"
     )]
-    pub dogs: HasOne<super::dogs::Entity>,
+    pub user: HasOne<super::user::Entity>,
     #[sea_orm(has_many)]
-    pub walk_events: HasMany<super::walk_events::Entity>,
-    #[sea_orm(
-        belongs_to,
-        from = "walk_id",
-        to = "id",
-        on_update = "NoAction",
-        on_delete = "Cascade"
-    )]
-    pub walks: HasOne<super::walks::Entity>,
+    pub walk_dogs: HasMany<super::walk_dog::Entity>,
+    #[sea_orm(has_many)]
+    pub walk_photos: HasMany<super::walk_photo::Entity>,
 }
 
 impl ActiveModelBehavior for ActiveModel {}

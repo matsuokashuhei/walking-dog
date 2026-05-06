@@ -1,3 +1,4 @@
+pub mod guard;
 pub mod mutation;
 pub mod object;
 pub mod query;
@@ -26,7 +27,7 @@ async fn build_database_connection() -> sea_orm::DatabaseConnection {
         .unwrap()
 }
 
-pub async fn build_cognitoidentityprovider_client() -> aws_sdk_cognitoidentityprovider::Client {
+async fn build_cognitoidentityprovider_client() -> aws_sdk_cognitoidentityprovider::Client {
     let config_loader = aws_config::from_env();
     let config = match env::var("AWS_COGNITO_ENDPOINT") {
         Ok(endpoint) => config_loader.endpoint_url(endpoint).load().await,

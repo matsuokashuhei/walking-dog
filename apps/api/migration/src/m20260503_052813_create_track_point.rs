@@ -13,7 +13,7 @@ impl MigrationTrait for Migration {
         let client = aws_sdk_dynamodb::Client::new(&config);
         client
             .create_table()
-            .table_name("track_points")
+            .table_name("track_point")
             .billing_mode(aws_sdk_dynamodb::types::BillingMode::PayPerRequest)
             .attribute_definitions(
                 aws_sdk_dynamodb::types::AttributeDefinition::builder()
@@ -57,7 +57,7 @@ impl MigrationTrait for Migration {
         let client = aws_sdk_dynamodb::Client::new(&config);
         client
             .delete_table()
-            .table_name("track_points")
+            .table_name("track_point")
             .send()
             .await
             .map_err(|e| DbErr::Migration(format!("Failed to delete DynamoDB table: {}", e)))?;

@@ -1,5 +1,6 @@
+use async_graphql::{EmptySubscription, Schema};
 use axum::{
-    extract::Request,
+    extract::{Request, State},
     middleware::Next,
     response::{IntoResponse, Response},
 };
@@ -11,7 +12,13 @@ use jsonwebtoken::{Algorithm, DecodingKey, Validation, decode, jwk::JwkSet};
 use serde::{Deserialize, Serialize};
 use tracing::info;
 
-pub async fn autenticate_token(
+use crate::{
+    entity::user,
+    graphql::{mutation, query::Query},
+};
+
+pub async fn autenticate_user(
+    State(schema): State<Schema<Query, mutation::Mutation, EmptySubscription>>,
     authorization: Option<TypedHeader<Authorization<Bearer>>>,
     mut request: Request,
     next: Next,
@@ -69,7 +76,15 @@ pub async fn autenticate_token(
         info!("Failed to decode token claims");
         return Ok(next.run(request).await);
     };
-    request.extensions_mut().insert(token.claims);
+
+    let db = schema.data::<sea_orm::DatabaseConnection>().unwrap();
+    if let Ok(Some(user)) = user::Entity::find_by_cognito_sub(token.claims.sub)
+        .one(db)
+        .await
+    {
+        info!("Inserting user into request extensions: {:?}", user.id);
+        request.extensions_mut().insert(user);
+    }
     Ok(next.run(request).await)
 }
 

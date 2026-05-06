@@ -24,7 +24,7 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table("walk_events")
+                    .table("walk_event")
                     .if_not_exists()
                     .col(pk_uuid("id").extra("DEFAULT gen_random_uuid()"))
                     .col(uuid("walk_dog_id").not_null())
@@ -49,8 +49,8 @@ impl MigrationTrait for Migration {
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_walk_events_walk_dog_id")
-                            .from(Alias::new("walk_events"), Alias::new("walk_dog_id"))
-                            .to(Alias::new("walk_dogs"), Alias::new("id"))
+                            .from(Alias::new("walk_event"), Alias::new("walk_dog_id"))
+                            .to(Alias::new("walk_dog"), Alias::new("id"))
                             .on_delete(ForeignKeyAction::Cascade),
                     )
                     .to_owned(),
@@ -60,8 +60,8 @@ impl MigrationTrait for Migration {
         manager
             .create_index(
                 Index::create()
-                    .name("idx_walk_events_walk_dog_id_occurred_at")
-                    .table(Alias::new("walk_events"))
+                    .name("idx_walk_event_walk_dog_id_occurred_at")
+                    .table(Alias::new("walk_event"))
                     .col(Alias::new("walk_dog_id"))
                     .col(Alias::new("occurred_at"))
                     .to_owned(),
@@ -71,7 +71,7 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table("walk_events").to_owned())
+            .drop_table(Table::drop().table("walk_event").to_owned())
             .await?;
 
         manager

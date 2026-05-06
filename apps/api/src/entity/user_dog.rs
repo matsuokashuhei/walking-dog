@@ -4,28 +4,30 @@ use sea_orm::entity::prelude::*;
 
 #[sea_orm::model]
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel)]
-#[sea_orm(table_name = "walks")]
+#[sea_orm(table_name = "user_dog")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
-    pub caretaker_id: Uuid,
-    pub started_at: DateTimeWithTimeZone,
-    pub ended_at: Option<DateTimeWithTimeZone>,
-    pub distance: Option<i32>,
+    pub user_id: Uuid,
+    pub dog_id: Uuid,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
     #[sea_orm(
         belongs_to,
-        from = "caretaker_id",
+        from = "dog_id",
         to = "id",
         on_update = "NoAction",
         on_delete = "Cascade"
     )]
-    pub caretakers: HasOne<super::caretakers::Entity>,
-    #[sea_orm(has_many)]
-    pub walk_dogs: HasMany<super::walk_dogs::Entity>,
-    #[sea_orm(has_many)]
-    pub walk_photos: HasMany<super::walk_photos::Entity>,
+    pub dog: HasOne<super::dog::Entity>,
+    #[sea_orm(
+        belongs_to,
+        from = "user_id",
+        to = "id",
+        on_update = "NoAction",
+        on_delete = "Cascade"
+    )]
+    pub user: HasOne<super::user::Entity>,
 }
 
 impl ActiveModelBehavior for ActiveModel {}

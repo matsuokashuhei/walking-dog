@@ -1,7 +1,7 @@
-pub mod caretaker;
+pub mod user;
 
 use async_graphql::MergedObject;
-use caretaker::CaretakerQuery;
+use user::UserQuery;
 
 #[derive(MergedObject, Default)]
-pub struct Query(CaretakerQuery);
+pub struct Query(UserQuery);

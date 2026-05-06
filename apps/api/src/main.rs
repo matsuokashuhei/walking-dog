@@ -1,6 +1,13 @@
+mod auth;
+mod entity;
+mod graphql;
+
 use std::net::SocketAddr;
 
-use crate::graphql::{mutation, query::Query};
+use crate::{
+    entity::user,
+    graphql::{mutation, query::Query},
+};
 use async_graphql::{EmptySubscription, Schema, http::GraphiQLSource};
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
 use axum::{
@@ -12,10 +19,7 @@ use axum::{
     routing::get,
 };
 use tokio::net::TcpListener;
-
-mod auth;
-mod entity;
-mod graphql;
+use tracing::info;
 
 #[tokio::main]
 async fn main() {
@@ -26,7 +30,10 @@ async fn main() {
     let schema = graphql::build_schema().await;
     let app = Router::new()
         .route("/", get(graphql_playground).post(graphql_handler))
-        .route_layer(middleware::from_fn(auth::autenticate_token))
+        .route_layer(middleware::from_fn_with_state(
+            schema.clone(),
+            auth::autenticate_user,
+        ))
         .route("/health", get(|| async { StatusCode::OK }))
         .with_state(schema);
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
@@ -37,12 +44,12 @@ async fn main() {
 
 async fn graphql_handler(
     State(schema): State<Schema<Query, mutation::Mutation, EmptySubscription>>,
-    claims: Option<axum::Extension<auth::Claims>>,
+    user: Option<axum::Extension<user::Model>>,
     request: GraphQLRequest,
 ) -> GraphQLResponse {
     let mut request = request.into_inner();
-    if let Some(claims) = claims {
-        request = request.data(claims);
+    if let Some(axum::Extension(user)) = user {
+        request = request.data(user);
     }
     schema.execute(request).await.into()
 }

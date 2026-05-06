@@ -2,11 +2,11 @@
 
 pub mod prelude;
 
-pub mod caretakers;
-pub mod caretakers_dogs;
-pub mod dogs;
+pub mod dog;
 pub mod sea_orm_active_enums;
-pub mod walk_dogs;
-pub mod walk_events;
-pub mod walk_photos;
-pub mod walks;
+pub mod user;
+pub mod user_dog;
+pub mod walk;
+pub mod walk_dog;
+pub mod walk_event;
+pub mod walk_photo;

@@ -19,7 +19,6 @@ use axum::{
     routing::get,
 };
 use tokio::net::TcpListener;
-use tracing::info;
 
 #[tokio::main]
 async fn main() {

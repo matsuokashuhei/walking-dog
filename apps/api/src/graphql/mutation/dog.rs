@@ -1,10 +1,12 @@
 use anyhow::Result;
+use anyhow::anyhow;
 use async_graphql::{Context, InputObject, Object};
+use sea_orm::ActiveValue;
 use sea_orm::ActiveValue::Set;
-use sea_orm::{ActiveModelTrait, TransactionTrait};
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, TransactionTrait};
 
-use crate::entity::dog;
 use crate::entity::sea_orm_active_enums::GenderType;
+use crate::entity::{dog, user_dog};
 use crate::graphql::object::dog::{Dog, Gender};
 use crate::{entity::user, graphql::guard::AuthGuard};
 
@@ -29,6 +31,22 @@ impl DogMutation {
         txn.commit().await?;
         Ok(Dog::from(dog))
     }
+
+    #[graphql(guard = "AuthGuard")]
+    async fn update_dog(&self, ctx: &Context<'_>, input: UpdateDogInput) -> Result<Dog> {
+        let db = ctx.data::<sea_orm::DatabaseConnection>().unwrap();
+        let user = ctx.data::<user::Model>().unwrap();
+        let Ok(Some(dog)) = dog::Entity::find_by_id(input.id)
+            .has_related(user_dog::Entity, user_dog::Column::UserId.eq(user.id))
+            .one(db)
+            .await
+        else {
+            return Err(anyhow!("Dog not found or not owned by user"));
+        };
+        let active_model = input.into_active_model();
+        let updated_dog = active_model.update(db).await?;
+        Ok(Dog::from(updated_dog))
+    }
 }
 
 #[derive(Debug, InputObject)]
@@ -50,6 +68,40 @@ impl CreateDogInput {
                 Gender::Other => GenderType::Other,
             }),
             avatar: Set(self.avatar.clone()),
+            ..Default::default()
+        }
+    }
+}
+
+#[derive(Debug, Clone, InputObject)]
+struct UpdateDogInput {
+    id: uuid::Uuid,
+    name: Option<String>,
+    breed: Option<String>,
+    gender: Option<Gender>,
+    avatar: Option<String>,
+}
+
+impl UpdateDogInput {
+    fn into_active_model(&self) -> dog::ActiveModel {
+        dog::ActiveModel {
+            id: Set(self.id),
+            name: self.name.clone().map_or(ActiveValue::NotSet, Set),
+            breed: self
+                .breed
+                .clone()
+                .map_or(ActiveValue::NotSet, |breed| Set(breed.into())),
+            gender: self.gender.map_or(ActiveValue::NotSet, |gender| {
+                Set(match gender {
+                    Gender::Male => GenderType::Male,
+                    Gender::Female => GenderType::Female,
+                    Gender::Other => GenderType::Other,
+                })
+            }),
+            avatar: self
+                .avatar
+                .clone()
+                .map_or(ActiveValue::NotSet, |avatar| Set(avatar.into())),
             ..Default::default()
         }
     }

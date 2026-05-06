@@ -19,7 +19,7 @@ impl From<GenderType> for Gender {
     }
 }
 
-#[derive(SimpleObject)]
+#[derive(SimpleObject, Clone, Debug)]
 pub struct Dog {
     pub id: uuid::Uuid,
     pub name: String,

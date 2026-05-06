@@ -14,3 +14,13 @@ pub enum EventType {
     #[sea_orm(string_value = "greet")]
     Greet,
 }
+#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum)]
+#[sea_orm(rs_type = "Enum", db_type = "Enum", enum_name = "gender_type")]
+pub enum GenderType {
+    #[sea_orm(string_value = "female")]
+    Female,
+    #[sea_orm(string_value = "male")]
+    Male,
+    #[sea_orm(string_value = "other")]
+    Other,
+}

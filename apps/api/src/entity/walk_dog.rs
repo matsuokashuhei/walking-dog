@@ -31,7 +31,7 @@ pub struct Model {
     )]
     pub walk: HasOne<super::walk::Entity>,
     #[sea_orm(has_many)]
-    pub walk_events: HasMany<super::walk_event::Entity>,
+    pub walk_dog_events: HasMany<super::walk_dog_event::Entity>,
 }
 
 impl ActiveModelBehavior for ActiveModel {}

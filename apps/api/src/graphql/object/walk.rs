@@ -1,10 +1,11 @@
 use anyhow::anyhow;
 use async_graphql::{ComplexObject, Context, SimpleObject};
-use sea_orm::{ColumnTrait, EntityTrait, QueryOrder};
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
 use uuid::Uuid;
 
-use crate::entity::{dog, walk, walk_dog};
+use crate::entity::{dog, walk, walk_dog, walk_photo};
 use crate::graphql::object::dog::Dog;
+use crate::graphql::object::walk_photo::WalkPhoto;
 
 #[derive(SimpleObject, Clone, Debug)]
 #[graphql(complex)]
@@ -28,6 +29,17 @@ impl Walk {
             .await
             .map_err(|e| anyhow!(e))?;
         Ok(dogs.into_iter().map(Dog::from).collect())
+    }
+
+    async fn photos(&self, ctx: &Context<'_>) -> async_graphql::Result<Vec<WalkPhoto>> {
+        let db = ctx.data::<sea_orm::DatabaseConnection>().unwrap();
+        let photos = walk_photo::Entity::find()
+            .filter(walk_photo::Column::WalkId.eq(self.id))
+            .order_by(walk_photo::Column::OccurredAt, sea_orm::Order::Asc)
+            .all(db)
+            .await
+            .map_err(|e| anyhow!(e))?;
+        Ok(photos.into_iter().map(WalkPhoto::from).collect())
     }
 }
 

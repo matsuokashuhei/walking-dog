@@ -1,5 +1,6 @@
 use anyhow::Result;
 use anyhow::anyhow;
+use async_graphql::Upload;
 use async_graphql::{Context, InputObject, Object};
 use sea_orm::ActiveValue;
 use sea_orm::ActiveValue::Set;
@@ -12,6 +13,7 @@ use uuid::Uuid;
 use crate::entity::sea_orm_active_enums::GenderType;
 use crate::entity::{dog, user_dog};
 use crate::graphql::object::dog::{Dog, Gender};
+use crate::graphql::util::file::upload_avatar;
 use crate::{entity::user, graphql::guard::AuthGuard};
 
 #[derive(Default, Debug)]
@@ -20,18 +22,23 @@ pub struct DogMutation;
 #[Object]
 impl DogMutation {
     #[graphql(guard = "AuthGuard")]
-    async fn create_dog(&self, ctx: &Context<'_>, input: CreateDogInput) -> Result<Dog> {
+    async fn add_dog(&self, ctx: &Context<'_>, input: AddDogInput) -> Result<Dog> {
         let user = ctx.data::<user::Model>().unwrap();
         let db = ctx.data::<sea_orm::DatabaseConnection>().unwrap();
         let txn = db.begin().await?;
-        let active_model = input.into_active_model();
+        let mut active_model = input.into_active_model();
+        if let Some(file) = input.avatar {
+            if let Ok(file) = upload_avatar(ctx, file).await {
+                active_model.avatar = Set(Some(file));
+            }
+        }
         let dog = active_model.insert(db).await?;
-        let active_moodel = crate::entity::user_dog::ActiveModel {
+        let active_model = crate::entity::user_dog::ActiveModel {
             user_id: Set(user.id),
             dog_id: Set(dog.id),
             ..Default::default()
         };
-        active_moodel.insert(db).await?;
+        active_model.insert(db).await?;
         txn.commit().await?;
         Ok(Dog::from(dog))
     }
@@ -47,16 +54,21 @@ impl DogMutation {
         else {
             return Err(anyhow!("Dog not found or not owned by user"));
         };
-        let active_model = input.into_active_model();
+        let mut active_model = input.into_active_model();
+        if let Some(file) = input.avatar {
+            if let Ok(file) = upload_avatar(ctx, file).await {
+                active_model.avatar = Set(Some(file));
+            }
+        }
         let updated_dog = active_model.update(db).await?;
         Ok(Dog::from(updated_dog))
     }
 
     #[graphql(guard = "AuthGuard")]
-    async fn delete_dog(&self, ctx: &Context<'_>, id: Uuid) -> Result<Dog> {
+    async fn remove_dog(&self, ctx: &Context<'_>, input: RemoveDogInput) -> Result<Dog> {
         let db = ctx.data::<sea_orm::DatabaseConnection>().unwrap();
         let user = ctx.data::<user::Model>().unwrap();
-        let Ok(Some(dog)) = dog::Entity::find_by_id(id)
+        let Ok(Some(dog)) = dog::Entity::find_by_id(input.id)
             .has_related(user_dog::Entity, user_dog::Column::UserId.eq(user.id))
             .one(db)
             .await
@@ -80,14 +92,14 @@ impl DogMutation {
 }
 
 #[derive(Clone, Debug, InputObject)]
-struct CreateDogInput {
+struct AddDogInput {
     name: String,
     breed: Option<String>,
     gender: Gender,
-    avatar: Option<String>,
+    avatar: Option<Upload>,
 }
 
-impl CreateDogInput {
+impl AddDogInput {
     fn into_active_model(&self) -> dog::ActiveModel {
         dog::ActiveModel {
             name: Set(self.name.clone()),
@@ -97,7 +109,6 @@ impl CreateDogInput {
                 Gender::Female => GenderType::Female,
                 Gender::Other => GenderType::Other,
             }),
-            avatar: Set(self.avatar.clone()),
             ..Default::default()
         }
     }
@@ -105,11 +116,11 @@ impl CreateDogInput {
 
 #[derive(Debug, Clone, InputObject)]
 struct UpdateDogInput {
-    id: uuid::Uuid,
+    id: Uuid,
     name: Option<String>,
     breed: Option<String>,
     gender: Option<Gender>,
-    avatar: Option<String>,
+    avatar: Option<Upload>,
 }
 
 impl UpdateDogInput {
@@ -128,11 +139,12 @@ impl UpdateDogInput {
                     Gender::Other => GenderType::Other,
                 })
             }),
-            avatar: self
-                .avatar
-                .clone()
-                .map_or(ActiveValue::NotSet, |avatar| Set(avatar.into())),
             ..Default::default()
         }
     }
+}
+
+#[derive(Debug, Clone, InputObject)]
+struct RemoveDogInput {
+    id: Uuid,
 }

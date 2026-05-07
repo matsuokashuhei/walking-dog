@@ -3,7 +3,7 @@ use async_graphql::{ComplexObject, Context, SimpleObject};
 use sea_orm::{ColumnTrait, EntityTrait, QueryOrder};
 use uuid::Uuid;
 
-use crate::entity::{dog, user, user_dog, walk, walk_dog};
+use crate::entity::{dog, walk, walk_dog};
 use crate::graphql::object::dog::Dog;
 
 #[derive(SimpleObject, Clone, Debug)]

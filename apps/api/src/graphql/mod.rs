@@ -2,6 +2,7 @@ pub mod guard;
 pub mod mutation;
 pub mod object;
 pub mod query;
+mod util;
 
 use std::env;
 
@@ -46,10 +47,12 @@ async fn build_dynamodb_client() -> aws_sdk_dynamodb::Client {
 }
 
 async fn build_s3_client() -> aws_sdk_s3::Client {
-    let config_loader = aws_config::from_env();
-    let config = match env::var("AWS_S3_ENDPOINT") {
-        Ok(endpoint) => config_loader.endpoint_url(endpoint).load().await,
-        Err(_) => config_loader.load().await,
-    };
-    aws_sdk_s3::Client::new(&config)
+    let config = aws_config::from_env().load().await;
+    if let Ok(endpoint) = env::var("AWS_S3_ENDPOINT") {
+        let mut s3_config = aws_sdk_s3::config::Builder::from(&config);
+        s3_config = s3_config.endpoint_url(endpoint).force_path_style(true);
+        aws_sdk_s3::Client::from_conf(s3_config.build())
+    } else {
+        aws_sdk_s3::Client::new(&config)
+    }
 }

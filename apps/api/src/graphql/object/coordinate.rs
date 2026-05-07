@@ -1,6 +1,12 @@
 use async_graphql::{
-    InputType, InputValueError, InputValueResult, Number, Scalar, ScalarType, Value,
+    InputType, InputValueError, InputValueResult, Number, Scalar, ScalarType, SimpleObject, Value,
 };
+
+#[derive(SimpleObject, Clone, Debug)]
+pub struct Coordinate {
+    pub latitude: Latitude,
+    pub longitude: Longitude,
+}
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Latitude(f64);

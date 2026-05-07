@@ -2,7 +2,7 @@ use crate::{auth, entity::user};
 use anyhow::{Result, anyhow};
 use async_graphql::{Context, InputObject, Object, SimpleObject};
 use aws_sdk_cognitoidentityprovider::operation::initiate_auth::InitiateAuthOutput;
-use sea_orm::{ActiveModelTrait, ActiveValue::Set};
+use sea_orm::{ActiveModelTrait, ActiveValue::Set, DatabaseConnection};
 use tracing::info;
 
 #[derive(Default, Debug)]
@@ -22,7 +22,7 @@ impl AuthMutation {
             .send()
             .await
             .map_err(|e| anyhow!(e.into_service_error()))?;
-        let db = ctx.data::<sea_orm::DatabaseConnection>().unwrap();
+        let db = ctx.data::<DatabaseConnection>().unwrap();
         let user = user::ActiveModel {
             cognito_sub: Set(output.user_sub),
             ..Default::default()

@@ -1,8 +1,8 @@
-use async_graphql::{Enum, SimpleObject};
+use async_graphql::{ComplexObject, Enum, SimpleObject};
 use uuid::Uuid;
 
 use crate::entity::{sea_orm_active_enums, walk_dog_event};
-use crate::graphql::object::coordinate::{Latitude, Longitude};
+use crate::graphql::object::coordinate::{Coordinate, Latitude, Longitude};
 
 #[derive(Enum, Debug, Copy, Clone, Eq, PartialEq)]
 pub enum EventType {
@@ -40,8 +40,7 @@ pub struct WalkDogEvent {
     pub walk_dog_id: Uuid,
     pub event: EventType,
     pub occurred_at: chrono::DateTime<chrono::Utc>,
-    pub latitude: Latitude,
-    pub longitude: Longitude,
+    pub coordinate: Coordinate,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
@@ -53,8 +52,10 @@ impl From<walk_dog_event::Model> for WalkDogEvent {
             walk_dog_id: model.walk_dog_id,
             event: model.event.into(),
             occurred_at: model.occurred_at.into(),
-            latitude: model.latitude.into(),
-            longitude: model.longitude.into(),
+            coordinate: Coordinate {
+                latitude: model.latitude.into(),
+                longitude: model.longitude.into(),
+            },
             created_at: model.created_at.into(),
             updated_at: model.updated_at.into(),
         }

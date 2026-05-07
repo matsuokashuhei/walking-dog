@@ -10,6 +10,7 @@ use uuid::Uuid;
 
 use crate::entity::{dog, user_dog};
 use crate::graphql::object::walk::Walk;
+use crate::graphql::util::error::AppError;
 use crate::{entity::user, graphql::guard::AuthGuard};
 
 #[derive(Default, Debug)]
@@ -36,7 +37,7 @@ impl WalkMutation {
                 .one(db)
                 .await?;
             if dog.is_none() {
-                return Err(anyhow!("Dog not found or not owned by user"));
+                return Err(AppError::NotFound.into());
             }
             let active_model = crate::entity::walk_dog::ActiveModel {
                 walk_id: Set(walk.id),
@@ -58,7 +59,7 @@ impl WalkMutation {
             .one(db)
             .await?
         else {
-            return Err(anyhow!("Walk not found or not owned by user"));
+            return Err(AppError::NotFound.into());
         };
         let active_model = crate::entity::walk::ActiveModel {
             id: Set(walk.id.into()),

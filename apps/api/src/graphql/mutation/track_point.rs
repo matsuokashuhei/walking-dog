@@ -1,11 +1,12 @@
 use anyhow::{Result, anyhow};
 use async_graphql::{Context, InputObject, Object};
-use sea_orm::{ColumnTrait, EntityTrait};
+use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait};
 use tracing::{error, info};
 use uuid::Uuid;
 
 use crate::graphql::object::coordinate::{Latitude, Longitude};
 use crate::graphql::object::track_point::TrackPoint;
+use crate::graphql::util::error::AppError;
 use crate::{entity::user, graphql::guard::AuthGuard};
 
 #[derive(Default, Debug)]
@@ -21,11 +22,14 @@ impl TrackPointMutation {
                 crate::entity::user::Entity,
                 crate::entity::user::Column::Id.eq(user.id),
             )
-            .one(ctx.data::<sea_orm::DatabaseConnection>().unwrap())
+            .one(ctx.data::<DatabaseConnection>().unwrap())
             .await?
-            .ok_or_else(|| anyhow!("Walk not found or not owned by user"))?;
+            .ok_or_else(|| AppError::NotFound)?;
         if walk.ended_at.is_some() {
-            return Err(anyhow!("Cannot track point for an ended walk"));
+            return Err(AppError::UnprocessableEntity(
+                "Cannot track point for an ended walk".to_string(),
+            )
+            .into());
         }
         let client = ctx.data::<aws_sdk_dynamodb::Client>().unwrap();
         let track_point = crate::entity::track_point::Model::new(
@@ -34,16 +38,9 @@ impl TrackPointMutation {
             input.latitude.value(),
             input.longitude.value(),
         );
-        info!(
-            "Tracking point for walk_id {}: ({}, {}) at {}",
-            input.walk_id,
-            input.latitude.value(),
-            input.longitude.value(),
-            input.tracked_at
-        );
         let model = track_point.put(client).await.map_err(|e| {
             error!("Failed to put track point: {:?}", e);
-            anyhow!(e)
+            AppError::InternalServerError(e.to_string())
         })?;
         Ok(TrackPoint::from(model))
     }

@@ -6,6 +6,7 @@ use uuid::Uuid;
 
 use crate::entity::{dog, user, user_dog};
 use crate::graphql::object::dog::Dog;
+use crate::graphql::util::error::AppError;
 use crate::graphql::util::file::avatar_url;
 
 #[derive(SimpleObject, Clone, Debug)]
@@ -27,7 +28,7 @@ impl User {
             .order_by(dog::Column::Name, sea_orm::Order::Asc)
             .all(db)
             .await
-            .map_err(|e| anyhow!(e))?;
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
         Ok(dogs.into_iter().map(Dog::from).collect())
     }
 }

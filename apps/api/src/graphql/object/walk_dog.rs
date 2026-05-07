@@ -3,8 +3,11 @@ use async_graphql::{ComplexObject, Context, SimpleObject};
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder};
 
 use crate::{
-    entity::{dog, walk_dog},
-    graphql::object::dog::Dog,
+    entity::{dog, walk_dog, walk_dog_event},
+    graphql::{
+        object::{dog::Dog, walk_dog_event::WalkDogEvent},
+        util::error::AppError,
+    },
 };
 
 #[derive(SimpleObject, Clone, Debug)]
@@ -36,27 +39,18 @@ impl WalkDog {
         let dog = dog::Entity::find_by_id(self.dog_id)
             .one(db)
             .await
-            .map_err(|e| anyhow!(e))?
-            .ok_or_else(|| anyhow!("Dog not found"))?;
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?
+            .ok_or_else(|| AppError::NotFound)?;
         Ok(Dog::from(dog))
     }
-    async fn events(
-        &self,
-        ctx: &Context<'_>,
-    ) -> Result<Vec<crate::graphql::object::walk_dog_event::WalkDogEvent>> {
+    async fn events(&self, ctx: &Context<'_>) -> Result<Vec<WalkDogEvent>> {
         let db = ctx.data::<DatabaseConnection>().unwrap();
-        let events = crate::entity::walk_dog_event::Entity::find()
-            .filter(crate::entity::walk_dog_event::Column::WalkDogId.eq(self.id))
-            .order_by(
-                crate::entity::walk_dog_event::Column::OccurredAt,
-                sea_orm::Order::Asc,
-            )
+        let events = walk_dog_event::Entity::find()
+            .filter(walk_dog_event::Column::WalkDogId.eq(self.id))
+            .order_by(walk_dog_event::Column::OccurredAt, sea_orm::Order::Asc)
             .all(db)
             .await
-            .map_err(|e| anyhow!(e))?;
-        Ok(events
-            .into_iter()
-            .map(crate::graphql::object::walk_dog_event::WalkDogEvent::from)
-            .collect())
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+        Ok(events.into_iter().map(WalkDogEvent::from).collect())
     }
 }

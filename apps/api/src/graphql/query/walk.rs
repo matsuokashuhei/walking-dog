@@ -7,6 +7,7 @@ use uuid::Uuid;
 use crate::entity::{user, walk};
 use crate::graphql::guard::AuthGuard;
 use crate::graphql::object::walk::Walk;
+use crate::graphql::util::error::AppError;
 
 #[derive(Default, Debug)]
 pub struct WalkQuery;
@@ -22,7 +23,7 @@ impl WalkQuery {
             .order_by_id_desc()
             .all(db)
             .await
-            .map_err(|e| anyhow!(e))?;
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
         Ok(walks.into_iter().map(Walk::from).collect())
     }
 
@@ -34,8 +35,8 @@ impl WalkQuery {
             .filter(walk::Column::UserId.eq(user.id))
             .one(db)
             .await
-            .map_err(|e| anyhow!(e))?
-            .ok_or_else(|| anyhow!("Walk not found"))?;
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?
+            .ok_or_else(|| AppError::NotFound)?;
         Ok(Walk::from(walk))
     }
 }

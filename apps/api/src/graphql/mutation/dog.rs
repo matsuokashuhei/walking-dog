@@ -5,6 +5,7 @@ use async_graphql::{Context, InputObject, Object};
 use sea_orm::ActiveValue;
 use sea_orm::ActiveValue::Set;
 use sea_orm::Condition;
+use sea_orm::DatabaseConnection;
 use sea_orm::ModelTrait;
 use sea_orm::QueryFilter;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, TransactionTrait};
@@ -13,6 +14,7 @@ use uuid::Uuid;
 use crate::entity::sea_orm_active_enums::GenderType;
 use crate::entity::{dog, user_dog};
 use crate::graphql::object::dog::{Dog, Gender};
+use crate::graphql::util::error::AppError;
 use crate::graphql::util::file::upload_avatar;
 use crate::{entity::user, graphql::guard::AuthGuard};
 
@@ -24,7 +26,7 @@ impl DogMutation {
     #[graphql(guard = "AuthGuard")]
     async fn add_dog(&self, ctx: &Context<'_>, input: AddDogInput) -> Result<Dog> {
         let user = ctx.data::<user::Model>().unwrap();
-        let db = ctx.data::<sea_orm::DatabaseConnection>().unwrap();
+        let db = ctx.data::<DatabaseConnection>().unwrap();
         let txn = db.begin().await?;
         let mut active_model = input.into_active_model();
         if let Some(file) = input.avatar {
@@ -33,13 +35,18 @@ impl DogMutation {
             }
         }
         let dog = active_model.insert(db).await?;
-        let active_model = crate::entity::user_dog::ActiveModel {
+        let active_model = user_dog::ActiveModel {
             user_id: Set(user.id),
             dog_id: Set(dog.id),
             ..Default::default()
         };
-        active_model.insert(db).await?;
-        txn.commit().await?;
+        active_model
+            .insert(db)
+            .await
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+        txn.commit()
+            .await
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
         Ok(Dog::from(dog))
     }
 
@@ -52,7 +59,7 @@ impl DogMutation {
             .one(db)
             .await
         else {
-            return Err(anyhow!("Dog not found or not owned by user"));
+            return Err(AppError::NotFound.into());
         };
         let mut active_model = input.into_active_model();
         if let Some(file) = input.avatar {
@@ -66,14 +73,14 @@ impl DogMutation {
 
     #[graphql(guard = "AuthGuard")]
     async fn remove_dog(&self, ctx: &Context<'_>, input: RemoveDogInput) -> Result<Dog> {
-        let db = ctx.data::<sea_orm::DatabaseConnection>().unwrap();
+        let db = ctx.data::<DatabaseConnection>().unwrap();
         let user = ctx.data::<user::Model>().unwrap();
         let Ok(Some(dog)) = dog::Entity::find_by_id(input.id)
             .has_related(user_dog::Entity, user_dog::Column::UserId.eq(user.id))
             .one(db)
             .await
         else {
-            return Err(anyhow!("Dog not found or not owned by user"));
+            return Err(AppError::NotFound.into());
         };
         let Ok(Some(user_dog)) = user_dog::Entity::find()
             .filter(
@@ -84,7 +91,7 @@ impl DogMutation {
             .one(db)
             .await
         else {
-            return Err(anyhow!("Dog not found or not owned by user"));
+            return Err(AppError::NotFound.into());
         };
         user_dog.delete(db).await?;
         Ok(Dog::from(dog))

@@ -15,7 +15,7 @@ tracing = { version = "0.1.44" }
 tracing-subscriber = { version = "0.3.23" }
 aws-config = { version = "1.8.16", features = ["behavior-version-latest"] }
 aws-sdk-dynamodb = "1.111.0"
-aws-sdk-s3 = { version = "1.131.0", features = ["behavior-version-latest"] }
+aws-sdk-s3 = { version = "1.132.0", features = ["behavior-version-latest"] }
 aws-sdk-sqs = "1.98.0"
 aws-sdk-cognitoidentityprovider = "1.116.0"
 chrono = { version = "0.4.44", default-features = false, features = ["std"] }
@@ -26,6 +26,7 @@ serde = { version = "1.0.228", features = ["derive"] }
 serde_json = { version = "1.0.149" }
 reqwest = { version = "0.13.3", features = ["json"] }
 url = "2.5.8"
+thiserror = "2.0.18"
 
 
 [dependencies.sea-orm]

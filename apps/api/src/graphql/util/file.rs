@@ -6,6 +6,8 @@ use std::path::Path;
 use tracing::error;
 use url::Url;
 
+use crate::graphql::util::error::AppError;
+
 const DEFAULT_MAX_UPLOAD_BYTES: u64 = 20 * 1024 * 1024;
 const MAX_UPLOAD_BYTES_ENV: &str = "MAX_UPLOAD_BYTES";
 
@@ -31,7 +33,7 @@ async fn upload_file(ctx: &Context<'_>, file: Upload, bucket: &str) -> Result<St
     let mut bytes = Vec::new();
     content.read_to_end(&mut bytes)?;
     if bytes.len() as u64 > max_upload_bytes {
-        bail!("Uploaded file exceeds {} bytes", max_upload_bytes);
+        return Err(AppError::ContentTooLarge.into());
     }
     let content_type = upload
         .content_type
@@ -48,7 +50,7 @@ async fn upload_file(ctx: &Context<'_>, file: Upload, bucket: &str) -> Result<St
         .await
         .map_err(|e| {
             error!("Failed to upload file: {:?} to bucket: {}", e, bucket);
-            anyhow!(e.into_service_error())
+            AppError::InternalServerError(e.to_string())
         })?;
     Ok(key)
 }

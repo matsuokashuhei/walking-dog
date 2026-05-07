@@ -8,6 +8,7 @@ use uuid::Uuid;
 use crate::entity::{user, walk, walk_photo};
 use crate::graphql::guard::AuthGuard;
 use crate::graphql::object::walk_photo::WalkPhoto;
+use crate::graphql::util::error::AppError;
 use crate::graphql::util::file::upload_walk_photo;
 
 #[derive(Default, Debug)]
@@ -24,7 +25,7 @@ impl WalkPhotoMutation {
             .one(db)
             .await?
         else {
-            return Err(anyhow!("Walk not found or not owned by user"));
+            return Err(AppError::NotFound.into());
         };
 
         let file = upload_walk_photo(ctx, input.file).await?;

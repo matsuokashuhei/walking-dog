@@ -8,6 +8,7 @@ use crate::graphql::object::dog::Dog;
 use crate::graphql::object::track_point::TrackPoint;
 use crate::graphql::object::walk_dog::WalkDog;
 use crate::graphql::object::walk_photo::WalkPhoto;
+use crate::graphql::util::error::AppError;
 
 #[derive(SimpleObject, Clone, Debug)]
 #[graphql(complex)]
@@ -29,7 +30,7 @@ impl Walk {
             .order_by(walk_dog::Column::CreatedAt, sea_orm::Order::Asc)
             .all(db)
             .await
-            .map_err(|e| anyhow!(e))?;
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
         Ok(walk_dogs.into_iter().map(WalkDog::from).collect())
     }
 
@@ -40,7 +41,7 @@ impl Walk {
             .order_by(dog::Column::Name, sea_orm::Order::Asc)
             .all(db)
             .await
-            .map_err(|e| anyhow!(e))?;
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
         Ok(dogs.into_iter().map(Dog::from).collect())
     }
 
@@ -51,13 +52,15 @@ impl Walk {
             .order_by(walk_photo::Column::OccurredAt, sea_orm::Order::Asc)
             .all(db)
             .await
-            .map_err(|e| anyhow!(e))?;
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
         Ok(photos.into_iter().map(WalkPhoto::from).collect())
     }
 
     async fn track_points(&self, ctx: &Context<'_>) -> Result<Vec<TrackPoint>> {
         let client = ctx.data::<aws_sdk_dynamodb::Client>().unwrap();
-        let track_points = track_point::Model::find_all_by_walk_id(client, self.id).await?;
+        let track_points = track_point::Model::find_all_by_walk_id(client, self.id)
+            .await
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
         Ok(track_points.into_iter().map(TrackPoint::from).collect())
     }
 }

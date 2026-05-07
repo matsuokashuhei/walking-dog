@@ -1,10 +1,11 @@
-use anyhow::anyhow;
+use anyhow::{Result, anyhow};
 use async_graphql::{ComplexObject, Context, SimpleObject};
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
 use uuid::Uuid;
 
 use crate::entity::{dog, walk, walk_dog, walk_photo};
 use crate::graphql::object::dog::Dog;
+use crate::graphql::object::walk_dog::WalkDog;
 use crate::graphql::object::walk_photo::WalkPhoto;
 
 #[derive(SimpleObject, Clone, Debug)]
@@ -20,7 +21,18 @@ pub struct Walk {
 
 #[ComplexObject]
 impl Walk {
-    async fn dogs(&self, ctx: &Context<'_>) -> async_graphql::Result<Vec<Dog>> {
+    async fn walk_dogs(&self, ctx: &Context<'_>) -> Result<Vec<WalkDog>> {
+        let db = ctx.data::<sea_orm::DatabaseConnection>().unwrap();
+        let walk_dogs = walk_dog::Entity::find()
+            .filter(walk_dog::Column::WalkId.eq(self.id))
+            .order_by(walk_dog::Column::CreatedAt, sea_orm::Order::Asc)
+            .all(db)
+            .await
+            .map_err(|e| anyhow!(e))?;
+        Ok(walk_dogs.into_iter().map(WalkDog::from).collect())
+    }
+
+    async fn dogs(&self, ctx: &Context<'_>) -> Result<Vec<Dog>> {
         let db = ctx.data::<sea_orm::DatabaseConnection>().unwrap();
         let dogs = dog::Entity::find()
             .has_related(walk_dog::Entity, walk_dog::Column::WalkId.eq(self.id))
@@ -31,7 +43,7 @@ impl Walk {
         Ok(dogs.into_iter().map(Dog::from).collect())
     }
 
-    async fn photos(&self, ctx: &Context<'_>) -> async_graphql::Result<Vec<WalkPhoto>> {
+    async fn photos(&self, ctx: &Context<'_>) -> Result<Vec<WalkPhoto>> {
         let db = ctx.data::<sea_orm::DatabaseConnection>().unwrap();
         let photos = walk_photo::Entity::find()
             .filter(walk_photo::Column::WalkId.eq(self.id))

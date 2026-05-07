@@ -1,4 +1,4 @@
-use anyhow::anyhow;
+use anyhow::{Result, anyhow};
 use async_graphql::{ComplexObject, Context, SimpleObject};
 use sea_orm::{ColumnTrait, EntityTrait, QueryOrder};
 use url::Url;
@@ -20,7 +20,7 @@ pub struct User {
 
 #[ComplexObject]
 impl User {
-    async fn dogs(&self, ctx: &Context<'_>) -> async_graphql::Result<Vec<Dog>> {
+    async fn dogs(&self, ctx: &Context<'_>) -> Result<Vec<Dog>> {
         let db = ctx.data::<sea_orm::DatabaseConnection>().unwrap();
         let dogs = dog::Entity::find()
             .has_related(user_dog::Entity, user_dog::Column::UserId.eq(self.id))

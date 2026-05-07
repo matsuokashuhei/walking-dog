@@ -1,4 +1,7 @@
+pub mod coordinate;
 pub mod dog;
 pub mod user;
 pub mod walk;
+pub mod walk_dog;
+pub mod walk_dog_event;
 pub mod walk_photo;

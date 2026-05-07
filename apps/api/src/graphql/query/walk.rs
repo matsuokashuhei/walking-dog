@@ -1,4 +1,5 @@
 use anyhow::Result;
+use anyhow::anyhow;
 use async_graphql::{Context, Object};
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use uuid::Uuid;
@@ -20,7 +21,8 @@ impl WalkQuery {
             .filter(walk::Column::UserId.eq(user.id))
             .order_by_id_desc()
             .all(db)
-            .await?;
+            .await
+            .map_err(|e| anyhow!(e))?;
         Ok(walks.into_iter().map(Walk::from).collect())
     }
 
@@ -31,7 +33,9 @@ impl WalkQuery {
         let walk = walk::Entity::find_by_id(id)
             .filter(walk::Column::UserId.eq(user.id))
             .one(db)
-            .await?;
-        Ok(Walk::from(walk.unwrap()))
+            .await
+            .map_err(|e| anyhow!(e))?
+            .ok_or_else(|| anyhow!("Walk not found"))?;
+        Ok(Walk::from(walk))
     }
 }

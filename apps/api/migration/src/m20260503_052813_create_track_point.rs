@@ -24,7 +24,7 @@ impl MigrationTrait for Migration {
             )
             .attribute_definitions(
                 aws_sdk_dynamodb::types::AttributeDefinition::builder()
-                    .attribute_name("recorded_at")
+                    .attribute_name("tracked_at")
                     .attribute_type(aws_sdk_dynamodb::types::ScalarAttributeType::N)
                     .build()
                     .unwrap(),
@@ -38,7 +38,7 @@ impl MigrationTrait for Migration {
             )
             .key_schema(
                 aws_sdk_dynamodb::types::KeySchemaElement::builder()
-                    .attribute_name("recorded_at")
+                    .attribute_name("tracked_at")
                     .key_type(aws_sdk_dynamodb::types::KeyType::Range)
                     .build()
                     .unwrap(),

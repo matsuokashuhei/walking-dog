@@ -31,7 +31,7 @@ impl WalkMutation {
         .await?;
 
         for dog_id in input.dog_ids.iter() {
-            let dog = dog::Entity::find_by_id(*dog_id)
+            let dog: Option<dog::Model> = dog::Entity::find_by_id(*dog_id)
                 .has_related(user_dog::Entity, user_dog::Column::UserId.eq(user.id))
                 .one(db)
                 .await?;

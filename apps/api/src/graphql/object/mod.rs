@@ -1,5 +1,6 @@
 pub mod coordinate;
 pub mod dog;
+pub mod track_point;
 pub mod user;
 pub mod walk;
 pub mod walk_dog;

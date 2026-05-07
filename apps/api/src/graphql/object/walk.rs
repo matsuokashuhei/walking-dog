@@ -3,8 +3,9 @@ use async_graphql::{ComplexObject, Context, SimpleObject};
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
 use uuid::Uuid;
 
-use crate::entity::{dog, walk, walk_dog, walk_photo};
+use crate::entity::{dog, track_point, walk, walk_dog, walk_photo};
 use crate::graphql::object::dog::Dog;
+use crate::graphql::object::track_point::TrackPoint;
 use crate::graphql::object::walk_dog::WalkDog;
 use crate::graphql::object::walk_photo::WalkPhoto;
 
@@ -52,6 +53,12 @@ impl Walk {
             .await
             .map_err(|e| anyhow!(e))?;
         Ok(photos.into_iter().map(WalkPhoto::from).collect())
+    }
+
+    async fn track_points(&self, ctx: &Context<'_>) -> Result<Vec<TrackPoint>> {
+        let client = ctx.data::<aws_sdk_dynamodb::Client>().unwrap();
+        let track_points = track_point::Model::find_all_by_walk_id(client, self.id).await?;
+        Ok(track_points.into_iter().map(TrackPoint::from).collect())
     }
 }
 

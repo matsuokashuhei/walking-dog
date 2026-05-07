@@ -322,6 +322,7 @@ dependencies = [
  "static_assertions_next",
  "tempfile",
  "thiserror",
+ "url",
  "uuid",
 ]
 
@@ -5359,6 +5360,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "url",
  "uuid",
 ]
 

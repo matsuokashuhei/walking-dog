@@ -1,6 +1,7 @@
 use async_graphql::{Enum, SimpleObject};
+use url::Url;
 
-use crate::entity::sea_orm_active_enums::GenderType;
+use crate::{entity::sea_orm_active_enums::GenderType, graphql::util::file::avatar_url};
 
 #[derive(Enum, Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Gender {
@@ -25,7 +26,7 @@ pub struct Dog {
     pub name: String,
     pub breed: Option<String>,
     pub gender: Gender,
-    pub avatar: Option<String>,
+    pub avatar: Option<Url>,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
@@ -37,7 +38,7 @@ impl From<crate::entity::dog::Model> for Dog {
             name: model.name,
             breed: model.breed,
             gender: model.gender.into(),
-            avatar: model.avatar,
+            avatar: avatar_url(model.avatar.as_deref()),
             created_at: model.created_at.into(),
             updated_at: model.updated_at.into(),
         }

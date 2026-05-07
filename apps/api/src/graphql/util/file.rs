@@ -5,6 +5,7 @@ use std::ffi::OsStr;
 use std::io::Read;
 use std::path::Path;
 use tracing::error;
+use url::Url;
 
 pub async fn upload_avatar(ctx: &Context<'_>, file: Upload) -> Result<String> {
     let upload = file.value(ctx)?;
@@ -35,4 +36,18 @@ pub async fn upload_avatar(ctx: &Context<'_>, file: Upload) -> Result<String> {
             anyhow!(e.into_service_error())
         })?;
     Ok(key)
+}
+
+pub fn avatar_url(key: Option<&str>) -> Option<Url> {
+    let bucket = std::env::var("AWS_S3_BUCKET_AVATAR").unwrap();
+    let endpoint = std::env::var("AWS_S3_ENDPOINT").ok();
+    if let Some(key) = key {
+        if let Some(_) = endpoint {
+            Url::parse(&format!("http://localhost:9000/{}/{}", bucket, key)).ok()
+        } else {
+            Url::parse(&format!("https://{}.s3.amazonaws.com/{}", bucket, key)).ok()
+        }
+    } else {
+        None
+    }
 }

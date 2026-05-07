@@ -1,17 +1,19 @@
 use anyhow::anyhow;
 use async_graphql::{ComplexObject, Context, SimpleObject};
 use sea_orm::{ColumnTrait, EntityTrait, QueryOrder};
+use url::Url;
 use uuid::Uuid;
 
 use crate::entity::{dog, user, user_dog};
 use crate::graphql::object::dog::Dog;
+use crate::graphql::util::file::avatar_url;
 
 #[derive(SimpleObject, Clone, Debug)]
 #[graphql(complex)]
 pub struct User {
     pub id: Uuid,
     pub name: Option<String>,
-    pub avatar: Option<String>,
+    pub avatar: Option<Url>,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
@@ -35,7 +37,7 @@ impl From<user::Model> for User {
         User {
             id: model.id,
             name: model.name,
-            avatar: model.avatar,
+            avatar: avatar_url(model.avatar.as_deref()),
             created_at: model.created_at.into(),
             updated_at: model.updated_at.into(),
         }

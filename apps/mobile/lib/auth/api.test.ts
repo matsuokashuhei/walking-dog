@@ -32,6 +32,9 @@ describe('auth api', () => {
       accessToken: 'access-token',
       refreshToken: 'refresh-token',
     });
+    expect(mockRequest).toHaveBeenCalledWith(expect.any(String), {
+      input: { email: 'user@example.com', password: 'password123' },
+    });
   });
 
   it('signIn maps backend auth failures to invalid-credentials', async () => {

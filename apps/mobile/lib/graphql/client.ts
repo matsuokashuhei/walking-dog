@@ -10,7 +10,7 @@ export function setAuthToken(token: string | null): void {
   if (token) {
     graphqlClient.setHeader('Authorization', `Bearer ${token}`);
   } else {
-    graphqlClient.setHeader('Authorization', '');
+    graphqlClient.setHeaders({});
   }
 }
 

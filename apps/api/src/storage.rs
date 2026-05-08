@@ -29,7 +29,7 @@ async fn upload_file(ctx: &Context<'_>, file: Upload, bucket: &str) -> Result<St
     let mut bytes = Vec::new();
     content.read_to_end(&mut bytes)?;
     if bytes.len() as u64 > max_upload_bytes {
-        return Err(StorageError::ContentTooLarge.into());
+        return Err(StorageError::ContentTooLarge(bytes.len() as u64).into());
     }
     let content_type = upload
         .content_type
@@ -46,7 +46,7 @@ async fn upload_file(ctx: &Context<'_>, file: Upload, bucket: &str) -> Result<St
         .await
         .map_err(|e| {
             error!("Failed to upload file: {:?} to bucket: {}", e, bucket);
-            StorageError::InternalServerError(e.to_string())
+            StorageError::InternalError(e.to_string())
         })?;
     Ok(key)
 }
@@ -74,8 +74,8 @@ pub fn avatar_url(key: Option<&str>) -> Option<Url> {
 
 #[derive(Debug, thiserror::Error)]
 pub enum StorageError {
-    #[error("Content too large")]
-    ContentTooLarge,
+    #[error("Content too large: {0} bytes exceeds the maximum allowed size")]
+    ContentTooLarge(u64),
     #[error("Internal server error: {0}")]
-    InternalServerError(String),
+    InternalError(String),
 }

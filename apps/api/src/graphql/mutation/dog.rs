@@ -6,6 +6,7 @@ use sea_orm::{
     ColumnTrait, Condition, DatabaseConnection, EntityTrait, ModelTrait, QueryFilter,
     TransactionTrait,
 };
+use tracing::error;
 use uuid::Uuid;
 
 use crate::graphql::{
@@ -15,7 +16,7 @@ use crate::graphql::{
 };
 use crate::{
     entity::{dog, sea_orm_active_enums::GenderType, user, user_dog},
-    storage::upload_avatar,
+    storage::{StorageError, upload_avatar},
 };
 
 #[derive(Default, Debug)]
@@ -30,9 +31,23 @@ impl DogMutation {
         let txn = db.begin().await?;
         let mut active_model = input.into_active_model();
         if let Some(file) = input.avatar {
-            if let Ok(file) = upload_avatar(ctx, file).await {
-                active_model.avatar = Set(Some(file));
-            }
+            // if let Ok(file) = upload_avatar(ctx, file).await {
+            //     active_model.avatar = Set(Some(file));
+            // }
+            let key = upload_avatar(ctx, file).await.map_err(|e| {
+                if let Some(storage_error) = e.downcast_ref::<crate::storage::StorageError>() {
+                    error!("Failed to upload avatar: {:?}", storage_error);
+                    match storage_error {
+                        StorageError::ContentTooLarge(_) => AppError::ContentTooLarge,
+                        StorageError::InternalError(message) => AppError::InternalServerError(
+                            format!("Failed to upload avatar: {}", message),
+                        ),
+                    }
+                } else {
+                    AppError::InternalServerError(format!("Failed to upload avatar: {}", e))
+                }
+            })?;
+            active_model.avatar = Set(Some(key));
         }
         let dog = active_model.insert(db).await?;
         let active_model = user_dog::ActiveModel {

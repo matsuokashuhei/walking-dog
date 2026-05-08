@@ -7,7 +7,7 @@ pub mod query;
 use std::env;
 
 use crate::graphql::query::Query;
-use async_graphql::EmptySubscription;
+use async_graphql::{EmptySubscription, extensions::Tracing};
 
 pub async fn build_schema() -> async_graphql::Schema<Query, mutation::Mutation, EmptySubscription> {
     async_graphql::Schema::build(
@@ -19,6 +19,7 @@ pub async fn build_schema() -> async_graphql::Schema<Query, mutation::Mutation, 
     .data(build_cognitoidentityprovider_client().await)
     .data(build_dynamodb_client().await)
     .data(build_s3_client().await)
+    .extension(Tracing)
     .finish()
 }
 

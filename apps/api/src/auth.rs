@@ -9,8 +9,9 @@ use axum_extra::{
     headers::{Authorization, authorization::Bearer},
 };
 use jsonwebtoken::{Algorithm, DecodingKey, Validation, decode, jwk::JwkSet};
+use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
-use tracing::info;
+use tracing::{info, warn};
 
 use crate::{
     entity::user,
@@ -28,11 +29,11 @@ pub async fn autenticate_user(
         return Ok(next.run(request).await);
     };
     let Some(header) = jsonwebtoken::decode_header(authorization.token()).ok() else {
-        info!("Failed to decode token header");
+        warn!("Failed to decode token header");
         return Ok(next.run(request).await);
     };
     let Some(kid) = header.kid else {
-        info!("No kid found in token header");
+        warn!("No kid found in token header");
         return Ok(next.run(request).await);
     };
     let jwks_url = if let Ok(endpoint) = std::env::var("AWS_COGNITO_ENDPOINT") {
@@ -49,11 +50,11 @@ pub async fn autenticate_user(
         )
     };
     let Ok(response) = reqwest::get(&jwks_url).await else {
-        info!("Failed to fetch JWKS");
+        warn!("Failed to fetch JWKS");
         return Ok(next.run(request).await);
     };
     let Ok(jwks) = response.json::<JwkSet>().await else {
-        info!("Failed to parse JWKS");
+        warn!("Failed to parse JWKS");
         return Ok(next.run(request).await);
     };
     let Some(jwk) = jwks
@@ -61,11 +62,11 @@ pub async fn autenticate_user(
         .iter()
         .find(|jwk| jwk.common.key_id.as_ref() == Some(&kid))
     else {
-        info!("No matching JWK found for kid: {}", kid);
+        warn!("No matching JWK found for kid: {}", kid);
         return Ok(next.run(request).await);
     };
     let Some(decoding_key) = DecodingKey::from_jwk(jwk).ok() else {
-        info!("Failed to create decoding key from JWK");
+        warn!("Failed to create decoding key from JWK");
         return Ok(next.run(request).await);
     };
     let Ok(token) = decode::<Claims>(
@@ -73,11 +74,11 @@ pub async fn autenticate_user(
         &decoding_key,
         &Validation::new(Algorithm::RS256),
     ) else {
-        info!("Failed to decode token claims");
+        warn!("Failed to decode token claims");
         return Ok(next.run(request).await);
     };
 
-    let db = schema.data::<sea_orm::DatabaseConnection>().unwrap();
+    let db = schema.data::<DatabaseConnection>().unwrap();
     if let Ok(Some(user)) = user::Entity::find_by_cognito_sub(token.claims.sub)
         .one(db)
         .await

@@ -1,22 +1,19 @@
 use anyhow::Result;
-use anyhow::anyhow;
-use async_graphql::Upload;
-use async_graphql::{Context, InputObject, Object};
-use sea_orm::ActiveValue;
-use sea_orm::ActiveValue::Set;
-use sea_orm::Condition;
-use sea_orm::DatabaseConnection;
-use sea_orm::ModelTrait;
-use sea_orm::QueryFilter;
-use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, TransactionTrait};
+use async_graphql::{Context, InputObject, Object, Upload};
+use sea_orm::{
+    ActiveModelTrait,
+    ActiveValue::{NotSet, Set},
+    ColumnTrait, Condition, DatabaseConnection, EntityTrait, ModelTrait, QueryFilter,
+    TransactionTrait,
+};
 use uuid::Uuid;
 
-use crate::entity::sea_orm_active_enums::GenderType;
-use crate::entity::{dog, user_dog};
-use crate::graphql::object::dog::{Dog, Gender};
-use crate::graphql::util::error::AppError;
-use crate::graphql::util::file::upload_avatar;
-use crate::{entity::user, graphql::guard::AuthGuard};
+use crate::entity::{dog, sea_orm_active_enums::GenderType, user, user_dog};
+use crate::graphql::{
+    guard::AuthGuard,
+    object::dog::{Dog, Gender},
+    util::{error::AppError, file::upload_avatar},
+};
 
 #[derive(Default, Debug)]
 pub struct DogMutation;
@@ -52,7 +49,7 @@ impl DogMutation {
 
     #[graphql(guard = "AuthGuard")]
     async fn update_dog(&self, ctx: &Context<'_>, input: UpdateDogInput) -> Result<Dog> {
-        let db = ctx.data::<sea_orm::DatabaseConnection>().unwrap();
+        let db = ctx.data::<DatabaseConnection>().unwrap();
         let user = ctx.data::<user::Model>().unwrap();
         let Ok(Some(_)) = dog::Entity::find_by_id(input.id)
             .has_related(user_dog::Entity, user_dog::Column::UserId.eq(user.id))
@@ -134,12 +131,9 @@ impl UpdateDogInput {
     fn into_active_model(&self) -> dog::ActiveModel {
         dog::ActiveModel {
             id: Set(self.id),
-            name: self.name.clone().map_or(ActiveValue::NotSet, Set),
-            breed: self
-                .breed
-                .clone()
-                .map_or(ActiveValue::NotSet, |breed| Set(breed.into())),
-            gender: self.gender.map_or(ActiveValue::NotSet, |gender| {
+            name: self.name.clone().map_or(NotSet, Set),
+            breed: self.breed.clone().map_or(NotSet, |breed| Set(breed.into())),
+            gender: self.gender.map_or(NotSet, |gender| {
                 Set(match gender {
                     Gender::Male => GenderType::Male,
                     Gender::Female => GenderType::Female,

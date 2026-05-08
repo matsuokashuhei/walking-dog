@@ -1,15 +1,17 @@
 use anyhow::Result;
-use anyhow::anyhow;
 use async_graphql::{Context, InputObject, Object};
-use sea_orm::ActiveValue::Set;
-use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter};
+use sea_orm::{ActiveModelTrait, ActiveValue::Set, ColumnTrait, EntityTrait, QueryFilter};
 use uuid::Uuid;
 
 use crate::entity::{user, walk, walk_dog, walk_dog_event};
-use crate::graphql::guard::AuthGuard;
-use crate::graphql::object::coordinate::{Latitude, Longitude};
-use crate::graphql::object::walk_dog_event::{EventType, WalkDogEvent};
-use crate::graphql::util::error::AppError;
+use crate::graphql::{
+    guard::AuthGuard,
+    object::{
+        coordinate::{Latitude, Longitude},
+        walk_dog_event::{EventType, WalkDogEvent},
+    },
+    util::error::AppError,
+};
 
 #[derive(Default, Debug)]
 pub struct WalkDogEventMutation;

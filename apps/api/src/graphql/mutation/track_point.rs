@@ -1,7 +1,7 @@
-use anyhow::{Result, anyhow};
+use anyhow::Result;
 use async_graphql::{Context, InputObject, Object};
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait};
-use tracing::{error, info};
+use tracing::error;
 use uuid::Uuid;
 
 use crate::graphql::object::coordinate::{Latitude, Longitude};
@@ -38,10 +38,7 @@ impl TrackPointMutation {
             input.latitude.value(),
             input.longitude.value(),
         );
-        let model = track_point.put(client).await.map_err(|e| {
-            error!("Failed to put track point: {:?}", e);
-            AppError::InternalServerError(e.to_string())
-        })?;
+        let model = track_point.put(client).await?;
         Ok(TrackPoint::from(model))
     }
 }

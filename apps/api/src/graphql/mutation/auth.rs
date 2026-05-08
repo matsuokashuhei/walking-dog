@@ -1,9 +1,10 @@
-use crate::{auth, entity::user};
-use anyhow::{Result, anyhow};
+use anyhow::Result;
 use async_graphql::{Context, InputObject, Object, SimpleObject};
 use aws_sdk_cognitoidentityprovider::operation::initiate_auth::InitiateAuthOutput;
 use sea_orm::{ActiveModelTrait, ActiveValue::Set, DatabaseConnection};
-use tracing::info;
+
+use crate::entity::user;
+use crate::graphql::util::error::AuthError;
 
 #[derive(Default, Debug)]
 pub struct AuthMutation;
@@ -21,7 +22,7 @@ impl AuthMutation {
             .password(input.password)
             .send()
             .await
-            .map_err(|e| anyhow!(e.into_service_error()))?;
+            .map_err(|e| AuthError::SignUpError(e.into_service_error()))?;
         let db = ctx.data::<DatabaseConnection>().unwrap();
         let user = user::ActiveModel {
             cognito_sub: Set(output.user_sub),
@@ -46,7 +47,7 @@ impl AuthMutation {
             .confirmation_code(input.code)
             .send()
             .await
-            .map_err(|e| anyhow!(e.into_service_error()))?;
+            .map_err(|e| AuthError::ConfirmSignUpError(e.into_service_error()))?;
         Ok(ConfirmSignUpOutput { success: true })
     }
 
@@ -54,9 +55,6 @@ impl AuthMutation {
         let cognitoidentityprovider_client = ctx
             .data::<aws_sdk_cognitoidentityprovider::Client>()
             .unwrap();
-        if let Ok(claims) = ctx.data::<axum::Extension<auth::Claims>>() {
-            info!("Claims in sign_in: {:?}", claims.sub);
-        }
         let output = cognitoidentityprovider_client
             .initiate_auth()
             .client_id(std::env::var("AWS_COGNITO_CLIENT_ID").unwrap())
@@ -65,7 +63,7 @@ impl AuthMutation {
             .auth_parameters("PASSWORD", input.password)
             .send()
             .await
-            .map_err(|e| anyhow!(e.into_service_error()))?;
+            .map_err(|e| AuthError::SignInError(e.into_service_error()))?;
         Ok(output.into())
     }
 }

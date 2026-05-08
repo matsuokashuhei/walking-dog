@@ -1,5 +1,13 @@
 use anyhow::{Result, anyhow};
-use aws_sdk_dynamodb::{operation::put_item::PutItemOutput, types::AttributeValue};
+// use aws_sdk_dynamodb::operation::put_item::PutItemError;
+// use aws_sdk_dynamodb::operation::query::QueryError;
+use aws_sdk_dynamodb::{
+    operation::{
+        put_item::{PutItemError, PutItemOutput},
+        query::QueryError,
+    },
+    types::AttributeValue,
+};
 use std::collections::HashMap;
 use tracing::{error, warn};
 use uuid::Uuid;
@@ -41,10 +49,7 @@ impl Model {
             .item("longitude", AttributeValue::N(self.longitude.to_string()))
             .send()
             .await
-            .map_err(|e| {
-                error!("Failed to find walk: {:?}", e);
-                anyhow!(e)
-            })?;
+            .map_err(|e| TrackPointError::PutItemError(e.into_service_error()))?;
         let output = entity::track_point::Model::find_by_walk_id_and_tracked_at(
             client,
             self.walk_id,
@@ -65,7 +70,7 @@ impl Model {
         walk_id: Uuid,
         tracked_at: chrono::DateTime<chrono::Utc>,
     ) -> Result<Option<Model>> {
-        client
+        let output = client
             .query()
             .table_name("track_point")
             .key_condition_expression("walk_id = :walk_id AND tracked_at = :tracked_at")
@@ -76,21 +81,16 @@ impl Model {
             )
             .send()
             .await
-            .map_err(|e| {
-                error!("Failed to query track point: {:?}", e);
-                anyhow!(e)
-            })
-            .and_then(|output| {
-                let items = output.items();
-                let Some(item) = items.first() else {
-                    warn!(
-                        "No track point found for walk_id {} at tracked_at {}",
-                        walk_id, tracked_at
-                    );
-                    return Ok(None);
-                };
-                Ok(Some(Model::try_from(item)?))
-            })
+            .map_err(|e| TrackPointError::QueryError(e.into_service_error()))?;
+        let items = output.items();
+        let Some(item) = items.first() else {
+            warn!(
+                "No track point found for walk_id {} at tracked_at {}",
+                walk_id, tracked_at
+            );
+            return Ok(None);
+        };
+        Ok(Some(Model::try_from(item)?))
     }
 
     pub async fn find_all_by_walk_id(
@@ -104,10 +104,7 @@ impl Model {
             .expression_attribute_values(":walk_id", AttributeValue::S(walk_id.to_string()))
             .send()
             .await
-            .map_err(|e| {
-                error!("Failed to query track points: {:?}", e);
-                anyhow!(e)
-            })?;
+            .map_err(|e| TrackPointError::QueryError(e.into_service_error()))?;
 
         let items = output
             .items()
@@ -190,4 +187,12 @@ impl TryFrom<PutItemOutput> for Model {
             .ok_or_else(|| anyhow!("PutItemOutput missing attributes"))?;
         Model::try_from(&attributes)
     }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum TrackPointError {
+    #[error("Put item error: {0}")]
+    PutItemError(PutItemError),
+    #[error("Query error: {0}")]
+    QueryError(QueryError),
 }

@@ -5,8 +5,6 @@ import { useTranslation } from 'react-i18next';
 import { useWalkStore } from '@/stores/walk-store';
 import { useMe } from '@/hooks/use-me';
 import { useWalkSession } from '@/hooks/use-walk-session';
-import { useBleSession } from '@/hooks/use-ble-session';
-import { useEncounterSession } from '@/hooks/use-encounter-session';
 import { WalkControls } from '@/components/walk/WalkControls';
 import { WalkEventActions } from '@/components/walk/WalkEventActions';
 import { spacing } from '@/theme/tokens';
@@ -23,8 +21,6 @@ export default function WalkRecordingControlsScreen() {
 
   const { data: me } = useMe();
   const walkSession = useWalkSession();
-  const bleSession = useBleSession();
-  const encounterSession = useEncounterSession();
   const navigation = useNavigation();
   const [isStopping, setIsStopping] = useState(false);
   const lastDetentRef = useRef(0);
@@ -59,12 +55,10 @@ export default function WalkRecordingControlsScreen() {
     [navigation],
   );
 
-  // 停止時は BLE と遭遇検知を先に止めてから散歩セッションを終了し、サマリーへ戻します。
+  // 停止時は散歩セッションを終了し、サマリーへ戻します。
   const handleStop = useCallback(async () => {
     if (!walkId) return;
     setIsStopping(true);
-    bleSession.stop();
-    encounterSession.stop();
     try {
       await walkSession.stop(walkId);
       router.dismissTo('/(tabs)/walk');
@@ -73,7 +67,7 @@ export default function WalkRecordingControlsScreen() {
     } finally {
       setIsStopping(false);
     }
-  }, [walkId, walkSession, bleSession, encounterSession, t]);
+  }, [walkId, walkSession, t]);
 
   return (
     <View style={styles.container} onLayout={handleLayout}>

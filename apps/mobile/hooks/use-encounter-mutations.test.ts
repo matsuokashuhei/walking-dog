@@ -3,9 +3,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createElement, type ReactNode } from 'react';
 import { useRecordEncounter, useUpdateEncounterDuration } from './use-encounter-mutations';
 import * as client from '@/lib/graphql/client';
-import type { Encounter } from '@/types/graphql';
 
 jest.mock('@/lib/graphql/client');
+
 const mockAuthenticatedRequest = client.authenticatedRequest as jest.MockedFunction<
   typeof client.authenticatedRequest
 >;
@@ -18,41 +18,34 @@ function createWrapper() {
     createElement(QueryClientProvider, { client: queryClient }, children);
 }
 
-describe('useRecordEncounter', () => {
+describe('unsupported encounter mutations', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('returns Encounter[] (unwrapped from recordEncounter field)', async () => {
-    const encounters: Encounter[] = [
-      { id: 'enc-1', myWalkId: 'w-1', theirWalkId: 'w-2', durationSec: null, startedAt: null } as unknown as Encounter,
-    ];
-    mockAuthenticatedRequest.mockResolvedValue({ recordEncounter: encounters });
-
+  it('does not call the API for encounter recording', async () => {
     const { result } = renderHook(() => useRecordEncounter(), { wrapper: createWrapper() });
 
-    await act(async () => {
-      const data = await result.current.mutateAsync({ myWalkId: 'w-1', theirWalkId: 'w-2' });
-      expect(data).toEqual(encounters);
-    });
+    await expect(
+      act(async () => {
+        await result.current.mutateAsync({ myWalkId: 'w-1', theirWalkId: 'w-2' });
+      }),
+    ).rejects.toThrow('not supported');
+    expect(mockAuthenticatedRequest).not.toHaveBeenCalled();
   });
-});
 
-describe('useUpdateEncounterDuration', () => {
-  beforeEach(() => jest.clearAllMocks());
-
-  it('returns boolean (unwrapped from updateEncounterDuration field)', async () => {
-    mockAuthenticatedRequest.mockResolvedValue({ updateEncounterDuration: true });
-
+  it('does not call the API for encounter duration updates', async () => {
     const { result } = renderHook(() => useUpdateEncounterDuration(), {
       wrapper: createWrapper(),
     });
 
-    await act(async () => {
-      const data = await result.current.mutateAsync({
-        myWalkId: 'w-1',
-        theirWalkId: 'w-2',
-        durationSec: 42,
-      });
-      expect(data).toBe(true);
-    });
+    await expect(
+      act(async () => {
+        await result.current.mutateAsync({
+          myWalkId: 'w-1',
+          theirWalkId: 'w-2',
+          durationSec: 42,
+        });
+      }),
+    ).rejects.toThrow('not supported');
+    expect(mockAuthenticatedRequest).not.toHaveBeenCalled();
   });
 });

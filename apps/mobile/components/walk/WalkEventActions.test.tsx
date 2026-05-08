@@ -4,8 +4,6 @@ import * as Haptics from 'expo-haptics';
 import { WalkEventActions } from './WalkEventActions';
 import * as walkEventMutations from '@/hooks/use-walk-event-mutations';
 import * as walkStore from '@/stores/walk-store';
-import * as imagePicker from 'expo-image-picker';
-import * as photoUpload from '@/hooks/use-photo-upload';
 import type { Dog, WalkEvent } from '@/types/graphql';
 
 jest.mock('expo-haptics', () => ({
@@ -19,15 +17,9 @@ jest.mock('@/hooks/use-walk-event-mutations', () => ({
   useRecordWalkEvent: jest.fn(),
   useGenerateWalkEventPhotoUploadUrl: jest.fn(),
 }));
-jest.mock('@/hooks/use-photo-upload', () => {
-  const actual = jest.requireActual('@/hooks/use-photo-upload');
-  return { ...actual, usePhotoUpload: jest.fn() };
-});
-jest.mock('expo-image-picker');
 jest.spyOn(Alert, 'alert');
 
 const mockMutateAsync = jest.fn();
-const mockUploadPhoto = jest.fn();
 
 const coco: Dog = {
   id: 'dog-1',
@@ -61,7 +53,7 @@ const defaultStoreState = {
 
 function setupMocks(
   storeOverrides: Partial<typeof defaultStoreState> = {},
-  opts: { recordIsPending?: boolean; uploadIsPending?: boolean } = {},
+  opts: { recordIsPending?: boolean } = {},
 ) {
   const state = { ...defaultStoreState, ...storeOverrides };
   (walkStore.useWalkStore as unknown as jest.Mock).mockImplementation(
@@ -71,17 +63,12 @@ function setupMocks(
     mutateAsync: mockMutateAsync,
     isPending: opts.recordIsPending ?? false,
   });
-  (photoUpload.usePhotoUpload as jest.Mock).mockReturnValue({
-    uploadPhoto: mockUploadPhoto,
-    isPending: opts.uploadIsPending ?? false,
-  });
 }
 
 let consoleErrorSpy: jest.SpyInstance;
 beforeEach(() => {
   jest.clearAllMocks();
   setupMocks();
-  (imagePicker.requestCameraPermissionsAsync as jest.Mock).mockResolvedValue({ granted: true });
   consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 });
 afterEach(() => {
@@ -89,18 +76,17 @@ afterEach(() => {
 });
 
 describe('WalkEventActions — single dog', () => {
-  it('renders pee, poop, and photo pills', () => {
+  it('renders pee and poop pills without the unsupported photo action', () => {
     render(<WalkEventActions dogs={[coco]} />);
     expect(screen.getByRole('button', { name: /pee/i })).toBeTruthy();
     expect(screen.getByRole('button', { name: /poop/i })).toBeTruthy();
-    expect(screen.getByRole('button', { name: /photo/i })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /photo/i })).toBeNull();
   });
 
   it('shows zero counts by default', () => {
     render(<WalkEventActions dogs={[coco]} />);
-    // Three zero counts for pee/poop/photo
     const zeros = screen.getAllByText('0');
-    expect(zeros.length).toBe(3);
+    expect(zeros.length).toBe(2);
   });
 
   it('tapping pee records event with GPS, adds to store, and triggers haptic', async () => {
@@ -157,89 +143,24 @@ describe('WalkEventActions — single dog', () => {
     });
   });
 
-  it('tapping photo launches camera, runs uploadPhoto, and adds event', async () => {
-    const asset = { uri: 'file:///photo.jpg', mimeType: 'image/jpeg' };
-    (imagePicker.launchCameraAsync as jest.Mock).mockResolvedValue({
-      canceled: false,
-      assets: [asset],
-    });
-    const photoEvent = { id: 'event-3', eventType: 'photo' };
-    mockUploadPhoto.mockResolvedValue(photoEvent);
-
-    render(<WalkEventActions dogs={[coco]} />);
-    fireEvent.press(screen.getByRole('button', { name: /photo/i }));
-
-    await waitFor(() => {
-      expect(mockUploadPhoto).toHaveBeenCalledWith(
-        expect.objectContaining({
-          walkId: 'walk-123',
-          dogId: 'dog-1',
-          asset,
-          latestPoint: { lat: 35.68, lng: 139.76 },
-        }),
-      );
-      expect(defaultStoreState.addEvent).toHaveBeenCalledWith(photoEvent);
-    });
-  });
-
-  it('when camera is cancelled, does not run uploadPhoto', async () => {
-    (imagePicker.launchCameraAsync as jest.Mock).mockResolvedValue({ canceled: true, assets: [] });
-    render(<WalkEventActions dogs={[coco]} />);
-    fireEvent.press(screen.getByRole('button', { name: /photo/i }));
-    await waitFor(() => expect(mockUploadPhoto).not.toHaveBeenCalled());
-  });
-
-  it('when camera permission is denied, shows Alert and does not launch camera', async () => {
-    (imagePicker.requestCameraPermissionsAsync as jest.Mock).mockResolvedValue({ granted: false });
-    render(<WalkEventActions dogs={[coco]} />);
-    fireEvent.press(screen.getByRole('button', { name: /photo/i }));
-    await waitFor(() => {
-      expect(Alert.alert).toHaveBeenCalledWith(
-        expect.any(String),
-        'Camera access is required. Please enable it in Settings.',
-      );
-    });
-    expect(imagePicker.launchCameraAsync).not.toHaveBeenCalled();
-  });
-
-  it('photo presign failure shows presign-specific error message', async () => {
-    (imagePicker.launchCameraAsync as jest.Mock).mockResolvedValue({
-      canceled: false,
-      assets: [{ uri: 'file:///p.jpg', mimeType: 'image/jpeg' }],
-    });
-    mockUploadPhoto.mockRejectedValue(
-      new photoUpload.PhotoUploadError('presign', new Error('boom')),
-    );
-    render(<WalkEventActions dogs={[coco]} />);
-    fireEvent.press(screen.getByRole('button', { name: /photo/i }));
-    await waitFor(() => {
-      expect(Alert.alert).toHaveBeenCalledWith(
-        expect.any(String),
-        'Failed to prepare photo upload. Please try again.',
-      );
-    });
-  });
-
   it.each([
     ['walkId null', { walkId: null }, {}],
     ['record pending', {}, { recordIsPending: true }],
-    ['upload pending', {}, { uploadIsPending: true }],
   ] as const)('buttons disabled when %s', (_label, storeOverrides, opts) => {
     setupMocks(storeOverrides, opts);
     render(<WalkEventActions dogs={[coco]} />);
     expect(screen.getByRole('button', { name: /pee/i })).toBeDisabled();
-    expect(screen.getByRole('button', { name: /photo/i })).toBeDisabled();
   });
 });
 
 describe('WalkEventActions — multi dog', () => {
-  it('renders per-dog rows with three icon buttons each', () => {
+  it('renders per-dog rows with pee and poop icon buttons', () => {
     render(<WalkEventActions dogs={[coco, momo]} />);
     expect(screen.getByText('Coco')).toBeTruthy();
     expect(screen.getByText('Momo')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Coco Pee' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Momo Poop' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Momo Photo' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Momo Photo' })).toBeNull();
   });
 
   it('per-dog pee button records for the selected dog', async () => {

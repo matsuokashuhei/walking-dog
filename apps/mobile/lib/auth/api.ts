@@ -3,8 +3,6 @@ import {
   SIGN_UP_MUTATION,
   CONFIRM_SIGN_UP_MUTATION,
   SIGN_IN_MUTATION,
-  SIGN_OUT_MUTATION,
-  REFRESH_TOKEN_MUTATION,
 } from '../graphql/mutations/auth';
 import { toAuthError } from './errors';
 
@@ -23,15 +21,11 @@ interface SignUpResponse {
 }
 
 interface ConfirmSignUpResponse {
-  confirmSignUp: boolean;
+  confirmSignUp: { success: boolean };
 }
 
 interface SignInResponse {
   signIn: SignInResult;
-}
-
-interface SignOutResponse {
-  signOut: boolean;
 }
 
 async function mapAuthRequestError<T>(request: () => Promise<T>): Promise<T> {
@@ -45,14 +39,14 @@ async function mapAuthRequestError<T>(request: () => Promise<T>): Promise<T> {
 export async function signUp(
   email: string,
   password: string,
-  displayName: string
+  _displayName: string
 ): Promise<SignUpResult> {
   const data = await mapAuthRequestError(() =>
     graphqlClient.request<SignUpResponse>(SIGN_UP_MUTATION, {
-      input: { email, password, displayName },
+      input: { email, password },
     })
   );
-  return data.signUp;
+  return { ...data.signUp, userConfirmed: false };
 }
 
 export async function confirmSignUp(email: string, code: string): Promise<boolean> {
@@ -61,7 +55,7 @@ export async function confirmSignUp(email: string, code: string): Promise<boolea
       input: { email, code },
     })
   );
-  return data.confirmSignUp;
+  return data.confirmSignUp.success;
 }
 
 export async function signIn(email: string, password: string): Promise<SignInResult> {
@@ -73,22 +67,10 @@ export async function signIn(email: string, password: string): Promise<SignInRes
   return data.signIn;
 }
 
-export async function signOut(accessToken: string): Promise<boolean> {
-  const data = await graphqlClient.request<SignOutResponse>(SIGN_OUT_MUTATION, {
-    accessToken,
-  });
-  return data.signOut;
+export async function signOut(_accessToken: string): Promise<boolean> {
+  return true;
 }
 
-interface RefreshTokenResponse {
-  refreshToken: SignInResult;
-}
-
-// graphqlClient.request を直接使用する（authenticatedRequest ではなく）。
-// authenticatedRequest は 401 時にこの関数を呼ぶため、使うと無限再帰になる。
-export async function refreshToken(refreshTokenValue: string): Promise<SignInResult> {
-  const data = await graphqlClient.request<RefreshTokenResponse>(REFRESH_TOKEN_MUTATION, {
-    input: { refreshToken: refreshTokenValue },
-  });
-  return data.refreshToken;
+export async function refreshToken(_refreshTokenValue: string): Promise<SignInResult> {
+  throw new Error('Refresh token is not supported by the current GraphQL schema.');
 }

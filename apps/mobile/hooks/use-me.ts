@@ -2,8 +2,9 @@ import { useQuery } from '@tanstack/react-query';
 import { authenticatedRequest } from '@/lib/graphql/client';
 import { ME_QUERY } from '@/lib/graphql/queries/me';
 import { meKeys } from '@/lib/graphql/keys';
+import { mapApiUser } from '@/lib/graphql/adapters';
 import { useIsAuthenticated } from './use-is-authenticated';
-import type { MeResponse, User } from '@/types/graphql';
+import type { UserResponse, User } from '@/types/graphql';
 
 // 認証済みのときだけ現在ユーザー情報を取得します。
 export function useMe() {
@@ -11,8 +12,8 @@ export function useMe() {
   return useQuery<User>({
     queryKey: meKeys.all,
     queryFn: async () => {
-      const data = await authenticatedRequest<MeResponse>(ME_QUERY);
-      return data.me;
+      const data = await authenticatedRequest<UserResponse>(ME_QUERY);
+      return mapApiUser(data.user);
     },
     enabled: isAuthenticated,
   });

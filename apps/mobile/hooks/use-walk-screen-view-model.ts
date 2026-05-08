@@ -2,9 +2,6 @@ import { useCallback, useEffect } from 'react';
 import { Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { useBleSession } from '@/hooks/use-ble-session';
-import { useEncounterSession } from '@/hooks/use-encounter-session';
-import { useMe } from '@/hooks/use-me';
 import { useWalkPermissions } from '@/hooks/use-walk-permissions';
 import { useWalkSession } from '@/hooks/use-walk-session';
 import { useWalkStore } from '@/stores/walk-store';
@@ -24,10 +21,7 @@ export function useWalkScreenViewModel(): WalkScreenViewModel {
   const selectedDogIds = useWalkStore((state) => state.selectedDogIds);
   const { action } = useLocalSearchParams<{ action?: string }>();
 
-  const { data: me } = useMe();
   const walkSession = useWalkSession();
-  const bleSession = useBleSession();
-  const encounterSession = useEncounterSession();
   const permissions = useWalkPermissions();
 
   // 散歩記録中になったら、必要なアクションを引き継いで記録画面へ移動します。
@@ -37,7 +31,7 @@ export function useWalkScreenViewModel(): WalkScreenViewModel {
       pathname: '/walk-recording',
       params: action === 'camera' ? { action: 'camera' } : undefined,
     });
-  }, [action, phase]);
+  }, [action, phase, router]);
 
   // 散歩開始時は GPS 権限を確認し、散歩セッションと必要に応じて遭遇検知を開始します。
   const handleStart = useCallback(async () => {
@@ -53,20 +47,11 @@ export function useWalkScreenViewModel(): WalkScreenViewModel {
         selectedDogIds.length === 1
           ? t('walk.liveActivity.walking')
           : t('walk.liveActivity.walkingWithDogs', { count: selectedDogIds.length });
-      const walkId = await walkSession.start({ selectedDogIds, liveActivityDogName });
-
-      // ユーザー設定で有効な場合のみ、BLE 権限を確認して犬同士の遭遇検知を開始します。
-      if (me?.encounterDetectionEnabled ?? true) {
-        const bleGranted = await permissions.requestBlePermission();
-        if (bleGranted) {
-          encounterSession.start(walkId);
-          await bleSession.start(walkId, encounterSession.onDeviceDetected);
-        }
-      }
+      await walkSession.start({ selectedDogIds, liveActivityDogName });
     } catch {
       Alert.alert(t('common.error'), t('walk.error.startFailed'));
     }
-  }, [bleSession, encounterSession, me, permissions, selectedDogIds, t, walkSession]);
+  }, [permissions, selectedDogIds, t, walkSession]);
 
   // 画面側が表示分岐と開始ボタン制御に使う値だけを返します。
   return {

@@ -30,7 +30,7 @@ export default function SettingsScreen() {
           {t('settings.title')}
         </Text>
 
-        <ProfileCard displayName={vm.me.displayName} />
+        <ProfileCard displayName={vm.me.name ?? vm.me.displayName ?? null} />
         <PreferencesSection />
         <LegalSection />
         <SignOutRow />

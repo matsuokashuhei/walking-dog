@@ -8,8 +8,8 @@ import {
 } from './events';
 
 describe('EVENT_ORDER', () => {
-  it('orders event types as pee → poo → photo', () => {
-    expect(EVENT_ORDER).toEqual(['pee', 'poo', 'photo']);
+  it('orders active event actions as pee → poo', () => {
+    expect(EVENT_ORDER).toEqual(['pee', 'poo']);
   });
 });
 

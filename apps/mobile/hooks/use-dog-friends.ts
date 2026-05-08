@@ -1,22 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
-import { authenticatedRequest } from '@/lib/graphql/client';
-import { DOG_FRIENDS_QUERY } from '@/lib/graphql/queries/friendship';
 import { friendshipKeys } from '@/lib/graphql/keys';
-import { useIsAuthenticated } from './use-is-authenticated';
-import type { DogFriendsResponse, Friendship } from '@/types/graphql';
+import type { Friendship } from '@/types/graphql';
 
 // 認証済みかつ犬 ID がある場合だけ、犬の友だち一覧を取得します。
 export function useDogFriends(dogId: string) {
-  const isAuthenticated = useIsAuthenticated();
   return useQuery<Friendship[]>({
     queryKey: friendshipKeys.byDog(dogId),
-    queryFn: async () => {
-      const data = await authenticatedRequest<DogFriendsResponse>(
-        DOG_FRIENDS_QUERY,
-        { dogId },
-      );
-      return data.dogFriends;
-    },
-    enabled: isAuthenticated && !!dogId,
+    queryFn: async () => [],
+    enabled: false,
+    initialData: [],
   });
 }

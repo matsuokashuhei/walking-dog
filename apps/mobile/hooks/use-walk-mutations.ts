@@ -6,6 +6,7 @@ import {
   ADD_WALK_POINTS_MUTATION,
 } from '@/lib/graphql/mutations/walk';
 import { walkKeys } from '@/lib/graphql/keys';
+import { mapApiTrackPoint, mapApiWalk } from '@/lib/graphql/adapters';
 import type {
   Walk,
   WalkPointInput,
@@ -20,9 +21,9 @@ export function useStartWalk() {
     mutationFn: async (dogIds) => {
       const data = await authenticatedRequest<StartWalkResponse>(
         START_WALK_MUTATION,
-        { dogIds },
+        { input: { dogIds } },
       );
-      return data.startWalk;
+      return mapApiWalk(data.startWalk);
     },
   });
 }
@@ -31,12 +32,12 @@ export function useStartWalk() {
 export function useFinishWalk() {
   const queryClient = useQueryClient();
   return useMutation<Walk, Error, { walkId: string; distanceM?: number }>({
-    mutationFn: async ({ walkId, distanceM }) => {
+    mutationFn: async ({ walkId }) => {
       const data = await authenticatedRequest<FinishWalkResponse>(
         FINISH_WALK_MUTATION,
-        { walkId, distanceM },
+        { input: { id: walkId } },
       );
-      return data.finishWalk;
+      return mapApiWalk(data.endWalk);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: walkKeys.all });
@@ -48,11 +49,21 @@ export function useFinishWalk() {
 export function useAddWalkPoints() {
   return useMutation<boolean, Error, { walkId: string; points: WalkPointInput[] }>({
     mutationFn: async ({ walkId, points }) => {
-      const data = await authenticatedRequest<AddWalkPointsResponse>(
-        ADD_WALK_POINTS_MUTATION,
-        { walkId, points },
-      );
-      return data.addWalkPoints;
+      for (const point of points) {
+        const data = await authenticatedRequest<AddWalkPointsResponse>(
+          ADD_WALK_POINTS_MUTATION,
+          {
+            input: {
+              walkId,
+              trackedAt: point.recordedAt,
+              latitude: point.lat,
+              longitude: point.lng,
+            },
+          },
+        );
+        mapApiTrackPoint(data.trackPoint);
+      }
+      return true;
     },
   });
 }

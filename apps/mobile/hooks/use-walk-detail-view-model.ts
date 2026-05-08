@@ -57,9 +57,9 @@ export function useWalkDetailViewModel(walk: Walk | null | undefined): WalkDetai
     const endTime = walk.endedAt ? formatClockTime(walk.endedAt) : null;
     const walker = walk.walker
       ? {
-          displayName: walk.walker.displayName,
-          avatarUrl: walk.walker.avatarUrl,
-          initial: walk.walker.displayName?.trim().charAt(0).toUpperCase() ?? '?',
+          displayName: walk.walker.name ?? walk.walker.displayName ?? null,
+          avatarUrl: walk.walker.avatar ?? walk.walker.avatarUrl ?? null,
+          initial: (walk.walker.name ?? walk.walker.displayName)?.trim().charAt(0).toUpperCase() ?? '?',
         }
       : null;
     const midpoint =

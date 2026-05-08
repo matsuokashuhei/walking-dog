@@ -1,6 +1,10 @@
 export type WalkStatus = 'ACTIVE' | 'FINISHED';
 export type StatsPeriod = 'WEEK' | 'MONTH' | 'YEAR' | 'ALL';
 export type DogMemberRole = 'owner' | 'member';
+export type Gender = 'MALE' | 'FEMALE' | 'OTHER';
+export type WalkEventType = 'pee' | 'poo' | 'sniff' | 'greet' | 'photo';
+export type WalkActivityEventType = Exclude<WalkEventType, 'photo'>;
+export type ApiWalkEventType = 'PEE' | 'POO' | 'SNIFF' | 'GREET';
 
 export interface BirthDate {
   year: number | null;
@@ -8,10 +12,21 @@ export interface BirthDate {
   day: number | null;
 }
 
+export interface Coordinate {
+  latitude: number;
+  longitude: number;
+}
+
 export interface WalkPoint {
   lat: number;
   lng: number;
   recordedAt: string;
+}
+
+export interface TrackPoint {
+  walkId: string;
+  trackedAt: string;
+  coordinate: Coordinate;
 }
 
 export interface WalkStats {
@@ -28,17 +43,21 @@ export interface Dog {
   id: string;
   name: string;
   breed: string | null;
-  gender: string | null;
-  birthDate: BirthDate | null;
-  photoUrl: string | null;
-  role?: DogMemberRole;
+  gender: Gender | string | null;
+  avatar?: string | null;
   createdAt: string;
+  updatedAt?: string;
+  birthDate?: BirthDate | null;
+  photoUrl?: string | null;
+  role?: DogMemberRole;
   latestWalk?: LatestWalk | null;
 }
 
 export interface DogMemberUser {
-  displayName: string | null;
-  avatarUrl: string | null;
+  name?: string | null;
+  avatar?: string | null;
+  displayName?: string | null;
+  avatarUrl?: string | null;
 }
 
 export interface DogMember {
@@ -57,8 +76,10 @@ export interface DogInvitation {
 
 export interface Walker {
   id: string;
-  displayName: string | null;
-  avatarUrl: string | null;
+  name?: string | null;
+  avatar?: string | null;
+  displayName?: string | null;
+  avatarUrl?: string | null;
 }
 
 export interface DogWithStats extends Dog {
@@ -66,17 +87,49 @@ export interface DogWithStats extends Dog {
   members?: DogMember[];
 }
 
-export type WalkEventType = 'pee' | 'poo' | 'photo';
+export interface WalkDogEvent {
+  id: string;
+  walkDogId: string;
+  event?: ApiWalkEventType;
+  occurredAt: string;
+  coordinate?: Coordinate;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WalkPhoto {
+  id: string;
+  walkId: string;
+  occurredAt: string;
+  file: string;
+  coordinate: Coordinate;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WalkDog {
+  id: string;
+  walkId: string;
+  dogId: string;
+  createdAt: string;
+  updatedAt: string;
+  dog: Dog;
+  events: WalkDogEvent[];
+}
 
 export interface WalkEvent {
   id: string;
   walkId: string;
   dogId: string | null;
-  eventType: WalkEventType;
+  event?: ApiWalkEventType;
   occurredAt: string;
-  lat: number | null;
-  lng: number | null;
-  photoUrl: string | null;
+  coordinate?: Coordinate;
+  createdAt?: string;
+  updatedAt?: string;
+  eventType: WalkEventType;
+  lat?: number | null;
+  lng?: number | null;
+  photoUrl?: string | null;
 }
 
 export interface RecordWalkEventInput {
@@ -92,23 +145,32 @@ export interface RecordWalkEventInput {
 export interface Walk {
   id: string;
   dogs: Dog[];
-  walker?: Walker;
   status: WalkStatus;
-  distanceM: number | null;
-  durationSec: number | null;
+  distance?: number | null;
   startedAt: string;
   endedAt: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  walkDogs?: WalkDog[];
+  photos?: WalkPhoto[];
+  trackPoints?: TrackPoint[];
+  walker?: Walker;
+  distanceM?: number | null;
+  durationSec?: number | null;
   points?: WalkPoint[];
   events?: WalkEvent[];
 }
 
 export interface User {
   id: string;
-  displayName: string | null;
-  avatarUrl: string | null;
-  encounterDetectionEnabled: boolean;
-  dogs: Dog[];
+  name?: string | null;
+  avatar?: string | null;
   createdAt: string;
+  updatedAt?: string;
+  dogs: Dog[];
+  displayName?: string | null;
+  avatarUrl?: string | null;
+  encounterDetectionEnabled?: boolean;
 }
 
 export interface PresignedUrl {
@@ -118,6 +180,7 @@ export interface PresignedUrl {
 }
 
 export interface UpdateProfileInput {
+  name?: string;
   displayName?: string;
 }
 
@@ -133,6 +196,7 @@ export interface UpdateDogInput {
   breed?: string;
   gender?: string;
   birthDate?: BirthDateInput;
+  avatar?: string;
   photoUrl?: string;
 }
 
@@ -148,26 +212,132 @@ export interface WalkPointInput {
   recordedAt: string;
 }
 
-export interface MeResponse { me: User; }
-export interface DogResponse { dog: DogWithStats | null; }
-export interface WalkResponse { walk: Walk | null; }
-export interface MyWalksResponse { myWalks: Walk[]; }
-export interface CreateDogResponse { createDog: Dog; }
-export interface UpdateDogResponse { updateDog: Dog; }
-export interface DeleteDogResponse { deleteDog: boolean; }
-export interface GenerateDogPhotoUploadUrlResponse { generateDogPhotoUploadUrl: PresignedUrl; }
-export interface GenerateDogInvitationResponse { generateDogInvitation: DogInvitation; }
-export interface AcceptDogInvitationResponse { acceptDogInvitation: Dog; }
-export interface RemoveDogMemberResponse { removeDogMember: boolean; }
-export interface LeaveDogResponse { leaveDog: boolean; }
-export interface RecordEncounterResponse { recordEncounter: Encounter[]; }
-export interface UpdateEncounterDurationResponse { updateEncounterDuration: boolean; }
+export interface ApiDog {
+  id: string;
+  name: string;
+  breed: string | null;
+  gender: Gender;
+  avatar: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ApiUser {
+  id: string;
+  name: string | null;
+  avatar: string | null;
+  createdAt: string;
+  updatedAt: string;
+  dogs: ApiDog[];
+}
+
+export interface ApiWalkDogEvent {
+  id: string;
+  walkDogId: string;
+  event: ApiWalkEventType;
+  occurredAt: string;
+  coordinate: Coordinate;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ApiWalkDog {
+  id: string;
+  walkId: string;
+  dogId: string;
+  createdAt: string;
+  updatedAt: string;
+  dog: ApiDog;
+  events: ApiWalkDogEvent[];
+}
+
+export interface ApiWalkPhoto {
+  id: string;
+  walkId: string;
+  occurredAt: string;
+  file: string;
+  coordinate: Coordinate;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ApiTrackPoint {
+  walkId: string;
+  trackedAt: string;
+  coordinate: Coordinate;
+}
+
+export interface ApiWalk {
+  id: string;
+  startedAt: string;
+  endedAt: string | null;
+  distance: number | null;
+  createdAt: string;
+  updatedAt: string;
+  walkDogs: ApiWalkDog[];
+  dogs: ApiDog[];
+  photos: ApiWalkPhoto[];
+  trackPoints: ApiTrackPoint[];
+}
+
+export interface UserResponse {
+  user: ApiUser;
+}
+
+export interface WalkResponse {
+  walk: ApiWalk;
+}
+
+export interface WalksResponse {
+  walks: ApiWalk[];
+}
+
+export interface AddDogResponse {
+  addDog: ApiDog;
+}
+
+export interface UpdateDogResponse {
+  updateDog: ApiDog;
+}
+
+export interface RemoveDogResponse {
+  removeDog: ApiDog;
+}
+
+export interface TrackPointResponse {
+  trackPoint: ApiTrackPoint;
+}
+
+export interface StartWalkResponse {
+  startWalk: ApiWalk;
+}
+
+export interface EndWalkResponse {
+  endWalk: ApiWalk;
+}
+
+export interface AddEventResponse {
+  addEvent: ApiWalkDogEvent;
+}
+
+export interface TakePhotoResponse {
+  takePhoto: ApiWalkPhoto;
+}
+
+export type MeResponse = UserResponse;
+export type MyWalksResponse = WalksResponse;
+export type CreateDogResponse = AddDogResponse;
+export type DeleteDogResponse = RemoveDogResponse;
+export type AddWalkPointsResponse = TrackPointResponse;
+export type FinishWalkResponse = EndWalkResponse;
+export type RecordWalkEventResponse = AddEventResponse;
 
 export interface FriendDog {
   id: string;
   name: string;
   breed: string | null;
   photoUrl: string | null;
+  avatar?: string | null;
 }
 
 export interface Friendship {
@@ -187,14 +357,45 @@ export interface Encounter {
   dog2: FriendDog;
 }
 
-export interface DogFriendsResponse { dogFriends: Friendship[]; }
-export interface DogEncountersResponse { dogEncounters: Encounter[]; }
-export interface FriendshipResponse { friendship: Friendship | null; }
+export interface DogFriendsResponse {
+  dogFriends: Friendship[];
+}
 
-export interface StartWalkResponse { startWalk: Walk; }
-export interface AddWalkPointsResponse { addWalkPoints: boolean; }
-export interface FinishWalkResponse { finishWalk: Walk; }
-export interface RecordWalkEventResponse { recordWalkEvent: WalkEvent; }
+export interface DogEncountersResponse {
+  dogEncounters: Encounter[];
+}
+
+export interface FriendshipResponse {
+  friendship: Friendship | null;
+}
+
+export interface GenerateDogPhotoUploadUrlResponse {
+  generateDogPhotoUploadUrl: PresignedUrl;
+}
+
+export interface GenerateDogInvitationResponse {
+  generateDogInvitation: DogInvitation;
+}
+
+export interface AcceptDogInvitationResponse {
+  acceptDogInvitation: Dog;
+}
+
+export interface RemoveDogMemberResponse {
+  removeDogMember: boolean;
+}
+
+export interface LeaveDogResponse {
+  leaveDog: boolean;
+}
+
+export interface RecordEncounterResponse {
+  recordEncounter: Encounter[];
+}
+
+export interface UpdateEncounterDurationResponse {
+  updateEncounterDuration: boolean;
+}
 export interface GenerateWalkEventPhotoUploadUrlResponse {
   generateWalkEventPhotoUploadUrl: PresignedUrl;
 }

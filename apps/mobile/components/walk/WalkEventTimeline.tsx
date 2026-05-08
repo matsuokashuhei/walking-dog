@@ -11,6 +11,8 @@ import type { WalkEvent, WalkEventType } from '@/types/graphql';
 const EVENT_CONFIG: Record<WalkEventType, { emoji: string }> = {
   pee: { emoji: '🚽' },
   poo: { emoji: '💩' },
+  sniff: { emoji: '🐽' },
+  greet: { emoji: '🐾' },
   photo: { emoji: '📷' },
 };
 

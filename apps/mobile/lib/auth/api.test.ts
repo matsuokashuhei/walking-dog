@@ -60,7 +60,7 @@ describe('auth api', () => {
   });
 
   it('confirmSignUp resolves with the server response on success', async () => {
-    mockRequest.mockResolvedValue({ confirmSignUp: true });
+    mockRequest.mockResolvedValue({ confirmSignUp: { success: true } });
 
     await expect(confirmSignUp('user@example.com', '123456')).resolves.toBe(true);
   });

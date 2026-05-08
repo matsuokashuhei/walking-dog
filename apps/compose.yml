@@ -94,7 +94,8 @@ services:
       context: .
       dockerfile: ./api/Dockerfile
       target: dev
-    command: ["cargo", "watch", "-x", "run --bin walking-dog-api"]
+    working_dir: /walking-dog/apps/api
+    command: ["cargo", "watch", "-x", "run --bin walking-dog"]
     ports:
       - "3000:3000"
     volumes:

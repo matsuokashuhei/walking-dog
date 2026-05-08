@@ -4,7 +4,7 @@ import { usePhotoUpload, PhotoUploadError } from '@/hooks/use-photo-upload';
 import { useRecordWalkEvent } from '@/hooks/use-walk-event-mutations';
 import { useFlushWalkEventOutbox } from '@/hooks/use-flush-walk-event-outbox';
 import { enqueuePendingEvent } from '@/lib/walk/event-outbox';
-import type { WalkEvent, WalkEventType } from '@/types/graphql';
+import type { WalkActivityEventType, WalkEvent } from '@/types/graphql';
 
 interface UseWalkEventRecorderArgs {
   walkId: string | null;
@@ -17,12 +17,35 @@ interface RecordPhotoArgs {
   asset: { uri: string; mimeType?: string | null };
 }
 
+interface UseWalkEventRecorderResult {
+  recordEvent: (eventType: WalkActivityEventType, dogId?: string) => Promise<WalkEvent | null>;
+  recordPhoto: (args: RecordPhotoArgs) => Promise<WalkEvent | null>;
+  isPending: boolean;
+}
+
+function shouldQueueOfflineEvent(eventType: WalkActivityEventType): eventType is 'pee' | 'poo' {
+  return eventType === 'pee' || eventType === 'poo';
+}
+
+function photoUploadErrorKey(error: unknown): string {
+  const phase = error instanceof PhotoUploadError ? error.phase : 'record';
+
+  switch (phase) {
+    case 'presign':
+      return 'walk.event.photoPresignError';
+    case 'upload':
+      return 'walk.event.photoUploadError';
+    case 'record':
+      return 'walk.event.recordError';
+  }
+}
+
 // 散歩イベントの即時記録、写真アップロード、オフライン時の outbox 保存をまとめます。
 export function useWalkEventRecorder({
   walkId,
   latestPoint,
   source = 'WalkEventActions',
-}: UseWalkEventRecorderArgs) {
+}: UseWalkEventRecorderArgs): UseWalkEventRecorderResult {
   const recordWalkEvent = useRecordWalkEvent();
   const photoUpload = usePhotoUpload();
   const runWithAlert = useMutationWithAlert();
@@ -37,7 +60,7 @@ export function useWalkEventRecorder({
 
   // 通常イベントは失敗時に outbox へ積み、オンライン復帰後に再送できるようにします。
   const recordEvent = useCallback(
-    async (eventType: Extract<WalkEventType, 'pee' | 'poo'>, dogId?: string) => {
+    async (eventType: WalkActivityEventType, dogId?: string) => {
       if (!walkId) return null;
 
       const occurredAt = new Date().toISOString();
@@ -56,15 +79,17 @@ export function useWalkEventRecorder({
 
       if (!result) {
         // 失敗した通常イベントだけを再送対象として保存します。写真イベントはオンライン専用です。
-        await enqueuePendingEvent({
-          walkId,
-          ...(dogId !== undefined ? { dogId } : {}),
-          eventType,
-          occurredAt,
-          ...(latestPoint ? { lat: latestPoint.lat, lng: latestPoint.lng } : {}),
-        }).catch(() => {
-          /* アラート表示済みのため、保存失敗はここでは握りつぶします。 */
-        });
+        if (shouldQueueOfflineEvent(eventType)) {
+          await enqueuePendingEvent({
+            walkId,
+            ...(dogId !== undefined ? { dogId } : {}),
+            eventType,
+            occurredAt,
+            ...(latestPoint ? { lat: latestPoint.lat, lng: latestPoint.lng } : {}),
+          }).catch(() => {
+            /* アラート表示済みのため、保存失敗はここでは握りつぶします。 */
+          });
+        }
         return null;
       }
 
@@ -90,14 +115,7 @@ export function useWalkEventRecorder({
             asset,
             ...(latestPoint ? { latestPoint } : {}),
           }),
-        (error) => {
-          const phase = error instanceof PhotoUploadError ? error.phase : 'record';
-          return {
-            presign: 'walk.event.photoPresignError' as const,
-            upload: 'walk.event.photoUploadError' as const,
-            record: 'walk.event.recordError' as const,
-          }[phase];
-        },
+        photoUploadErrorKey,
         { action: 'uploadWalkPhoto', dogId, source },
       );
     },

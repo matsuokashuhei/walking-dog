@@ -46,9 +46,9 @@ export function WalkEventActions({ dogs }: WalkEventActionsProps) {
   });
   const isDisabled = !walkId || isPending;
 
-  // Pee/Poo は共通のイベント記録フックに委譲し、失敗時の復旧処理も同じ経路に寄せます。
-  const handlePeeOrPoo = useCallback(
-    async (eventType: Extract<WalkEventType, 'pee' | 'poo'>, dogId?: string) => {
+  // 通常イベントは共通のイベント記録フックに委譲し、失敗時の復旧処理も同じ経路に寄せます。
+  const handleActivityEvent = useCallback(
+    async (eventType: Exclude<WalkEventType, 'photo'>, dogId?: string) => {
       await commitEvent(() => recordEvent(eventType, dogId));
     },
     [commitEvent, recordEvent],
@@ -109,9 +109,9 @@ export function WalkEventActions({ dogs }: WalkEventActionsProps) {
         return;
       }
 
-      void handlePeeOrPoo(type, dogId);
+      void handleActivityEvent(type, dogId);
     },
-    [handlePhoto, handlePeeOrPoo],
+    [handlePhoto, handleActivityEvent],
   );
 
   // 犬がいない状態ではイベントの紐付け先がないため、操作 UI を出しません。
@@ -158,6 +158,8 @@ export function WalkEventActions({ dogs }: WalkEventActionsProps) {
             eventLabels={{
               pee: t('walk.event.pee'),
               poo: t('walk.event.poo'),
+              sniff: t('walk.event.sniff'),
+              greet: t('walk.event.greet'),
               photo: t('walk.event.photo'),
             }}
             onPress={fire}

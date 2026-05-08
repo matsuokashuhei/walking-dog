@@ -85,14 +85,12 @@ export function useDogDetailViewModel(): DogDetailViewModel {
   );
 
   const handleOpenMembers = useCallback(() => {
-    if (!dogId) return;
-    router.push(`/dogs/${dogId}/members`);
-  }, [dogId, router]);
+    return;
+  }, []);
 
   const handleOpenFriends = useCallback(() => {
-    if (!dogId) return;
-    router.push(`/dogs/${dogId}/friends`);
-  }, [dogId, router]);
+    return;
+  }, []);
 
   const openDeleteConfirm = useCallback(() => {
     setShowDeleteConfirm(true);
@@ -120,7 +118,7 @@ export function useDogDetailViewModel(): DogDetailViewModel {
     status: 'ready',
     dog,
     meta: buildMeta(dog),
-    memberCount: dog.members?.length ?? 0,
+    memberCount: 0,
     streakDays: pack.perDog[dog.id]?.streakDays ?? 0,
     dogWalks,
     isOwner,

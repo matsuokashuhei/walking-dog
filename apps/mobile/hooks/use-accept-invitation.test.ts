@@ -21,36 +21,16 @@ function createWrapper() {
 describe('useAcceptInvitation', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('calls acceptDogInvitation with token and returns dog', async () => {
-    const dog = { id: 'dog-1', name: 'Buddy' };
-    mockAuthenticatedRequest.mockResolvedValue({ acceptDogInvitation: dog });
-
-    const { result } = renderHook(() => useAcceptInvitation(), {
-      wrapper: createWrapper(),
-    });
-
-    await act(async () => {
-      const data = await result.current.mutateAsync('abc123');
-      expect(data).toEqual(dog);
-    });
-
-    expect(mockAuthenticatedRequest).toHaveBeenCalledWith(
-      expect.any(String),
-      { token: 'abc123' },
-    );
-  });
-
-  it('throws on error', async () => {
-    mockAuthenticatedRequest.mockRejectedValue(new Error('expired'));
-
+  it('does not call the API because invitations are unsupported', async () => {
     const { result } = renderHook(() => useAcceptInvitation(), {
       wrapper: createWrapper(),
     });
 
     await expect(
       act(async () => {
-        await result.current.mutateAsync('expired-token');
+        await result.current.mutateAsync('abc123');
       }),
-    ).rejects.toThrow('expired');
+    ).rejects.toThrow('not supported');
+    expect(mockAuthenticatedRequest).not.toHaveBeenCalled();
   });
 });

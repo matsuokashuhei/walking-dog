@@ -1,7 +1,7 @@
 use async_graphql::{Enum, SimpleObject};
 use url::Url;
 
-use crate::{entity::sea_orm_active_enums::GenderType, graphql::util::file::avatar_url};
+use crate::{entity::sea_orm_active_enums::GenderType, storage::avatar_url};
 
 #[derive(Enum, Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Gender {

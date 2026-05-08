@@ -1,12 +1,15 @@
 use anyhow::Result;
 use async_graphql::{Context, InputObject, Object};
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait};
-use tracing::error;
 use uuid::Uuid;
 
-use crate::graphql::object::coordinate::{Latitude, Longitude};
-use crate::graphql::object::track_point::TrackPoint;
-use crate::graphql::util::error::AppError;
+use crate::graphql::{
+    error::AppError,
+    object::{
+        coordinate::{Latitude, Longitude},
+        track_point::TrackPoint,
+    },
+};
 use crate::{entity::user, graphql::guard::AuthGuard};
 
 #[derive(Default, Debug)]

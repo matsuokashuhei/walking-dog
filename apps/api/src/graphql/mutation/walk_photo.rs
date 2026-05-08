@@ -1,15 +1,12 @@
 use anyhow::Result;
-use anyhow::anyhow;
 use async_graphql::{Context, InputObject, Object, Upload};
 use sea_orm::ActiveValue::Set;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter};
 use uuid::Uuid;
 
 use crate::entity::{user, walk, walk_photo};
-use crate::graphql::guard::AuthGuard;
-use crate::graphql::object::walk_photo::WalkPhoto;
-use crate::graphql::util::error::AppError;
-use crate::graphql::util::file::upload_walk_photo;
+use crate::graphql::{error::AppError, guard::AuthGuard, object::walk_photo::WalkPhoto};
+use crate::storage::upload_walk_photo;
 
 #[derive(Default, Debug)]
 pub struct WalkPhotoMutation;

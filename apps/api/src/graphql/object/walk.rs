@@ -1,14 +1,13 @@
-use anyhow::{Result, anyhow};
+use anyhow::Result;
 use async_graphql::{ComplexObject, Context, SimpleObject};
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
 use uuid::Uuid;
 
 use crate::entity::{dog, track_point, walk, walk_dog, walk_photo};
-use crate::graphql::object::dog::Dog;
-use crate::graphql::object::track_point::TrackPoint;
-use crate::graphql::object::walk_dog::WalkDog;
-use crate::graphql::object::walk_photo::WalkPhoto;
-use crate::graphql::util::error::AppError;
+use crate::graphql::{
+    error::AppError,
+    object::{dog::Dog, track_point::TrackPoint, walk_dog::WalkDog, walk_photo::WalkPhoto},
+};
 
 #[derive(SimpleObject, Clone, Debug)]
 #[graphql(complex)]

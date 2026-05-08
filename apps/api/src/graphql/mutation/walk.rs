@@ -1,5 +1,4 @@
 use anyhow::Result;
-use anyhow::anyhow;
 use async_graphql::{Context, InputObject, Object};
 use sea_orm::{
     ActiveModelTrait,
@@ -8,10 +7,8 @@ use sea_orm::{
 };
 use uuid::Uuid;
 
-use crate::entity::{dog, user_dog};
-use crate::graphql::object::walk::Walk;
-use crate::graphql::util::error::AppError;
-use crate::{entity::user, graphql::guard::AuthGuard};
+use crate::entity::{dog, user, user_dog};
+use crate::graphql::{error::AppError, guard::AuthGuard, object::walk::Walk};
 
 #[derive(Default, Debug)]
 pub struct WalkMutation;

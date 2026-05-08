@@ -4,7 +4,7 @@ use sea_orm::ActiveModelTrait;
 use sea_orm::ActiveValue::Set;
 
 use crate::graphql::object::user::User;
-use crate::graphql::util::file::upload_avatar;
+use crate::storage::upload_avatar;
 use crate::{entity::user, graphql::guard::AuthGuard};
 
 #[derive(Default, Debug)]

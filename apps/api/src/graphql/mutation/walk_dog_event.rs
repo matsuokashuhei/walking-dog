@@ -5,12 +5,12 @@ use uuid::Uuid;
 
 use crate::entity::{user, walk, walk_dog, walk_dog_event};
 use crate::graphql::{
+    error::AppError,
     guard::AuthGuard,
     object::{
         coordinate::{Latitude, Longitude},
         walk_dog_event::{EventType, WalkDogEvent},
     },
-    util::error::AppError,
 };
 
 #[derive(Default, Debug)]

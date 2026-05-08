@@ -1,12 +1,12 @@
-use anyhow::{Result, anyhow};
+use anyhow::Result;
 use async_graphql::{ComplexObject, Context, SimpleObject};
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder};
 
 use crate::{
     entity::{dog, walk_dog, walk_dog_event},
     graphql::{
+        error::AppError,
         object::{dog::Dog, walk_dog_event::WalkDogEvent},
-        util::error::AppError,
     },
 };
 

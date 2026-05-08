@@ -1,8 +1,8 @@
+mod error;
 pub mod guard;
 pub mod mutation;
 pub mod object;
 pub mod query;
-mod util;
 
 use std::env;
 

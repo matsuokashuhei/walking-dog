@@ -1,13 +1,10 @@
 use anyhow::Result;
-use anyhow::anyhow;
 use async_graphql::{Context, Object};
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use uuid::Uuid;
 
 use crate::entity::{user, walk};
-use crate::graphql::guard::AuthGuard;
-use crate::graphql::object::walk::Walk;
-use crate::graphql::util::error::AppError;
+use crate::graphql::{error::AppError, guard::AuthGuard, object::walk::Walk};
 
 #[derive(Default, Debug)]
 pub struct WalkQuery;

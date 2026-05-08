@@ -1,12 +1,8 @@
-use anyhow::{Result, anyhow, bail};
+use anyhow::Result;
 use async_graphql::{Context, Upload};
-use std::ffi::OsStr;
-use std::io::Read;
-use std::path::Path;
+use std::{ffi::OsStr, io::Read, path::Path};
 use tracing::error;
 use url::Url;
-
-use crate::graphql::util::error::AppError;
 
 const DEFAULT_MAX_UPLOAD_BYTES: u64 = 20 * 1024 * 1024;
 const MAX_UPLOAD_BYTES_ENV: &str = "MAX_UPLOAD_BYTES";
@@ -33,7 +29,7 @@ async fn upload_file(ctx: &Context<'_>, file: Upload, bucket: &str) -> Result<St
     let mut bytes = Vec::new();
     content.read_to_end(&mut bytes)?;
     if bytes.len() as u64 > max_upload_bytes {
-        return Err(AppError::ContentTooLarge.into());
+        return Err(StorageError::ContentTooLarge.into());
     }
     let content_type = upload
         .content_type
@@ -50,7 +46,7 @@ async fn upload_file(ctx: &Context<'_>, file: Upload, bucket: &str) -> Result<St
         .await
         .map_err(|e| {
             error!("Failed to upload file: {:?} to bucket: {}", e, bucket);
-            AppError::InternalServerError(e.to_string())
+            StorageError::InternalServerError(e.to_string())
         })?;
     Ok(key)
 }
@@ -74,4 +70,12 @@ pub fn avatar_url(key: Option<&str>) -> Option<Url> {
     } else {
         None
     }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum StorageError {
+    #[error("Content too large")]
+    ContentTooLarge,
+    #[error("Internal server error: {0}")]
+    InternalServerError(String),
 }

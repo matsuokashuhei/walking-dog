@@ -1,13 +1,12 @@
-use anyhow::{Result, anyhow};
+use anyhow::Result;
 use async_graphql::{ComplexObject, Context, SimpleObject};
 use sea_orm::{ColumnTrait, EntityTrait, QueryOrder};
 use url::Url;
 use uuid::Uuid;
 
 use crate::entity::{dog, user, user_dog};
-use crate::graphql::object::dog::Dog;
-use crate::graphql::util::error::AppError;
-use crate::graphql::util::file::avatar_url;
+use crate::graphql::{error::AppError, object::dog::Dog};
+use crate::storage::avatar_url;
 
 #[derive(SimpleObject, Clone, Debug)]
 #[graphql(complex)]

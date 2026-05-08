@@ -4,7 +4,7 @@ use aws_sdk_cognitoidentityprovider::operation::initiate_auth::InitiateAuthOutpu
 use sea_orm::{ActiveModelTrait, ActiveValue::Set, DatabaseConnection};
 
 use crate::entity::user;
-use crate::graphql::util::error::AuthError;
+use crate::graphql::error::AuthError;
 
 #[derive(Default, Debug)]
 pub struct AuthMutation;

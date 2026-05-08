@@ -1,8 +1,8 @@
-use async_graphql::{ComplexObject, Enum, SimpleObject};
+use async_graphql::{Enum, SimpleObject};
 use uuid::Uuid;
 
 use crate::entity::{sea_orm_active_enums, walk_dog_event};
-use crate::graphql::object::coordinate::{Coordinate, Latitude, Longitude};
+use crate::graphql::object::coordinate::Coordinate;
 
 #[derive(Enum, Debug, Copy, Clone, Eq, PartialEq)]
 pub enum EventType {

@@ -8,11 +8,14 @@ use sea_orm::{
 };
 use uuid::Uuid;
 
-use crate::entity::{dog, sea_orm_active_enums::GenderType, user, user_dog};
 use crate::graphql::{
+    error::AppError,
     guard::AuthGuard,
     object::dog::{Dog, Gender},
-    util::{error::AppError, file::upload_avatar},
+};
+use crate::{
+    entity::{dog, sea_orm_active_enums::GenderType, user, user_dog},
+    storage::upload_avatar,
 };
 
 #[derive(Default, Debug)]

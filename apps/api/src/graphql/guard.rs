@@ -1,7 +1,7 @@
 use async_graphql::{Context, Guard, Result};
 
 use crate::entity::user;
-use crate::graphql::util::error::AppError::Unauthorized;
+use crate::graphql::error::AppError::Unauthorized;
 
 pub struct AuthGuard;
 

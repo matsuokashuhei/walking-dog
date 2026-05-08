@@ -1,18 +1,22 @@
-# --- Build Stage ---
-FROM rust:1-slim-bookworm AS builder
-WORKDIR /app
-RUN apt-get update && apt-get install -y pkg-config libssl-dev && rm -rf /var/lib/apt/lists/*
-COPY Cargo.toml Cargo.lock ./
-COPY migration/Cargo.toml ./migration/
-COPY src ./src
-COPY migration/src ./migration/src
-RUN cargo build --release --bin walking-dog-api --bin walk_points_worker
+# syntax=docker/dockerfile:1
+FROM public.ecr.aws/docker/library/rust:1.95 AS base
+
+FROM base AS dev
+RUN <<EOT
+apt-get update
+apt-get install -y curl pkg-config libssl-dev
+cargo install cargo-watch sea-orm-cli@^2.0.0-rc seaography-cli@^2.0.0-rc
+rustup component add clippy rustfmt
+EOT
+
+FROM base AS builder
+WORKDIR /apps/api
+COPY . .
+RUN cargo build --release
 
 # --- Runtime Stage ---
-FROM debian:bookworm-slim
-RUN apt-get update && apt-get install -y ca-certificates libssl3 && rm -rf /var/lib/apt/lists/*
-WORKDIR /app
-COPY --from=builder /app/target/release/walking-dog-api .
-COPY --from=builder /app/target/release/walk_points_worker .
+FROM public.ecr.aws/debian/debian:stable-slim AS runtime
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && update-ca-certificates
+COPY --from=builder /apps/api/target/release/walking-dog-api .
 EXPOSE 3000
 CMD ["./walking-dog-api"]

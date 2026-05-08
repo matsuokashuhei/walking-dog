@@ -1,16 +1,25 @@
 [package]
+edition = "2024"
 name = "migration"
+publish = false
+rust-version = "1.85.0"
 version = "0.1.0"
-edition = "2021"
 
 [lib]
 name = "migration"
 path = "src/lib.rs"
 
 [dependencies]
-sea-orm-migration = { version = "~2.0.0-rc.38", features = ["sqlx-postgres", "runtime-tokio-rustls"] }
-tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread"] }
+aws-config = { version = "1.8.16", features = ["behavior-version-latest"] }
+aws-sdk-dynamodb = "1.111.0"
 
-[[bin]]
-name = "migration"
-path = "src/main.rs"
+[dependencies.sea-orm-migration]
+version = "~2.0.0-rc"
+features = [
+    "runtime-tokio-native-tls",
+    "sqlx-postgres",
+    "with-bigdecimal",
+    "with-chrono",
+    "with-uuid",
+]

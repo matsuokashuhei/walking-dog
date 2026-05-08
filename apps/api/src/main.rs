@@ -1,109 +1,59 @@
-use migration::{Migrator, MigratorTrait};
-use std::sync::Arc;
-use tracing_subscriber::layer::SubscriberExt;
-use tracing_subscriber::util::SubscriberInitExt;
-use walking_dog_api::auth::jwt::CognitoJwtVerifier;
-use walking_dog_api::config::Config;
+mod auth;
+mod entity;
+mod graphql;
+mod storage;
 
-fn main() {
-    dotenvy::dotenv().ok();
-    let config = Config::from_env();
+use std::net::SocketAddr;
 
-    // Sentry must be initialized from a synchronous context so the ClientInitGuard
-    // lives across the full tokio runtime and flushes events on drop.
-    let _sentry_guard = init_sentry(&config);
-    init_tracing();
+use crate::{
+    entity::user,
+    graphql::{mutation, query::Query},
+};
+use async_graphql::{EmptySubscription, Schema, http::GraphiQLSource};
+use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
+use axum::{
+    Router,
+    extract::State,
+    http::StatusCode,
+    middleware,
+    response::{Html, IntoResponse},
+    routing::get,
+};
+use tokio::net::TcpListener;
 
-    let runtime = tokio::runtime::Runtime::new().expect("Failed to build tokio runtime");
-    runtime.block_on(run(config));
-}
-
-fn init_sentry(config: &Config) -> Option<sentry::ClientInitGuard> {
-    let dsn = config.sentry_dsn.clone()?;
-    let guard = sentry::init((
-        dsn,
-        sentry::ClientOptions {
-            release: sentry::release_name!(),
-            environment: Some(config.sentry_environment.clone().into()),
-            traces_sample_rate: config.sentry_traces_sample_rate,
-            send_default_pii: false,
-            ..Default::default()
-        },
-    ));
-    Some(guard)
-}
-
-fn init_tracing() {
-    let env_filter = tracing_subscriber::EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info"));
-    tracing_subscriber::registry()
-        .with(env_filter)
-        .with(tracing_subscriber::fmt::layer())
-        .with(sentry_tracing::layer())
+#[tokio::main]
+async fn main() {
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::INFO)
+        .with_test_writer()
         .init();
+    let schema = graphql::build_schema().await;
+    let app = Router::new()
+        .route("/", get(graphql_playground).post(graphql_handler))
+        .route_layer(middleware::from_fn_with_state(
+            schema.clone(),
+            auth::autenticate_user,
+        ))
+        .route("/health", get(|| async { StatusCode::OK }))
+        .with_state(schema);
+    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
+    axum::serve(TcpListener::bind(addr).await.unwrap(), app)
+        .await
+        .unwrap();
 }
 
-async fn run(config: Config) {
-    config
-        .walk_points_queue_url
-        .as_deref()
-        .expect("SQS_QUEUE_URL_WALK_POINTS must be set");
+async fn graphql_handler(
+    State(schema): State<Schema<Query, mutation::Mutation, EmptySubscription>>,
+    user: Option<axum::Extension<user::Model>>,
+    request: GraphQLRequest,
+) -> GraphQLResponse {
+    let mut request = request.into_inner();
+    if let Some(axum::Extension(user)) = user {
+        request = request.data(user);
+    }
+    schema.execute(request).await.into()
+}
 
-    let db = walking_dog_api::db::connect(&config.database_url)
-        .await
-        .expect("Failed to connect to database");
-
-    Migrator::up(&db, None)
-        .await
-        .expect("Failed to run database migrations");
-    tracing::info!("Database migrations completed");
-
-    let dynamo = walking_dog_api::aws::client::build_dynamo_client(
-        &config.aws_region,
-        config.dynamodb_endpoint_url.as_deref(),
-    )
-    .await;
-    let s3 = walking_dog_api::aws::client::build_s3_client(
-        &config.aws_region,
-        config.s3_endpoint_url.as_deref(),
-    )
-    .await;
-    let s3_presign_endpoint_url = config
-        .s3_presign_endpoint_url
-        .as_deref()
-        .or(config.s3_endpoint_url.as_deref());
-    let s3_presign =
-        walking_dog_api::aws::client::build_s3_client(&config.aws_region, s3_presign_endpoint_url)
-            .await;
-    let cognito = walking_dog_api::aws::client::build_cognito_client(
-        &config.aws_region,
-        config.cognito_endpoint_url.as_deref(),
-    )
-    .await;
-    let sqs = walking_dog_api::aws::client::build_sqs_client(
-        &config.aws_region,
-        config.sqs_endpoint_url.as_deref(),
-    )
-    .await;
-
-    let verifier = Arc::new(CognitoJwtVerifier);
-
-    let addr = std::net::SocketAddr::from(([0, 0, 0, 0], config.port));
-    tracing::info!("Listening on {}", addr);
-
-    let clients = walking_dog_api::AwsClients {
-        dynamo,
-        s3,
-        s3_presign,
-        cognito,
-        sqs,
-    };
-    let app = walking_dog_api::build_app(db, clients, config, verifier);
-
-    let listener = tokio::net::TcpListener::bind(addr)
-        .await
-        .unwrap_or_else(|e| panic!("failed to bind TCP listener on {addr}: {e}"));
-    axum::serve(listener, app)
-        .await
-        .expect("axum server terminated with an error");
+async fn graphql_playground() -> impl IntoResponse {
+    Html(GraphiQLSource::build().finish())
 }

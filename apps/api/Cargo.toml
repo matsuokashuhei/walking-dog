@@ -1,59 +1,51 @@
-[workspace]
-members = [".", "migration"]
-resolver = "2"
-
 [package]
-name = "walking-dog-api"
+edition = "2024"
+name = "walking-dog"
 version = "0.1.0"
-edition = "2021"
 
 [dependencies]
-axum = { version = "0.8", features = ["macros"] }
-tower-http = { version = "0.6", features = ["cors", "trace", "request-id"] }
-tokio = { version = "1", features = ["full"] }
-async-graphql = { version = "~7.0.17", features = ["chrono", "uuid", "dataloader", "dynamic-schema"] }
-async-graphql-axum = "7"
-sea-orm = { version = "~2.0.0-rc", features = ["sqlx-postgres", "runtime-tokio-rustls", "macros", "with-uuid", "with-chrono", "with-json", "seaography"] }
-seaography = { version = "~2.0.0-rc", features = ["field-camel-case", "schema-meta", "macros"] }
-aws-config = { version = "1", features = ["behavior-version-latest"] }
-aws-sdk-dynamodb = "1"
-aws-sdk-s3 = { version = "1", features = ["behavior-version-latest"] }
-aws-sdk-sqs = "1"
-aws-sdk-cognitoidentityprovider = "1"
-aws-smithy-types = "1"
-aws-smithy-runtime-api = { version = "1", features = ["client"] }
-aws-types = "1"
-migration = { path = "migration" }
-sea-orm-migration = { version = "~2.0.0-rc.38", features = ["sqlx-postgres", "runtime-tokio-rustls"] }
-jsonwebtoken = { version = "10", features = ["rust_crypto"] }
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-uuid = { version = "1", features = ["v4", "serde"] }
-chrono = { version = "0.4", features = ["serde"] }
-dotenvy = "0.15"
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-thiserror = "2"
-rand = "0.9"
-hex = "0.4"
-reqwest = { version = "0.13", features = ["json"] }
-base64 = "0.22"
-async-trait = "0.1"
-tower = "0.5"
-sentry = "0.47"
-sentry-tower = { version = "0.47", features = ["http"] }
-sentry-tracing = "0.47"
+migration = { path = "./migration" }
 
-[features]
-test-utils = []
+axum = { version = "0.8.9" }
+axum-extra = { version = "0.12.6", features = ["typed-header"] }
+async-graphql = { version = "7.2.1", features = ["chrono", "uuid", "url", "tracing"] }
+async-graphql-axum = { version = "7.2.1" }
+tokio = { version = "1.52.2", features = ["macros", "rt-multi-thread", "time"] }
+tracing = { version = "0.1.44" }
+tracing-subscriber = { version = "0.3.23" }
+aws-config = { version = "1.8.16", features = ["behavior-version-latest"] }
+aws-sdk-dynamodb = "1.111.0"
+aws-sdk-s3 = { version = "1.132.0", features = ["behavior-version-latest"] }
+aws-sdk-sqs = "1.98.0"
+aws-sdk-cognitoidentityprovider = "1.116.0"
+chrono = { version = "0.4.44", default-features = false, features = ["std"] }
+anyhow = "1.0.102"
+uuid = { version = "1.23.1", features = ["v4"] }
+jsonwebtoken = { version = "10.3.0", features = ["aws_lc_rs"] }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = { version = "1.0.149" }
+reqwest = { version = "0.13.3", features = ["json"] }
+url = "2.5.8"
+thiserror = "2.0.18"
 
-[[bin]]
-name = "walk_points_worker"
-path = "src/bin/walk_points_worker.rs"
+
+[dependencies.sea-orm]
+version = "~2.0.0-rc"
+features = [
+    "sqlx-postgres",
+    "runtime-tokio-native-tls",
+    "debug-print",
+    "with-bigdecimal",
+    "with-chrono",
+    "with-uuid",
+]
+
+# [dependencies.seaography]
+# version = "~2.0.0-rc.8" # seaography version
+# features = ["graphql-playground", "with-decimal", "with-chrono", "with-uuid"]
 
 [dev-dependencies]
-reqwest = { version = "0.13", features = ["json"] }
-tokio = { version = "1", features = ["full"] }
-serde_json = "1"
-aws-smithy-mocks-experimental = "0.2"
-sea-orm = { version = "~2.0.0-rc", features = ["mock"] }
+serde_json = { version = "1.0.103" }
+
+[workspace]
+members = [".", "migration"]

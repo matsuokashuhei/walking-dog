@@ -1,0 +1,55 @@
+{
+    "name": "api",
+    "dockerComposeFile": [
+        "../compose.yml",
+        "compose.yml"
+    ],
+    "service": "api",
+    "workspaceFolder": "/walking-dog",
+    "mounts": [
+        {
+            "source": "${localEnv:HOME}/.claude",
+            "target": "/home/vscode/.claude",
+            "type": "bind"
+        },
+        {
+            "source": "${localEnv:HOME}/.copilot",
+            "target": "/home/vscode/.copilot",
+            "type": "bind"
+        }
+    ],
+    "postCreateCommand": "sh ./apps/.devcontainer/post-create.sh",
+    "containerEnv": {
+        "CLAUDE_PROJECT_DIR": "/walking-dog"
+    },
+    "features": {
+        "ghcr.io/devcontainers/features/common-utils:2": {},
+        "ghcr.io/devcontainers/features/aws-cli:1": {},
+        "ghcr.io/devcontainers/features/github-cli:1": {},
+        "ghcr.io/devcontainers/features/copilot-cli:1": {},
+        "ghcr.io/devcontainers/features/node:2": {}
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "anthropic.claude-code",
+                "fill-labs.dependi",
+                "GitHub.copilot",
+                "GitHub.vscode-pull-request-github",
+                "rust-lang.rust-analyzer",
+                "tamasfe.even-better-toml",
+                "vadimcn.vscode-lldb"
+            ],
+            "settings": {
+                "[rust]": {
+                    "editor.defaultFormatter": "rust-lang.rust-analyzer",
+                    "editor.formatOnSave": true,
+                    "editor.codeActionsOnSave": {
+                        "source.organizeImports": "always"
+                    },
+                    "rust-analyzer.checkOnSave.command": "clippy"
+                },
+            }
+        }
+    }
+}

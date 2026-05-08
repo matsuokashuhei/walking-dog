@@ -2,10 +2,8 @@
   "includeCoAuthoredBy": true,
   "permissions": {
     "deny": [
-      "Bash(cargo*)",
       "Bash(npx playwright*)",
       "Bash(playwright test*)",
-      "Bash(playwright-cli*)",
       "mcp__plugin_sentry_sentry__search_issues",
       "mcp__plugin_sentry_sentry__search_events",
       "mcp__plugin_sentry_sentry__find_projects"
@@ -57,7 +55,8 @@
     "everything-claude-code@everything-claude-code": true,
     "evolutionary-naming@kawasima-skills": true,
     "modularity@vladikk-modularity": true,
-    "backend-development@claude-code-workflows": true
+    "backend-development@claude-code-workflows": true,
+    "apollo-skills@apollo-marketplace": true
   },
   "extraKnownMarketplaces": {
     "claude-plugins-official": {
@@ -115,7 +114,14 @@
         "repo": "wshobson/agents"
       },
       "autoUpdate": true
+    },
+    "apollo-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "apollographql/skills"
+      }
     }
   },
-  "plansDirectory": ".claude/plans"
+  "plansDirectory": ".claude/plans",
+  "useAutoModeDuringPlan": true
 }

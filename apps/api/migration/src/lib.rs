@@ -1,12 +1,13 @@
 pub use sea_orm_migration::prelude::*;
 
-mod m20260321_000001_create_users;
-mod m20260321_000002_create_dogs;
-mod m20260321_000003_create_walks;
-mod m20260321_000004_create_walk_dogs;
-mod m20260404_000001_create_dog_members_and_invitations;
-mod m20260407_000001_create_encounters_and_friendships;
-mod m20260412_000001_create_walk_events;
+mod m20260502_115153_create_user;
+mod m20260502_151110_create_dog;
+mod m20260502_155738_create_user_dog;
+mod m20260502_155745_create_walk;
+mod m20260502_155756_create_walk_dog;
+mod m20260502_155759_create_walk_photo;
+mod m20260502_155803_create_walk_dog_event;
+mod m20260503_052813_create_track_point;
 
 pub struct Migrator;
 
@@ -14,13 +15,14 @@ pub struct Migrator;
 impl MigratorTrait for Migrator {
     fn migrations() -> Vec<Box<dyn MigrationTrait>> {
         vec![
-            Box::new(m20260321_000001_create_users::Migration),
-            Box::new(m20260321_000002_create_dogs::Migration),
-            Box::new(m20260321_000003_create_walks::Migration),
-            Box::new(m20260321_000004_create_walk_dogs::Migration),
-            Box::new(m20260404_000001_create_dog_members_and_invitations::Migration),
-            Box::new(m20260407_000001_create_encounters_and_friendships::Migration),
-            Box::new(m20260412_000001_create_walk_events::Migration),
+            Box::new(m20260502_115153_create_user::Migration),
+            Box::new(m20260502_151110_create_dog::Migration),
+            Box::new(m20260502_155738_create_user_dog::Migration),
+            Box::new(m20260502_155745_create_walk::Migration),
+            Box::new(m20260502_155756_create_walk_dog::Migration),
+            Box::new(m20260502_155759_create_walk_photo::Migration),
+            Box::new(m20260502_155803_create_walk_dog_event::Migration),
+            Box::new(m20260503_052813_create_track_point::Migration),
         ]
     }
 }

@@ -9,7 +9,7 @@ use axum_extra::{
     headers::{Authorization, authorization::Bearer},
 };
 use jsonwebtoken::{Algorithm, DecodingKey, Validation, decode, jwk::JwkSet};
-use sea_orm::DatabaseConnection;
+use sea_orm::{ActiveModelTrait, ActiveValue::Set, DatabaseConnection};
 use serde::{Deserialize, Serialize};
 use tracing::{info, warn};
 
@@ -79,10 +79,35 @@ pub async fn autenticate_user(
     };
 
     let db = schema.data::<DatabaseConnection>().unwrap();
-    if let Ok(Some(user)) = user::Entity::find_by_cognito_sub(token.claims.sub)
+    let cognito_sub = token.claims.sub.clone();
+    let user = match user::Entity::find_by_cognito_sub(cognito_sub.clone())
         .one(db)
         .await
     {
+        Ok(Some(user)) => Some(user),
+        Ok(None) => {
+            // Cognito 検証は通ったが DB に対応行が無い既存ユーザーはここで JIT 作成する。
+            // 既存の signUp resolver と同じ shape (cognito_sub のみ) で追加し、
+            // 名前は updateUser で後付けする運用に合わせる。
+            warn!(cognito_sub = %cognito_sub, "User not found in DB; auto-provisioning");
+            let active = user::ActiveModel {
+                cognito_sub: Set(cognito_sub.clone()),
+                ..Default::default()
+            };
+            match active.insert(db).await {
+                Ok(user) => Some(user),
+                Err(error) => {
+                    warn!(?error, cognito_sub = %cognito_sub, "Failed to auto-provision user");
+                    None
+                }
+            }
+        }
+        Err(error) => {
+            warn!(?error, cognito_sub = %cognito_sub, "DB error during user lookup");
+            None
+        }
+    };
+    if let Some(user) = user {
         request.extensions_mut().insert(authorization);
         request.extensions_mut().insert(user);
     }

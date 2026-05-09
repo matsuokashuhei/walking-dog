@@ -48,7 +48,8 @@ export function useWalkScreenViewModel(): WalkScreenViewModel {
           ? t('walk.liveActivity.walking')
           : t('walk.liveActivity.walkingWithDogs', { count: selectedDogIds.length });
       await walkSession.start({ selectedDogIds, liveActivityDogName });
-    } catch {
+    } catch (error) {
+      console.error('[walk.start] failed', error);
       Alert.alert(t('common.error'), t('walk.error.startFailed'));
     }
   }, [permissions, selectedDogIds, t, walkSession]);

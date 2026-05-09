@@ -74,7 +74,7 @@ async fn run_worker(
 async fn receive_messages(
     sqs_client: &aws_sdk_sqs::Client,
 ) -> Result<Vec<Message>, TrackPointQueueError> {
-    let queue_url = std::env::var("SQS_QUEUE_URL_TRACK_POINT").unwrap();
+    let queue_url = std::env::var("AWS_SQS_QUEUE_URL_TRACK_POINT").unwrap();
     let output = sqs_client
         .receive_message()
         .queue_url(&queue_url)
@@ -100,7 +100,7 @@ async fn process_message(
     let track_point_message = TrackPointMessage::from_json(body)?;
     let track_point = walking_dog::entity::track_point::Model::from(track_point_message.clone());
 
-    let queue_url = std::env::var("SQS_QUEUE_URL_TRACK_POINT").unwrap();
+    let queue_url = std::env::var("AWS_SQS_QUEUE_URL_TRACK_POINT").unwrap();
     track_point.put(dynamodb_client).await?;
     sqs_client
         .delete_message()

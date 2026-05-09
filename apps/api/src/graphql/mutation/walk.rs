@@ -59,7 +59,7 @@ impl WalkMutation {
             return Err(AppError::NotFound.into());
         };
         let active_model = crate::entity::walk::ActiveModel {
-            id: Set(walk.id.into()),
+            id: Set(walk.id),
             ended_at: Set(Some(chrono::Utc::now().into())),
             distance: NotSet,
             ..Default::default()

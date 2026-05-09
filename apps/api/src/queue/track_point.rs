@@ -67,7 +67,7 @@ pub async fn enqueue_track_point(
     client: &aws_sdk_sqs::Client,
     message: &TrackPointMessage,
 ) -> Result<(), TrackPointQueueError> {
-    let queue_url = std::env::var("SQS_QUEUE_URL_TRACK_POINT").unwrap();
+    let queue_url = std::env::var("AWS_SQS_QUEUE_URL_TRACK_POINT").unwrap();
     client
         .send_message()
         .queue_url(&queue_url)

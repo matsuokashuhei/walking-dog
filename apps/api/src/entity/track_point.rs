@@ -37,7 +37,7 @@ impl Model {
     }
 
     pub async fn put(&self, client: &aws_sdk_dynamodb::Client) -> Result<Model> {
-        let table_name = std::env::var("DYNAMODB_TABLE_TRACK_POINT").unwrap();
+        let table_name = std::env::var("AWS_DYNAMODB_TABLE_TRACK_POINT").unwrap();
         let _ = client
             .put_item()
             .table_name(table_name)

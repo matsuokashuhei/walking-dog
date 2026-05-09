@@ -77,11 +77,10 @@ impl DogMutation {
             return Err(AppError::NotFound.into());
         };
         let mut active_model = input.into_active_model();
-        if let Some(file) = input.avatar {
-            if let Ok(file) = upload_avatar(ctx, file).await {
+        if let Some(file) = input.avatar
+            && let Ok(file) = upload_avatar(ctx, file).await {
                 active_model.avatar = Set(Some(file));
             }
-        }
         let updated_dog = active_model.update(db).await?;
         Ok(Dog::from(updated_dog))
     }

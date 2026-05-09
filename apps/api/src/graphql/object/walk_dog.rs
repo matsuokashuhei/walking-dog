@@ -40,7 +40,7 @@ impl WalkDog {
             .one(db)
             .await
             .map_err(|e| AppError::InternalServerError(e.to_string()))?
-            .ok_or_else(|| AppError::NotFound)?;
+            .ok_or(AppError::NotFound)?;
         Ok(Dog::from(dog))
     }
     async fn events(&self, ctx: &Context<'_>) -> Result<Vec<WalkDogEvent>> {

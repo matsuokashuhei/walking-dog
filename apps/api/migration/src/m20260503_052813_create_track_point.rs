@@ -6,8 +6,12 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, _: &SchemaManager) -> Result<(), DbErr> {
+        if std::env::var("AWS_DYNAMODB_ENDPOINT").is_err() {
+            return Ok(()); // Skip migration if no DynamoDB endpoint is configured
+        }
+
         let config = aws_config::from_env()
-            .endpoint_url("http://dynamodb-local:8000")
+            .endpoint_url(std::env::var("AWS_DYNAMODB_ENDPOINT").unwrap())
             .load()
             .await;
         let client = aws_sdk_dynamodb::Client::new(&config);
@@ -50,8 +54,12 @@ impl MigrationTrait for Migration {
     }
 
     async fn down(&self, _: &SchemaManager) -> Result<(), DbErr> {
+        if std::env::var("AWS_DYNAMODB_ENDPOINT").is_err() {
+            return Ok(()); // Skip migration if no DynamoDB endpoint is configured
+        }
+
         let config = aws_config::from_env()
-            .endpoint_url("http://dynamodb-local:8000")
+            .endpoint_url(std::env::var("AWS_DYNAMODB_ENDPOINT").unwrap())
             .load()
             .await;
         let client = aws_sdk_dynamodb::Client::new(&config);

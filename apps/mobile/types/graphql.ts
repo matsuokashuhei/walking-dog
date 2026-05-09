@@ -288,8 +288,18 @@ export interface WalkResponse {
   walk: ApiWalk;
 }
 
+export interface PageInfo {
+  hasNextPage: boolean;
+  endCursor: string | null;
+}
+
+export interface WalkConnection {
+  nodes: ApiWalk[];
+  pageInfo: PageInfo;
+}
+
 export interface WalksResponse {
-  walks: ApiWalk[];
+  walks: WalkConnection;
 }
 
 export interface AddDogResponse {

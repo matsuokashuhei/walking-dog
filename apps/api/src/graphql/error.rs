@@ -1,6 +1,7 @@
 use async_graphql::{Error, ErrorExtensions};
 use aws_sdk_cognitoidentityprovider::operation::{
-    confirm_sign_up::ConfirmSignUpError, initiate_auth::InitiateAuthError, sign_up::SignUpError,
+    change_password::ChangePasswordError, confirm_sign_up::ConfirmSignUpError,
+    global_sign_out::GlobalSignOutError, initiate_auth::InitiateAuthError, sign_up::SignUpError,
 };
 use aws_sdk_s3::error::ProvideErrorMetadata;
 use tracing::error;
@@ -53,6 +54,10 @@ pub enum AuthError {
     ConfirmSignUpError(ConfirmSignUpError),
     #[error("Sign in error: {0}")]
     SignInError(InitiateAuthError),
+    #[error("Sign out error: {0}")]
+    SignOutError(GlobalSignOutError),
+    #[error("Change password error: {0}")]
+    ChangePasswordError(ChangePasswordError),
 }
 
 impl ErrorExtensions for AuthError {
@@ -72,6 +77,16 @@ impl ErrorExtensions for AuthError {
                 error!("Sign in error: {:?}", sign_in_error);
                 e.set("code", 422);
                 e.set("message", sign_in_error.message());
+            }
+            AuthError::SignOutError(sign_out_error) => {
+                error!("Sign out error: {:?}", sign_out_error);
+                e.set("code", 422);
+                e.set("message", sign_out_error.message());
+            }
+            AuthError::ChangePasswordError(change_password_error) => {
+                error!("Change password error: {:?}", change_password_error);
+                e.set("code", 422);
+                e.set("message", change_password_error.message());
             }
         })
     }

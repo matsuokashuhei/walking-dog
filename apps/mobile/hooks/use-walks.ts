@@ -23,10 +23,10 @@ export function useWalk(id: string) {
 export function useMyWalks(limit = 20) {
   const isAuthenticated = useIsAuthenticated();
   return useQuery<Walk[]>({
-    queryKey: walkKeys.list(),
+    queryKey: walkKeys.list(limit),
     queryFn: async () => {
-      const data = await authenticatedRequest<WalksResponse>(MY_WALKS_QUERY);
-      return data.walks.slice(0, limit).map(mapApiWalk);
+      const data = await authenticatedRequest<WalksResponse>(MY_WALKS_QUERY, { first: limit });
+      return data.walks.nodes.map(mapApiWalk);
     },
     enabled: isAuthenticated,
   });

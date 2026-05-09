@@ -83,6 +83,7 @@ pub async fn autenticate_user(
         .one(db)
         .await
     {
+        request.extensions_mut().insert(authorization);
         request.extensions_mut().insert(user);
     }
     Ok(next.run(request).await)

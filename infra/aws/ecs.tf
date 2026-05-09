@@ -61,8 +61,9 @@ resource "aws_ecs_task_definition" "api" {
         { name = "COGNITO_REGION", value = var.aws_region },
         { name = "COGNITO_USER_POOL_ID", value = aws_cognito_user_pool.main.id },
         { name = "COGNITO_CLIENT_ID", value = aws_cognito_user_pool_client.app.id },
-        { name = "DYNAMODB_TABLE_WALK_POINTS", value = aws_dynamodb_table.walk_points.name },
-        { name = "S3_BUCKET_DOG_PHOTOS", value = aws_s3_bucket.dog_photos.bucket },
+        { name = "DYNAMODB_TABLE_TRACK_POINT", value = aws_dynamodb_table.track_point.name },
+        { name = "AWS_S3_BUCKET_AVATAR", value = aws_s3_bucket.avatars.bucket },
+        { name = "AWS_S3_BUCKET_PHOTO", value = aws_s3_bucket.photos.bucket },
         { name = "DATABASE_URL", value = "postgres://${var.db_username}:${random_password.db_password.result}@${aws_db_instance.main.endpoint}/${var.db_name}" },
       ]
 

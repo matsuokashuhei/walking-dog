@@ -267,6 +267,12 @@ export interface ApiTrackPoint {
   coordinate: Coordinate;
 }
 
+export interface ApiTrackPointReceipt {
+  walkId: string;
+  trackedAt: string;
+  acceptedAt: string;
+}
+
 export interface ApiWalk {
   id: string;
   startedAt: string;
@@ -315,7 +321,7 @@ export interface RemoveDogResponse {
 }
 
 export interface TrackPointResponse {
-  trackPoint: ApiTrackPoint;
+  trackPoint: ApiTrackPointReceipt;
 }
 
 export interface StartWalkResponse {

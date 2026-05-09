@@ -1,17 +1,17 @@
-resource "aws_dynamodb_table" "walk_points" {
-  name         = "${var.project_name}-${var.environment}-WalkPoints"
+resource "aws_dynamodb_table" "track_point" {
+  name         = "${var.project_name}-${var.environment}-track-point"
   billing_mode = "PAY_PER_REQUEST"
-  hash_key     = "pk"
-  range_key    = "sk"
+  hash_key     = "walk_id"
+  range_key    = "tracked_at"
 
   attribute {
-    name = "pk"
+    name = "walk_id"
     type = "S"
   }
 
   attribute {
-    name = "sk"
-    type = "S"
+    name = "tracked_at"
+    type = "N"
   }
 
   tags = {

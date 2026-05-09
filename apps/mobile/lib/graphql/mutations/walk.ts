@@ -82,7 +82,7 @@ export const TRACK_POINT_MUTATION = gql`
     trackPoint(input: $input) {
       walkId
       trackedAt
-      coordinate { latitude longitude }
+        acceptedAt
     }
   }
 `;

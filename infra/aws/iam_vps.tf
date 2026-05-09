@@ -29,7 +29,9 @@ resource "aws_iam_user_policy" "vps_api" {
           "dynamodb:GetItem",
           "dynamodb:PutItem",
         ]
-        Resource = aws_dynamodb_table.walk_points.arn
+        Resource = [
+          aws_dynamodb_table.track_point.arn,
+        ]
       },
       {
         Sid    = "S3"
@@ -38,7 +40,10 @@ resource "aws_iam_user_policy" "vps_api" {
           "s3:PutObject",
           "s3:GetObject",
         ]
-        Resource = "${aws_s3_bucket.dog_photos.arn}/*"
+        Resource = [
+          "${aws_s3_bucket.avatars.arn}/*",
+          "${aws_s3_bucket.photos.arn}/*",
+        ]
       },
       {
         Sid    = "Cognito"
@@ -60,8 +65,8 @@ resource "aws_iam_user_policy" "vps_api" {
           "sqs:GetQueueAttributes",
         ]
         Resource = [
-          aws_sqs_queue.walk_points.arn,
-          aws_sqs_queue.walk_points_dlq.arn,
+          aws_sqs_queue.track_point.arn,
+          aws_sqs_queue.track_point_dlq.arn,
         ]
       },
       {

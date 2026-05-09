@@ -10,6 +10,13 @@ pub struct TrackPoint {
     pub coordinate: Coordinate,
 }
 
+#[derive(SimpleObject, Clone, Debug)]
+pub struct TrackPointReceipt {
+    pub walk_id: Uuid,
+    pub tracked_at: chrono::DateTime<chrono::Utc>,
+    pub accepted_at: chrono::DateTime<chrono::Utc>,
+}
+
 impl From<track_point::Model> for TrackPoint {
     fn from(model: track_point::Model) -> Self {
         TrackPoint {

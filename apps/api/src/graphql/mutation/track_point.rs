@@ -7,9 +7,10 @@ use crate::graphql::{
     error::AppError,
     object::{
         coordinate::{Latitude, Longitude},
-        track_point::TrackPoint,
+        track_point::TrackPointReceipt,
     },
 };
+use crate::queue::track_point::{TrackPointMessage, enqueue_track_point};
 use crate::{entity::user, graphql::guard::AuthGuard};
 
 #[derive(Default, Debug)]
@@ -18,7 +19,11 @@ pub struct TrackPointMutation;
 #[Object]
 impl TrackPointMutation {
     #[graphql(guard = "AuthGuard")]
-    async fn track_point(&self, ctx: &Context<'_>, input: TrackPointInput) -> Result<TrackPoint> {
+    async fn track_point(
+        &self,
+        ctx: &Context<'_>,
+        input: TrackPointInput,
+    ) -> Result<TrackPointReceipt> {
         let user = ctx.data::<user::Model>().unwrap();
         let walk = crate::entity::walk::Entity::find_by_id(input.walk_id)
             .has_related(
@@ -34,15 +39,24 @@ impl TrackPointMutation {
             )
             .into());
         }
-        let client = ctx.data::<aws_sdk_dynamodb::Client>().unwrap();
-        let track_point = crate::entity::track_point::Model::new(
+
+        let accepted_at = chrono::Utc::now();
+        let message = TrackPointMessage::new(
             input.walk_id,
             input.tracked_at,
             input.latitude.value(),
             input.longitude.value(),
+            accepted_at,
         );
-        let model = track_point.put(client).await?;
-        Ok(TrackPoint::from(model))
+        enqueue_track_point(ctx.data::<aws_sdk_sqs::Client>().unwrap(), &message)
+            .await
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+
+        Ok(TrackPointReceipt {
+            walk_id: input.walk_id,
+            tracked_at: input.tracked_at,
+            accepted_at,
+        })
     }
 }
 

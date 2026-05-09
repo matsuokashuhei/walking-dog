@@ -25,7 +25,7 @@ Cognito / DynamoDB / S3 は AWS の dev 環境リソースを IAM ユーザー�
 │  └──────────────┘  │            │       │                                  │
 │  ┌──────────────┐  │            │       │                                  │
 │  │ postgres:16  │◄─┘            │       │                                  │
-│  └──────────────┘               │       │  CloudFront ──► S3 (dog-photos)  │
+│  └──────────────┘               │       │  CloudFront ──► S3 (avatars/photos) │
 └─────────────────────────────────┘       └──────────────────────────────────┘
                                                    ▲
                                                    │ HTTPS (写真配信)
@@ -36,7 +36,7 @@ Cognito / DynamoDB / S3 は AWS の dev 環境リソースを IAM ユーザー�
 - VPS は ECR から pull するだけ（Rust のコンパイルは行わない）
 - Caddy が Let's Encrypt 証明書を自動取得・更新して HTTPS 終端する
 - `walkingdogdev.dpdns.org` の A レコードは Route53 で VPS IP を指す
-- 犬の写真は CloudFront distribution (`https://d1idixueiq8qgh.cloudfront.net`) から配信する。S3 バケットは OAC 経由でのみアクセス可能（`infra/aws/cloudfront.tf` 参照）
+- アバターと散歩写真は専用の CloudFront distribution（`avatars` 用 / `photos` 用）から配信する。S3 バケットは OAC 経由でのみアクセス可能（`infra/aws/cloudfront.tf` 参照）
 
 ## 前提
 
@@ -91,11 +91,12 @@ vi .env
 | `AWS_ACCESS_KEY_ID` | `terraform output vps_api_access_key_id` |
 | `AWS_SECRET_ACCESS_KEY` | `terraform output -raw vps_api_secret_access_key` |
 | `ECR_IMAGE` | `terraform output ecr_repository_url` + `:latest` |
-| `PHOTO_CDN_URL` | `terraform output -raw cloudfront_dog_photos_url` |
+| `AVATAR_CDN_URL` | `terraform output -raw cloudfront_avatars_url` |
+| `PHOTO_CDN_URL` | `terraform output -raw cloudfront_photos_url` |
 
-その他（`DYNAMODB_TABLE_WALK_POINTS`, `S3_BUCKET_DOG_PHOTOS`, `COGNITO_USER_POOL_ID`, `COGNITO_CLIENT_ID`）は `.env.example` の値をそのまま使う。
+その他（`DYNAMODB_TABLE_TRACK_POINT`, `SQS_QUEUE_URL_TRACK_POINT`, `AWS_S3_BUCKET_AVATAR`, `AWS_S3_BUCKET_PHOTO`, `COGNITO_USER_POOL_ID`, `COGNITO_CLIENT_ID`）は `.env.example` の値をそのまま使う。
 
-`PHOTO_CDN_URL` は API が GraphQL の `photoUrl` フィールドを組み立てるときに S3 オブジェクトキーの前に付ける CloudFront のベース URL。`.env.example` のデフォルト値で動くが、distribution を作り直した場合は `terraform output -raw cloudfront_dog_photos_url` の値に差し替える。
+`AVATAR_CDN_URL` / `PHOTO_CDN_URL` は API が GraphQL の `avatar` / `photoUrl` フィールドを組み立てるときに S3 オブジェクトキーの前に付ける CloudFront のベース URL。`.env.example` のデフォルト値で動くが、distribution を作り直した場合は `terraform output -raw cloudfront_avatars_url` / `cloudfront_photos_url` の値に差し替える。
 
 ### 4. 初回デプロイ
 
@@ -159,7 +160,7 @@ docker compose exec api env | grep <VAR_NAME>     # 反映確認
 docker compose exec walker env | grep <VAR_NAME>  # worker 側も確認
 ```
 
-例: `SQS_QUEUE_URL_WALK_POINTS` や `PHOTO_CDN_URL` を追加したとき、`docker compose restart` だけでは `env_file` を再読込しない環境があるため、`deploy.sh` 経由での `--force-recreate` を前提にする。
+例: `SQS_QUEUE_URL_TRACK_POINT` や `PHOTO_CDN_URL` を追加したとき、`docker compose restart` だけでは `env_file` を再読込しない環境があるため、`deploy.sh` 経由での `--force-recreate` を前提にする。
 
 ## トラブルシューティング
 

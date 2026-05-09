@@ -8,11 +8,6 @@
     "workspaceFolder": "/walking-dog",
     "mounts": [
         {
-            "source": "${localEnv:HOME}/.claude",
-            "target": "/home/vscode/.claude",
-            "type": "bind"
-        },
-        {
             "source": "${localEnv:HOME}/.copilot",
             "target": "/home/vscode/.copilot",
             "type": "bind"
@@ -27,7 +22,8 @@
         "ghcr.io/devcontainers/features/aws-cli:1": {},
         "ghcr.io/devcontainers/features/github-cli:1": {},
         "ghcr.io/devcontainers/features/copilot-cli:1": {},
-        "ghcr.io/devcontainers/features/node:2": {}
+        "ghcr.io/devcontainers/features/node:2": {},
+        "ghcr.io/devcontainers/features/terraform:1": {}
     },
     "customizations": {
         "vscode": {

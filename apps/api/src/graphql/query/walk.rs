@@ -90,7 +90,7 @@ impl WalkQuery {
             .one(db)
             .await
             .map_err(|e| AppError::InternalServerError(e.to_string()))?
-            .ok_or_else(|| AppError::NotFound)?;
+            .ok_or(AppError::NotFound)?;
         Ok(Walk::from(walk))
     }
 }

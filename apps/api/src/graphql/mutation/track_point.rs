@@ -32,7 +32,7 @@ impl TrackPointMutation {
             )
             .one(ctx.data::<DatabaseConnection>().unwrap())
             .await?
-            .ok_or_else(|| AppError::NotFound)?;
+            .ok_or(AppError::NotFound)?;
         if walk.ended_at.is_some() {
             return Err(AppError::UnprocessableEntity(
                 "Cannot track point for an ended walk".to_string(),

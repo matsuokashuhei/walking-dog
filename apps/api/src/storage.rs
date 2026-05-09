@@ -59,17 +59,24 @@ fn max_upload_bytes() -> u64 {
 }
 
 pub fn avatar_url(key: Option<&str>) -> Option<Url> {
-    let bucket = std::env::var("AWS_S3_BUCKET_AVATAR").unwrap();
-    let endpoint = std::env::var("AWS_S3_ENDPOINT").ok();
-    if let Some(key) = key {
-        if let Some(_) = endpoint {
-            Url::parse(&format!("http://localhost:9000/{}/{}", bucket, key)).ok()
-        } else {
-            Url::parse(&format!("https://{}.s3.amazonaws.com/{}", bucket, key)).ok()
-        }
-    } else {
-        None
+    let key = key?;
+
+    if let Ok(cdn_base) = std::env::var("AVATAR_CDN_URL") {
+        return Url::parse(&format!("{}/{}", cdn_base.trim_end_matches('/'), key)).ok();
     }
+
+    let bucket = std::env::var("AWS_S3_BUCKET_AVATAR").ok()?;
+    if let Ok(endpoint) = std::env::var("AWS_S3_ENDPOINT") {
+        return Url::parse(&format!(
+            "{}/{}/{}",
+            endpoint.trim_end_matches('/'),
+            bucket,
+            key
+        ))
+        .ok();
+    }
+
+    Url::parse(&format!("https://{}.s3.amazonaws.com/{}", bucket, key)).ok()
 }
 
 #[derive(Debug, thiserror::Error)]

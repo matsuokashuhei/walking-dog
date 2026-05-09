@@ -16,11 +16,10 @@ impl UserMutation {
     async fn update_user(&self, ctx: &Context<'_>, input: UpdateUserInput) -> Result<User> {
         let user = ctx.data::<user::Model>().unwrap();
         let mut active_model = input.into_active_model(user.id);
-        if let Some(file) = input.avatar {
-            if let Ok(file) = upload_avatar(ctx, file).await {
+        if let Some(file) = input.avatar
+            && let Ok(file) = upload_avatar(ctx, file).await {
                 active_model.avatar = Set(Some(file));
             }
-        }
         let db = ctx.data::<sea_orm::DatabaseConnection>().unwrap();
         let updated_user = active_model.update(db).await?;
         Ok(User::from(updated_user))

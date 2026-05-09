@@ -1,0 +1,312 @@
+input AddDogInput {
+	name: String!
+	breed: String
+	gender: Gender!
+	avatar: Upload
+}
+
+input AddEventInput {
+	walkId: UUID!
+	dogId: UUID!
+	event: EventType!
+	occurredAt: DateTime!
+	latitude: Latitude!
+	longitude: Longitude!
+}
+
+input ChangePasswordInput {
+	oldPassword: String!
+	newPassword: String!
+}
+
+input ConfirmSignUpInput {
+	email: String!
+	code: String!
+}
+
+type ConfirmSignUpOutput {
+	success: Boolean!
+}
+
+type Coordinate {
+	latitude: Latitude!
+	longitude: Longitude!
+}
+
+"""
+Implement the DateTime<Utc> scalar
+
+The input/output is a string in RFC3339 format.
+"""
+scalar DateTime
+
+type Dog {
+	id: UUID!
+	name: String!
+	breed: String
+	gender: Gender!
+	avatar: Url
+	createdAt: DateTime!
+	updatedAt: DateTime!
+	walks(after: String, before: String, first: Int, last: Int): WalkConnection!
+}
+
+input EndWalkInput {
+	id: UUID!
+}
+
+enum EventType {
+	PEE
+	POO
+	SNIFF
+	GREET
+}
+
+enum Gender {
+	MALE
+	FEMALE
+	OTHER
+}
+
+scalar Latitude
+
+scalar Longitude
+
+type Mutation {
+	signUp(input: SignUpInput!): SignUpOutput!
+	confirmSignUp(input: ConfirmSignUpInput!): ConfirmSignUpOutput!
+	signIn(input: SignInInput!): SignInOutput!
+	signOut: SignOutOutput!
+	changePassword(input: ChangePasswordInput!): SignOutOutput!
+	addDog(input: AddDogInput!): Dog!
+	updateDog(input: UpdateDogInput!): Dog!
+	removeDog(input: RemoveDogInput!): Dog!
+	trackPoint(input: TrackPointInput!): TrackPointReceipt!
+	updateUser(input: UpdateUserInput!): User!
+	startWalk(input: StartWalkInput!): Walk!
+	endWalk(input: EndWalkInput!): Walk!
+	addEvent(input: AddEventInput!): WalkDogEvent!
+	takePhoto(input: TakePhotoInput!): WalkPhoto!
+}
+
+"""
+Information about pagination in a connection
+"""
+type PageInfo {
+	"""
+	When paginating backwards, are there more items?
+	"""
+	hasPreviousPage: Boolean!
+	"""
+	When paginating forwards, are there more items?
+	"""
+	hasNextPage: Boolean!
+	"""
+	When paginating backwards, the cursor to continue.
+	"""
+	startCursor: String
+	"""
+	When paginating forwards, the cursor to continue.
+	"""
+	endCursor: String
+}
+
+type Query {
+	dogs: [Dog!]!
+	user: User!
+	walks(after: String, before: String, first: Int, last: Int): WalkConnection!
+	walk(id: UUID!): Walk!
+}
+
+input RemoveDogInput {
+	id: UUID!
+}
+
+input SignInInput {
+	email: String!
+	password: String!
+}
+
+type SignInOutput {
+	accessToken: String!
+	refreshToken: String!
+}
+
+type SignOutOutput {
+	success: Boolean!
+}
+
+input SignUpInput {
+	email: String!
+	password: String!
+}
+
+type SignUpOutput {
+	success: Boolean!
+}
+
+input StartWalkInput {
+	dogIds: [UUID!]!
+}
+
+input TakePhotoInput {
+	walkId: UUID!
+	occurredAt: DateTime!
+	file: Upload!
+	latitude: Float!
+	longitude: Float!
+}
+
+type TrackPoint {
+	walkId: UUID!
+	trackedAt: DateTime!
+	coordinate: Coordinate!
+}
+
+input TrackPointInput {
+	walkId: UUID!
+	trackedAt: DateTime!
+	latitude: Latitude!
+	longitude: Longitude!
+}
+
+type TrackPointReceipt {
+	walkId: UUID!
+	trackedAt: DateTime!
+	acceptedAt: DateTime!
+}
+
+"""
+A UUID is a unique 128-bit number, stored as 16 octets. UUIDs are parsed as
+Strings within GraphQL. UUIDs are used to assign unique identifiers to
+entities without requiring a central allocating authority.
+
+# References
+
+* [Wikipedia: Universally Unique Identifier](http://en.wikipedia.org/wiki/Universally_unique_identifier)
+* [RFC4122: A Universally Unique Identifier (UUID) URN Namespace](http://tools.ietf.org/html/rfc4122)
+"""
+scalar UUID
+
+input UpdateDogInput {
+	id: UUID!
+	name: String
+	breed: String
+	gender: Gender
+	avatar: Upload
+}
+
+input UpdateUserInput {
+	name: String
+	avatar: Upload
+}
+
+"""
+A multipart file upload
+"""
+scalar Upload
+
+"""
+URL is a String implementing the [URL Standard](http://url.spec.whatwg.org/)
+"""
+scalar Url
+
+type User {
+	id: UUID!
+	name: String
+	avatar: Url
+	createdAt: DateTime!
+	updatedAt: DateTime!
+	dogs: [Dog!]!
+	walks(after: String, before: String, first: Int, last: Int): WalkConnection!
+}
+
+type Walk {
+	id: UUID!
+	startedAt: DateTime!
+	endedAt: DateTime
+	distance: Int
+	createdAt: DateTime!
+	updatedAt: DateTime!
+	walkDogs: [WalkDog!]!
+	dogs: [Dog!]!
+	photos: [WalkPhoto!]!
+	trackPoints: [TrackPoint!]!
+}
+
+type WalkConnection {
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [WalkEdge!]!
+	"""
+	A list of nodes.
+	"""
+	nodes: [Walk!]!
+}
+
+type WalkDog {
+	id: UUID!
+	walkId: UUID!
+	dogId: UUID!
+	createdAt: DateTime!
+	updatedAt: DateTime!
+	dog: Dog!
+	events: [WalkDogEvent!]!
+}
+
+type WalkDogEvent {
+	id: UUID!
+	walkDogId: UUID!
+	event: EventType!
+	occurredAt: DateTime!
+	coordinate: Coordinate!
+	createdAt: DateTime!
+	updatedAt: DateTime!
+}
+
+"""
+An edge in a connection.
+"""
+type WalkEdge {
+	"""
+	The item at the end of the edge
+	"""
+	node: Walk!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
+}
+
+type WalkPhoto {
+	id: UUID!
+	walkId: UUID!
+	occurredAt: DateTime!
+	file: String!
+	coordinate: Coordinate!
+	createdAt: DateTime!
+	updatedAt: DateTime!
+}
+
+"""
+Directs the executor to include this field or fragment only when the `if` argument is true.
+"""
+directive @include(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+"""
+Directs the executor to skip this field or fragment when the `if` argument is true.
+"""
+directive @skip(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+"""
+Provides a scalar specification URL for specifying the behavior of custom scalar types.
+"""
+directive @specifiedBy(url: String!) on SCALAR
+schema {
+	query: Query
+	mutation: Mutation
+}
+

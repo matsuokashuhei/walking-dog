@@ -1,4 +1,4 @@
-import { gql } from 'graphql-request';
+import { gql } from '../gql';
 
 const DOG_FIELDS = gql`
   fragment DogFields on Dog {

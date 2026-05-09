@@ -1,14 +1,25 @@
-import { ClientError } from 'graphql-request';
-import { useAuthStore } from './auth-store';
+import type * as AuthStoreModule from './auth-store';
+import type * as AuthApiModule from '@/lib/auth/api';
+import type * as AuthBootstrapModule from '@/lib/auth/bootstrap';
+import type * as GraphQLClientModule from '@/lib/graphql/client';
 import * as secureStorage from '@/lib/auth/secure-storage';
-import { setAuthToken } from '@/lib/graphql/client';
-import * as authApi from '@/lib/auth/api';
-import * as authBootstrap from '@/lib/auth/bootstrap';
+import { ClientError } from '@/lib/graphql/client-error';
 
 jest.mock('@/lib/auth/secure-storage');
-jest.mock('@/lib/graphql/client');
-jest.mock('@/lib/auth/api');
-jest.mock('@/lib/auth/bootstrap');
+jest.mock('@/lib/graphql/client', () => ({
+  setAuthToken: jest.fn(),
+}));
+jest.mock('@/lib/auth/api', () => ({
+  refreshToken: jest.fn(),
+}));
+jest.mock('@/lib/auth/bootstrap', () => ({
+  bootstrapAuth: jest.fn(),
+}));
+
+const { useAuthStore } = require('./auth-store') as typeof AuthStoreModule;
+const { setAuthToken } = require('@/lib/graphql/client') as typeof GraphQLClientModule;
+const authApi = require('@/lib/auth/api') as typeof AuthApiModule;
+const authBootstrap = require('@/lib/auth/bootstrap') as typeof AuthBootstrapModule;
 
 const mockSecureStorage = secureStorage as jest.Mocked<typeof secureStorage>;
 const mockSetAuthToken = setAuthToken as jest.Mock;

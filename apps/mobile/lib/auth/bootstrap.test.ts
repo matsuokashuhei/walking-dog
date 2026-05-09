@@ -1,15 +1,22 @@
-import { ClientError } from 'graphql-request';
-import { bootstrapAuth } from './bootstrap';
+import type * as BootstrapModule from './bootstrap';
+import type * as GraphQLClientModule from '@/lib/graphql/client';
 import { ME_QUERY } from '@/lib/graphql/queries/me';
 import * as secureStorage from '@/lib/auth/secure-storage';
-import {
+import { ClientError } from '@/lib/graphql/client-error';
+
+jest.mock('@/lib/auth/secure-storage');
+jest.mock('@/lib/graphql/client', () => ({
+  authenticatedRequest: jest.fn(),
+  setAuthToken: jest.fn(),
+  setRefreshHandler: jest.fn(),
+}));
+
+const { bootstrapAuth } = require('./bootstrap') as typeof BootstrapModule;
+const {
   authenticatedRequest,
   setAuthToken,
   setRefreshHandler,
-} from '@/lib/graphql/client';
-
-jest.mock('@/lib/auth/secure-storage');
-jest.mock('@/lib/graphql/client');
+} = require('@/lib/graphql/client') as typeof GraphQLClientModule;
 
 const mockSecureStorage = secureStorage as jest.Mocked<typeof secureStorage>;
 const mockAuthenticatedRequest = authenticatedRequest as jest.Mock;

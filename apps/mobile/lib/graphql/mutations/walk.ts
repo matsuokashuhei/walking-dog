@@ -1,4 +1,4 @@
-import { gql } from 'graphql-request';
+import { gql } from '../gql';
 
 const WALK_FIELDS = gql`
   fragment MutationWalkFields on Walk {

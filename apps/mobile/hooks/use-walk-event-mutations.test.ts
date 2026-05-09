@@ -1,16 +1,19 @@
 import { renderHook, act } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createElement, type ReactNode } from 'react';
+import type * as ClientModule from '@/lib/graphql/client';
 import {
   useRecordWalkEvent,
   useGenerateWalkEventPhotoUploadUrl,
 } from './use-walk-event-mutations';
-import * as client from '@/lib/graphql/client';
 
-jest.mock('@/lib/graphql/client');
+jest.mock('@/lib/graphql/client', () => ({
+  authenticatedRequest: jest.fn(),
+}));
 
-const mockAuthenticatedRequest = client.authenticatedRequest as jest.MockedFunction<
-  typeof client.authenticatedRequest
+const { authenticatedRequest } = require('@/lib/graphql/client') as typeof ClientModule;
+const mockAuthenticatedRequest = authenticatedRequest as jest.MockedFunction<
+  typeof authenticatedRequest
 >;
 
 function createWrapper(): ({ children }: { children: ReactNode }) => ReactNode {

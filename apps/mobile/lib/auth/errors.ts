@@ -1,4 +1,4 @@
-import { ClientError } from 'graphql-request';
+import { ClientError } from '../graphql/client-error';
 import { extractGraphQLErrorMessage, isNetworkError } from '../graphql/errors';
 
 export type AuthErrorKind =

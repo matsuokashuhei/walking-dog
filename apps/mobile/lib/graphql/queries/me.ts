@@ -1,4 +1,4 @@
-import { gql } from 'graphql-request';
+import { gql } from '../gql';
 
 export const USER_QUERY = gql`
   query User {

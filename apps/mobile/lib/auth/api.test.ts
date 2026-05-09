@@ -1,6 +1,6 @@
 import { GraphQLError } from 'graphql';
-import { ClientError } from 'graphql-request';
 import { graphqlClient } from '../graphql/client';
+import { ClientError } from '../graphql/client-error';
 import { confirmSignUp, signIn, signUp } from './api';
 
 jest.mock('../graphql/client', () => ({

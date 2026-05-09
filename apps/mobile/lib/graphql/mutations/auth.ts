@@ -1,4 +1,4 @@
-import { gql } from 'graphql-request';
+import { gql } from '../gql';
 
 export const SIGN_UP_MUTATION = gql`
   mutation SignUp($input: SignUpInput!) {

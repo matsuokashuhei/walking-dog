@@ -2,6 +2,16 @@ import { renderHook, act } from '@testing-library/react-native';
 import { useAuthStore } from '@/stores/auth-store';
 import { useIsAuthenticated } from './use-is-authenticated';
 
+jest.mock('@/lib/auth/api', () => ({
+  refreshToken: jest.fn(),
+}));
+jest.mock('@/lib/auth/bootstrap', () => ({
+  bootstrapAuth: jest.fn(),
+}));
+jest.mock('@/lib/graphql/client', () => ({
+  setAuthToken: jest.fn(),
+}));
+
 describe('useIsAuthenticated', () => {
   afterEach(() => {
     act(() => {

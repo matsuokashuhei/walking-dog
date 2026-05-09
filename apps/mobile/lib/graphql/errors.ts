@@ -1,4 +1,4 @@
-import { ClientError } from 'graphql-request';
+import { ClientError } from './client-error';
 
 export function isNetworkError(error: unknown): boolean {
   if (error instanceof TypeError) return true;

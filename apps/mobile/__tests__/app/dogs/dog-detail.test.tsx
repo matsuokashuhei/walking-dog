@@ -69,6 +69,14 @@ jest.mock('@/hooks/use-me', () => ({
   useMe: () => ({ data: mockMeData }),
 }));
 
+jest.mock('@/hooks/use-pack-progress', () => ({
+  usePackProgress: () => ({ perDog: {} }),
+}));
+
+jest.mock('@/hooks/use-walks', () => ({
+  useMyWalks: () => ({ data: [] }),
+}));
+
 jest.mock('@/stores/auth-store', () => ({
   useAuthStore: (selector: (s: { isAuthenticated: boolean }) => unknown) =>
     selector({ isAuthenticated: true }),

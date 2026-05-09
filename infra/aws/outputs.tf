@@ -22,12 +22,12 @@ output "cognito_domain" {
 
 # --- DynamoDB ---
 
-output "dynamodb_table_walk_points" {
-  value = aws_dynamodb_table.walk_points.name
+output "dynamodb_table_track_point" {
+  value = aws_dynamodb_table.track_point.name
 }
 
-output "walk_points_queue_url" {
-  value = aws_sqs_queue.walk_points.id
+output "track_point_queue_url" {
+  value = aws_sqs_queue.track_point.id
 }
 
 # --- S3 ---

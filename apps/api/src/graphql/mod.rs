@@ -19,6 +19,7 @@ pub async fn build_schema() -> async_graphql::Schema<Query, mutation::Mutation, 
     .data(build_database_connection().await)
     .data(build_cognitoidentityprovider_client().await)
     .data(build_dynamodb_client().await)
+    .data(build_sqs_client().await)
     .data(build_s3_client().await)
     .extension(Tracing)
     .finish()
@@ -46,6 +47,15 @@ async fn build_dynamodb_client() -> aws_sdk_dynamodb::Client {
         Err(_) => config_loader.load().await,
     };
     aws_sdk_dynamodb::Client::new(&config)
+}
+
+async fn build_sqs_client() -> aws_sdk_sqs::Client {
+    let config_loader = aws_config::from_env();
+    let config = match env::var("AWS_SQS_ENDPOINT") {
+        Ok(endpoint) => config_loader.endpoint_url(endpoint).load().await,
+        Err(_) => config_loader.load().await,
+    };
+    aws_sdk_sqs::Client::new(&config)
 }
 
 async fn build_s3_client() -> aws_sdk_s3::Client {

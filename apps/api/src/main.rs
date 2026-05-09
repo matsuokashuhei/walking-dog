@@ -1,14 +1,5 @@
-mod auth;
-mod entity;
-mod graphql;
-mod storage;
-
 use std::net::SocketAddr;
 
-use crate::{
-    entity::user,
-    graphql::{mutation, query::Query},
-};
 use async_graphql::{EmptySubscription, Schema, http::GraphiQLSource};
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
 use axum::{
@@ -20,6 +11,11 @@ use axum::{
     routing::get,
 };
 use tokio::net::TcpListener;
+use walking_dog::{
+    auth,
+    entity::user,
+    graphql::{self, mutation, query::Query},
+};
 
 #[tokio::main]
 async fn main() {

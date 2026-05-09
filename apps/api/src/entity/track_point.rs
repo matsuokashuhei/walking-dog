@@ -37,9 +37,10 @@ impl Model {
     }
 
     pub async fn put(&self, client: &aws_sdk_dynamodb::Client) -> Result<Model> {
+        let table_name = std::env::var("DYNAMODB_TABLE_TRACK_POINT").unwrap();
         let _ = client
             .put_item()
-            .table_name("track_point")
+            .table_name(table_name)
             .item("walk_id", AttributeValue::S(self.walk_id.to_string()))
             .item(
                 "tracked_at",
@@ -70,9 +71,10 @@ impl Model {
         walk_id: Uuid,
         tracked_at: chrono::DateTime<chrono::Utc>,
     ) -> Result<Option<Model>> {
+        let table_name = std::env::var("AWS_DYNAMODB_TABLE_TRACK_POINT").unwrap();
         let output = client
             .query()
-            .table_name("track_point")
+            .table_name(table_name)
             .key_condition_expression("walk_id = :walk_id AND tracked_at = :tracked_at")
             .expression_attribute_values(":walk_id", AttributeValue::S(walk_id.to_string()))
             .expression_attribute_values(
@@ -97,9 +99,10 @@ impl Model {
         client: &aws_sdk_dynamodb::Client,
         walk_id: Uuid,
     ) -> Result<Vec<Model>> {
+        let table_name = std::env::var("AWS_DYNAMODB_TABLE_TRACK_POINT").unwrap();
         let output = client
             .query()
-            .table_name("track_point")
+            .table_name(table_name)
             .key_condition_expression("walk_id = :walk_id")
             .expression_attribute_values(":walk_id", AttributeValue::S(walk_id.to_string()))
             .send()

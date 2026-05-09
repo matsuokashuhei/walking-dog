@@ -6,7 +6,7 @@ import {
   ADD_WALK_POINTS_MUTATION,
 } from '@/lib/graphql/mutations/walk';
 import { walkKeys } from '@/lib/graphql/keys';
-import { mapApiTrackPoint, mapApiWalk } from '@/lib/graphql/adapters';
+import { mapApiWalk } from '@/lib/graphql/adapters';
 import type {
   Walk,
   WalkPointInput,
@@ -50,18 +50,14 @@ export function useAddWalkPoints() {
   return useMutation<boolean, Error, { walkId: string; points: WalkPointInput[] }>({
     mutationFn: async ({ walkId, points }) => {
       for (const point of points) {
-        const data = await authenticatedRequest<AddWalkPointsResponse>(
-          ADD_WALK_POINTS_MUTATION,
-          {
-            input: {
-              walkId,
-              trackedAt: point.recordedAt,
-              latitude: point.lat,
-              longitude: point.lng,
-            },
+        await authenticatedRequest<AddWalkPointsResponse>(ADD_WALK_POINTS_MUTATION, {
+          input: {
+            walkId,
+            trackedAt: point.recordedAt,
+            latitude: point.lat,
+            longitude: point.lng,
           },
-        );
-        mapApiTrackPoint(data.trackPoint);
+        });
       }
       return true;
     },

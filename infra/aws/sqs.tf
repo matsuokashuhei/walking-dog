@@ -1,5 +1,5 @@
-resource "aws_sqs_queue" "walk_points_dlq" {
-  name                       = "${var.project_name}-${var.environment}-walk-points-dlq"
+resource "aws_sqs_queue" "track_point_dlq" {
+  name                       = "${var.project_name}-${var.environment}-track-point-dlq"
   visibility_timeout_seconds = 60
   message_retention_seconds  = 345600
 
@@ -9,12 +9,12 @@ resource "aws_sqs_queue" "walk_points_dlq" {
   }
 }
 
-resource "aws_sqs_queue" "walk_points" {
-  name                       = "${var.project_name}-${var.environment}-walk-points"
+resource "aws_sqs_queue" "track_point" {
+  name                       = "${var.project_name}-${var.environment}-track-point"
   visibility_timeout_seconds = 60
   message_retention_seconds  = 345600
   redrive_policy = jsonencode({
-    deadLetterTargetArn = aws_sqs_queue.walk_points_dlq.arn
+    deadLetterTargetArn = aws_sqs_queue.track_point_dlq.arn
     maxReceiveCount     = 5
   })
 

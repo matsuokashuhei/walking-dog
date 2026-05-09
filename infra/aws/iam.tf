@@ -112,7 +112,9 @@ resource "aws_iam_role_policy" "ecs_task" {
           "dynamodb:GetItem",
           "dynamodb:PutItem",
         ]
-        Resource = aws_dynamodb_table.walk_points.arn
+        Resource = [
+          aws_dynamodb_table.track_point.arn,
+        ]
       },
       {
         Effect = "Allow"

@@ -11,7 +11,7 @@ axum = { version = "0.8.9" }
 axum-extra = { version = "0.12.6", features = ["typed-header"] }
 async-graphql = { version = "7.2.1", features = ["chrono", "uuid", "url", "tracing"] }
 async-graphql-axum = { version = "7.2.1" }
-tokio = { version = "1.52.2", features = ["macros", "rt-multi-thread", "time"] }
+tokio = { version = "1.52.2", features = ["macros", "rt-multi-thread", "sync", "time"] }
 tracing = { version = "0.1.44" }
 tracing-subscriber = { version = "0.3.23" }
 aws-config = { version = "1.8.16", features = ["behavior-version-latest"] }
@@ -19,9 +19,9 @@ aws-sdk-dynamodb = "1.111.0"
 aws-sdk-s3 = { version = "1.132.0", features = ["behavior-version-latest"] }
 aws-sdk-sqs = "1.98.0"
 aws-sdk-cognitoidentityprovider = "1.116.0"
-chrono = { version = "0.4.44", default-features = false, features = ["std"] }
+chrono = { version = "0.4.44", default-features = false, features = ["serde", "std"] }
 anyhow = "1.0.102"
-uuid = { version = "1.23.1", features = ["v7"] }
+uuid = { version = "1.23.1", features = ["serde", "v7"] }
 jsonwebtoken = { version = "10.3.0", features = ["aws_lc_rs"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = { version = "1.0.149" }

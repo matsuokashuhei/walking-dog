@@ -93,7 +93,7 @@ vi .env
 | `ECR_IMAGE` | `terraform output ecr_repository_url` + `:latest` |
 | `PHOTO_CDN_URL` | `terraform output -raw cloudfront_dog_photos_url` |
 
-その他（`DYNAMODB_TABLE_WALK_POINTS`, `S3_BUCKET_DOG_PHOTOS`, `COGNITO_USER_POOL_ID`, `COGNITO_CLIENT_ID`）は `.env.example` の値をそのまま使う。
+その他（`DYNAMODB_TABLE_TRACK_POINT`, `SQS_QUEUE_URL_TRACK_POINT`, `S3_BUCKET_DOG_PHOTOS`, `COGNITO_USER_POOL_ID`, `COGNITO_CLIENT_ID`）は `.env.example` の値をそのまま使う。
 
 `PHOTO_CDN_URL` は API が GraphQL の `photoUrl` フィールドを組み立てるときに S3 オブジェクトキーの前に付ける CloudFront のベース URL。`.env.example` のデフォルト値で動くが、distribution を作り直した場合は `terraform output -raw cloudfront_dog_photos_url` の値に差し替える。
 
@@ -159,7 +159,7 @@ docker compose exec api env | grep <VAR_NAME>     # 反映確認
 docker compose exec walker env | grep <VAR_NAME>  # worker 側も確認
 ```
 
-例: `SQS_QUEUE_URL_WALK_POINTS` や `PHOTO_CDN_URL` を追加したとき、`docker compose restart` だけでは `env_file` を再読込しない環境があるため、`deploy.sh` 経由での `--force-recreate` を前提にする。
+例: `SQS_QUEUE_URL_TRACK_POINT` や `PHOTO_CDN_URL` を追加したとき、`docker compose restart` だけでは `env_file` を再読込しない環境があるため、`deploy.sh` 経由での `--force-recreate` を前提にする。
 
 ## トラブルシューティング
 

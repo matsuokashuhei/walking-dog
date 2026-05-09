@@ -121,6 +121,25 @@ services:
       timeout: 5s
       retries: 5
 
+  track-point-worker:
+    build:
+      context: .
+      dockerfile: ./api/Dockerfile
+      target: dev
+    working_dir: /walking-dog/apps/api
+    command: ["cargo", "watch", "-x", "run --bin track_point_worker"]
+    volumes:
+      - ..:/walking-dog
+      - cargo_cache:/usr/local/cargo
+      - target_cache:/walking-dog/apps/api/target
+    env_file:
+      - api/.env.local
+    depends_on:
+      dynamodb-local:
+        condition: service_started
+      elasticmq:
+        condition: service_healthy
+
   schemaspy:
     image: schemaspy/schemaspy
     depends_on:

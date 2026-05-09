@@ -17,6 +17,7 @@ RUN cargo build --release
 # --- Runtime Stage ---
 FROM public.ecr.aws/debian/debian:stable-slim AS runtime
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && update-ca-certificates
-COPY --from=builder /apps/api/target/release/walking-dog-api .
+COPY --from=builder /apps/api/target/release/walking-dog .
+COPY --from=builder /apps/api/target/release/track_point_worker .
 EXPOSE 3000
-CMD ["./walking-dog-api"]
+CMD ["./walking-dog"]

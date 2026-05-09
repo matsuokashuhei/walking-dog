@@ -235,7 +235,9 @@ describe('useWalkSession.start', () => {
     expect(mockStoreLiveActivity).toBeNull();
   });
 
-  it('startTracking callback adds point to store and updates live activity distance with the stored activity id', async () => {
+  it('startTracking callback adds point to store without updating Live Activity distance', async () => {
+    // distance はサーバ計算に統一したため、useWalkSession 内では Live Activity 更新を行わない。
+    // Live Activity の距離更新は walk-recording.tsx のポーリング effect で行う。
     mockStartWalkMutateAsync.mockResolvedValue({ id: 'walk-1' });
     (liveActivity.startLiveActivity as jest.Mock).mockResolvedValue('activity-1');
     let capturedOnPoint: ((point: WalkPoint) => void) | null = null;
@@ -252,58 +254,9 @@ describe('useWalkSession.start', () => {
     });
 
     const point: WalkPoint = { lat: 35.68, lng: 139.76, recordedAt: '2026-04-01T00:01:00Z' };
-    mockStoreTotalDistanceM = 42;
     capturedOnPoint!(point);
 
     expect(mockStoreAddPoint).toHaveBeenCalledWith(point);
-    expect(liveActivity.updateLiveActivityDistance).toHaveBeenCalledWith('activity-1', 42);
-  });
-
-  it('debounces consecutive distance updates within UPDATE_DEBOUNCE_MS', async () => {
-    mockStartWalkMutateAsync.mockResolvedValue({ id: 'walk-1' });
-    (liveActivity.startLiveActivity as jest.Mock).mockResolvedValue('activity-1');
-    let capturedOnPoint: ((point: WalkPoint) => void) | null = null;
-    (gpsTracker.startTracking as jest.Mock).mockImplementation(
-      async (cb: (p: WalkPoint) => void) => {
-        capturedOnPoint = cb;
-        return mockStopTracking;
-      },
-    );
-
-    const { result } = renderHook(() => useWalkSession());
-    await act(async () => {
-      await result.current.start({ selectedDogIds: ['dog-1'], liveActivityDogName: 'Rex' });
-    });
-
-    const point: WalkPoint = { lat: 35.68, lng: 139.76, recordedAt: '2026-04-01T00:01:00Z' };
-    mockStoreTotalDistanceM = 10;
-    capturedOnPoint!(point);
-    mockStoreTotalDistanceM = 20;
-    capturedOnPoint!(point);
-
-    expect(liveActivity.updateLiveActivityDistance).toHaveBeenCalledTimes(1);
-    expect(liveActivity.updateLiveActivityDistance).toHaveBeenCalledWith('activity-1', 10);
-  });
-
-  it('skips Live Activity updates entirely when no activity was started', async () => {
-    mockStartWalkMutateAsync.mockResolvedValue({ id: 'walk-1' });
-    (liveActivity.startLiveActivity as jest.Mock).mockResolvedValue(null);
-    let capturedOnPoint: ((point: WalkPoint) => void) | null = null;
-    (gpsTracker.startTracking as jest.Mock).mockImplementation(
-      async (cb: (p: WalkPoint) => void) => {
-        capturedOnPoint = cb;
-        return mockStopTracking;
-      },
-    );
-
-    const { result } = renderHook(() => useWalkSession());
-    await act(async () => {
-      await result.current.start({ selectedDogIds: ['dog-1'], liveActivityDogName: 'Rex' });
-    });
-
-    mockStoreTotalDistanceM = 42;
-    capturedOnPoint!({ lat: 35.68, lng: 139.76, recordedAt: '2026-04-01T00:01:00Z' });
-
     expect(liveActivity.updateLiveActivityDistance).not.toHaveBeenCalled();
   });
 
@@ -424,10 +377,10 @@ describe('useWalkSession.stop', () => {
     expect(pendingBatch).toHaveLength(50);
   });
 
-  it('calls finishWalk with rounded distance, ends live activity by id, and clears it from store', async () => {
+  it('calls finishWalk with only walkId, ends live activity by id, and clears it from store', async () => {
+    // distance はサーバ側で track_point から再計算して保存するため、クライアントから送らない。
     mockStartWalkMutateAsync.mockResolvedValue({ id: 'walk-1' });
     (liveActivity.startLiveActivity as jest.Mock).mockResolvedValue('activity-7');
-    mockStoreTotalDistanceM = 1234.7;
 
     const { result } = renderHook(() => useWalkSession());
     await act(async () => {
@@ -437,7 +390,7 @@ describe('useWalkSession.stop', () => {
       await result.current.stop('walk-1');
     });
 
-    expect(mockFinishWalkMutateAsync).toHaveBeenCalledWith({ walkId: 'walk-1', distanceM: 1235 });
+    expect(mockFinishWalkMutateAsync).toHaveBeenCalledWith({ walkId: 'walk-1' });
     expect(mockStoreFinish).toHaveBeenCalledTimes(1);
     expect(liveActivity.endLiveActivity).toHaveBeenCalledTimes(1);
     expect(liveActivity.endLiveActivity).toHaveBeenCalledWith('activity-7');

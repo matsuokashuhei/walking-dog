@@ -7,7 +7,9 @@ import { useIsAuthenticated } from './use-is-authenticated';
 import type { Walk, WalkResponse, WalksResponse } from '@/types/graphql';
 
 // 認証済みかつ散歩 ID がある場合だけ、散歩詳細を取得します。
-export function useWalk(id: string) {
+// refetchIntervalMs を指定すると、散歩中の distance などサーバ計算値を
+// ポーリングで取り込めます。
+export function useWalk(id: string, options?: { refetchIntervalMs?: number }) {
   const isAuthenticated = useIsAuthenticated();
   return useQuery<Walk | null>({
     queryKey: walkKeys.detail(id),
@@ -16,6 +18,7 @@ export function useWalk(id: string) {
       return mapApiWalk(data.walk);
     },
     enabled: isAuthenticated && !!id,
+    refetchInterval: options?.refetchIntervalMs,
   });
 }
 

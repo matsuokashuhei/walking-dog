@@ -29,9 +29,10 @@ export function useStartWalk() {
 }
 
 // 散歩終了後、散歩一覧・詳細のキャッシュを更新します。
+// distance はサーバ側で track_point から算出して保存されます。
 export function useFinishWalk() {
   const queryClient = useQueryClient();
-  return useMutation<Walk, Error, { walkId: string; distanceM?: number }>({
+  return useMutation<Walk, Error, { walkId: string }>({
     mutationFn: async ({ walkId }) => {
       const data = await authenticatedRequest<FinishWalkResponse>(
         FINISH_WALK_MUTATION,

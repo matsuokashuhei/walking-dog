@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { haversineDistance } from '@/lib/walk/distance';
 import type { WalkPoint, WalkEvent } from '@/types/graphql';
 
 type WalkPhase = 'ready' | 'recording' | 'finished';
@@ -41,6 +40,7 @@ interface WalkState {
   setSelectedDogs: (dogIds: string[]) => void;
   startRecording: (walkId: string) => void;
   addPoint: (point: WalkPoint) => void;
+  setTotalDistanceM: (distanceM: number) => void;
   markFlushedPointCount: (count: number) => void;
   addEvent: (event: WalkEvent) => void;
   removeEvent: (eventId: string) => void;
@@ -88,15 +88,14 @@ export const useWalkStore = create<WalkState>((set, get) => ({
   startRecording: (walkId) =>
     set({ phase: 'recording', walkId, startedAt: new Date(), flushedPointCount: 0 }),
 
+  // Distance はサーバ計算が真実の源。ローカルでは GPS 点を保持するだけにし、
+  // totalDistanceM は walk クエリのポーリング結果を setTotalDistanceM で反映する。
   addPoint: (point) =>
-    set((state) => {
-      const prev = state.points[state.points.length - 1];
-      const added = prev ? haversineDistance(prev, point) : 0;
-      return {
-        points: [...state.points, point],
-        totalDistanceM: state.totalDistanceM + added,
-      };
-    }),
+    set((state) => ({
+      points: [...state.points, point],
+    })),
+
+  setTotalDistanceM: (distanceM) => set({ totalDistanceM: distanceM }),
 
   markFlushedPointCount: (count) =>
     set((state) => ({

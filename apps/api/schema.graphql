@@ -114,7 +114,6 @@ type PageInfo {
 type Query {
 	dogs: [Dog!]!
 	user: User!
-	walks(after: String, before: String, first: Int, last: Int): WalkConnection!
 	walk(id: UUID!): Walk!
 }
 
@@ -225,9 +224,14 @@ type Walk {
 	id: UUID!
 	startedAt: DateTime!
 	endedAt: DateTime
-	distance: Int
 	createdAt: DateTime!
 	updatedAt: DateTime!
+	"""
+	Total walked distance in meters. While the walk is in progress, this is
+	computed live from track_points; once ended, the persisted value from
+	the walk table is returned.
+	"""
+	distance: Int
 	walkDogs: [WalkDog!]!
 	dogs: [Dog!]!
 	photos: [WalkPhoto!]!
@@ -235,10 +239,6 @@ type Walk {
 }
 
 type WalkConnection {
-	"""
-	Total number of walks.
-	"""
-	totalCount: Int!
 	"""
 	Information to aid in pagination.
 	"""
@@ -251,6 +251,7 @@ type WalkConnection {
 	A list of nodes.
 	"""
 	nodes: [Walk!]!
+	totalCount: Int!
 }
 
 type WalkDog {

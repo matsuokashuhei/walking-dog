@@ -15,6 +15,7 @@ pub struct Walk {
     pub id: Uuid,
     pub started_at: chrono::DateTime<chrono::Utc>,
     pub ended_at: Option<chrono::DateTime<chrono::Utc>>,
+    #[graphql(skip)]
     pub distance: Option<i64>,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
@@ -22,6 +23,22 @@ pub struct Walk {
 
 #[ComplexObject]
 impl Walk {
+    /// Total walked distance in meters. While the walk is in progress, this is
+    /// computed live from track_points; once ended, the persisted value from
+    /// the walk table is returned.
+    async fn distance(&self, ctx: &Context<'_>) -> Result<Option<i64>> {
+        if self.ended_at.is_some() {
+            return Ok(self.distance);
+        }
+        let client = ctx.data::<aws_sdk_dynamodb::Client>().unwrap();
+        // DynamoDB Query は range key (tracked_at) で昇順ソート済みで返るため、再ソートは不要。
+        let points = track_point::Model::find_all_by_walk_id(client, self.id)
+            .await
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+        let distance_m = crate::util::distance::cumulative_distance_meters(&points);
+        Ok(Some(distance_m.round() as i64))
+    }
+
     async fn walk_dogs(&self, ctx: &Context<'_>) -> Result<Vec<WalkDog>> {
         let db = ctx.data::<sea_orm::DatabaseConnection>().unwrap();
         let walk_dogs = walk_dog::Entity::find()

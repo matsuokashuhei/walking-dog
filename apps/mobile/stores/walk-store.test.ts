@@ -76,7 +76,7 @@ describe('walk-store', () => {
     expect(state.flushedPointCount).toBe(0);
   });
 
-  it('addPoint accumulates points and distance', () => {
+  it('addPoint accumulates points without computing distance locally', () => {
     useWalkStore.getState().startRecording('walk-123');
     const p1: WalkPoint = { lat: 35.6812, lng: 139.7671, recordedAt: '2026-03-23T10:00:00Z' };
     const p2: WalkPoint = { lat: 35.6813, lng: 139.7672, recordedAt: '2026-03-23T10:00:05Z' };
@@ -84,7 +84,15 @@ describe('walk-store', () => {
     useWalkStore.getState().addPoint(p2);
     const state = useWalkStore.getState();
     expect(state.points).toHaveLength(2);
-    expect(state.totalDistanceM).toBeGreaterThan(0);
+    // distance はサーバ側計算のみ。setTotalDistanceM で外から書き込むまでは 0。
+    expect(state.totalDistanceM).toBe(0);
+  });
+
+  it('setTotalDistanceM overwrites totalDistanceM with the server-calculated value', () => {
+    useWalkStore.getState().setTotalDistanceM(1234);
+    expect(useWalkStore.getState().totalDistanceM).toBe(1234);
+    useWalkStore.getState().setTotalDistanceM(5678);
+    expect(useWalkStore.getState().totalDistanceM).toBe(5678);
   });
 
   it('markFlushedPointCount advances the cursor without exceeding points length', () => {

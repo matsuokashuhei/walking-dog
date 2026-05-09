@@ -1,13 +1,11 @@
 use anyhow::Result;
 use async_graphql::{Context, InputObject, Object};
 use sea_orm::{
-    ActiveModelTrait,
-    ActiveValue::{NotSet, Set},
-    ColumnTrait, EntityTrait, QueryFilter, TransactionTrait,
+    ActiveModelTrait, ActiveValue::Set, ColumnTrait, EntityTrait, QueryFilter, TransactionTrait,
 };
 use uuid::Uuid;
 
-use crate::entity::{dog, user, user_dog};
+use crate::entity::{dog, track_point, user, user_dog};
 use crate::graphql::{error::AppError, guard::AuthGuard, object::walk::Walk};
 
 #[derive(Default, Debug)]
@@ -51,6 +49,7 @@ impl WalkMutation {
     async fn end_walk(&self, ctx: &Context<'_>, input: EndWalkInput) -> Result<Walk> {
         let user = ctx.data::<user::Model>().unwrap();
         let db = ctx.data::<sea_orm::DatabaseConnection>().unwrap();
+        let dynamo_client = ctx.data::<aws_sdk_dynamodb::Client>().unwrap();
         let Some(walk) = crate::entity::walk::Entity::find_by_id(input.id)
             .filter(crate::entity::walk::Column::UserId.eq(user.id))
             .one(db)
@@ -58,10 +57,14 @@ impl WalkMutation {
         else {
             return Err(AppError::NotFound.into());
         };
+
+        let points = walk.points(dynamo_client).await?;
+        let distance_m = crate::util::distance::cumulative_distance_meters(&points);
+
         let active_model = crate::entity::walk::ActiveModel {
             id: Set(walk.id),
             ended_at: Set(Some(chrono::Utc::now().into())),
-            distance: NotSet,
+            distance: Set(Some(distance_m.round() as i64)),
             ..Default::default()
         };
         let updated_walk = active_model.update(db).await?;

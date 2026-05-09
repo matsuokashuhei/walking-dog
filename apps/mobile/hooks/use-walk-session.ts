@@ -1,13 +1,7 @@
 import { useCallback } from 'react';
-import {
-  endLiveActivity,
-  startLiveActivity,
-  updateLiveActivityDistance,
-  UPDATE_DEBOUNCE_MS,
-} from '@/lib/walk/live-activity';
+import { endLiveActivity, startLiveActivity } from '@/lib/walk/live-activity';
 import {
   beginWalkTracking,
-  flushWalkPoints,
   flushPendingWalkPoints,
   MAX_POINTS_PER_BATCH,
   PERIODIC_FLUSH_INTERVAL_MS,
@@ -64,20 +58,14 @@ export function useWalkSession() {
       }
 
       // GPS 点はストアへ即時反映し、永続化は tracking-manager 側のバッチ送信に任せます。
+      // distance はサーバ側 (track_point → Haversine 累積) の計算結果を walk クエリの
+      // ポーリング (walk-recording.tsx) で取り込むため、Live Activity 更新もそちらに
+      // 統合してあります。
       await beginWalkTracking({
         walkId: walk.id,
         addWalkPoints: addWalkPointsMutation.mutateAsync,
         onPoint: (point) => {
           useWalkStore.getState().addPoint(point);
-        },
-        onDistanceChange: (distanceM) => {
-          const la = useWalkStore.getState().liveActivity;
-          if (!la) return;
-          const now = Date.now();
-          if (now - la.lastUpdateAt < UPDATE_DEBOUNCE_MS) return;
-          // ネイティブ更新が遅い間に次の GPS tick が通らないよう、先に時刻を更新します。
-          useWalkStore.getState().bumpLiveActivityUpdateAt(now);
-          void updateLiveActivityDistance(la.activityId, distanceM);
         },
       });
 
@@ -89,19 +77,15 @@ export function useWalkSession() {
   const stop = useCallback(
     async (walkId: string) => {
       // 未送信の GPS 点を送ってから、サーバー上の散歩を終了状態にします。
+      // distance はサーバ側で track_point から算出して保存されるため、ここでは送りません。
       stopWalkTracking();
 
-      const currentPoints = useWalkStore.getState().points;
       await flushPendingWalkPoints({
         walkId,
         addWalkPoints: addWalkPointsMutation.mutateAsync,
       });
 
-      const totalDistanceM = useWalkStore.getState().totalDistanceM;
-      await finishWalkMutation.mutateAsync({
-        walkId,
-        distanceM: Math.round(totalDistanceM),
-      });
+      await finishWalkMutation.mutateAsync({ walkId });
       finish();
 
       const la = useWalkStore.getState().liveActivity;

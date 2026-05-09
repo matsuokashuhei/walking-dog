@@ -4,19 +4,46 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useColors } from '@/hooks/use-colors';
 import { useWalkStore } from '@/stores/walk-store';
 import { useMe } from '@/hooks/use-me';
+import { useWalk } from '@/hooks/use-walks';
+import { updateLiveActivityDistance, UPDATE_DEBOUNCE_MS } from '@/lib/walk/live-activity';
 import { WalkMap } from '@/components/walk/WalkMap';
 import { WalkMapShell } from '@/components/walk/WalkMapShell';
 import { WalkTopChip } from '@/components/walk/WalkTopChip';
 import type { Dog } from '@/types/graphql';
+
+// サーバが track_point から再計算した distance をポーリングする間隔。
+const WALK_DISTANCE_POLL_INTERVAL_MS = 10_000;
 
 // 記録中画面は全画面マップを表示し、操作パネル route を重ねて開きます。
 export default function WalkRecordingScreen() {
   const theme = useColors();
   const phase = useWalkStore((s) => s.phase);
   const selectedDogIds = useWalkStore((s) => s.selectedDogIds);
+  const walkId = useWalkStore((s) => s.walkId);
+  const setTotalDistanceM = useWalkStore((s) => s.setTotalDistanceM);
   const params = useLocalSearchParams<{ action?: string }>();
 
   const { data: me } = useMe();
+
+  // サーバ側 (track_point → Haversine 累積) で計算した distance を定期取得し、
+  // ストアの totalDistanceM とライブアクティビティへ反映します。
+  const isRecording = phase === 'recording';
+  const { data: walkSnapshot } = useWalk(walkId ?? '', {
+    refetchIntervalMs: isRecording ? WALK_DISTANCE_POLL_INTERVAL_MS : undefined,
+  });
+
+  useEffect(() => {
+    const distance = walkSnapshot?.distance;
+    if (typeof distance !== 'number') return;
+    setTotalDistanceM(distance);
+
+    const liveActivity = useWalkStore.getState().liveActivity;
+    if (!liveActivity) return;
+    const now = Date.now();
+    if (now - liveActivity.lastUpdateAt < UPDATE_DEBOUNCE_MS) return;
+    useWalkStore.getState().bumpLiveActivityUpdateAt(now);
+    void updateLiveActivityDistance(liveActivity.activityId, distance);
+  }, [walkSnapshot?.distance, setTotalDistanceM]);
 
   const hasPushedRef = useRef(false);
   useEffect(() => {

@@ -10,7 +10,10 @@ use axum::{
     response::{Html, IntoResponse},
     routing::get,
 };
+use migration::{Migrator, MigratorTrait};
+use sea_orm::Database;
 use tokio::net::TcpListener;
+use tracing::info;
 use walking_dog::{
     auth,
     entity::user,
@@ -22,6 +25,7 @@ async fn main() {
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::INFO)
         .init();
+    run_migrations().await;
     let schema = graphql::build_schema().await;
     let app = Router::new()
         .route("/graphql", get(graphql_playground).post(graphql_handler))
@@ -51,4 +55,16 @@ async fn graphql_handler(
 
 async fn graphql_playground() -> impl IntoResponse {
     Html(GraphiQLSource::build().finish())
+}
+
+async fn run_migrations() {
+    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL is not set");
+    let db = Database::connect(&database_url)
+        .await
+        .expect("Failed to connect to the database for migrations");
+    info!("Running database migrations");
+    Migrator::up(&db, None)
+        .await
+        .expect("Failed to run database migrations");
+    info!("Database migrations applied");
 }

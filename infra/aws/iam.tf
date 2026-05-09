@@ -122,7 +122,10 @@ resource "aws_iam_role_policy" "ecs_task" {
           "s3:PutObject",
           "s3:GetObject",
         ]
-        Resource = "${aws_s3_bucket.dog_photos.arn}/*"
+        Resource = [
+          "${aws_s3_bucket.avatars.arn}/*",
+          "${aws_s3_bucket.photos.arn}/*",
+        ]
       },
       {
         Effect = "Allow"

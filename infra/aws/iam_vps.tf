@@ -40,7 +40,10 @@ resource "aws_iam_user_policy" "vps_api" {
           "s3:PutObject",
           "s3:GetObject",
         ]
-        Resource = "${aws_s3_bucket.dog_photos.arn}/*"
+        Resource = [
+          "${aws_s3_bucket.avatars.arn}/*",
+          "${aws_s3_bucket.photos.arn}/*",
+        ]
       },
       {
         Sid    = "Cognito"

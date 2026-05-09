@@ -84,6 +84,11 @@ async function createClientErrorFromResponse(
   return createClientErrorFromBody(response, query, body, variables);
 }
 
+function parseOperation(document: string): { kind: string; name: string } {
+  const m = document.match(/(query|mutation|subscription)\s+(\w+)/);
+  return m ? { kind: m[1], name: m[2] } : { kind: 'query', name: 'anonymous' };
+}
+
 export function setAuthToken(token: string | null): void {
   authToken = token;
 }
@@ -107,20 +112,40 @@ export async function authenticatedRequest<T>(
 
 export const graphqlClient = {
   async request<T>(document: string, variables?: Variables): Promise<T> {
+    const op = parseOperation(document);
+    const startedAt = Date.now();
+    console.log(
+      `[graphql] → ${op.kind} ${op.name} ${endpoint}`,
+      variables ? { variableKeys: Object.keys(variables) } : '',
+    );
+
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
       ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
     };
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        query: document,
-        ...(variables ? { variables } : {}),
-      }),
-    });
+
+    let response: Response;
+    try {
+      response = await fetch(endpoint, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          query: document,
+          ...(variables ? { variables } : {}),
+        }),
+      });
+    } catch (err) {
+      console.error(
+        `[graphql] ✗ ${op.kind} ${op.name} network failure after ${Date.now() - startedAt}ms`,
+        err,
+      );
+      throw err;
+    }
+
+    const elapsedMs = Date.now() - startedAt;
 
     if (!response.ok) {
+      console.warn(`[graphql] ← ${op.kind} ${op.name} ${response.status} (${elapsedMs}ms)`);
       throw await createClientErrorFromResponse(response, document, variables);
     }
 
@@ -128,9 +153,13 @@ export const graphqlClient = {
     const parsedBody = parseResponseBodySafely(body);
 
     if (parsedBody.errors?.length) {
+      console.warn(
+        `[graphql] ← ${op.kind} ${op.name} ${response.status} with ${parsedBody.errors.length} errors (${elapsedMs}ms)`,
+      );
       throw createClientErrorFromBody(response, document, body, variables);
     }
 
+    console.log(`[graphql] ← ${op.kind} ${op.name} ${response.status} ok (${elapsedMs}ms)`);
     return parsedBody.data as T;
   },
 };

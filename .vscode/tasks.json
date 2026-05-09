@@ -1,0 +1,35 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "watch: walking-dog",
+      "type": "shell",
+      "command": "cargo watch -x 'run --bin walking-dog'",
+      "options": {
+        "cwd": "/walking-dog/apps/api"
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "watch: track_point_worker",
+      "type": "shell",
+      "command": "cargo watch -x 'run --bin track_point_worker'",
+      "options": {
+        "cwd": "/walking-dog/apps/api"
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "watch: all",
+      "dependsOn": ["watch: walking-dog", "watch: track_point_worker"],
+      "dependsOrder": "parallel",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    }
+  ]
+}

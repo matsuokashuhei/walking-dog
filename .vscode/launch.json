@@ -1,0 +1,33 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "watch: walking-dog",
+            "type": "node",
+            "request": "launch",
+            "preLaunchTask": "watch: walking-dog",
+            "program": "${command:pickProcess}",
+            "presentation": {
+                "hidden": true
+            }
+        },
+        {
+            "name": "watch: track_point_worker",
+            "type": "node",
+            "request": "launch",
+            "preLaunchTask": "watch: track_point_worker",
+            "presentation": {
+                "hidden": true
+            }
+        }
+    ],
+    "compounds": [
+        {
+            "name": "watch: all",
+            "configurations": ["watch: walking-dog", "watch: track_point_worker"],
+            "presentation": {
+                "order": 1
+            }
+        }
+    ]
+}

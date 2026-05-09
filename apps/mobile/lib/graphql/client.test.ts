@@ -9,6 +9,9 @@ const originalFetch = global.fetch;
 
 beforeAll(() => {
   global.fetch = mockFetch;
+  jest.spyOn(console, 'log').mockImplementation(() => {});
+  jest.spyOn(console, 'warn').mockImplementation(() => {});
+  jest.spyOn(console, 'error').mockImplementation(() => {});
 });
 
 const { graphqlClient, setAuthToken } = require('./client') as typeof ClientModule;
@@ -27,6 +30,7 @@ afterEach(() => {
 
 afterAll(() => {
   global.fetch = originalFetch;
+  jest.restoreAllMocks();
 });
 
 describe('graphql client auth header', () => {

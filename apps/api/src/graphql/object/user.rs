@@ -2,14 +2,14 @@ use async_graphql::{
     ComplexObject, Context, Result, SimpleObject,
     connection::{Connection, Edge, EmptyFields, query},
 };
-use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
+use sea_orm::{ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder};
 use url::Url;
 use uuid::Uuid;
 
 use crate::{
     entity::{dog, user, user_dog, walk},
     graphql::{
-        cursor::UuidCursor,
+        cursor::{UuidCursor, ConnectionFields},
         error::AppError,
         object::{dog::Dog, walk::Walk},
     },
@@ -46,7 +46,7 @@ impl User {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> Result<Connection<UuidCursor, Walk, EmptyFields, EmptyFields>> {
+    ) -> Result<Connection<UuidCursor, Walk, ConnectionFields, EmptyFields>> {
         let db = ctx.data::<sea_orm::DatabaseConnection>().unwrap();
         let user = ctx.data::<user::Model>().unwrap();
         query(
@@ -55,6 +55,10 @@ impl User {
             first,
             last,
             |after: Option<UuidCursor>, before: Option<UuidCursor>, first, last| async move {
+                let total_count = walk::Entity::find()
+                    .filter(walk::Column::UserId.eq(user.id))
+                    .count(db)
+                    .await? as i64;
                 let has_after = after.is_some();
                 let has_before = before.is_some();
                 let mut query = walk::Entity::find()
@@ -81,7 +85,11 @@ impl User {
                     }
                     walks = walks.split_off(walks.len().saturating_sub(last));
                 }
-                let mut connection = Connection::new(has_previous, has_next);
+                let mut connection = Connection::with_additional_fields(
+                    has_previous,
+                    has_next,
+                    ConnectionFields { total_count },
+                );
                 connection.edges.extend(
                     walks
                         .into_iter()

@@ -236,6 +236,10 @@ type Walk {
 
 type WalkConnection {
 	"""
+	Total number of walks.
+	"""
+	totalCount: Int!
+	"""
 	Information to aid in pagination.
 	"""
 	pageInfo: PageInfo!

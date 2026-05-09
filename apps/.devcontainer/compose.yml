@@ -1,3 +1,5 @@
-services:
-  api:
-    command: ["sleep", "infinity"]
+ services:
+   api:
+     command: ["sleep", "infinity"]
+   track-point-worker:
+     command: ["sleep", "infinity"]

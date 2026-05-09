@@ -1,4 +1,4 @@
-use async_graphql::connection::CursorType;
+use async_graphql::{SimpleObject, connection::CursorType};
 use uuid::Uuid;
 
 #[derive(Clone, Debug)]
@@ -18,4 +18,9 @@ impl CursorType for UuidCursor {
     fn encode_cursor(&self) -> String {
         self.id.to_string()
     }
+}
+
+#[derive(SimpleObject, Default, Clone, Debug)]
+pub(crate) struct ConnectionFields {
+    pub(crate) total_count: i64,
 }

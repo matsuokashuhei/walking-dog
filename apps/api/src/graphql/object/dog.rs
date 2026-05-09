@@ -2,12 +2,12 @@ use async_graphql::{
     ComplexObject, Context, Enum, Result, SimpleObject,
     connection::{Connection, Edge, EmptyFields, query},
 };
-use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
+use sea_orm::{ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder};
 use url::Url;
 
 use crate::{
     entity::{sea_orm_active_enums::GenderType, user, walk, walk_dog},
-    graphql::cursor::UuidCursor,
+    graphql::cursor::{ConnectionFields, UuidCursor},
     graphql::object::walk::Walk,
     storage::avatar_url,
 };
@@ -50,7 +50,7 @@ impl Dog {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> Result<Connection<UuidCursor, Walk, EmptyFields, EmptyFields>> {
+    ) -> Result<Connection<UuidCursor, Walk, ConnectionFields, EmptyFields>> {
         let db = ctx.data::<sea_orm::DatabaseConnection>().unwrap();
         let user = ctx.data::<user::Model>().unwrap();
         query(
@@ -59,6 +59,11 @@ impl Dog {
             first,
             last,
             |after: Option<UuidCursor>, before: Option<UuidCursor>, first, last| async move {
+                let total_count = walk::Entity::find()
+                    .filter(walk::Column::UserId.eq(user.id))
+                    .has_related(walk_dog::Entity, walk_dog::Column::DogId.eq(self.id))
+                    .count(db)
+                    .await? as i64;
                 let has_after = after.is_some();
                 let has_before = before.is_some();
                 let mut query = walk::Entity::find()
@@ -86,7 +91,11 @@ impl Dog {
                     }
                     walks = walks.split_off(walks.len().saturating_sub(last));
                 }
-                let mut connection = Connection::new(has_previous, has_next);
+                let mut connection = Connection::with_additional_fields(
+                    has_previous,
+                    has_next,
+                    ConnectionFields { total_count },
+                );
                 connection.edges.extend(
                     walks
                         .into_iter()

@@ -29,7 +29,7 @@ async fn main() {
         .init();
     let schema = graphql::build_schema().await;
     let app = Router::new()
-        .route("/", get(graphql_playground).post(graphql_handler))
+        .route("/graphql", get(graphql_playground).post(graphql_handler))
         .route_layer(middleware::from_fn_with_state(
             schema.clone(),
             auth::autenticate_user,

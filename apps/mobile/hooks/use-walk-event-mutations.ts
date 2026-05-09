@@ -1,39 +1,50 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, type UseMutationResult } from '@tanstack/react-query';
 import { authenticatedRequest } from '@/lib/graphql/client';
-import {
-  RECORD_WALK_EVENT_MUTATION,
-  GENERATE_WALK_EVENT_PHOTO_UPLOAD_URL_MUTATION,
-} from '@/lib/graphql/mutations/walk';
+import { RECORD_WALK_EVENT_MUTATION } from '@/lib/graphql/mutations/walk';
+import { mapApiWalkDogEvent, uiEventToApiType } from '@/lib/graphql/adapters';
 import type {
   RecordWalkEventInput,
   WalkEvent,
-  PresignedUrl,
   RecordWalkEventResponse,
-  GenerateWalkEventPhotoUploadUrlResponse,
 } from '@/types/graphql';
 
 // 散歩中のイベントをサーバーへ記録します。
-export function useRecordWalkEvent() {
+export function useRecordWalkEvent(): UseMutationResult<WalkEvent, Error, RecordWalkEventInput> {
   return useMutation<WalkEvent, Error, RecordWalkEventInput>({
     mutationFn: async (input) => {
+      if (!input.dogId) {
+        throw new Error('dogId is required to record a walk event.');
+      }
+      if (input.lat == null || input.lng == null) {
+        throw new Error('latitude and longitude are required to record a walk event.');
+      }
       const data = await authenticatedRequest<RecordWalkEventResponse>(
         RECORD_WALK_EVENT_MUTATION,
-        { input },
+        {
+          input: {
+            walkId: input.walkId,
+            dogId: input.dogId,
+            event: uiEventToApiType(input.eventType),
+            occurredAt: input.occurredAt,
+            latitude: input.lat,
+            longitude: input.lng,
+          },
+        },
       );
-      return data.recordWalkEvent;
+      return mapApiWalkDogEvent(data.addEvent, input.walkId, input.dogId);
     },
   });
 }
 
 // 散歩イベント写真を直接アップロードするための署名付き URL を発行します。
-export function useGenerateWalkEventPhotoUploadUrl() {
-  return useMutation<PresignedUrl, Error, { walkId: string; contentType: string }>({
-    mutationFn: async ({ walkId, contentType }) => {
-      const data = await authenticatedRequest<GenerateWalkEventPhotoUploadUrlResponse>(
-        GENERATE_WALK_EVENT_PHOTO_UPLOAD_URL_MUTATION,
-        { walkId, contentType },
-      );
-      return data.generateWalkEventPhotoUploadUrl;
+export function useGenerateWalkEventPhotoUploadUrl(): UseMutationResult<
+  never,
+  Error,
+  { walkId: string; contentType: string }
+> {
+  return useMutation<never, Error, { walkId: string; contentType: string }>({
+    mutationFn: async () => {
+      throw new Error('Walk photo presigned upload URLs are not supported by the current GraphQL schema.');
     },
   });
 }

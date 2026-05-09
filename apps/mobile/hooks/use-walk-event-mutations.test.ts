@@ -1,41 +1,44 @@
 import { renderHook, act } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { createElement } from 'react';
+import { createElement, type ReactNode } from 'react';
+import type * as ClientModule from '@/lib/graphql/client';
 import {
   useRecordWalkEvent,
   useGenerateWalkEventPhotoUploadUrl,
 } from './use-walk-event-mutations';
-import * as client from '@/lib/graphql/client';
 
-jest.mock('@/lib/graphql/client');
+jest.mock('@/lib/graphql/client', () => ({
+  authenticatedRequest: jest.fn(),
+}));
 
-const mockAuthenticatedRequest = client.authenticatedRequest as jest.MockedFunction<
-  typeof client.authenticatedRequest
+const { authenticatedRequest } = require('@/lib/graphql/client') as typeof ClientModule;
+const mockAuthenticatedRequest = authenticatedRequest as jest.MockedFunction<
+  typeof authenticatedRequest
 >;
 
-function createWrapper() {
+function createWrapper(): ({ children }: { children: ReactNode }) => ReactNode {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
-  return ({ children }: { children: React.ReactNode }) =>
-    createElement(QueryClientProvider, { client: queryClient }, children);
+  return function Wrapper({ children }: { children: ReactNode }): ReactNode {
+    return createElement(QueryClientProvider, { client: queryClient }, children);
+  };
 }
 
 describe('useRecordWalkEvent', () => {
   beforeEach(() => jest.clearAllMocks());
 
   it('calls recordWalkEvent and returns WalkEvent', async () => {
-    const event = {
+    const apiEvent = {
       id: 'event-1',
-      walkId: 'walk-1',
-      dogId: 'dog-1',
-      eventType: 'pee',
+      walkDogId: 'walk-dog-1',
+      event: 'PEE',
       occurredAt: '2026-04-12T10:00:00Z',
-      lat: 35.6812,
-      lng: 139.7671,
-      photoUrl: null,
+      coordinate: { latitude: 35.6812, longitude: 139.7671 },
+      createdAt: '2026-04-12T10:00:01Z',
+      updatedAt: '2026-04-12T10:00:01Z',
     };
-    mockAuthenticatedRequest.mockResolvedValue({ recordWalkEvent: event });
+    mockAuthenticatedRequest.mockResolvedValue({ addEvent: apiEvent });
 
     const { result } = renderHook(() => useRecordWalkEvent(), {
       wrapper: createWrapper(),
@@ -50,42 +53,87 @@ describe('useRecordWalkEvent', () => {
         lat: 35.6812,
         lng: 139.7671,
       });
-      expect(data).toEqual(event);
-    });
-  });
-
-  it('records photo event with photoKey', async () => {
-    const event = {
-      id: 'event-2',
-      walkId: 'walk-1',
-      dogId: null,
-      eventType: 'photo',
-      occurredAt: '2026-04-12T10:05:00Z',
-      lat: null,
-      lng: null,
-      photoUrl: 'https://cdn.example.com/walks/walk-1/photo.jpg',
-    };
-    mockAuthenticatedRequest.mockResolvedValue({ recordWalkEvent: event });
-
-    const { result } = renderHook(() => useRecordWalkEvent(), {
-      wrapper: createWrapper(),
-    });
-
-    await act(async () => {
-      const data = await result.current.mutateAsync({
+      expect(data).toEqual({
+        ...apiEvent,
         walkId: 'walk-1',
-        eventType: 'photo',
-        occurredAt: '2026-04-12T10:05:00Z',
-        photoKey: 'walks/walk-1/abc123.jpg',
+        dogId: 'dog-1',
+        eventType: 'pee',
+        lat: 35.6812,
+        lng: 139.7671,
+        photoUrl: null,
       });
-      expect(data.eventType).toBe('photo');
-      expect(data.photoUrl).toBeTruthy();
     });
 
     expect(mockAuthenticatedRequest).toHaveBeenCalledWith(
       expect.any(String),
-      { input: expect.objectContaining({ photoKey: 'walks/walk-1/abc123.jpg' }) },
+      {
+        input: {
+          walkId: 'walk-1',
+          dogId: 'dog-1',
+          event: 'PEE',
+          occurredAt: '2026-04-12T10:00:00Z',
+          latitude: 35.6812,
+          longitude: 139.7671,
+        },
+      },
     );
+  });
+
+  it('throws without a dog id because addEvent requires dogId', async () => {
+    const { result } = renderHook(() => useRecordWalkEvent(), {
+      wrapper: createWrapper(),
+    });
+
+    await expect(
+      act(async () => {
+        await result.current.mutateAsync({
+          walkId: 'walk-1',
+          eventType: 'pee',
+          occurredAt: '2026-04-12T10:05:00Z',
+          lat: 35.6812,
+          lng: 139.7671,
+        });
+      }),
+    ).rejects.toThrow('dogId is required');
+    expect(mockAuthenticatedRequest).not.toHaveBeenCalled();
+  });
+
+  it('throws for photo events because photos use takePhoto, not addEvent', async () => {
+    const { result } = renderHook(() => useRecordWalkEvent(), {
+      wrapper: createWrapper(),
+    });
+
+    await expect(
+      act(async () => {
+        await result.current.mutateAsync({
+          walkId: 'walk-1',
+          dogId: 'dog-1',
+          eventType: 'photo',
+          occurredAt: '2026-04-12T10:05:00Z',
+          lat: 35.6812,
+          lng: 139.7671,
+        });
+      }),
+    ).rejects.toThrow('Unsupported walk event type');
+    expect(mockAuthenticatedRequest).not.toHaveBeenCalled();
+  });
+
+  it('throws without coordinates because addEvent requires a coordinate', async () => {
+    const { result } = renderHook(() => useRecordWalkEvent(), {
+      wrapper: createWrapper(),
+    });
+
+    await expect(
+      act(async () => {
+        await result.current.mutateAsync({
+          walkId: 'walk-1',
+          dogId: 'dog-1',
+          eventType: 'pee',
+          occurredAt: '2026-04-12T10:05:00Z',
+        });
+      }),
+    ).rejects.toThrow('latitude and longitude are required');
+    expect(mockAuthenticatedRequest).not.toHaveBeenCalled();
   });
 
   it('throws when API returns error', async () => {
@@ -99,8 +147,11 @@ describe('useRecordWalkEvent', () => {
       act(async () => {
         await result.current.mutateAsync({
           walkId: 'walk-1',
+          dogId: 'dog-1',
           eventType: 'pee',
           occurredAt: '2026-04-12T10:00:00Z',
+          lat: 35.6812,
+          lng: 139.7671,
         });
       }),
     ).rejects.toThrow('Unauthorized');
@@ -110,37 +161,7 @@ describe('useRecordWalkEvent', () => {
 describe('useGenerateWalkEventPhotoUploadUrl', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('calls generateWalkEventPhotoUploadUrl and returns presigned URL', async () => {
-    const presignedUrl = {
-      url: 'https://s3.example.com/presigned',
-      key: 'walks/walk-1/abc123.jpg',
-      expiresAt: '2026-04-12T10:15:00Z',
-    };
-    mockAuthenticatedRequest.mockResolvedValue({
-      generateWalkEventPhotoUploadUrl: presignedUrl,
-    });
-
-    const { result } = renderHook(() => useGenerateWalkEventPhotoUploadUrl(), {
-      wrapper: createWrapper(),
-    });
-
-    await act(async () => {
-      const data = await result.current.mutateAsync({
-        walkId: 'walk-1',
-        contentType: 'image/jpeg',
-      });
-      expect(data).toEqual(presignedUrl);
-    });
-
-    expect(mockAuthenticatedRequest).toHaveBeenCalledWith(
-      expect.any(String),
-      { walkId: 'walk-1', contentType: 'image/jpeg' },
-    );
-  });
-
-  it('throws when API returns error', async () => {
-    mockAuthenticatedRequest.mockRejectedValue(new Error('Walk not found'));
-
+  it('throws without making an API call because presigned URLs are unsupported', async () => {
     const { result } = renderHook(() => useGenerateWalkEventPhotoUploadUrl(), {
       wrapper: createWrapper(),
     });
@@ -149,6 +170,7 @@ describe('useGenerateWalkEventPhotoUploadUrl', () => {
       act(async () => {
         await result.current.mutateAsync({ walkId: 'walk-1', contentType: 'image/jpeg' });
       }),
-    ).rejects.toThrow('Walk not found');
+    ).rejects.toThrow('not supported');
+    expect(mockAuthenticatedRequest).not.toHaveBeenCalled();
   });
 });

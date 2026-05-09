@@ -1,4 +1,4 @@
-import { ClientError } from 'graphql-request';
+import { ClientError } from '../client-error';
 
 export type RefreshHandler = () => Promise<boolean>;
 

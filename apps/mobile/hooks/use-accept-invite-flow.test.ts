@@ -5,8 +5,12 @@ import * as acceptInvitation from './use-accept-invitation';
 import * as pending from '@/lib/auth/pending-invite-token';
 import * as gqlErrors from '@/lib/graphql/errors';
 
-jest.mock('./use-is-authenticated');
-jest.mock('./use-accept-invitation');
+jest.mock('./use-is-authenticated', () => ({
+  useIsAuthenticated: jest.fn(),
+}));
+jest.mock('./use-accept-invitation', () => ({
+  useAcceptInvitation: jest.fn(),
+}));
 jest.mock('@/lib/auth/pending-invite-token', () => ({
   savePendingInviteToken: jest.fn(),
 }));

@@ -2,8 +2,9 @@ import { useQuery } from '@tanstack/react-query';
 import { authenticatedRequest } from '@/lib/graphql/client';
 import { WALK_QUERY, MY_WALKS_QUERY } from '@/lib/graphql/queries/walk';
 import { walkKeys } from '@/lib/graphql/keys';
+import { mapApiWalk } from '@/lib/graphql/adapters';
 import { useIsAuthenticated } from './use-is-authenticated';
-import type { Walk, WalkResponse, MyWalksResponse } from '@/types/graphql';
+import type { Walk, WalkResponse, WalksResponse } from '@/types/graphql';
 
 // 認証済みかつ散歩 ID がある場合だけ、散歩詳細を取得します。
 export function useWalk(id: string) {
@@ -12,7 +13,7 @@ export function useWalk(id: string) {
     queryKey: walkKeys.detail(id),
     queryFn: async () => {
       const data = await authenticatedRequest<WalkResponse>(WALK_QUERY, { id });
-      return data.walk;
+      return mapApiWalk(data.walk);
     },
     enabled: isAuthenticated && !!id,
   });
@@ -22,13 +23,10 @@ export function useWalk(id: string) {
 export function useMyWalks(limit = 20) {
   const isAuthenticated = useIsAuthenticated();
   return useQuery<Walk[]>({
-    queryKey: walkKeys.list(),
+    queryKey: walkKeys.list(limit),
     queryFn: async () => {
-      const data = await authenticatedRequest<MyWalksResponse>(MY_WALKS_QUERY, {
-        limit,
-        offset: 0,
-      });
-      return data.myWalks;
+      const data = await authenticatedRequest<WalksResponse>(MY_WALKS_QUERY, { first: limit });
+      return data.walks.nodes.map(mapApiWalk);
     },
     enabled: isAuthenticated,
   });

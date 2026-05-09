@@ -21,6 +21,7 @@ impl WalkMutation {
         let db = ctx.data::<sea_orm::DatabaseConnection>().unwrap();
         let txn = db.begin().await?;
         let walk = crate::entity::walk::ActiveModel {
+            id: Set(Uuid::now_v7()),
             user_id: Set(user.id),
             started_at: Set(chrono::Utc::now().into()),
             ..Default::default()

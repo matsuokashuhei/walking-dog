@@ -1,5 +1,4 @@
-use anyhow::Result;
-use async_graphql::{Context, Object};
+use async_graphql::{Context, Object, Result};
 
 use crate::graphql::guard::AuthGuard;
 use crate::{entity::user, graphql::object::user::User};

@@ -1,3 +1,4 @@
+mod cursor;
 mod error;
 pub mod guard;
 pub mod mutation;

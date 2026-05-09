@@ -1,6 +1,6 @@
 import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ClientError } from 'graphql-request';
 import { PropsWithChildren } from 'react';
+import { ClientError } from '@/lib/graphql/client-error';
 import { useAuthStore } from '@/stores/auth-store';
 
 function isUnauthorized(error: unknown): boolean {

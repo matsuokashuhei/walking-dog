@@ -1,6 +1,6 @@
 import { GraphQLError } from 'graphql';
-import { ClientError } from 'graphql-request';
 import { graphqlClient } from '../graphql/client';
+import { ClientError } from '../graphql/client-error';
 import { confirmSignUp, signIn, signUp } from './api';
 
 jest.mock('../graphql/client', () => ({
@@ -32,6 +32,9 @@ describe('auth api', () => {
       accessToken: 'access-token',
       refreshToken: 'refresh-token',
     });
+    expect(mockRequest).toHaveBeenCalledWith(expect.any(String), {
+      input: { email: 'user@example.com', password: 'password123' },
+    });
   });
 
   it('signIn maps backend auth failures to invalid-credentials', async () => {
@@ -60,7 +63,7 @@ describe('auth api', () => {
   });
 
   it('confirmSignUp resolves with the server response on success', async () => {
-    mockRequest.mockResolvedValue({ confirmSignUp: true });
+    mockRequest.mockResolvedValue({ confirmSignUp: { success: true } });
 
     await expect(confirmSignUp('user@example.com', '123456')).resolves.toBe(true);
   });

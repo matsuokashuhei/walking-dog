@@ -1,6 +1,7 @@
 use anyhow::Result;
 use async_graphql::{Context, InputObject, Object, SimpleObject};
 use aws_sdk_cognitoidentityprovider::operation::initiate_auth::InitiateAuthOutput;
+use axum_extra::headers::authorization;
 use sea_orm::{ActiveModelTrait, ActiveValue::Set, DatabaseConnection};
 
 use crate::entity::user;
@@ -66,6 +67,45 @@ impl AuthMutation {
             .map_err(|e| AuthError::SignInError(e.into_service_error()))?;
         Ok(output.into())
     }
+
+    async fn sign_out(&self, ctx: &Context<'_>) -> Result<SignOutOutput> {
+        let cognitoidentityprovider_client = ctx
+            .data::<aws_sdk_cognitoidentityprovider::Client>()
+            .unwrap();
+        let authorization = ctx.data::<authorization::Bearer>().unwrap();
+        let _ = cognitoidentityprovider_client
+            .global_sign_out()
+            .access_token(authorization.token())
+            .send()
+            .await
+            .map_err(|e| AuthError::SignOutError(e.into_service_error()))?;
+        Ok(SignOutOutput { success: true })
+    }
+
+    async fn change_password(
+        &self,
+        ctx: &Context<'_>,
+        input: ChangePasswordInput,
+    ) -> Result<SignOutOutput> {
+        let cognitoidentityprovider_client = ctx
+            .data::<aws_sdk_cognitoidentityprovider::Client>()
+            .unwrap();
+        let authorization = ctx.data::<authorization::Bearer>().unwrap();
+        cognitoidentityprovider_client
+            .change_password()
+            .previous_password(input.old_password)
+            .proposed_password(input.new_password)
+            .access_token(authorization.token())
+            .send()
+            .await
+            .map_err(|e| AuthError::ChangePasswordError(e.into_service_error()))?;
+        Ok(SignOutOutput { success: true })
+    }
+}
+
+#[derive(SimpleObject)]
+pub struct SignOutOutput {
+    success: bool,
 }
 
 #[derive(Clone, Debug, InputObject)]
@@ -100,6 +140,12 @@ pub struct SignInInput {
 pub struct SignInOutput {
     access_token: String,
     refresh_token: String,
+}
+
+#[derive(Clone, Debug, InputObject)]
+pub struct ChangePasswordInput {
+    old_password: String,
+    new_password: String,
 }
 
 impl From<InitiateAuthOutput> for SignInOutput {

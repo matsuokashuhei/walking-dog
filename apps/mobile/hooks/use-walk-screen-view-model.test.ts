@@ -152,7 +152,7 @@ describe('useWalkScreenViewModel', () => {
     expect(mockBleStart).not.toHaveBeenCalled();
   });
 
-  it('starts encounter detection and BLE scanning for a multi-dog walk when permissions are granted', async () => {
+  it('starts a multi-dog walk without BLE encounter flow because encounters are unsupported', async () => {
     mockSelectedDogIds = ['dog-1', 'dog-2'];
 
     const { result } = renderHook(() => useWalkScreenViewModel());
@@ -165,8 +165,9 @@ describe('useWalkScreenViewModel', () => {
       selectedDogIds: ['dog-1', 'dog-2'],
       liveActivityDogName: 'Walking with 2 dogs',
     });
-    expect(mockEncounterStart).toHaveBeenCalledWith('walk-1');
-    expect(mockBleStart).toHaveBeenCalledWith('walk-1', expect.any(Function));
+    expect(mockRequestBlePermission).not.toHaveBeenCalled();
+    expect(mockEncounterStart).not.toHaveBeenCalled();
+    expect(mockBleStart).not.toHaveBeenCalled();
   });
 
   it('shows a start failure alert when the session start throws', async () => {

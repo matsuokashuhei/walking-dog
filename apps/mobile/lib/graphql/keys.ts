@@ -22,5 +22,5 @@ export const encounterKeys = {
 export const walkKeys = {
   all: ['walks'] as const,
   detail: (id: string) => ['walks', id] as const,
-  list: () => ['walks', 'list'] as const,
+  list: (limit: number) => ['walks', 'list', limit] as const,
 };

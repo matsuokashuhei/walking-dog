@@ -1,11 +1,21 @@
 import { act, renderHook } from '@testing-library/react-native';
-import { useAuth } from './use-auth';
-import * as authApi from '@/lib/auth/api';
-import { useAuthStore } from '@/stores/auth-store';
+import type * as UseAuthModule from './use-auth';
+import type * as AuthApiModule from '@/lib/auth/api';
+import type * as AuthStoreModule from '@/stores/auth-store';
 
-jest.mock('@/lib/auth/api');
-jest.mock('@/stores/auth-store');
+jest.mock('@/lib/auth/api', () => ({
+  confirmSignUp: jest.fn(),
+  signIn: jest.fn(),
+  signOut: jest.fn(),
+  signUp: jest.fn(),
+}));
+jest.mock('@/stores/auth-store', () => ({
+  useAuthStore: jest.fn(),
+}));
 
+const { useAuth } = require('./use-auth') as typeof UseAuthModule;
+const authApi = require('@/lib/auth/api') as typeof AuthApiModule;
+const { useAuthStore } = require('@/stores/auth-store') as typeof AuthStoreModule;
 const mockAuthApi = authApi as jest.Mocked<typeof authApi>;
 const mockUseAuthStore = useAuthStore as jest.MockedFunction<typeof useAuthStore>;
 

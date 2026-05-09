@@ -1,16 +1,22 @@
 import type { WalkEventType } from '@/types/graphql';
 
-export const EVENT_ORDER: readonly WalkEventType[] = ['pee', 'poo', 'photo'] as const;
+type CountedWalkEventType = Extract<WalkEventType, 'pee' | 'poo' | 'photo'>;
+
+export const EVENT_ORDER: readonly CountedWalkEventType[] = ['pee', 'poo'] as const;
 
 export const MAP_EVENT_EMOJIS: Record<WalkEventType, string> = {
   pee: '🚽',
   poo: '💩',
+  sniff: '🐽',
+  greet: '🐾',
   photo: '📷',
 };
 
 export const UI_EVENT_EMOJIS: Record<WalkEventType, string> = {
   pee: '💧',
   poo: '💩',
+  sniff: '🐽',
+  greet: '🐾',
   photo: '📷',
 };
 
@@ -22,12 +28,16 @@ export interface CountableEvent {
 export function countEventsByType(
   events?: CountableEvent[] | null,
   opts?: { dogId?: string },
-): Record<WalkEventType, number> {
-  const counts: Record<WalkEventType, number> = { pee: 0, poo: 0, photo: 0 };
+): Record<CountedWalkEventType, number> {
+  const counts: Record<CountedWalkEventType, number> = { pee: 0, poo: 0, photo: 0 };
   if (!events) return counts;
   for (const e of events) {
     if (opts?.dogId !== undefined && e.dogId !== opts.dogId) continue;
-    if (e.eventType === 'pee' || e.eventType === 'poo' || e.eventType === 'photo') {
+    if (
+      e.eventType === 'pee' ||
+      e.eventType === 'poo' ||
+      e.eventType === 'photo'
+    ) {
       counts[e.eventType] += 1;
     }
   }

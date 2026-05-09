@@ -1,6 +1,10 @@
 import { aggregatePackProgress } from './use-pack-progress';
 import type { Walk } from '@/types/graphql';
 
+jest.mock('./use-walks', () => ({
+  useMyWalks: jest.fn(),
+}));
+
 function makeWalk(
   id: string,
   dogIds: string[],

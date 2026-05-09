@@ -1,5 +1,5 @@
-import { ClientError } from 'graphql-request';
 import { GraphQLError } from 'graphql';
+import { ClientError } from './client-error';
 import { isNetworkError, extractGraphQLErrorMessage } from './errors';
 
 function makeClientError(status: number): ClientError {

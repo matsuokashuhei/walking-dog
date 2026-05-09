@@ -1,6 +1,6 @@
 import { GraphQLError } from 'graphql';
-import { ClientError } from 'graphql-request';
 import { isAuthError, toAuthError } from './errors';
+import { ClientError } from '../graphql/client-error';
 
 function makeClientError(message: string, status = 200): ClientError {
   return new ClientError(

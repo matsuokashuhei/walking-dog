@@ -1,10 +1,8 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { Alert } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import * as imagePicker from 'expo-image-picker';
 import { WalkQuickActions } from './WalkQuickActions';
 import * as walkEventMutations from '@/hooks/use-walk-event-mutations';
-import * as photoUpload from '@/hooks/use-photo-upload';
 import * as walkStore from '@/stores/walk-store';
 import type { Dog, WalkEvent } from '@/types/graphql';
 
@@ -17,15 +15,9 @@ jest.mock('@/stores/walk-store', () => ({ useWalkStore: jest.fn() }));
 jest.mock('@/hooks/use-walk-event-mutations', () => ({
   useRecordWalkEvent: jest.fn(),
 }));
-jest.mock('@/hooks/use-photo-upload', () => {
-  const actual = jest.requireActual('@/hooks/use-photo-upload');
-  return { ...actual, usePhotoUpload: jest.fn() };
-});
-jest.mock('expo-image-picker');
 jest.spyOn(Alert, 'alert');
 
 const mockMutateAsync = jest.fn();
-const mockUploadPhoto = jest.fn();
 const addEvent = jest.fn();
 
 const coco: Dog = {
@@ -57,7 +49,7 @@ const defaultStoreState = {
 
 function setupMocks(
   storeOverrides: Partial<typeof defaultStoreState> = {},
-  opts: { recordIsPending?: boolean; uploadIsPending?: boolean } = {},
+  opts: { recordIsPending?: boolean } = {},
 ) {
   const state = { ...defaultStoreState, ...storeOverrides };
   (walkStore.useWalkStore as unknown as jest.Mock).mockImplementation(
@@ -67,10 +59,6 @@ function setupMocks(
     mutateAsync: mockMutateAsync,
     isPending: opts.recordIsPending ?? false,
   });
-  (photoUpload.usePhotoUpload as jest.Mock).mockReturnValue({
-    uploadPhoto: mockUploadPhoto,
-    isPending: opts.uploadIsPending ?? false,
-  });
 }
 
 let consoleErrorSpy: jest.SpyInstance;
@@ -78,7 +66,6 @@ let consoleErrorSpy: jest.SpyInstance;
 beforeEach(() => {
   jest.clearAllMocks();
   setupMocks();
-  (imagePicker.requestCameraPermissionsAsync as jest.Mock).mockResolvedValue({ granted: true });
   consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 });
 
@@ -105,34 +92,9 @@ describe('WalkQuickActions', () => {
     expect(consoleErrorSpy).not.toHaveBeenCalled();
   });
 
-  it.each([
-    ['presign', 'Failed to prepare photo upload. Please try again.'],
-    ['upload', 'Failed to upload photo. Please try again.'],
-    ['record', 'Failed to record. Please try again.'],
-  ] as const)(
-    'maps %s photo failures to the correct alert message',
-    async (phase, message) => {
-      (imagePicker.launchCameraAsync as jest.Mock).mockResolvedValue({
-        canceled: false,
-        assets: [{ uri: 'file:///photo.jpg', mimeType: 'image/jpeg' }],
-      });
-      mockUploadPhoto.mockRejectedValue(
-        new photoUpload.PhotoUploadError(phase, new Error('boom')),
-      );
+  it('does not render the unsupported photo action', () => {
+    render(<WalkQuickActions dogs={[coco, momo]} />);
 
-      render(<WalkQuickActions dogs={[coco, momo]} />);
-      fireEvent.press(screen.getByRole('button', { name: /photo/i }));
-
-      await waitFor(() => {
-        expect(Alert.alert).toHaveBeenCalledWith(expect.any(String), message);
-      });
-
-      expect(mockUploadPhoto).toHaveBeenCalledWith(
-        expect.objectContaining({ walkId: 'walk-123', dogId: undefined }),
-      );
-      expect(addEvent).not.toHaveBeenCalled();
-      expect(Haptics.impactAsync).not.toHaveBeenCalled();
-      expect(consoleErrorSpy).not.toHaveBeenCalled();
-    },
-  );
+    expect(screen.queryByRole('button', { name: /photo/i })).toBeNull();
+  });
 });

@@ -1,24 +1,24 @@
-import { gql } from 'graphql-request';
+import { gql } from '../gql';
 
-export const ME_QUERY = gql`
-  query Me {
-    me {
+export const USER_QUERY = gql`
+  query User {
+    user {
       id
-      displayName
-      avatarUrl
-      encounterDetectionEnabled
+      name
+      avatar
+      createdAt
+      updatedAt
       dogs {
         id
         name
         breed
         gender
-        birthDate { year month day }
-        photoUrl
-        role
+        avatar
         createdAt
-        latestWalk { endedAt }
+        updatedAt
       }
-      createdAt
     }
   }
 `;
+
+export const ME_QUERY = USER_QUERY;

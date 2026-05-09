@@ -1,6 +1,5 @@
 import { useCallback } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
+import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
@@ -8,7 +7,6 @@ import { elevation, radius, spacing, typography } from '@/theme/tokens';
 import { useWalkStore } from '@/stores/walk-store';
 import { useMutationWithAlert } from '@/hooks/use-mutation-with-alert';
 import { useRecordWalkEvent } from '@/hooks/use-walk-event-mutations';
-import { usePhotoUpload, PhotoUploadError } from '@/hooks/use-photo-upload';
 import type { Dog } from '@/types/graphql';
 
 interface WalkQuickActionsProps {
@@ -23,11 +21,10 @@ export function WalkQuickActions({ dogs }: WalkQuickActionsProps) {
   const points = useWalkStore((s) => s.points);
   const addEvent = useWalkStore((s) => s.addEvent);
   const recordWalkEvent = useRecordWalkEvent();
-  const photoUpload = usePhotoUpload();
   const runWithAlert = useMutationWithAlert();
   const isSingleDog = dogs.length === 1;
   const latestPoint = points[points.length - 1];
-  const isDisabled = !walkId || recordWalkEvent.isPending || photoUpload.isPending;
+  const isDisabled = !walkId || recordWalkEvent.isPending;
 
   // Pee/Poo は最新位置と一緒に API へ送り、成功したイベントをローカル store に反映します。
   const handlePeeOrPoo = useCallback(
@@ -51,61 +48,6 @@ export function WalkQuickActions({ dogs }: WalkQuickActionsProps) {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     },
     [walkId, latestPoint, recordWalkEvent, addEvent, runWithAlert],
-  );
-
-  // 写真は権限確認、撮影、アップロード、イベント登録までを 1 つの操作として扱います。
-  const handlePhoto = useCallback(
-    async (dogId?: string) => {
-      if (!walkId) return;
-      const permission = await runWithAlert(
-        () => ImagePicker.requestCameraPermissionsAsync(),
-        'walk.event.cameraPermissionError',
-        { action: 'requestCameraPermission', dogId, source: 'WalkQuickActions' },
-      );
-      if (!permission) return;
-      if (!permission.granted) {
-        Alert.alert(t('common.error'), t('walk.event.cameraPermissionError'));
-        return;
-      }
-
-      const result = await runWithAlert(
-        () =>
-          ImagePicker.launchCameraAsync({
-            allowsEditing: false,
-            quality: 0.8,
-          }),
-        'walk.event.recordError',
-        { action: 'launchCamera', dogId, source: 'WalkQuickActions' },
-      );
-      if (!result || result.canceled || !result.assets[0]) return;
-
-      const asset = result.assets[0];
-      const event = await runWithAlert(
-        () =>
-          photoUpload.uploadPhoto({
-            walkId,
-            dogId,
-            asset: { uri: asset.uri, mimeType: asset.mimeType },
-            ...(latestPoint
-              ? { latestPoint: { lat: latestPoint.lat, lng: latestPoint.lng } }
-              : {}),
-          }),
-        (err) => {
-          const phase = err instanceof PhotoUploadError ? err.phase : 'record';
-          return {
-            presign: 'walk.event.photoPresignError' as const,
-            upload: 'walk.event.photoUploadError' as const,
-            record: 'walk.event.recordError' as const,
-          }[phase];
-        },
-        { action: 'uploadWalkPhoto', dogId, source: 'WalkQuickActions' },
-      );
-      if (!event) return;
-
-      addEvent(event);
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    },
-    [walkId, latestPoint, t, photoUpload, addEvent, runWithAlert],
   );
 
   // 犬が選ばれていない場合は、記録先がないためクイック操作を隠します。
@@ -164,16 +106,6 @@ export function WalkQuickActions({ dogs }: WalkQuickActionsProps) {
           />,
         ])
       )}
-      <Pill
-        label="📷"
-        onPress={() => handlePhoto(isSingleDog ? dogs[0].id : undefined)}
-        disabled={isDisabled}
-        bg={theme.surface}
-        border={theme.border}
-        color={theme.onSurface}
-        accessibilityLabel={t('walk.event.photo')}
-        compact
-      />
     </ScrollView>
   );
 }

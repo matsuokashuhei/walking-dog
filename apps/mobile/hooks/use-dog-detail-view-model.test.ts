@@ -237,19 +237,19 @@ describe('useDogDetailViewModel', () => {
     expect(result.current.status).toBe('loading');
   });
 
-  it('builds the meta text, member count, streak, and filtered dog walks', () => {
+  it('builds the meta text, disabled member count, streak, and filtered dog walks', () => {
     const { result } = renderHook(() => useDogDetailViewModel());
 
     const vm = expectReadyViewModel(result.current);
 
     expect(vm.meta).toBe('4y · Shiba Inu');
-    expect(vm.memberCount).toBe(2);
+    expect(vm.memberCount).toBe(0);
     expect(vm.streakDays).toBe(5);
     expect(vm.dogWalks.map((walk) => walk.id)).toEqual(['walk-1']);
     expect(vm.isOwner).toBe(true);
   });
 
-  it('exposes navigation handlers for walks, members, and friends', () => {
+  it('exposes walk navigation and disables unsupported members/friends navigation', () => {
     const { result } = renderHook(() => useDogDetailViewModel());
     const vm = expectReadyViewModel(result.current);
 
@@ -260,8 +260,7 @@ describe('useDogDetailViewModel', () => {
     });
 
     expect(mockPush).toHaveBeenNthCalledWith(1, '/walks/walk-8');
-    expect(mockPush).toHaveBeenNthCalledWith(2, '/dogs/dog-1/members');
-    expect(mockPush).toHaveBeenNthCalledWith(3, '/dogs/dog-1/friends');
+    expect(mockPush).toHaveBeenCalledTimes(1);
   });
 
   it('toggles delete confirmation visibility inside the view model', () => {

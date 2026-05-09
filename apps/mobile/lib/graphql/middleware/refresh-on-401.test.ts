@@ -1,4 +1,4 @@
-import { ClientError } from 'graphql-request';
+import { ClientError } from '../client-error';
 import { createRefreshMiddleware } from './refresh-on-401';
 
 function makeClientError(status: number): ClientError {

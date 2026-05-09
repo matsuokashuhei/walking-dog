@@ -1,56 +1,120 @@
-import { gql } from 'graphql-request';
+import { gql } from '../gql';
 
-export const START_WALK_MUTATION = gql`
-  mutation StartWalk($dogIds: [ID!]!) {
-    startWalk(dogIds: $dogIds) {
+const WALK_FIELDS = gql`
+  fragment MutationWalkFields on Walk {
+    id
+    startedAt
+    endedAt
+    distance
+    createdAt
+    updatedAt
+    dogs {
       id
-      dogs { id name photoUrl }
-      status
-      startedAt
+      name
+      breed
+      gender
+      avatar
+      createdAt
+      updatedAt
     }
-  }
-`;
-
-export const ADD_WALK_POINTS_MUTATION = gql`
-  mutation AddWalkPoints($walkId: ID!, $points: [WalkPointInput!]!) {
-    addWalkPoints(walkId: $walkId, points: $points)
-  }
-`;
-
-export const FINISH_WALK_MUTATION = gql`
-  mutation FinishWalk($walkId: ID!, $distanceM: Int) {
-    finishWalk(walkId: $walkId, distanceM: $distanceM) {
-      id
-      status
-      distanceM
-      durationSec
-      startedAt
-      endedAt
-    }
-  }
-`;
-
-export const RECORD_WALK_EVENT_MUTATION = gql`
-  mutation RecordWalkEvent($input: RecordWalkEventInput!) {
-    recordWalkEvent(input: $input) {
+    walkDogs {
       id
       walkId
       dogId
-      eventType
+      createdAt
+      updatedAt
+      dog {
+        id
+        name
+        breed
+        gender
+        avatar
+        createdAt
+        updatedAt
+      }
+      events {
+        id
+        walkDogId
+        event
+        occurredAt
+        coordinate { latitude longitude }
+        createdAt
+        updatedAt
+      }
+    }
+    photos {
+      id
+      walkId
       occurredAt
-      lat
-      lng
-      photoUrl
+      file
+      coordinate { latitude longitude }
+      createdAt
+      updatedAt
+    }
+    trackPoints {
+      walkId
+      trackedAt
+      coordinate { latitude longitude }
     }
   }
 `;
 
-export const GENERATE_WALK_EVENT_PHOTO_UPLOAD_URL_MUTATION = gql`
-  mutation GenerateWalkEventPhotoUploadUrl($walkId: ID!, $contentType: String!) {
-    generateWalkEventPhotoUploadUrl(walkId: $walkId, contentType: $contentType) {
-      url
-      key
-      expiresAt
+export const START_WALK_MUTATION = gql`
+  ${WALK_FIELDS}
+  mutation StartWalk($input: StartWalkInput!) {
+    startWalk(input: $input) {
+      ...MutationWalkFields
     }
   }
 `;
+
+export const END_WALK_MUTATION = gql`
+  ${WALK_FIELDS}
+  mutation EndWalk($input: EndWalkInput!) {
+    endWalk(input: $input) {
+      ...MutationWalkFields
+    }
+  }
+`;
+
+export const TRACK_POINT_MUTATION = gql`
+  mutation TrackPoint($input: TrackPointInput!) {
+    trackPoint(input: $input) {
+      walkId
+      trackedAt
+      coordinate { latitude longitude }
+    }
+  }
+`;
+
+export const ADD_EVENT_MUTATION = gql`
+  mutation AddEvent($input: AddEventInput!) {
+    addEvent(input: $input) {
+      id
+      walkDogId
+      event
+      occurredAt
+      coordinate { latitude longitude }
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const TAKE_PHOTO_MUTATION = gql`
+  mutation TakePhoto($input: TakePhotoInput!) {
+    takePhoto(input: $input) {
+      id
+      walkId
+      occurredAt
+      file
+      coordinate { latitude longitude }
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const FINISH_WALK_MUTATION = END_WALK_MUTATION;
+export const ADD_WALK_POINTS_MUTATION = TRACK_POINT_MUTATION;
+export const RECORD_WALK_EVENT_MUTATION = ADD_EVENT_MUTATION;

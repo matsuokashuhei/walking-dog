@@ -1,12 +1,20 @@
-use anyhow::Result;
-use async_graphql::{ComplexObject, Context, SimpleObject};
-use sea_orm::{ColumnTrait, EntityTrait, QueryOrder};
+use async_graphql::{
+    ComplexObject, Context, Result, SimpleObject,
+    connection::{Connection, Edge, EmptyFields, query},
+};
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
 use url::Url;
 use uuid::Uuid;
 
-use crate::entity::{dog, user, user_dog};
-use crate::graphql::{error::AppError, object::dog::Dog};
-use crate::storage::avatar_url;
+use crate::{
+    entity::{dog, user, user_dog, walk},
+    graphql::{
+        cursor::UuidCursor,
+        error::AppError,
+        object::{dog::Dog, walk::Walk},
+    },
+    storage::avatar_url,
+};
 
 #[derive(SimpleObject, Clone, Debug)]
 #[graphql(complex)]
@@ -29,6 +37,60 @@ impl User {
             .await
             .map_err(|e| AppError::InternalServerError(e.to_string()))?;
         Ok(dogs.into_iter().map(Dog::from).collect())
+    }
+
+    async fn walks(
+        &self,
+        ctx: &Context<'_>,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> Result<Connection<UuidCursor, Walk, EmptyFields, EmptyFields>> {
+        let db = ctx.data::<sea_orm::DatabaseConnection>().unwrap();
+        let user = ctx.data::<user::Model>().unwrap();
+        query(
+            after,
+            before,
+            first,
+            last,
+            |after: Option<UuidCursor>, before: Option<UuidCursor>, first, last| async move {
+                let has_after = after.is_some();
+                let has_before = before.is_some();
+                let mut query = walk::Entity::find()
+                    .filter(walk::Column::UserId.eq(user.id))
+                    .order_by(walk::Column::Id, sea_orm::Order::Desc);
+                if let Some(after) = after {
+                    query = query.filter(walk::Column::Id.lt(after.id));
+                }
+                if let Some(before) = before {
+                    query = query.filter(walk::Column::Id.gt(before.id));
+                }
+                let mut has_previous = has_after;
+                let mut has_next = has_before;
+                let mut walks = query.all(db).await?;
+                if let Some(first) = first {
+                    if walks.len() > first {
+                        has_next = true;
+                    }
+                    walks.truncate(first);
+                }
+                if let Some(last) = last {
+                    if walks.len() > last {
+                        has_previous = true;
+                    }
+                    walks = walks.split_off(walks.len().saturating_sub(last));
+                }
+                let mut connection = Connection::new(has_previous, has_next);
+                connection.edges.extend(
+                    walks
+                        .into_iter()
+                        .map(|walk| Edge::new(UuidCursor { id: walk.id }, Walk::from(walk))),
+                );
+                Ok::<_, async_graphql::Error>(connection)
+            },
+        )
+        .await
     }
 }
 

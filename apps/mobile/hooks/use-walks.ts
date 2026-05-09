@@ -29,7 +29,7 @@ export function useMyWalks(limit = 20) {
     queryKey: walkKeys.list(limit),
     queryFn: async () => {
       const data = await authenticatedRequest<WalksResponse>(MY_WALKS_QUERY, { first: limit });
-      return data.walks.nodes.map(mapApiWalk);
+      return data.user.walks.nodes.map(mapApiWalk);
     },
     enabled: isAuthenticated,
   });

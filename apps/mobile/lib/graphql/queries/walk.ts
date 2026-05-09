@@ -71,13 +71,15 @@ export const WALK_QUERY = gql`
 export const WALKS_QUERY = gql`
   ${WALK_FIELDS}
   query Walks($first: Int, $after: String) {
-    walks(first: $first, after: $after) {
-      nodes {
-        ...WalkFields
-      }
-      pageInfo {
-        hasNextPage
-        endCursor
+    user {
+      walks(first: $first, after: $after) {
+        nodes {
+          ...WalkFields
+        }
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
       }
     }
   }

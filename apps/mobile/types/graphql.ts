@@ -305,7 +305,9 @@ export interface WalkConnection {
 }
 
 export interface WalksResponse {
-  walks: WalkConnection;
+  user: {
+    walks: WalkConnection;
+  };
 }
 
 export interface AddDogResponse {

@@ -2,7 +2,7 @@ use async_graphql::{
     ComplexObject, Context, Result, SimpleObject,
     connection::{Connection, Edge, EmptyFields, query},
 };
-use sea_orm::{ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder};
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
 use url::Url;
 use uuid::Uuid;
 

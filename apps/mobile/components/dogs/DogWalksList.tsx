@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
 import { spacing, typography } from '@/theme/tokens';
 import { GroupedCard } from '@/components/ui/GroupedCard';
+import { Button } from '@/components/ui/Button';
 import { DogWalkRow } from './DogWalkRow';
 import type { Walk } from '@/types/graphql';
 
@@ -11,6 +12,9 @@ interface DogWalksListProps {
   onPressWalk?: (id: string) => void;
   onSeeAll?: () => void;
   maxRows?: number;
+  // 散歩履歴の取得に失敗したとき、空表示の代わりにエラーと再試行導線を出します。
+  error?: Error | null;
+  onRetry?: () => void;
 }
 
 export function DogWalksList({
@@ -18,6 +22,8 @@ export function DogWalksList({
   onPressWalk,
   onSeeAll,
   maxRows = 5,
+  error,
+  onRetry,
 }: DogWalksListProps) {
   const { t } = useTranslation();
   const theme = useColors();
@@ -29,7 +35,7 @@ export function DogWalksList({
         <Text style={[styles.title, { color: theme.onSurface }]}>
           {t('dogs.detail.walks')}
         </Text>
-        {onSeeAll && walks.length > 0 ? (
+        {onSeeAll && !error && walks.length > 0 ? (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t('dogs.detail.seeAll')}
@@ -43,7 +49,28 @@ export function DogWalksList({
         ) : null}
       </View>
 
-      {visible.length === 0 ? (
+      {error ? (
+        <GroupedCard elevated>
+          <View style={styles.errorBody}>
+            <Text style={[styles.errorText, { color: theme.error }]}>
+              {t('dogs.detail.walksError')}
+            </Text>
+            {__DEV__ ? (
+              <Text style={[styles.errorDetail, { color: theme.onSurfaceVariant }]}>
+                {error.message}
+              </Text>
+            ) : null}
+            {onRetry ? (
+              <Button
+                label={t('common.retry')}
+                variant="secondary"
+                onPress={onRetry}
+                style={styles.retryButton}
+              />
+            ) : null}
+          </View>
+        </GroupedCard>
+      ) : visible.length === 0 ? (
         <GroupedCard elevated>
           <View style={styles.empty}>
             <Text style={[styles.emptyText, { color: theme.onSurfaceVariant }]}>
@@ -91,5 +118,22 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     ...typography.footnote,
+  },
+  errorBody: {
+    padding: spacing.lg,
+    alignItems: 'center',
+  },
+  errorText: {
+    ...typography.body,
+    textAlign: 'center',
+  },
+  errorDetail: {
+    ...typography.footnote,
+    textAlign: 'center',
+    marginTop: spacing.xs,
+  },
+  retryButton: {
+    marginTop: spacing.md,
+    alignSelf: 'stretch',
   },
 });

@@ -57,3 +57,4 @@ features/
 - Graceful degradation (offline placeholder, retry button)
 - Report errors to monitoring (Sentry/Crashlytics)
 - Never swallow errors silently
+- **Never render a success / empty / zero state when a data fetch failed.** Every data-fetching screen MUST surface fetch errors to the user — a visible message plus a Retry affordance. Don't drop `.error` (or equivalent) from `useQuery` / data hooks: thread it through the view-model into the screen, and branch the UI on it. In `__DEV__` builds, also show the underlying error detail (e.g. `error.message`) so the cause is visible during development. An empty/zero UI must mean "the fetch succeeded and there is no data", never "the fetch failed".

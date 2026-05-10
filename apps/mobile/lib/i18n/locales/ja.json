@@ -98,6 +98,7 @@
       "membersCount": "{{count}}人のメンバー",
       "manageMembers": "メンバー管理",
       "walks": "散歩",
+      "walksError": "散歩を読み込めませんでした。",
       "seeAll": "すべて見る",
       "streakLabel": "連続",
       "streakDays": "{{days}}日",

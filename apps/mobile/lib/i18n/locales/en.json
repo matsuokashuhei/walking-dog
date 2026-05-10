@@ -98,6 +98,7 @@
       "membersCount": "{{count}} members",
       "manageMembers": "Manage Members",
       "walks": "Walks",
+      "walksError": "Couldn't load walks.",
       "seeAll": "See all",
       "streakLabel": "Streak",
       "streakDays": "{{days}}d",

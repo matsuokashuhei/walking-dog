@@ -4,7 +4,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useCreateDog } from '@/hooks/use-dog-mutations';
-import { DogForm, isDogFormValid, type DogFormValues } from '@/components/dogs/DogForm';
+import {
+  DogForm,
+  birthdayValuesToInput,
+  isDogFormValid,
+  type DogFormValues,
+} from '@/components/dogs/DogForm';
 import { useColors } from '@/hooks/use-colors';
 import { spacing, typography } from '@/theme/tokens';
 
@@ -15,7 +20,14 @@ export default function NewDogScreen() {
   const theme = useColors();
   const { mutateAsync: createDog } = useCreateDog();
 
-  const [values, setValues] = useState<DogFormValues>({ name: '', breed: '', gender: '' });
+  const [values, setValues] = useState<DogFormValues>({
+    name: '',
+    breed: '',
+    gender: '',
+    birthdayYear: '',
+    birthdayMonth: '',
+    birthdayDay: '',
+  });
   const [submitting, setSubmitting] = useState(false);
 
   const canSave = isDogFormValid(values) && !submitting;
@@ -28,6 +40,7 @@ export default function NewDogScreen() {
         name: values.name.trim(),
         breed: values.breed.trim() || undefined,
         gender: values.gender.trim() || undefined,
+        birthday: birthdayValuesToInput(values),
       });
 
       router.dismiss();

@@ -33,7 +33,7 @@ import WalkDetailScreen from '../../../app/walks/[id]';
 
 const baseWalk = {
   id: 'walk-1',
-  dogs: [{ id: 'dog-1', name: 'Buddy', breed: null, gender: null, birthDate: null, photoUrl: null, createdAt: '2026-01-01' }],
+  dogs: [{ id: 'dog-1', name: 'Buddy', breed: null, gender: null, birthday: null, photoUrl: null, createdAt: '2026-01-01' }],
   status: 'FINISHED' as const,
   distanceM: 1500,
   durationSec: 1800,

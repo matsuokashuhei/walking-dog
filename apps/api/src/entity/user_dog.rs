@@ -2,6 +2,8 @@
 
 use sea_orm::{ActiveValue::Set, entity::prelude::*};
 
+use crate::entity::{dog, user};
+
 #[sea_orm::model]
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel)]
 #[sea_orm(table_name = "user_dog")]
@@ -19,7 +21,7 @@ pub struct Model {
         on_update = "NoAction",
         on_delete = "Cascade"
     )]
-    pub dog: HasOne<super::dog::Entity>,
+    pub dog: HasOne<dog::Entity>,
     #[sea_orm(
         belongs_to,
         from = "user_id",
@@ -27,7 +29,7 @@ pub struct Model {
         on_update = "NoAction",
         on_delete = "Cascade"
     )]
-    pub user: HasOne<super::user::Entity>,
+    pub user: HasOne<user::Entity>,
 }
 
 impl ActiveModelBehavior for ActiveModel {

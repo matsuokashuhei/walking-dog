@@ -5,7 +5,13 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useDog } from '@/hooks/use-dog';
 import { useUpdateDog } from '@/hooks/use-dog-mutations';
-import { DogForm, isDogFormValid, type DogFormValues } from '@/components/dogs/DogForm';
+import {
+  DogForm,
+  birthdayValuesToInput,
+  dogBirthdayToFormValues,
+  isDogFormValid,
+  type DogFormValues,
+} from '@/components/dogs/DogForm';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { useColors } from '@/hooks/use-colors';
 import { spacing, typography } from '@/theme/tokens';
@@ -26,6 +32,7 @@ export default function EditDogScreen() {
         name: dog.name,
         breed: dog.breed ?? '',
         gender: dog.gender ?? '',
+        ...dogBirthdayToFormValues(dog.birthday),
       }}
     />
   );
@@ -58,6 +65,7 @@ function EditDogContent({ id, initialValues }: EditDogContentProps) {
           name: values.name.trim(),
           breed: values.breed.trim() || undefined,
           gender: values.gender.trim() || undefined,
+          birthday: birthdayValuesToInput(values),
         },
       });
       router.back();

@@ -9,9 +9,9 @@ use uuid::Uuid;
 use crate::{
     entity::{dog, user, user_dog, walk},
     graphql::{
-        cursor::{UuidCursor, ConnectionFields},
+        cursor::UuidCursor,
         error::AppError,
-        object::{dog::Dog, walk::Walk},
+        object::{dog::Dog, walk::Walk, walk_connection::WalkConnectionFields},
     },
     storage::avatar_url,
 };
@@ -46,7 +46,7 @@ impl User {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> Result<Connection<UuidCursor, Walk, ConnectionFields, EmptyFields>> {
+    ) -> Result<Connection<UuidCursor, Walk, WalkConnectionFields, EmptyFields>> {
         let db = ctx.data::<sea_orm::DatabaseConnection>().unwrap();
         let user = ctx.data::<user::Model>().unwrap();
         query(
@@ -55,15 +55,12 @@ impl User {
             first,
             last,
             |after: Option<UuidCursor>, before: Option<UuidCursor>, first, last| async move {
-                let total_count = walk::Entity::find()
-                    .filter(walk::Column::UserId.eq(user.id))
-                    .count(db)
-                    .await? as i64;
+                let mut query = walk::Entity::find().filter(walk::Column::UserId.eq(user.id));
+                let (total_count, total_distance, total_duration) =
+                    walk::Entity::aggregate(db, query.clone()).await?;
                 let has_after = after.is_some();
                 let has_before = before.is_some();
-                let mut query = walk::Entity::find()
-                    .filter(walk::Column::UserId.eq(user.id))
-                    .order_by(walk::Column::Id, sea_orm::Order::Desc);
+                query = query.order_by(walk::Column::Id, sea_orm::Order::Desc);
                 if let Some(after) = after {
                     query = query.filter(walk::Column::Id.lt(after.id));
                 }
@@ -88,7 +85,11 @@ impl User {
                 let mut connection = Connection::with_additional_fields(
                     has_previous,
                     has_next,
-                    ConnectionFields { total_count },
+                    WalkConnectionFields {
+                        total_count,
+                        total_distance,
+                        total_duration,
+                    },
                 );
                 connection.edges.extend(
                     walks

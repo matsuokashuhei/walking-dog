@@ -2,6 +2,8 @@
 
 use sea_orm::{ActiveValue::Set, entity::prelude::*};
 
+use crate::entity::walk;
+
 #[sea_orm::model]
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
 #[sea_orm(table_name = "walk_photo")]
@@ -24,7 +26,7 @@ pub struct Model {
         on_update = "NoAction",
         on_delete = "Cascade"
     )]
-    pub walk: HasOne<super::walk::Entity>,
+    pub walk: HasOne<walk::Entity>,
 }
 
 impl ActiveModelBehavior for ActiveModel {

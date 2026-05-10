@@ -130,7 +130,14 @@
       "breed": "犬種",
       "breedPlaceholder": "例: 柴犬",
       "gender": "性別",
-      "genderPlaceholder": "例: オス"
+      "genderPlaceholder": "例: オス",
+      "birthday": "誕生日（わかる範囲でOK）",
+      "birthdayYear": "年",
+      "birthdayYearPlaceholder": "例: 2021",
+      "birthdayMonth": "月",
+      "birthdayMonthPlaceholder": "例: 6",
+      "birthdayDay": "日",
+      "birthdayDayPlaceholder": "例: 15"
     },
     "stats": {
       "walks": "散歩",

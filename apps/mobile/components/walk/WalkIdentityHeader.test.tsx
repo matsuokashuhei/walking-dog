@@ -13,7 +13,7 @@ const coco: Dog = {
   name: 'Coco',
   breed: null,
   gender: null,
-  birthDate: null,
+  birthday: null,
   photoUrl: null,
   createdAt: '2026-01-01',
 };
@@ -23,7 +23,7 @@ const momo: Dog = {
   name: 'Momo',
   breed: null,
   gender: null,
-  birthDate: null,
+  birthday: null,
   photoUrl: null,
   createdAt: '2026-01-02',
 };

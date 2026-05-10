@@ -14,6 +14,7 @@ export const USER_QUERY = gql`
         breed
         gender
         avatar
+        birthday { year month day }
         createdAt
         updatedAt
       }

@@ -14,6 +14,7 @@ const WALK_FIELDS = gql`
       breed
       gender
       avatar
+      birthday { year month day }
       createdAt
       updatedAt
     }
@@ -29,6 +30,7 @@ const WALK_FIELDS = gql`
         breed
         gender
         avatar
+        birthday { year month day }
         createdAt
         updatedAt
       }

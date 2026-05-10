@@ -4,6 +4,7 @@ import {
   createRefreshMiddleware,
   type RefreshHandler,
 } from './middleware/refresh-on-401';
+import { logReproducibleRequest } from './request-log';
 
 type Variables = Record<string, unknown>;
 type GraphQLResult = {
@@ -118,6 +119,13 @@ export const graphqlClient = {
       `[graphql] → ${op.kind} ${op.name} ${endpoint}`,
       variables ? { variableKeys: Object.keys(variables) } : '',
     );
+    logReproducibleRequest({
+      endpoint,
+      document,
+      variables,
+      operationKind: op.kind,
+      operationName: op.name,
+    });
 
     const headers: HeadersInit = {
       'Content-Type': 'application/json',

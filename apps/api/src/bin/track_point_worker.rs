@@ -137,8 +137,8 @@ async fn process_batch(
 }
 
 async fn delete_message(sqs_client: &aws_sdk_sqs::Client, queue_url: &str, message: &Message) {
-    if let Some(receipt_handle) = message.receipt_handle() {
-        if let Err(error) = sqs_client
+    if let Some(receipt_handle) = message.receipt_handle()
+        && let Err(error) = sqs_client
             .delete_message()
             .queue_url(queue_url)
             .receipt_handle(receipt_handle)
@@ -147,7 +147,6 @@ async fn delete_message(sqs_client: &aws_sdk_sqs::Client, queue_url: &str, messa
         {
             error!(?error, "failed to delete message from queue");
         }
-    }
 }
 
 async fn delete_message_batch(

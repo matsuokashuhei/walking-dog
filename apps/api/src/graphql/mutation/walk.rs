@@ -5,7 +5,7 @@ use sea_orm::{
 };
 use uuid::Uuid;
 
-use crate::entity::{dog, track_point, user, user_dog};
+use crate::entity::{dog, user, user_dog};
 use crate::graphql::{error::AppError, guard::AuthGuard, object::walk::Walk};
 
 #[derive(Default, Debug)]

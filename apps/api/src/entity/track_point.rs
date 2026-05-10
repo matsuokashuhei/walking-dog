@@ -113,7 +113,7 @@ impl Model {
 
                 let remaining = output
                     .unprocessed_items()
-                    .get(&table_name)
+                    .and_then(|items| items.get(&table_name))
                     .cloned()
                     .unwrap_or_default();
 

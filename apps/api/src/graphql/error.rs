@@ -100,6 +100,11 @@ impl ErrorExtensions for TrackPointError {
                 e.set("code", 500);
                 e.set("message", put_item_error.message());
             }
+            TrackPointError::BatchWriteItemError(batch_write_item_error) => {
+                error!("Batch write item error: {:?}", batch_write_item_error);
+                e.set("code", 500);
+                e.set("message", batch_write_item_error.message());
+            }
             TrackPointError::QueryError(query_error) => {
                 error!("Query error: {:?}", query_error);
                 e.set("code", 500);

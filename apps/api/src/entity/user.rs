@@ -2,6 +2,8 @@
 
 use sea_orm::{ActiveValue::Set, entity::prelude::*};
 
+use crate::entity::{user_dog, walk};
+
 #[sea_orm::model]
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel)]
 #[sea_orm(table_name = "user")]
@@ -15,9 +17,9 @@ pub struct Model {
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
     #[sea_orm(has_many)]
-    pub user_dogs: HasMany<super::user_dog::Entity>,
+    pub user_dogs: HasMany<user_dog::Entity>,
     #[sea_orm(has_many)]
-    pub walks: HasMany<super::walk::Entity>,
+    pub walks: HasMany<walk::Entity>,
 }
 
 impl ActiveModelBehavior for ActiveModel {

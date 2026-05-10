@@ -7,7 +7,7 @@ use sea_orm::FromJsonQueryResult;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, FromJsonQueryResult)]
-pub struct Birthday {
+pub struct Model {
     pub year: Option<i32>,
     pub month: Option<i32>,
     pub day: Option<i32>,

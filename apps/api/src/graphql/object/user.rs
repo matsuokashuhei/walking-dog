@@ -9,9 +9,9 @@ use uuid::Uuid;
 use crate::{
     entity::{dog, user, user_dog, walk},
     graphql::{
-        cursor::{UuidCursor, WalkConnectionFields, fetch_walk_stats},
+        cursor::UuidCursor,
         error::AppError,
-        object::{dog::Dog, walk::Walk},
+        object::{dog::Dog, walk::Walk, walk_connection::WalkConnectionFields},
     },
     storage::avatar_url,
 };
@@ -55,19 +55,12 @@ impl User {
             first,
             last,
             |after: Option<UuidCursor>, before: Option<UuidCursor>, first, last| async move {
-                let total_count = walk::Entity::find()
-                    .filter(walk::Column::UserId.eq(user.id))
-                    .count(db)
-                    .await? as i64;
-                let stats_query = walk::Entity::find()
-                    .filter(walk::Column::UserId.eq(user.id));
-                let (total_distance, total_duration) =
-                    fetch_walk_stats(db, stats_query).await?;
+                let mut query = walk::Entity::find().filter(walk::Column::UserId.eq(user.id));
+                let (total_count, total_distance, total_duration) =
+                    walk::Entity::aggregate(db, query.clone()).await?;
                 let has_after = after.is_some();
                 let has_before = before.is_some();
-                let mut query = walk::Entity::find()
-                    .filter(walk::Column::UserId.eq(user.id))
-                    .order_by(walk::Column::Id, sea_orm::Order::Desc);
+                query = query.order_by(walk::Column::Id, sea_orm::Order::Desc);
                 if let Some(after) = after {
                     query = query.filter(walk::Column::Id.lt(after.id));
                 }

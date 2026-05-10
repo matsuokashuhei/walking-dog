@@ -15,7 +15,7 @@ use crate::graphql::{
     object::dog::{Dog, Gender},
 };
 use crate::{
-    entity::{birthday::Birthday, dog, sea_orm_active_enums::GenderType, user, user_dog},
+    entity::{birthday::Model, dog, sea_orm_active_enums::GenderType, user, user_dog},
     storage::{StorageError, upload_avatar},
 };
 
@@ -121,9 +121,9 @@ struct BirthdayInput {
     day: Option<i32>,
 }
 
-impl From<BirthdayInput> for Birthday {
+impl From<BirthdayInput> for Model {
     fn from(input: BirthdayInput) -> Self {
-        Birthday {
+        Model {
             year: input.year,
             month: input.month,
             day: input.day,

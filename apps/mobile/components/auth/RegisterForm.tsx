@@ -98,6 +98,8 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
           onChangeText={setPassword}
           secureTextEntry
           textContentType="newPassword"
+          passwordRules="minlength: 8;"
+          autoComplete="password-new"
           error={passwordError}
         />
       </GroupedCard>

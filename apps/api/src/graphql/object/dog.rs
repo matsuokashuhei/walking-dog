@@ -2,13 +2,15 @@ use async_graphql::{
     ComplexObject, Context, Enum, Result, SimpleObject,
     connection::{Connection, Edge, EmptyFields, query},
 };
-use sea_orm::{ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder};
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
 use url::Url;
 
 use crate::{
     entity::{sea_orm_active_enums::GenderType, user, walk, walk_dog},
-    graphql::cursor::{WalkConnectionFields, UuidCursor, fetch_walk_stats},
-    graphql::object::walk::Walk,
+    graphql::{
+        cursor::UuidCursor,
+        object::{walk::Walk, walk_connection::WalkConnectionFields},
+    },
     storage::avatar_url,
 };
 
@@ -37,8 +39,8 @@ pub struct Birthday {
     pub day: Option<i32>,
 }
 
-impl From<crate::entity::birthday::Birthday> for Birthday {
-    fn from(value: crate::entity::birthday::Birthday) -> Self {
+impl From<crate::entity::birthday::Model> for Birthday {
+    fn from(value: crate::entity::birthday::Model) -> Self {
         Birthday {
             year: value.year,
             month: value.month,
@@ -78,22 +80,14 @@ impl Dog {
             first,
             last,
             |after: Option<UuidCursor>, before: Option<UuidCursor>, first, last| async move {
-                let total_count = walk::Entity::find()
-                    .filter(walk::Column::UserId.eq(user.id))
-                    .has_related(walk_dog::Entity, walk_dog::Column::DogId.eq(self.id))
-                    .count(db)
-                    .await? as i64;
-                let stats_query = walk::Entity::find()
-                    .filter(walk::Column::UserId.eq(user.id))
-                    .has_related(walk_dog::Entity, walk_dog::Column::DogId.eq(self.id));
-                let (total_distance, total_duration) =
-                    fetch_walk_stats(db, stats_query).await?;
-                let has_after = after.is_some();
-                let has_before = before.is_some();
                 let mut query = walk::Entity::find()
                     .filter(walk::Column::UserId.eq(user.id))
-                    .has_related(walk_dog::Entity, walk_dog::Column::DogId.eq(self.id))
-                    .order_by(walk::Column::Id, sea_orm::Order::Desc);
+                    .has_related(walk_dog::Entity, walk_dog::Column::DogId.eq(self.id));
+                let (total_count, total_distance, total_duration) =
+                    walk::Entity::aggregate(db, query.clone()).await?;
+                let has_after = after.is_some();
+                let has_before = before.is_some();
+                query = query.order_by(walk::Column::Id, sea_orm::Order::Desc);
                 if let Some(after) = after {
                     query = query.filter(walk::Column::Id.lt(after.id));
                 }

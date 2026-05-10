@@ -97,8 +97,8 @@ describe('isDogFormValid', () => {
 });
 
 describe('birthdayValuesToInput', () => {
-  it('returns undefined when all birthday fields are empty', () => {
-    expect(birthdayValuesToInput(makeValues({ name: 'Hana', gender: 'male' }))).toBeUndefined();
+  it('returns null when all birthday fields are empty', () => {
+    expect(birthdayValuesToInput(makeValues({ name: 'Hana', gender: 'male' }))).toBeNull();
   });
 
   it('returns year only when only year is filled', () => {
@@ -125,7 +125,7 @@ describe('birthdayValuesToInput', () => {
   });
 
   it('ignores non-positive / non-integer values', () => {
-    expect(birthdayValuesToInput(makeValues({ birthdayYear: '0', birthdayMonth: '00', birthdayDay: '' }))).toBeUndefined();
+    expect(birthdayValuesToInput(makeValues({ birthdayYear: '0', birthdayMonth: '00', birthdayDay: '' }))).toBeNull();
   });
 });
 

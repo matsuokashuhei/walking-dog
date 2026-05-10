@@ -1,5 +1,5 @@
 use anyhow::Result;
-use async_graphql::{Context, InputObject, Object, Upload};
+use async_graphql::{Context, InputObject, MaybeUndefined, Object, Upload};
 use sea_orm::{
     ActiveModelTrait,
     ActiveValue::{NotSet, Set},
@@ -163,7 +163,9 @@ struct UpdateDogInput {
     breed: Option<String>,
     gender: Option<Gender>,
     avatar: Option<Upload>,
-    birthday: Option<BirthdayInput>,
+    // `MaybeUndefined` so we can tell "field omitted" (leave as-is) from
+    // "field explicitly null" (clear the stored birthday) — `Option` can't.
+    birthday: MaybeUndefined<BirthdayInput>,
 }
 
 impl UpdateDogInput {
@@ -179,10 +181,11 @@ impl UpdateDogInput {
                     Gender::Other => GenderType::Other,
                 })
             }),
-            birthday: self
-                .birthday
-                .clone()
-                .map_or(NotSet, |birthday| Set(Some(birthday.into()))),
+            birthday: match &self.birthday {
+                MaybeUndefined::Undefined => NotSet,
+                MaybeUndefined::Null => Set(None),
+                MaybeUndefined::Value(birthday) => Set(Some(birthday.clone().into())),
+            },
             ..Default::default()
         }
     }

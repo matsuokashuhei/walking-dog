@@ -188,14 +188,15 @@ export interface CreateDogInput {
   name: string;
   breed?: string;
   gender?: string;
-  birthday?: BirthdayInput;
+  birthday?: BirthdayInput | null;
 }
 
 export interface UpdateDogInput {
   name?: string;
   breed?: string;
   gender?: string;
-  birthday?: BirthdayInput;
+  // `null` clears the stored birthday; omitting it leaves it unchanged.
+  birthday?: BirthdayInput | null;
   avatar?: string;
   photoUrl?: string;
 }

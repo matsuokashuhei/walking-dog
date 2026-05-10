@@ -104,8 +104,9 @@ export function isDogFormValid(values: DogFormValues): boolean {
 }
 
 // フォームの 3 つの文字列を API 入力（任意の年・月・日）へ変換する。
-// すべて空なら undefined（= 誕生日を送らない）。月/日は妥当な範囲のものだけ採用する。
-export function birthdayValuesToInput(values: DogFormValues): BirthdayInput | undefined {
+// 妥当な値が一つも無ければ null を返す（編集画面では誕生日のクリア、新規画面では未設定として扱われる）。
+// 月/日は妥当な範囲のものだけ採用する。
+export function birthdayValuesToInput(values: DogFormValues): BirthdayInput | null {
   const year = toPositiveInt(values.birthdayYear);
   const month = toPositiveInt(values.birthdayMonth);
   const day = toPositiveInt(values.birthdayDay);
@@ -115,7 +116,7 @@ export function birthdayValuesToInput(values: DogFormValues): BirthdayInput | un
   if (month !== undefined && month >= 1 && month <= 12) input.month = month;
   if (day !== undefined && day >= 1 && day <= 31) input.day = day;
 
-  return Object.keys(input).length > 0 ? input : undefined;
+  return Object.keys(input).length > 0 ? input : null;
 }
 
 // 既存の犬の誕生日をフォームの初期値（文字列）へ落とす。編集画面の初期化に使う。

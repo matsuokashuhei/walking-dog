@@ -1,6 +1,6 @@
 use aws_sdk_sqs::operation::{
-    delete_message::DeleteMessageError, receive_message::ReceiveMessageError,
-    send_message::SendMessageError,
+    delete_message::DeleteMessageError, delete_message_batch::DeleteMessageBatchError,
+    receive_message::ReceiveMessageError, send_message::SendMessageError,
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -93,6 +93,8 @@ pub enum TrackPointQueueError {
     ReceiveMessage(ReceiveMessageError),
     #[error("SQS delete message error: {0}")]
     DeleteMessage(DeleteMessageError),
+    #[error("SQS delete message batch error: {0}")]
+    DeleteMessageBatch(DeleteMessageBatchError),
     #[error("SQS message has no body")]
     MissingBody,
     #[error("SQS message has no receipt handle")]

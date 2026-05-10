@@ -7,7 +7,7 @@ use url::Url;
 
 use crate::{
     entity::{sea_orm_active_enums::GenderType, user, walk, walk_dog},
-    graphql::cursor::{ConnectionFields, UuidCursor},
+    graphql::cursor::{WalkConnectionFields, UuidCursor, fetch_walk_stats},
     graphql::object::walk::Walk,
     storage::avatar_url,
 };
@@ -69,7 +69,7 @@ impl Dog {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> Result<Connection<UuidCursor, Walk, ConnectionFields, EmptyFields>> {
+    ) -> Result<Connection<UuidCursor, Walk, WalkConnectionFields, EmptyFields>> {
         let db = ctx.data::<sea_orm::DatabaseConnection>().unwrap();
         let user = ctx.data::<user::Model>().unwrap();
         query(
@@ -83,6 +83,11 @@ impl Dog {
                     .has_related(walk_dog::Entity, walk_dog::Column::DogId.eq(self.id))
                     .count(db)
                     .await? as i64;
+                let stats_query = walk::Entity::find()
+                    .filter(walk::Column::UserId.eq(user.id))
+                    .has_related(walk_dog::Entity, walk_dog::Column::DogId.eq(self.id));
+                let (total_distance, total_duration) =
+                    fetch_walk_stats(db, stats_query).await?;
                 let has_after = after.is_some();
                 let has_before = before.is_some();
                 let mut query = walk::Entity::find()
@@ -113,7 +118,11 @@ impl Dog {
                 let mut connection = Connection::with_additional_fields(
                     has_previous,
                     has_next,
-                    ConnectionFields { total_count },
+                    WalkConnectionFields {
+                        total_count,
+                        total_distance,
+                        total_duration,
+                    },
                 );
                 connection.edges.extend(
                     walks

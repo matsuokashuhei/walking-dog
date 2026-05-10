@@ -9,7 +9,7 @@ use uuid::Uuid;
 use crate::{
     entity::{dog, user, user_dog, walk},
     graphql::{
-        cursor::{UuidCursor, ConnectionFields},
+        cursor::{UuidCursor, WalkConnectionFields, fetch_walk_stats},
         error::AppError,
         object::{dog::Dog, walk::Walk},
     },
@@ -46,7 +46,7 @@ impl User {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> Result<Connection<UuidCursor, Walk, ConnectionFields, EmptyFields>> {
+    ) -> Result<Connection<UuidCursor, Walk, WalkConnectionFields, EmptyFields>> {
         let db = ctx.data::<sea_orm::DatabaseConnection>().unwrap();
         let user = ctx.data::<user::Model>().unwrap();
         query(
@@ -59,6 +59,10 @@ impl User {
                     .filter(walk::Column::UserId.eq(user.id))
                     .count(db)
                     .await? as i64;
+                let stats_query = walk::Entity::find()
+                    .filter(walk::Column::UserId.eq(user.id));
+                let (total_distance, total_duration) =
+                    fetch_walk_stats(db, stats_query).await?;
                 let has_after = after.is_some();
                 let has_before = before.is_some();
                 let mut query = walk::Entity::find()
@@ -88,7 +92,11 @@ impl User {
                 let mut connection = Connection::with_additional_fields(
                     has_previous,
                     has_next,
-                    ConnectionFields { total_count },
+                    WalkConnectionFields {
+                        total_count,
+                        total_distance,
+                        total_duration,
+                    },
                 );
                 connection.edges.extend(
                     walks

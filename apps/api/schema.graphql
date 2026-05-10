@@ -273,6 +273,8 @@ type WalkConnection {
 	"""
 	nodes: [Walk!]!
 	totalCount: Int!
+	totalDistance: Int!
+	totalDuration: Int!
 }
 
 type WalkDog {

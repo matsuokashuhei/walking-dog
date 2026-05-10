@@ -4,6 +4,11 @@ name = "walking-dog"
 version = "0.1.0"
 default-run = "walking-dog"
 
+[features]
+# Test-only helpers. Currently empty (the helpers were dropped in the API
+# rewrite) but kept so `cargo test --features test-utils` in CI stays valid.
+test-utils = []
+
 [dependencies]
 migration = { path = "./migration" }
 

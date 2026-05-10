@@ -86,13 +86,9 @@ pub struct Dog {
 #[ComplexObject]
 impl Dog {
     /// 登録された誕生日から計算した満年齢（年のみ）。誕生日（または年）が不明なら `null`。
-    /// 基準日は JST（UTC+9）なので、年齢が切り替わるのは日本時間の深夜 0 時。
+    /// 基準日は UTC の今日。
     async fn age(&self) -> Option<i32> {
-        let jst = chrono::FixedOffset::east_opt(9 * 3600).unwrap();
-        calculate_age(
-            self.birthday.as_ref()?,
-            chrono::Utc::now().with_timezone(&jst).date_naive(),
-        )
+        calculate_age(self.birthday.as_ref()?, chrono::Utc::now().date_naive())
     }
 
     async fn walks(

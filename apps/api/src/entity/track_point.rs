@@ -1,18 +1,19 @@
 use anyhow::{Result, anyhow};
-// use aws_sdk_dynamodb::operation::put_item::PutItemError;
-// use aws_sdk_dynamodb::operation::query::QueryError;
 use aws_sdk_dynamodb::{
     operation::{
-        put_item::{PutItemError, PutItemOutput},
+        batch_write_item::BatchWriteItemError,
+        put_item::PutItemError,
         query::QueryError,
     },
-    types::AttributeValue,
+    types::{AttributeValue, PutRequest, WriteRequest},
 };
 use std::collections::HashMap;
+use tokio::time::{Duration, sleep};
 use tracing::{error, warn};
 use uuid::Uuid;
 
-use crate::entity;
+const DYNAMO_BATCH_WRITE_MAX: usize = 25;
+const BATCH_WRITE_MAX_RETRIES: u32 = 3;
 
 pub struct Model {
     pub walk_id: Uuid,
@@ -36,9 +37,9 @@ impl Model {
         }
     }
 
-    pub async fn put(&self, client: &aws_sdk_dynamodb::Client) -> Result<Model> {
+    pub async fn put(&self, client: &aws_sdk_dynamodb::Client) -> Result<()> {
         let table_name = std::env::var("AWS_DYNAMODB_TABLE_TRACK_POINT").unwrap();
-        let _ = client
+        client
             .put_item()
             .table_name(table_name)
             .item("walk_id", AttributeValue::S(self.walk_id.to_string()))
@@ -51,19 +52,99 @@ impl Model {
             .send()
             .await
             .map_err(|e| TrackPointError::PutItemError(e.into_service_error()))?;
-        let output = entity::track_point::Model::find_by_walk_id_and_tracked_at(
-            client,
-            self.walk_id,
-            self.tracked_at,
-        )
-        .await?;
-        output.ok_or_else(|| {
-            error!(
-                "Failed to find track point after insert for walk_id {} at tracked_at {}",
-                self.walk_id, self.tracked_at
-            );
-            anyhow!("Failed to find inserted track point")
-        })
+        Ok(())
+    }
+
+    pub async fn batch_put_write(
+        client: &aws_sdk_dynamodb::Client,
+        models: &[Model],
+    ) -> Result<()> {
+        if models.is_empty() {
+            return Ok(());
+        }
+
+        let table_name = std::env::var("AWS_DYNAMODB_TABLE_TRACK_POINT").unwrap();
+
+        for chunk in models.chunks(DYNAMO_BATCH_WRITE_MAX) {
+            let write_requests: Vec<WriteRequest> = chunk
+                .iter()
+                .map(|model| {
+                    WriteRequest::builder()
+                        .put_request(
+                            PutRequest::builder()
+                                .item("walk_id", AttributeValue::S(model.walk_id.to_string()))
+                                .item(
+                                    "tracked_at",
+                                    AttributeValue::N(
+                                        model.tracked_at.timestamp_micros().to_string(),
+                                    ),
+                                )
+                                .item(
+                                    "latitude",
+                                    AttributeValue::N(model.latitude.to_string()),
+                                )
+                                .item(
+                                    "longitude",
+                                    AttributeValue::N(model.longitude.to_string()),
+                                )
+                                .build()
+                                .expect("PutRequest build should not fail"),
+                        )
+                        .build()
+                })
+                .collect();
+
+            let mut unprocessed = Some(write_requests);
+
+            for attempt in 0..=BATCH_WRITE_MAX_RETRIES {
+                let requests = match unprocessed.take() {
+                    Some(r) if !r.is_empty() => r,
+                    _ => break,
+                };
+
+                let output = client
+                    .batch_write_item()
+                    .request_items(&table_name, requests)
+                    .send()
+                    .await
+                    .map_err(|e| {
+                        TrackPointError::BatchWriteItemError(e.into_service_error())
+                    })?;
+
+                let remaining = output
+                    .unprocessed_items()
+                    .get(&table_name)
+                    .cloned()
+                    .unwrap_or_default();
+
+                if remaining.is_empty() {
+                    break;
+                }
+
+                if attempt == BATCH_WRITE_MAX_RETRIES {
+                    error!(
+                        remaining_count = remaining.len(),
+                        "batch_put_write: unprocessed items remain after max retries"
+                    );
+                    return Err(anyhow!(
+                        "batch_put_write failed: {} items unprocessed after {} retries",
+                        remaining.len(),
+                        BATCH_WRITE_MAX_RETRIES
+                    ));
+                }
+
+                warn!(
+                    attempt,
+                    remaining_count = remaining.len(),
+                    "batch_put_write: retrying unprocessed items"
+                );
+                let backoff = Duration::from_millis(100 * 2u64.pow(attempt));
+                sleep(backoff).await;
+                unprocessed = Some(remaining);
+            }
+        }
+
+        Ok(())
     }
 
     pub async fn find_by_walk_id_and_tracked_at(
@@ -181,21 +262,12 @@ impl TryFrom<&HashMap<String, AttributeValue>> for Model {
     }
 }
 
-impl TryFrom<PutItemOutput> for Model {
-    type Error = anyhow::Error;
-
-    fn try_from(output: PutItemOutput) -> Result<Self> {
-        let attributes = output
-            .attributes
-            .ok_or_else(|| anyhow!("PutItemOutput missing attributes"))?;
-        Model::try_from(&attributes)
-    }
-}
-
 #[derive(Debug, thiserror::Error)]
 pub enum TrackPointError {
     #[error("Put item error: {0}")]
     PutItemError(PutItemError),
+    #[error("Batch write item error: {0}")]
+    BatchWriteItemError(BatchWriteItemError),
     #[error("Query error: {0}")]
     QueryError(QueryError),
 }

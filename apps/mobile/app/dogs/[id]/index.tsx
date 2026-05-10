@@ -37,14 +37,20 @@ export default function DogDetailScreen() {
           ) : null}
         </View>
 
-        {vm.dog.walkStats ? (
+        {/* 散歩取得に失敗しているときは 0/0/0 の誤った統計を出さず、エラーだけ見せます。 */}
+        {vm.dog.walkStats && !vm.walksError ? (
           <View style={styles.statsSection}>
             <DogStatsCard stats={vm.dog.walkStats} streakDays={vm.streakDays} />
           </View>
         ) : null}
 
         <View style={styles.walksSection}>
-          <DogWalksList walks={vm.dogWalks} onPressWalk={vm.handleOpenWalk} />
+          <DogWalksList
+            walks={vm.dogWalks}
+            onPressWalk={vm.handleOpenWalk}
+            error={vm.walksError}
+            onRetry={vm.retryWalks}
+          />
         </View>
 
         <GroupedCard style={styles.group}>

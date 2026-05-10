@@ -19,12 +19,13 @@ export default function DogDetailLayout() {
         }}
       />
       <Stack.Screen
-        name="friends"
+        name="friends/index"
         options={{
           title: t('dogs.friends.title', 'Friends'),
           headerStyle: { backgroundColor: theme.background },
         }}
       />
+      {/* friends/[friendDogId] は Expo Router の自動検出に任せ、既定の Stack ヘッダー（戻るボタン付き）を使います。 */}
       <Stack.Screen
         name="encounters"
         options={{

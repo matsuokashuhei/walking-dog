@@ -6,6 +6,8 @@ const mockPush = jest.fn();
 const mockReplace = jest.fn();
 const mockDeleteDog = jest.fn();
 const mockRunWithAlert = jest.fn();
+const mockRefetchWalks = jest.fn();
+let mockWalksError: Error | null = null;
 
 let mockDog: DogWithStats | null = {
   id: 'dog-1',
@@ -99,7 +101,7 @@ jest.mock('@/hooks/use-dog', () => ({
 }));
 
 jest.mock('@/hooks/use-walks', () => ({
-  useMyWalks: () => ({ data: mockWalks }),
+  useMyWalks: () => ({ data: mockWalks, error: mockWalksError, refetch: mockRefetchWalks }),
 }));
 
 jest.mock('@/hooks/use-pack-progress', () => ({
@@ -225,6 +227,7 @@ describe('useDogDetailViewModel', () => {
     };
     mockMe = { id: 'user-1' };
     mockIsOwner = true;
+    mockWalksError = null;
     mockDeleteDog.mockResolvedValue(true);
     mockRunWithAlert.mockImplementation(async (fn: () => Promise<unknown>) => fn());
   });
@@ -247,6 +250,27 @@ describe('useDogDetailViewModel', () => {
     expect(vm.streakDays).toBe(5);
     expect(vm.dogWalks.map((walk) => walk.id)).toEqual(['walk-1']);
     expect(vm.isOwner).toBe(true);
+  });
+
+  it('has no walks error when the walks query succeeds', () => {
+    const { result } = renderHook(() => useDogDetailViewModel());
+
+    expect(expectReadyViewModel(result.current).walksError).toBeNull();
+  });
+
+  it('exposes the walks error and a retry that refetches the walks query', () => {
+    mockWalksError = new Error('GraphQL Walks failed');
+
+    const { result } = renderHook(() => useDogDetailViewModel());
+    const vm = expectReadyViewModel(result.current);
+
+    expect(vm.walksError).toBe(mockWalksError);
+
+    act(() => {
+      vm.retryWalks();
+    });
+
+    expect(mockRefetchWalks).toHaveBeenCalledTimes(1);
   });
 
   it('exposes walk navigation and disables unsupported members/friends navigation', () => {

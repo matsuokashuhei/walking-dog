@@ -44,6 +44,9 @@ interface DogDetailReadyViewModel {
   memberCount: number;
   streakDays: number;
   dogWalks: Walk[];
+  // 散歩履歴の取得に失敗したときだけ非 null。空配列と「失敗」を画面側で区別するために持ちます。
+  walksError: Error | null;
+  retryWalks: () => void;
   isOwner: boolean;
   showDeleteConfirm: boolean;
   handleOpenWalk: (walkId: string) => void;
@@ -64,7 +67,8 @@ export function useDogDetailViewModel(): DogDetailViewModel {
 
   const { data: dog, isLoading } = useDog(dogId ?? '', 'ALL');
   const { data: me } = useMe();
-  const { data: walks = [] } = useMyWalks(100);
+  const { data: walks = [], error: walksErrorRaw, refetch: refetchWalks } = useMyWalks(100);
+  const walksError = walksErrorRaw ?? null;
   const pack = usePackProgress();
   const { mutateAsync: deleteDog } = useDeleteDog();
   const runWithAlert = useMutationWithAlert();
@@ -83,6 +87,10 @@ export function useDogDetailViewModel(): DogDetailViewModel {
     },
     [router],
   );
+
+  const retryWalks = useCallback(() => {
+    void refetchWalks?.();
+  }, [refetchWalks]);
 
   const handleOpenMembers = useCallback(() => {
     return;
@@ -121,6 +129,8 @@ export function useDogDetailViewModel(): DogDetailViewModel {
     memberCount: 0,
     streakDays: pack.perDog[dog.id]?.streakDays ?? 0,
     dogWalks,
+    walksError,
+    retryWalks,
     isOwner,
     showDeleteConfirm,
     handleOpenWalk,

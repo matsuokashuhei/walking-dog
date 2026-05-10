@@ -68,6 +68,11 @@ type Dog {
 	birthday: Birthday
 	createdAt: DateTime!
 	updatedAt: DateTime!
+	"""
+	登録された誕生日から計算した満年齢（年のみ）。誕生日（または年）が不明なら `null`。
+	基準日は JST（UTC+9）なので、年齢が切り替わるのは日本時間の深夜 0 時。
+	"""
+	age: Int
 	walks(after: String, before: String, first: Int, last: Int): WalkConnection!
 }
 

@@ -84,3 +84,16 @@
 - `apps/api/Cargo.toml` に `test-utils` feature 定義済み
 - `apps/api/src/auth/jwt.rs::NoOpJwtVerifier` に `#[cfg(any(test, feature = "test-utils"))]` 付与済み
 - 以降の test-only 実装はすべて同規約を適用する
+
+---
+
+## 2026-05-10 — 計算ヘルパー関数は「動作 (calculate_X)」で命名する。フィールド名の名詞そのままにしない
+
+**パターン**: GraphQL の computed field `age` を実装するとき、その値を計算する private ヘルパーを `dog_age` と命名 → ユーザーが `calculate_age` に変更を指示。値を算出するヘルパーは「何をするか (動詞句: `calculate_X` / `compute_X`)」で命名し、出力フィールドと同じ名詞 (`age` / `dog_age`) を使い回さない。後者は「ヘルパーなのか値なのか」が読み手に伝わらず、同名のリゾルバメソッド (`async fn age`) とも紛らわしい。
+
+**なぜ**: PR (Dog.age 追加) で `fn dog_age(birthday, today) -> Option<i32>` を提案。同じファイルに `async fn age(&self)` リゾルバもあり、`dog_age` / `age` の役割差が名前から読めなかった。
+
+**どう適用するか**:
+- 計算・変換を行う関数は動詞始まり (`calculate_`, `compute_`, `derive_`, `build_`, `parse_`) で命名する
+- 出力する値・フィールドの名詞をそのまま関数名にしない (特に同スコープに同名の field / method があるとき)
+- 既存例: `util::distance::haversine_meters` / `cumulative_distance_meters` (名詞 `distance` 単独にしていない)

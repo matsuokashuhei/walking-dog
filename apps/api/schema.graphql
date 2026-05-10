@@ -3,6 +3,7 @@ input AddDogInput {
 	breed: String
 	gender: Gender!
 	avatar: Upload
+	birthday: BirthdayInput
 }
 
 input AddEventInput {
@@ -12,6 +13,24 @@ input AddEventInput {
 	occurredAt: DateTime!
 	latitude: Latitude!
 	longitude: Longitude!
+}
+
+"""
+飼い主が知っている範囲だけ埋められる、ゆるい誕生日（年・月・日 すべて任意）。
+"""
+type Birthday {
+	year: Int
+	month: Int
+	day: Int
+}
+
+"""
+飼い主が知っている範囲だけ送れる、ゆるい誕生日（年・月・日 すべて任意）。
+"""
+input BirthdayInput {
+	year: Int
+	month: Int
+	day: Int
 }
 
 input ChangePasswordInput {
@@ -46,6 +65,7 @@ type Dog {
 	breed: String
 	gender: Gender!
 	avatar: Url
+	birthday: Birthday
 	createdAt: DateTime!
 	updatedAt: DateTime!
 	walks(after: String, before: String, first: Int, last: Int): WalkConnection!
@@ -193,6 +213,7 @@ input UpdateDogInput {
 	breed: String
 	gender: Gender
 	avatar: Upload
+	birthday: BirthdayInput
 }
 
 input UpdateUserInput {

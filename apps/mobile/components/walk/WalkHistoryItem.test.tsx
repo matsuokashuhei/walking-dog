@@ -12,7 +12,7 @@ jest.mock('expo-image', () => ({
 
 const baseWalk: Walk = {
   id: 'walk-1',
-  dogs: [{ id: 'dog-1', name: 'Buddy', breed: null, gender: null, birthDate: null, photoUrl: null, createdAt: '2026-01-01' }],
+  dogs: [{ id: 'dog-1', name: 'Buddy', breed: null, gender: null, birthday: null, photoUrl: null, createdAt: '2026-01-01' }],
   status: 'FINISHED',
   distanceM: 2500,
   durationSec: 1800,
@@ -59,8 +59,8 @@ describe('WalkHistoryItem', () => {
     const walk: Walk = {
       ...baseWalk,
       dogs: [
-        { id: 'dog-1', name: 'Buddy', breed: null, gender: null, birthDate: null, photoUrl: null, createdAt: '2026-01-01' },
-        { id: 'dog-2', name: 'Max', breed: null, gender: null, birthDate: null, photoUrl: null, createdAt: '2026-01-01' },
+        { id: 'dog-1', name: 'Buddy', breed: null, gender: null, birthday: null, photoUrl: null, createdAt: '2026-01-01' },
+        { id: 'dog-2', name: 'Max', breed: null, gender: null, birthday: null, photoUrl: null, createdAt: '2026-01-01' },
       ],
     };
     render(<WalkHistoryItem walk={walk} />);

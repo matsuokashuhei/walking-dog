@@ -5,7 +5,7 @@ import type { Walk } from '@/types/graphql';
 
 const mockWalk: Walk = {
   id: 'walk-1',
-  dogs: [{ id: 'dog-1', name: 'Buddy', breed: null, gender: null, birthDate: null, photoUrl: null, createdAt: '2026-01-01' }],
+  dogs: [{ id: 'dog-1', name: 'Buddy', breed: null, gender: null, birthday: null, photoUrl: null, createdAt: '2026-01-01' }],
   walker: { id: 'user-1', displayName: 'Alice', avatarUrl: null },
   status: 'FINISHED',
   distanceM: 2500,

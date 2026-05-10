@@ -29,6 +29,24 @@ impl From<GenderType> for Gender {
     }
 }
 
+/// 飼い主が知っている範囲だけ埋められる、ゆるい誕生日（年・月・日 すべて任意）。
+#[derive(SimpleObject, Clone, Debug)]
+pub struct Birthday {
+    pub year: Option<i32>,
+    pub month: Option<i32>,
+    pub day: Option<i32>,
+}
+
+impl From<crate::entity::birthday::Birthday> for Birthday {
+    fn from(value: crate::entity::birthday::Birthday) -> Self {
+        Birthday {
+            year: value.year,
+            month: value.month,
+            day: value.day,
+        }
+    }
+}
+
 #[derive(SimpleObject, Clone, Debug)]
 #[graphql(complex)]
 pub struct Dog {
@@ -37,6 +55,7 @@ pub struct Dog {
     pub breed: Option<String>,
     pub gender: Gender,
     pub avatar: Option<Url>,
+    pub birthday: Option<Birthday>,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
@@ -116,6 +135,7 @@ impl From<crate::entity::dog::Model> for Dog {
             breed: model.breed,
             gender: model.gender.into(),
             avatar: avatar_url(model.avatar.as_deref()),
+            birthday: model.birthday.map(Into::into),
             created_at: model.created_at.into(),
             updated_at: model.updated_at.into(),
         }

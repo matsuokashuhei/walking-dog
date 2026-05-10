@@ -13,6 +13,7 @@ pub struct Model {
     pub breed: Option<String>,
     pub gender: GenderType,
     pub avatar: Option<String>,
+    pub birthday: Option<super::birthday::Birthday>,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
     #[sea_orm(has_many)]

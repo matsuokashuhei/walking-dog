@@ -34,6 +34,7 @@ export function useCreateDog() {
           name: input.name,
           breed: input.breed,
           gender: toApiGender(input.gender),
+          birthday: input.birthday,
         },
       });
       return mapApiDog(data.addDog);
@@ -53,6 +54,7 @@ export function useUpdateDog() {
           name: input.name,
           breed: input.breed,
           gender: input.gender ? toApiGender(input.gender) : undefined,
+          birthday: input.birthday,
         },
       });
       return mapApiDog(data.updateDog);

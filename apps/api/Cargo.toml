@@ -38,6 +38,7 @@ features = [
     "debug-print",
     "with-bigdecimal",
     "with-chrono",
+    "with-json",
     "with-uuid",
 ]
 

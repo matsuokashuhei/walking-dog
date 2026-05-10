@@ -19,7 +19,7 @@ function makeDog(members: { userId: string; role: 'owner' | 'member' }[]): DogWi
     name: 'Rex',
     breed: null,
     gender: null,
-    birthDate: null,
+    birthday: null,
     photoUrl: null,
     createdAt: '',
     walkStats: null,

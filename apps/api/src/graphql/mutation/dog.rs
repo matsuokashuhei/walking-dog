@@ -15,7 +15,7 @@ use crate::graphql::{
     object::dog::{Dog, Gender},
 };
 use crate::{
-    entity::{dog, sea_orm_active_enums::GenderType, user, user_dog},
+    entity::{birthday::Birthday, dog, sea_orm_active_enums::GenderType, user, user_dog},
     storage::{StorageError, upload_avatar},
 };
 
@@ -78,9 +78,10 @@ impl DogMutation {
         };
         let mut active_model = input.into_active_model();
         if let Some(file) = input.avatar
-            && let Ok(file) = upload_avatar(ctx, file).await {
-                active_model.avatar = Set(Some(file));
-            }
+            && let Ok(file) = upload_avatar(ctx, file).await
+        {
+            active_model.avatar = Set(Some(file));
+        }
         let updated_dog = active_model.update(db).await?;
         Ok(Dog::from(updated_dog))
     }
@@ -112,12 +113,31 @@ impl DogMutation {
     }
 }
 
+/// 飼い主が知っている範囲だけ送れる、ゆるい誕生日（年・月・日 すべて任意）。
+#[derive(Clone, Debug, InputObject)]
+struct BirthdayInput {
+    year: Option<i32>,
+    month: Option<i32>,
+    day: Option<i32>,
+}
+
+impl From<BirthdayInput> for Birthday {
+    fn from(input: BirthdayInput) -> Self {
+        Birthday {
+            year: input.year,
+            month: input.month,
+            day: input.day,
+        }
+    }
+}
+
 #[derive(Clone, Debug, InputObject)]
 struct AddDogInput {
     name: String,
     breed: Option<String>,
     gender: Gender,
     avatar: Option<Upload>,
+    birthday: Option<BirthdayInput>,
 }
 
 impl AddDogInput {
@@ -130,6 +150,7 @@ impl AddDogInput {
                 Gender::Female => GenderType::Female,
                 Gender::Other => GenderType::Other,
             }),
+            birthday: Set(self.birthday.clone().map(Into::into)),
             ..Default::default()
         }
     }
@@ -142,6 +163,7 @@ struct UpdateDogInput {
     breed: Option<String>,
     gender: Option<Gender>,
     avatar: Option<Upload>,
+    birthday: Option<BirthdayInput>,
 }
 
 impl UpdateDogInput {
@@ -157,6 +179,10 @@ impl UpdateDogInput {
                     Gender::Other => GenderType::Other,
                 })
             }),
+            birthday: self
+                .birthday
+                .clone()
+                .map_or(NotSet, |birthday| Set(Some(birthday.into()))),
             ..Default::default()
         }
     }

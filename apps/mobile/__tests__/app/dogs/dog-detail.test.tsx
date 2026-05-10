@@ -31,7 +31,7 @@ const mockDog = {
   name: 'Buddy',
   breed: 'Golden Retriever',
   gender: 'Male',
-  birthDate: null,
+  birthday: null,
   photoUrl: null,
   role: 'owner' as const,
   createdAt: '2024-01-01',

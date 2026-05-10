@@ -6,7 +6,7 @@ export type WalkEventType = 'pee' | 'poo' | 'sniff' | 'greet' | 'photo';
 export type WalkActivityEventType = Exclude<WalkEventType, 'photo'>;
 export type ApiWalkEventType = 'PEE' | 'POO' | 'SNIFF' | 'GREET';
 
-export interface BirthDate {
+export interface Birthday {
   year: number | null;
   month: number | null;
   day: number | null;
@@ -47,7 +47,7 @@ export interface Dog {
   avatar?: string | null;
   createdAt: string;
   updatedAt?: string;
-  birthDate?: BirthDate | null;
+  birthday?: Birthday | null;
   photoUrl?: string | null;
   role?: DogMemberRole;
   latestWalk?: LatestWalk | null;
@@ -188,19 +188,19 @@ export interface CreateDogInput {
   name: string;
   breed?: string;
   gender?: string;
-  birthDate?: BirthDateInput;
+  birthday?: BirthdayInput;
 }
 
 export interface UpdateDogInput {
   name?: string;
   breed?: string;
   gender?: string;
-  birthDate?: BirthDateInput;
+  birthday?: BirthdayInput;
   avatar?: string;
   photoUrl?: string;
 }
 
-export interface BirthDateInput {
+export interface BirthdayInput {
   year?: number;
   month?: number;
   day?: number;
@@ -218,6 +218,7 @@ export interface ApiDog {
   breed: string | null;
   gender: Gender;
   avatar: string | null;
+  birthday: Birthday | null;
   createdAt: string;
   updatedAt: string;
 }

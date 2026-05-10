@@ -59,7 +59,7 @@ const coco: Dog = {
   name: 'Coco',
   breed: 'Toy Poodle',
   gender: null,
-  birthDate: null,
+  birthday: null,
   photoUrl: null,
   createdAt: '2026-01-01',
   latestWalk: {
@@ -72,7 +72,7 @@ const momo: Dog = {
   name: 'Momo',
   breed: 'Shiba Inu',
   gender: null,
-  birthDate: null,
+  birthday: null,
   photoUrl: null,
   createdAt: '2026-01-02',
   latestWalk: {

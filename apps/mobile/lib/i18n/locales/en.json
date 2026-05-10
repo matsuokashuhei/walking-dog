@@ -130,7 +130,14 @@
       "breed": "Breed",
       "breedPlaceholder": "e.g. Golden Retriever",
       "gender": "Gender",
-      "genderPlaceholder": "e.g. Male"
+      "genderPlaceholder": "e.g. Male",
+      "birthday": "Birthday (whatever you know)",
+      "birthdayYear": "Year",
+      "birthdayYearPlaceholder": "e.g. 2021",
+      "birthdayMonth": "Month",
+      "birthdayMonthPlaceholder": "e.g. 6",
+      "birthdayDay": "Day",
+      "birthdayDayPlaceholder": "e.g. 15"
     },
     "stats": {
       "walks": "Walks",

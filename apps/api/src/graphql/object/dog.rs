@@ -2,6 +2,7 @@ use async_graphql::{
     ComplexObject, Context, Enum, Result, SimpleObject,
     connection::{Connection, Edge, EmptyFields, query},
 };
+use chrono::Datelike;
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
 use url::Url;
 
@@ -49,6 +50,26 @@ impl From<crate::entity::birthday::Model> for Birthday {
     }
 }
 
+/// 誕生日と基準日 `today` から満年齢（年のみ）を計算する。
+///
+/// - `year` が不明なら `None`。
+/// - `month` / `day` の不明な部分・範囲外の値（`month` が 1..=12 外、`day` が 1..=31 外）は
+///   「最も早い日付（1月 / 1日）」として扱う ＝ 不明はつねに同じ向きに丸める。
+/// - その月に存在しない日（例: 2/30）はその月の 1 日に切り詰める。
+/// - 誕生日が `today` より未来なら `None`。
+fn calculate_age(birthday: &Birthday, today: chrono::NaiveDate) -> Option<i32> {
+    let year = birthday.year?;
+    let month = birthday.month.filter(|m| (1..=12).contains(m)).unwrap_or(1) as u32;
+    let day = birthday.day.filter(|d| (1..=31).contains(d)).unwrap_or(1) as u32;
+    let birth = chrono::NaiveDate::from_ymd_opt(year, month, day)
+        .or_else(|| chrono::NaiveDate::from_ymd_opt(year, month, 1))?;
+    let mut age = today.year() - birth.year();
+    if (today.month(), today.day()) < (birth.month(), birth.day()) {
+        age -= 1;
+    }
+    (age >= 0).then_some(age)
+}
+
 #[derive(SimpleObject, Clone, Debug)]
 #[graphql(complex)]
 pub struct Dog {
@@ -64,6 +85,12 @@ pub struct Dog {
 
 #[ComplexObject]
 impl Dog {
+    /// 登録された誕生日から計算した満年齢（年のみ）。誕生日（または年）が不明なら `null`。
+    /// 基準日は UTC の今日。
+    async fn age(&self) -> Option<i32> {
+        calculate_age(self.birthday.as_ref()?, chrono::Utc::now().date_naive())
+    }
+
     async fn walks(
         &self,
         ctx: &Context<'_>,
@@ -142,5 +169,71 @@ impl From<crate::entity::dog::Model> for Dog {
             created_at: model.created_at.into(),
             updated_at: model.updated_at.into(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Birthday, calculate_age};
+    use chrono::NaiveDate;
+
+    fn birthday(year: Option<i32>, month: Option<i32>, day: Option<i32>) -> Birthday {
+        Birthday { year, month, day }
+    }
+
+    /// 基準日は 2026-05-10 固定。
+    fn today() -> NaiveDate {
+        NaiveDate::from_ymd_opt(2026, 5, 10).unwrap()
+    }
+
+    #[test]
+    fn year_unknown_is_none() {
+        assert_eq!(calculate_age(&birthday(None, None, None), today()), None);
+        assert_eq!(calculate_age(&birthday(None, Some(3), Some(4)), today()), None);
+    }
+
+    #[test]
+    fn year_only_treats_missing_parts_as_january_first() {
+        // 2020-01-01 → 2026-05-10 は満 6 歳。
+        assert_eq!(calculate_age(&birthday(Some(2020), None, None), today()), Some(6));
+    }
+
+    #[test]
+    fn birthday_month_not_yet_reached_this_year() {
+        // 2020-08-01: 2026 年 5 月の時点で 8 月はまだ来ていない → 満 5 歳。
+        assert_eq!(calculate_age(&birthday(Some(2020), Some(8), None), today()), Some(5));
+    }
+
+    #[test]
+    fn boundary_on_and_before_birthday() {
+        // 2020-05-10 生まれ → 2026-05-10 にちょうど満 6 歳。
+        assert_eq!(calculate_age(&birthday(Some(2020), Some(5), Some(10)), today()), Some(6));
+        // 2020-05-11 生まれ → 2026-05-10 はまだ満 5 歳（誕生日前日）。
+        assert_eq!(calculate_age(&birthday(Some(2020), Some(5), Some(11)), today()), Some(5));
+    }
+
+    #[test]
+    fn newborn_is_zero() {
+        assert_eq!(calculate_age(&birthday(Some(2026), Some(1), Some(1)), today()), Some(0));
+    }
+
+    #[test]
+    fn future_birthday_is_none() {
+        assert_eq!(calculate_age(&birthday(Some(2030), Some(1), Some(1)), today()), None);
+        // 同じ年でも基準日より後 → まだ生まれていない → None。
+        assert_eq!(calculate_age(&birthday(Some(2026), Some(12), Some(31)), today()), None);
+    }
+
+    #[test]
+    fn out_of_range_month_or_day_treated_as_january_first() {
+        // month 13 / 0、day 40 / 0 はいずれも {2020, None, None} と同じ扱い → 満 6 歳。
+        assert_eq!(calculate_age(&birthday(Some(2020), Some(13), Some(40)), today()), Some(6));
+        assert_eq!(calculate_age(&birthday(Some(2020), Some(0), Some(0)), today()), Some(6));
+    }
+
+    #[test]
+    fn day_not_valid_for_month_falls_back_to_first_of_month() {
+        // 2024-02-30 は存在しない → 2024-02-01 として扱う → 2026-05-10 で満 2 歳。
+        assert_eq!(calculate_age(&birthday(Some(2024), Some(2), Some(30)), today()), Some(2));
     }
 }

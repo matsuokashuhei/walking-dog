@@ -84,3 +84,29 @@
 - `apps/api/Cargo.toml` に `test-utils` feature 定義済み
 - `apps/api/src/auth/jwt.rs::NoOpJwtVerifier` に `#[cfg(any(test, feature = "test-utils"))]` 付与済み
 - 以降の test-only 実装はすべて同規約を適用する
+
+---
+
+## 2026-05-10 — 計算ヘルパー関数は「動作 (calculate_X)」で命名する。フィールド名の名詞そのままにしない
+
+**パターン**: GraphQL の computed field `age` を実装するとき、その値を計算する private ヘルパーを `dog_age` と命名 → ユーザーが `calculate_age` に変更を指示。値を算出するヘルパーは「何をするか (動詞句: `calculate_X` / `compute_X`)」で命名し、出力フィールドと同じ名詞 (`age` / `dog_age`) を使い回さない。後者は「ヘルパーなのか値なのか」が読み手に伝わらず、同名のリゾルバメソッド (`async fn age`) とも紛らわしい。
+
+**なぜ**: PR (Dog.age 追加) で `fn dog_age(birthday, today) -> Option<i32>` を提案。同じファイルに `async fn age(&self)` リゾルバもあり、`dog_age` / `age` の役割差が名前から読めなかった。
+
+**どう適用するか**:
+- 計算・変換を行う関数は動詞始まり (`calculate_`, `compute_`, `derive_`, `build_`, `parse_`) で命名する
+- 出力する値・フィールドの名詞をそのまま関数名にしない (特に同スコープに同名の field / method があるとき)
+- 既存例: `util::distance::haversine_meters` / `cumulative_distance_meters` (名詞 `distance` 単独にしていない)
+
+---
+
+## 2026-05-10 — 時刻ロジックは既存コードベースの慣習（このプロジェクトは全部 UTC）に合わせる。単一フィールドのために TZ を持ち込まない
+
+**パターン**: `Dog.age` の「今日」を出すのに、レビュアー助言を受けて JST（UTC+9）を導入 → ユーザーが「Timezone を考慮しないで、UTC のままでいい」と指示。プロジェクトの永続タイムスタンプ（`walk.started_at` / `ended_at`、`track_point.accepted_at` 等）はすべて `chrono::Utc::now()` で UTC 保存。派生的な日付ロジックも UTC で揃えるのが整合的で、1 フィールドのために別の TZ 慣習を持ち込むのは過剰。
+
+**なぜ**: advisor が「JP ユーザーなので JST 境界」を提案し採用したが、コードベース全体の慣習（UTC）と不一致だった。ユーザーは UTC で十分と判断。
+
+**どう適用するか**:
+- 時刻・日付を扱う新コードは、まず既存コードがどの TZ で動いているか（このリポは UTC）を確認し、それに合わせる
+- TZ 対応・ローカライズは「要件として明示されたとき」だけ追加する。レビュー助言だけを根拠に複雑さを足さない
+- 迷ったら最小（UTC そのまま）を選び、必要なら後で上げる

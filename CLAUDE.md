@@ -26,7 +26,6 @@
 各サービスの詳細な開発ルールはそれぞれの CLAUDE.md を参照：
 - API: `apps/api/CLAUDE.md`
 - Mobile: `apps/mobile/CLAUDE.md`
-- E2E: `apps/e2e/CLAUDE.md`
 
 ## Directory Structure
 

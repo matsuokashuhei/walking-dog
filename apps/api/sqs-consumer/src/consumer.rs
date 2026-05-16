@@ -2,7 +2,7 @@ use std::{collections::HashSet, sync::Arc};
 
 use aws_sdk_sqs::types::{DeleteMessageBatchRequestEntry, Message};
 use futures::{StreamExt, stream::FuturesUnordered};
-use tokio::{sync::watch, task::JoinSet};
+use tokio::{sync::watch, task::JoinHandle};
 
 use crate::{
     backend::{AwsSqsBackend, BackendError, SqsBackend},
@@ -10,25 +10,66 @@ use crate::{
     handler::{BatchMessageHandler, BatchOutcome, HandleOutcome, MessageHandler},
     heartbeat::spawn_heartbeat,
     listener::{ConsumerListener, NoopListener},
-    options::{ConsumerOptions, TerminateVisibility},
+    options::{ConsumerOptions, TerminateVisibility, validate_visibility_timeout},
     shutdown::{ShutdownHandle, ShutdownState},
 };
 
-pub(crate) enum HandlerKind<H> {
-    Message(Arc<H>),
-    Batch(Arc<H>),
+#[async_trait::async_trait]
+trait DynMessageHandler: Send + Sync {
+    async fn handle_message(&self, message: Message) -> Result<HandleOutcome, ConsumerError>;
 }
 
-pub struct Consumer<H> {
+#[async_trait::async_trait]
+impl<H> DynMessageHandler for H
+where
+    H: MessageHandler,
+{
+    async fn handle_message(&self, message: Message) -> Result<HandleOutcome, ConsumerError> {
+        MessageHandler::handle_message(self, message)
+            .await
+            .map_err(|error| ConsumerError::Processing(Box::new(error)))
+    }
+}
+
+#[async_trait::async_trait]
+trait DynBatchHandler: Send + Sync {
+    async fn ack_before_batch(&self, messages: &[Message]) -> Result<Vec<String>, ConsumerError>;
+    async fn handle_batch(&self, messages: Vec<Message>) -> Result<BatchOutcome, ConsumerError>;
+}
+
+#[async_trait::async_trait]
+impl<H> DynBatchHandler for H
+where
+    H: BatchMessageHandler,
+{
+    async fn ack_before_batch(&self, messages: &[Message]) -> Result<Vec<String>, ConsumerError> {
+        BatchMessageHandler::ack_before_batch(self, messages)
+            .await
+            .map_err(|error| ConsumerError::Processing(Box::new(error)))
+    }
+
+    async fn handle_batch(&self, messages: Vec<Message>) -> Result<BatchOutcome, ConsumerError> {
+        BatchMessageHandler::handle_batch(self, messages)
+            .await
+            .map_err(|error| ConsumerError::Processing(Box::new(error)))
+    }
+}
+
+enum HandlerKind {
+    Message(Arc<dyn DynMessageHandler>),
+    Batch(Arc<dyn DynBatchHandler>),
+}
+
+pub struct Consumer {
     options: ConsumerOptions,
     backend: Arc<dyn SqsBackend>,
-    handler: HandlerKind<H>,
+    handler: HandlerKind,
     listener: Arc<dyn ConsumerListener>,
     shutdown_handle: ShutdownHandle,
     shutdown_rx: watch::Receiver<ShutdownState>,
 }
 
-impl<H> Consumer<H> {
+impl Consumer {
     pub fn listener<L>(mut self, listener: L) -> Self
     where
         L: ConsumerListener,
@@ -88,6 +129,7 @@ impl<H> Consumer<H> {
                 TerminateVisibility::Fixed(value) => *value,
                 TerminateVisibility::Dynamic(resolver) => resolver(message),
             };
+            validate_visibility_timeout("terminate_visibility", timeout)?;
             let Some(receipt_handle) = message.receipt_handle() else {
                 return Err(ConsumerError::MissingReceiptHandle {
                     message_id: message.message_id().map(ToOwned::to_owned),
@@ -105,25 +147,25 @@ impl<H> Consumer<H> {
         Ok(())
     }
 
-    async fn run_loop(mut self) -> Result<(), ConsumerError>
-    where
-        H: MessageHandler + BatchMessageHandler,
-    {
+    async fn run_loop(mut self) -> Result<(), ConsumerError> {
         self.listener.on_started();
-        loop {
+        'running: loop {
             if *self.shutdown_rx.borrow() != ShutdownState::Running {
                 break;
             }
-            let messages = match self.receive_once().await {
-                Ok(messages) => messages,
-                Err(error) => {
-                    self.listener.on_error(&error);
-                    tokio::select! {
-                        _ = tokio::time::sleep(self.options.receive_error_backoff) => {}
-                        _ = self.shutdown_rx.changed() => {}
+            let messages = match self.receive_until_shutdown().await {
+                Some(result) => match result {
+                    Ok(messages) => messages,
+                    Err(error) => {
+                        self.listener.on_error(&error);
+                        tokio::select! {
+                            _ = tokio::time::sleep(self.options.receive_error_backoff) => {}
+                            _ = self.shutdown_rx.changed() => {}
+                        }
+                        continue;
                     }
-                    continue;
-                }
+                },
+                None => break,
             };
             if messages.is_empty() {
                 self.listener.on_empty();
@@ -132,24 +174,67 @@ impl<H> Consumer<H> {
             for message in &messages {
                 self.listener.on_message_received(message);
             }
-            if let Err(error) = self.dispatch_and_ack(messages).await {
-                self.listener.on_error(&error);
+
+            let dispatch = self.dispatch_and_ack(messages);
+            let mut shutdown_rx = self.shutdown_rx.clone();
+            tokio::pin!(dispatch);
+            tokio::select! {
+                result = &mut dispatch => {
+                    if let Err(error) = result {
+                        self.listener.on_error(&error);
+                    }
+                }
+                changed = shutdown_rx.changed() => {
+                    if changed.is_err() {
+                        break 'running;
+                    }
+                    let shutdown_state = *shutdown_rx.borrow();
+                    match shutdown_state {
+                        ShutdownState::Abort => break 'running,
+                        ShutdownState::Graceful => {
+                            match tokio::time::timeout(
+                                self.options.polling_complete_wait_time,
+                                &mut dispatch,
+                            )
+                            .await
+                            {
+                                Ok(result) => {
+                                    if let Err(error) = result {
+                                        self.listener.on_error(&error);
+                                    }
+                                }
+                                Err(_) => {
+                                    self.listener.on_error(&ConsumerError::GracefulShutdownTimeout);
+                                }
+                            }
+                            break 'running;
+                        }
+                        ShutdownState::Running => {}
+                    }
+                }
             }
             self.listener.on_response_processed();
         }
         if *self.shutdown_rx.borrow() == ShutdownState::Abort {
             self.listener.on_aborted();
         } else {
-            let _polling_complete_wait_time = self.options.polling_complete_wait_time;
             self.listener.on_stopped();
         }
         Ok(())
     }
 
-    async fn dispatch_and_ack(&self, messages: Vec<Message>) -> Result<(), ConsumerError>
-    where
-        H: MessageHandler + BatchMessageHandler,
-    {
+    async fn receive_until_shutdown(&self) -> Option<Result<Vec<Message>, ConsumerError>> {
+        let mut shutdown_rx = self.shutdown_rx.clone();
+        tokio::select! {
+            result = self.receive_once() => Some(result),
+            changed = shutdown_rx.changed() => {
+                let _ = changed;
+                None
+            }
+        }
+    }
+
+    async fn dispatch_and_ack(&self, messages: Vec<Message>) -> Result<(), ConsumerError> {
         match &self.handler {
             HandlerKind::Message(handler) => {
                 self.dispatch_messages(handler.clone(), messages).await
@@ -160,12 +245,9 @@ impl<H> Consumer<H> {
 
     async fn dispatch_messages(
         &self,
-        handler: Arc<H>,
+        handler: Arc<dyn DynMessageHandler>,
         messages: Vec<Message>,
-    ) -> Result<(), ConsumerError>
-    where
-        H: MessageHandler,
-    {
+    ) -> Result<(), ConsumerError> {
         let mut futures = FuturesUnordered::new();
         for message in messages {
             let handler = handler.clone();
@@ -186,7 +268,11 @@ impl<H> Consumer<H> {
                 Ok(HandleOutcome::Ack) => acked.push(message),
                 Ok(HandleOutcome::Nack) => nacked.push(message),
                 Err(error) => {
-                    self.listener.on_processing_error(&message, &error);
+                    if matches!(error, ConsumerError::Timeout) {
+                        self.listener.on_timeout_error(&message);
+                    } else {
+                        self.listener.on_processing_error(&message, &error);
+                    }
                     nacked.push(message);
                 }
             }
@@ -201,16 +287,21 @@ impl<H> Consumer<H> {
 
     async fn dispatch_batch(
         &self,
-        handler: Arc<H>,
+        handler: Arc<dyn DynBatchHandler>,
         messages: Vec<Message>,
-    ) -> Result<(), ConsumerError>
-    where
-        H: BatchMessageHandler,
-    {
+    ) -> Result<(), ConsumerError> {
+        let early_ack_ids = handler.ack_before_batch(&messages).await?;
+        let early_ack_ids = validate_ack_ids(&messages, early_ack_ids)?;
+        let (early_acked, messages) = partition_by_ack_ids(messages, &early_ack_ids);
+        self.delete_acked(&early_acked).await?;
+        if messages.is_empty() {
+            return Ok(());
+        }
+
         let heartbeat_handles = self.start_heartbeats(&messages);
         let result = if let Some(timeout) = self.options.handle_message_timeout {
             match tokio::time::timeout(timeout, handler.handle_batch(messages.clone())).await {
-                Ok(result) => result.map_err(|error| ConsumerError::Processing(Box::new(error))),
+                Ok(result) => result,
                 Err(_) => {
                     for message in &messages {
                         self.listener.on_timeout_error(message);
@@ -219,10 +310,7 @@ impl<H> Consumer<H> {
                 }
             }
         } else {
-            handler
-                .handle_batch(messages.clone())
-                .await
-                .map_err(|error| ConsumerError::Processing(Box::new(error)))
+            handler.handle_batch(messages.clone()).await
         };
         stop_heartbeats(heartbeat_handles).await;
 
@@ -230,18 +318,8 @@ impl<H> Consumer<H> {
             Ok(BatchOutcome::AckAll) => (messages.clone(), Vec::new()),
             Ok(BatchOutcome::NackAll) => (Vec::new(), messages.clone()),
             Ok(BatchOutcome::Partial { ack_message_ids }) => {
-                let ids = ack_message_ids.into_iter().collect::<HashSet<_>>();
-                let acked = messages
-                    .iter()
-                    .filter(|message| message.message_id().is_some_and(|id| ids.contains(id)))
-                    .cloned()
-                    .collect::<Vec<_>>();
-                let nacked = messages
-                    .iter()
-                    .filter(|message| !message.message_id().is_some_and(|id| ids.contains(id)))
-                    .cloned()
-                    .collect::<Vec<_>>();
-                (acked, nacked)
+                let ids = validate_ack_ids(&messages, ack_message_ids)?;
+                partition_by_ack_ids(messages.clone(), &ids)
             }
             Err(error) => {
                 for message in &messages {
@@ -264,15 +342,9 @@ impl<H> Consumer<H> {
         self.delete_acked(&acked).await
     }
 
-    fn start_heartbeats(
-        &self,
-        messages: &[Message],
-    ) -> Vec<(
-        tokio::sync::watch::Sender<bool>,
-        tokio::task::JoinHandle<()>,
-    )> {
+    fn start_heartbeats(&self, messages: &[Message]) -> HeartbeatGuard {
         let Some(config) = &self.options.heartbeat else {
-            return Vec::new();
+            return HeartbeatGuard::default();
         };
         let visibility_timeout = config
             .visibility_timeout
@@ -294,22 +366,22 @@ impl<H> Consumer<H> {
     }
 }
 
-impl<H> Consumer<H>
-where
-    H: MessageHandler + BatchMessageHandler,
-{
+impl Consumer {
     pub async fn run(self) -> Result<(), ConsumerError> {
         self.run_loop().await
     }
 
     pub async fn run_until_ctrl_c(self) -> Result<(), ConsumerError> {
         let shutdown = self.shutdown_handle();
-        let task = tokio::spawn(async move { self.run().await });
-        tokio::signal::ctrl_c()
-            .await
-            .map_err(ConsumerError::ShutdownSignal)?;
-        shutdown.graceful();
-        task.await.map_err(ConsumerError::Join)?
+        let mut task = tokio::spawn(async move { self.run().await });
+        tokio::select! {
+            result = &mut task => result.map_err(ConsumerError::Join)?,
+            signal = tokio::signal::ctrl_c() => {
+                signal.map_err(ConsumerError::ShutdownSignal)?;
+                shutdown.graceful();
+                task.await.map_err(ConsumerError::Join)?
+            }
+        }
     }
 
     pub async fn run_once(&self) -> Result<(), ConsumerError> {
@@ -327,11 +399,11 @@ where
     }
 }
 
-impl<H> Consumer<H>
-where
-    H: MessageHandler + BatchMessageHandler,
-{
-    pub fn with_handler(options: ConsumerOptions, handler: H) -> Result<Self, ConsumerError> {
+impl Consumer {
+    pub fn with_handler<H>(options: ConsumerOptions, handler: H) -> Result<Self, ConsumerError>
+    where
+        H: MessageHandler,
+    {
         let client = options
             .sqs_client
             .clone()
@@ -343,7 +415,13 @@ where
         ))
     }
 
-    pub fn with_batch_handler(options: ConsumerOptions, handler: H) -> Result<Self, ConsumerError> {
+    pub fn with_batch_handler<H>(
+        options: ConsumerOptions,
+        handler: H,
+    ) -> Result<Self, ConsumerError>
+    where
+        H: BatchMessageHandler,
+    {
         let client = options
             .sqs_client
             .clone()
@@ -355,11 +433,7 @@ where
         ))
     }
 
-    fn new(
-        options: ConsumerOptions,
-        backend: Arc<dyn SqsBackend>,
-        handler: HandlerKind<H>,
-    ) -> Self {
+    fn new(options: ConsumerOptions, backend: Arc<dyn SqsBackend>, handler: HandlerKind) -> Self {
         let (shutdown_handle, shutdown_rx) = ShutdownHandle::new();
         Self {
             options,
@@ -372,25 +446,57 @@ where
     }
 
     #[cfg(test)]
-    pub(crate) fn with_test_backend(
+    fn with_test_backend(
         options: ConsumerOptions,
         backend: Arc<dyn SqsBackend>,
-        handler: HandlerKind<H>,
+        handler: HandlerKind,
     ) -> Self {
         Self::new(options, backend, handler)
     }
 }
 
-async fn handle_one<H>(
-    handler: Arc<H>,
+fn validate_ack_ids(
+    messages: &[Message],
+    ack_message_ids: Vec<String>,
+) -> Result<HashSet<String>, ConsumerError> {
+    let message_ids = messages
+        .iter()
+        .filter_map(|message| message.message_id().map(ToOwned::to_owned))
+        .collect::<HashSet<_>>();
+    let mut ack_ids = HashSet::new();
+    for ack_id in ack_message_ids {
+        if !ack_ids.insert(ack_id.clone()) {
+            return Err(ConsumerError::InvalidAck(format!(
+                "duplicate message id {ack_id}"
+            )));
+        }
+        if !message_ids.contains(&ack_id) {
+            return Err(ConsumerError::InvalidAck(format!(
+                "unknown message id {ack_id}"
+            )));
+        }
+    }
+    Ok(ack_ids)
+}
+
+fn partition_by_ack_ids(
+    messages: Vec<Message>,
+    ack_message_ids: &HashSet<String>,
+) -> (Vec<Message>, Vec<Message>) {
+    messages.into_iter().partition(|message| {
+        message
+            .message_id()
+            .is_some_and(|id| ack_message_ids.contains(id))
+    })
+}
+
+async fn handle_one(
+    handler: Arc<dyn DynMessageHandler>,
     backend: Arc<dyn SqsBackend>,
     listener: Arc<dyn ConsumerListener>,
     options: ConsumerOptions,
     message: Message,
-) -> Result<HandleOutcome, ConsumerError>
-where
-    H: MessageHandler,
-{
+) -> Result<HandleOutcome, ConsumerError> {
     let heartbeats = if let Some(config) = &options.heartbeat {
         let visibility_timeout = config
             .visibility_timeout
@@ -407,38 +513,45 @@ where
         .into_iter()
         .collect()
     } else {
-        Vec::new()
+        HeartbeatGuard::default()
     };
 
     let result = if let Some(timeout) = options.handle_message_timeout {
         match tokio::time::timeout(timeout, handler.handle_message(message.clone())).await {
-            Ok(result) => result.map_err(|error| ConsumerError::Processing(Box::new(error))),
+            Ok(result) => result,
             Err(_) => Err(ConsumerError::Timeout),
         }
     } else {
-        handler
-            .handle_message(message)
-            .await
-            .map_err(|error| ConsumerError::Processing(Box::new(error)))
+        handler.handle_message(message).await
     };
     stop_heartbeats(heartbeats).await;
     result
 }
 
-async fn stop_heartbeats(
-    handles: Vec<(
-        tokio::sync::watch::Sender<bool>,
-        tokio::task::JoinHandle<()>,
-    )>,
-) {
-    let mut joins = JoinSet::new();
+#[derive(Default)]
+struct HeartbeatGuard(Vec<(watch::Sender<bool>, JoinHandle<()>)>);
+
+impl FromIterator<(watch::Sender<bool>, JoinHandle<()>)> for HeartbeatGuard {
+    fn from_iter<T: IntoIterator<Item = (watch::Sender<bool>, JoinHandle<()>)>>(iter: T) -> Self {
+        Self(iter.into_iter().collect())
+    }
+}
+
+impl Drop for HeartbeatGuard {
+    fn drop(&mut self) {
+        for (stop, handle) in &mut self.0 {
+            let _ = stop.send(true);
+            handle.abort();
+        }
+    }
+}
+
+async fn stop_heartbeats(mut handles: HeartbeatGuard) {
+    let handles = std::mem::take(&mut handles.0);
     for (stop, handle) in handles {
         let _ = stop.send(true);
-        joins.spawn(async move {
-            let _ = handle.await;
-        });
+        let _ = handle.await;
     }
-    while joins.join_next().await.is_some() {}
 }
 
 fn map_receive_error(error: BackendError) -> ConsumerError {
@@ -552,6 +665,32 @@ mod tests {
         }
     }
 
+    struct EarlyAckHandler {
+        handled_message_ids: Arc<Mutex<Vec<Vec<String>>>>,
+    }
+
+    #[async_trait]
+    impl BatchMessageHandler for EarlyAckHandler {
+        type Error = TestHandlerError;
+
+        async fn ack_before_batch(
+            &self,
+            _messages: &[Message],
+        ) -> Result<Vec<String>, Self::Error> {
+            Ok(vec!["invalid".into()])
+        }
+
+        async fn handle_batch(&self, messages: Vec<Message>) -> Result<BatchOutcome, Self::Error> {
+            self.handled_message_ids.lock().await.push(
+                messages
+                    .iter()
+                    .filter_map(|message| message.message_id().map(ToOwned::to_owned))
+                    .collect(),
+            );
+            Ok(BatchOutcome::AckAll)
+        }
+    }
+
     fn message(id: &str, receipt: Option<&str>) -> Message {
         let mut builder = Message::builder().message_id(id).body("{}");
         if let Some(receipt) = receipt {
@@ -572,7 +711,7 @@ mod tests {
         backend: Arc<MockBackend>,
         handler: TestHandler,
         options: ConsumerOptions,
-    ) -> Consumer<TestHandler> {
+    ) -> Consumer {
         Consumer::with_test_backend(options, backend, HandlerKind::Batch(Arc::new(handler)))
     }
 
@@ -620,6 +759,34 @@ mod tests {
             .unwrap();
 
         assert_eq!(*backend.deleted.lock().await, vec![vec!["r2"]]);
+    }
+
+    #[tokio::test]
+    async fn pre_batch_ack_deletes_messages_before_handler_runs() {
+        let backend = Arc::new(MockBackend::default());
+        backend.receives.lock().await.push_back(Ok(vec![
+            message("invalid", Some("invalid-receipt")),
+            message("valid", Some("valid-receipt")),
+        ]));
+        let handled_message_ids = Arc::new(Mutex::new(Vec::new()));
+        let handler = EarlyAckHandler {
+            handled_message_ids: handled_message_ids.clone(),
+        };
+
+        Consumer::with_test_backend(
+            options(),
+            backend.clone(),
+            HandlerKind::Batch(Arc::new(handler)),
+        )
+        .run_once()
+        .await
+        .unwrap();
+
+        assert_eq!(
+            *backend.deleted.lock().await,
+            vec![vec!["invalid-receipt"], vec!["valid-receipt"]]
+        );
+        assert_eq!(*handled_message_ids.lock().await, vec![vec!["valid"]]);
     }
 
     #[tokio::test]
@@ -730,5 +897,33 @@ mod tests {
             .unwrap();
 
         assert!(!backend.visibility_changes.lock().await.is_empty());
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn abort_shutdown_cancels_in_flight_batch() {
+        let backend = Arc::new(MockBackend::default());
+        backend
+            .receives
+            .lock()
+            .await
+            .push_back(Ok(vec![message("1", Some("r1"))]));
+        let handler = TestHandler {
+            batch_outcome: BatchOutcome::AckAll,
+            message_outcome: HandleOutcome::Ack,
+            delay: Some(Duration::from_secs(3_600)),
+        };
+        let consumer = consumer(backend.clone(), handler, options());
+        let shutdown = consumer.shutdown_handle();
+        let task = tokio::spawn(consumer.run());
+
+        tokio::task::yield_now().await;
+        shutdown.abort();
+
+        tokio::time::timeout(Duration::from_secs(1), task)
+            .await
+            .unwrap()
+            .unwrap()
+            .unwrap();
+        assert!(backend.deleted.lock().await.is_empty());
     }
 }

@@ -25,5 +25,9 @@ pub trait MessageHandler: Send + Sync + 'static {
 pub trait BatchMessageHandler: Send + Sync + 'static {
     type Error: std::error::Error + Send + Sync + 'static;
 
+    async fn ack_before_batch(&self, _messages: &[Message]) -> Result<Vec<String>, Self::Error> {
+        Ok(Vec::new())
+    }
+
     async fn handle_batch(&self, messages: Vec<Message>) -> Result<BatchOutcome, Self::Error>;
 }

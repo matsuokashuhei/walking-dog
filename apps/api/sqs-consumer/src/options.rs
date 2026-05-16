@@ -6,6 +6,7 @@ use crate::error::ConsumerError;
 
 const DEFAULT_BATCH_SIZE: i32 = 10;
 const DEFAULT_WAIT_TIME_SECONDS: i32 = 20;
+const MAX_VISIBILITY_TIMEOUT_SECONDS: i32 = 43_200;
 
 #[derive(Clone)]
 pub struct ConsumerOptions {
@@ -167,12 +168,36 @@ impl ConsumerOptionsBuilder {
                 "wait_time_seconds must be between 0 and 20".into(),
             ));
         }
+        if let Some(visibility_timeout) = self.visibility_timeout {
+            validate_visibility_timeout("visibility_timeout", visibility_timeout)?;
+        }
+        if let TerminateVisibility::Fixed(visibility_timeout) = &self.terminate_visibility {
+            validate_visibility_timeout("terminate_visibility", *visibility_timeout)?;
+        }
         if let Some(heartbeat) = &self.heartbeat {
-            let Some(visibility_timeout) = self.visibility_timeout else {
+            if heartbeat.interval.is_zero() {
+                return Err(ConsumerError::InvalidOptions(
+                    "heartbeat interval must be greater than zero".into(),
+                ));
+            }
+            if let Some(heartbeat_visibility_timeout) = heartbeat.visibility_timeout {
+                validate_visibility_timeout(
+                    "heartbeat.visibility_timeout",
+                    heartbeat_visibility_timeout,
+                )?;
+            }
+            let Some(visibility_timeout) = heartbeat.visibility_timeout.or(self.visibility_timeout)
+            else {
                 return Err(ConsumerError::InvalidOptions(
                     "heartbeat requires visibility_timeout".into(),
                 ));
             };
+            if visibility_timeout == 0 {
+                return Err(ConsumerError::InvalidVisibilityTimeout {
+                    field: "heartbeat effective visibility_timeout",
+                    value: visibility_timeout,
+                });
+            }
             if heartbeat.interval >= Duration::from_secs(visibility_timeout as u64) {
                 return Err(ConsumerError::InvalidOptions(
                     "heartbeat interval must be less than visibility_timeout".into(),
@@ -200,4 +225,14 @@ impl ConsumerOptionsBuilder {
             polling_complete_wait_time: self.polling_complete_wait_time,
         })
     }
+}
+
+pub(crate) fn validate_visibility_timeout(
+    field: &'static str,
+    value: i32,
+) -> Result<(), ConsumerError> {
+    if !(0..=MAX_VISIBILITY_TIMEOUT_SECONDS).contains(&value) {
+        return Err(ConsumerError::InvalidVisibilityTimeout { field, value });
+    }
+    Ok(())
 }

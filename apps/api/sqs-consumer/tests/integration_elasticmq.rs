@@ -1,23 +1,12 @@
 use async_trait::async_trait;
 use aws_sdk_sqs::types::Message;
-use sqs_consumer::{
-    BatchMessageHandler, BatchOutcome, Consumer, ConsumerOptions, HandleOutcome, MessageHandler,
-};
+use sqs_consumer::{BatchMessageHandler, BatchOutcome, Consumer, ConsumerOptions};
 
 struct AckAllHandler;
 
 #[derive(Debug, thiserror::Error)]
 #[error("integration handler error")]
 struct HandlerError;
-
-#[async_trait]
-impl MessageHandler for AckAllHandler {
-    type Error = HandlerError;
-
-    async fn handle_message(&self, _message: Message) -> Result<HandleOutcome, Self::Error> {
-        Ok(HandleOutcome::Ack)
-    }
-}
 
 #[async_trait]
 impl BatchMessageHandler for AckAllHandler {

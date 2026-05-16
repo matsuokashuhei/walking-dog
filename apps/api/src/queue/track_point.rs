@@ -5,7 +5,8 @@ use aws_sdk_sqs::operation::{
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use sqs_consumer::{BatchMessageHandler, BatchOutcome, HandleOutcome, MessageHandler};
+use sqs_consumer::{BatchMessageHandler, BatchOutcome};
+use std::fmt;
 use uuid::Uuid;
 
 use crate::entity::track_point;
@@ -83,10 +84,10 @@ pub async fn enqueue_track_point(
 
 #[async_trait]
 pub trait TrackPointBatchWriter: Send + Sync + 'static {
-    async fn batch_put_write(
-        &self,
-        models: &[track_point::Model],
-    ) -> Result<(), TrackPointBatchHandlerError>;
+    type Error: std::error::Error + Send + Sync + 'static;
+
+    /// Failed writes are retried by SQS, so implementations must be idempotent.
+    async fn batch_put_write(&self, models: &[track_point::Model]) -> Result<(), Self::Error>;
 }
 
 #[derive(Clone)]
@@ -102,22 +103,33 @@ impl DynamoDbTrackPointBatchWriter {
 
 #[async_trait]
 impl TrackPointBatchWriter for DynamoDbTrackPointBatchWriter {
-    async fn batch_put_write(
-        &self,
-        models: &[track_point::Model],
-    ) -> Result<(), TrackPointBatchHandlerError> {
+    type Error = DynamoDbTrackPointBatchWriteError;
+
+    async fn batch_put_write(&self, models: &[track_point::Model]) -> Result<(), Self::Error> {
         track_point::Model::batch_put_write(&self.client, models)
             .await
-            .map_err(TrackPointBatchHandlerError::BatchWrite)
+            .map_err(DynamoDbTrackPointBatchWriteError)
     }
 }
+
+#[derive(Debug)]
+pub struct DynamoDbTrackPointBatchWriteError(anyhow::Error);
+
+impl fmt::Display for DynamoDbTrackPointBatchWriteError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl std::error::Error for DynamoDbTrackPointBatchWriteError {}
 
 #[derive(Debug, thiserror::Error)]
 pub enum TrackPointBatchHandlerError {
     #[error("DynamoDB batch write failed")]
-    BatchWrite(#[source] anyhow::Error),
+    BatchWrite(#[source] Box<dyn std::error::Error + Send + Sync>),
 }
 
+#[derive(Clone)]
 pub struct TrackPointBatchHandler<W> {
     writer: W,
 }
@@ -131,12 +143,37 @@ where
     }
 }
 
+fn invalid_track_point_message_ids(messages: &[aws_sdk_sqs::types::Message]) -> Vec<String> {
+    messages
+        .iter()
+        .filter_map(|message| {
+            let invalid_reason = match message.body() {
+                Some(body) => TrackPointMessage::from_json(body).err(),
+                None => Some(TrackPointQueueError::MissingBody),
+            }?;
+            tracing::warn!(
+                message_id = message.message_id(),
+                ?invalid_reason,
+                "invalid track point message, acking before batch write"
+            );
+            message.message_id().map(ToOwned::to_owned)
+        })
+        .collect()
+}
+
 #[async_trait]
 impl<W> BatchMessageHandler for TrackPointBatchHandler<W>
 where
     W: TrackPointBatchWriter,
 {
     type Error = TrackPointBatchHandlerError;
+
+    async fn ack_before_batch(
+        &self,
+        messages: &[aws_sdk_sqs::types::Message],
+    ) -> Result<Vec<String>, Self::Error> {
+        Ok(invalid_track_point_message_ids(messages))
+    }
 
     async fn handle_batch(
         &self,
@@ -180,35 +217,18 @@ where
 
         match self.writer.batch_put_write(&models).await {
             Ok(()) => Ok(BatchOutcome::AckAll),
-            Err(error) if invalid_message_ids.is_empty() => Err(error),
-            Err(_) => Ok(BatchOutcome::Partial {
-                ack_message_ids: invalid_message_ids,
-            }),
-        }
-    }
-}
-
-#[async_trait]
-impl<W> MessageHandler for TrackPointBatchHandler<W>
-where
-    W: TrackPointBatchWriter,
-{
-    type Error = TrackPointBatchHandlerError;
-
-    async fn handle_message(
-        &self,
-        message: aws_sdk_sqs::types::Message,
-    ) -> Result<HandleOutcome, Self::Error> {
-        let message_id = message.message_id().map(ToOwned::to_owned);
-        match self.handle_batch(vec![message]).await? {
-            BatchOutcome::AckAll => Ok(HandleOutcome::Ack),
-            BatchOutcome::NackAll => Ok(HandleOutcome::Nack),
-            BatchOutcome::Partial { ack_message_ids } => {
-                if message_id.is_some_and(|id| ack_message_ids.contains(&id)) {
-                    Ok(HandleOutcome::Ack)
-                } else {
-                    Ok(HandleOutcome::Nack)
-                }
+            Err(error) if invalid_message_ids.is_empty() => {
+                Err(TrackPointBatchHandlerError::BatchWrite(Box::new(error)))
+            }
+            Err(error) => {
+                tracing::error!(
+                    ?error,
+                    invalid_count = invalid_message_ids.len(),
+                    "DynamoDB write failed after invalid track point messages were identified"
+                );
+                Ok(BatchOutcome::Partial {
+                    ack_message_ids: invalid_message_ids,
+                })
             }
         }
     }
@@ -284,17 +304,18 @@ mod tests {
         written_count: Arc<std::sync::Mutex<usize>>,
     }
 
+    #[derive(Debug, thiserror::Error)]
+    #[error("dynamodb batch write failed")]
+    struct FakeWriterError;
+
     #[async_trait]
     impl TrackPointBatchWriter for FakeWriter {
-        async fn batch_put_write(
-            &self,
-            models: &[track_point::Model],
-        ) -> Result<(), TrackPointBatchHandlerError> {
+        type Error = FakeWriterError;
+
+        async fn batch_put_write(&self, models: &[track_point::Model]) -> Result<(), Self::Error> {
             *self.written_count.lock().unwrap() += models.len();
             if self.fail.load(Ordering::SeqCst) {
-                return Err(TrackPointBatchHandlerError::BatchWrite(anyhow::anyhow!(
-                    "dynamodb batch write failed"
-                )));
+                return Err(FakeWriterError);
             }
             Ok(())
         }
@@ -354,6 +375,25 @@ mod tests {
             .unwrap();
 
         assert_eq!(outcome, BatchOutcome::AckAll);
+    }
+
+    #[tokio::test]
+    async fn track_point_batch_handler_reports_invalid_ids_for_pre_write_ack() {
+        let writer = FakeWriter::default();
+        let written_count = writer.written_count.clone();
+        let handler = TrackPointBatchHandler::new(writer);
+
+        let ack_ids = handler
+            .ack_before_batch(&[
+                sqs_message("malformed", Some("{".into())),
+                sqs_message("missing", None),
+                sqs_message("valid", Some(valid_body())),
+            ])
+            .await
+            .unwrap();
+
+        assert_eq!(ack_ids, vec!["malformed", "missing"]);
+        assert_eq!(*written_count.lock().unwrap(), 0);
     }
 
     #[tokio::test]

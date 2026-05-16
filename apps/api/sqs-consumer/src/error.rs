@@ -14,6 +14,12 @@ pub enum ConsumerError {
     Processing(#[source] Box<dyn std::error::Error + Send + Sync>),
     #[error("handler timed out")]
     Timeout,
+    #[error("handler returned invalid acknowledgement: {0}")]
+    InvalidAck(String),
+    #[error("invalid visibility timeout for {field}: {value}")]
+    InvalidVisibilityTimeout { field: &'static str, value: i32 },
+    #[error("graceful shutdown timed out while waiting for in-flight processing")]
+    GracefulShutdownTimeout,
     #[error("SQS message {message_id:?} has no receipt handle")]
     MissingReceiptHandle { message_id: Option<String> },
     #[error("shutdown signal error")]

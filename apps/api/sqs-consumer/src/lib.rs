@@ -8,7 +8,7 @@ pub mod shutdown;
 mod backend;
 mod heartbeat;
 
-pub use consumer::Consumer;
+pub use consumer::{Consumer, shutdown_signal};
 pub use error::ConsumerError;
 pub use handler::{BatchMessageHandler, BatchOutcome, HandleOutcome, MessageHandler};
 pub use listener::{ConsumerListener, TracingListener};

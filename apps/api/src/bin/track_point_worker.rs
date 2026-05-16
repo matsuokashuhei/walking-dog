@@ -73,8 +73,9 @@ where
 
     loop {
         tokio::select! {
-            signal = tokio::signal::ctrl_c() => {
+            signal = sqs_consumer::shutdown_signal() => {
                 signal?;
+                tracing::info!("graceful shutdown triggered");
                 for shutdown in &shutdown_handles {
                     shutdown.graceful();
                 }

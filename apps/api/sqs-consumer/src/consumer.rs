@@ -371,13 +371,14 @@ impl Consumer {
         self.run_loop().await
     }
 
-    pub async fn run_until_ctrl_c(self) -> Result<(), ConsumerError> {
+    pub async fn run_until_shutdown_signal(self) -> Result<(), ConsumerError> {
         let shutdown = self.shutdown_handle();
         let mut task = tokio::spawn(async move { self.run().await });
         tokio::select! {
             result = &mut task => result.map_err(ConsumerError::Join)?,
-            signal = tokio::signal::ctrl_c() => {
+            signal = shutdown_signal() => {
                 signal.map_err(ConsumerError::ShutdownSignal)?;
+                tracing::info!("graceful shutdown triggered");
                 shutdown.graceful();
                 task.await.map_err(ConsumerError::Join)?
             }
@@ -564,6 +565,23 @@ fn map_delete_error(error: BackendError) -> ConsumerError {
 
 fn map_visibility_error(error: BackendError) -> ConsumerError {
     ConsumerError::ChangeMessageVisibility(Box::new(error))
+}
+
+pub async fn shutdown_signal() -> Result<(), std::io::Error> {
+    #[cfg(unix)]
+    {
+        let mut sigterm =
+            tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())?;
+        tokio::select! {
+            signal = tokio::signal::ctrl_c() => signal,
+            _ = sigterm.recv() => Ok(()),
+        }
+    }
+
+    #[cfg(not(unix))]
+    {
+        tokio::signal::ctrl_c().await
+    }
 }
 
 #[cfg(test)]

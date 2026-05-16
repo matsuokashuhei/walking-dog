@@ -1,6 +1,6 @@
 import type * as BootstrapModule from './bootstrap';
 import type * as GraphQLClientModule from '@/lib/graphql/client';
-import { ME_QUERY } from '@/lib/graphql/queries/me';
+import { USER_QUERY } from '@/lib/graphql/queries/me';
 import * as secureStorage from '@/lib/auth/secure-storage';
 import { ClientError } from '@/lib/graphql/client-error';
 
@@ -77,7 +77,7 @@ describe('bootstrapAuth', () => {
     });
 
     expect(mockSetAuthToken).toHaveBeenCalledWith('stored-access-token');
-    expect(mockAuthenticatedRequest).toHaveBeenCalledWith(ME_QUERY);
+    expect(mockAuthenticatedRequest).toHaveBeenCalledWith(USER_QUERY);
   });
 
   it('returns an unauthenticated state when there is no stored token', async () => {

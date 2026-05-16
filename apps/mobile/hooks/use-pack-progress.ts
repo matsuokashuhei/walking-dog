@@ -4,7 +4,7 @@ import { useMyWalks } from './use-walks';
 import type { Walk } from '@/types/graphql';
 
 // 犬ごとの今日の距離、総散歩数、継続日数を表します。
-export interface DogProgress {
+interface DogProgress {
   todayKm: number;
   totalWalks: number;
   streakDays: number;

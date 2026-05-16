@@ -1,1 +1,3 @@
-# npm install -g @github/copilot
+# APM
+curl -sSL https://aka.ms/apm-unix | sh
+apm compile -t copilot

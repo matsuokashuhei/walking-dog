@@ -21,5 +21,3 @@ export const USER_QUERY = gql`
     }
   }
 `;
-
-export const ME_QUERY = USER_QUERY;

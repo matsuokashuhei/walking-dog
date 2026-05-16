@@ -52,13 +52,6 @@ jest.mock('@/components/ui/RingProgress', () => {
   return { RingProgress: () => <View /> };
 });
 
-jest.mock('@/components/themed-text', () => {
-  const { Text } = jest.requireActual('react-native');
-  return {
-    ThemedText: ({ children }: { children: React.ReactNode }) => <Text>{children}</Text>,
-  };
-});
-
 describe('DogsScreen', () => {
   it('renders YOUR PACK section label', () => {
     render(<DogsScreen />);

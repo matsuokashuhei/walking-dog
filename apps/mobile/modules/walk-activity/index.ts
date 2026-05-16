@@ -1,7 +1,7 @@
 import { requireNativeModule } from 'expo-modules-core';
 import { Platform } from 'react-native';
 
-export interface WalkActivityStartInput {
+interface WalkActivityStartInput {
   walkId: string;
   dogId?: string;
   dogName: string;
@@ -11,7 +11,7 @@ export interface WalkActivityStartInput {
   apiUrl: string;
 }
 
-export interface WalkActivityUpdateInput {
+interface WalkActivityUpdateInput {
   distanceM: number;
   lastEventKind?: string;
   lastEventAtMs?: number;

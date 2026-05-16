@@ -1,6 +1,6 @@
 lockfile_version: '1'
-generated_at: '2026-04-27T14:16:50.203917+00:00'
-apm_version: 0.9.4
+generated_at: '2026-05-16T03:46:48.053987+00:00'
+apm_version: 0.13.0
 dependencies:
 - repo_url: anthropics/claude-plugins-official
   host: github.com
@@ -9,10 +9,16 @@ dependencies:
   is_virtual: true
   package_type: marketplace_plugin
   deployed_files:
+  - .claude/commands/clean_gone.md
+  - .claude/commands/commit-push-pr.md
+  - .claude/commands/commit.md
   - .github/prompts/clean_gone.prompt.md
   - .github/prompts/commit-push-pr.prompt.md
   - .github/prompts/commit.prompt.md
   deployed_file_hashes:
+    .claude/commands/clean_gone.md: sha256:24ce5c79da87b481d346d26b297cbe327862f1e4bbee05406589f4b5468c7fa3
+    .claude/commands/commit-push-pr.md: sha256:63ee94bcf2a60101d542ec46bf2afa18b31565105ebfc63f1a38e4d308d3cd2f
+    .claude/commands/commit.md: sha256:366740b9d9f45e05bf7cc5b703156f95fe28180012899ceb90d89d34d4110e47
     .github/prompts/clean_gone.prompt.md: sha256:4f07fa2ccf4f81a69c6455bdc563b53a3d3b20aea6e4e82337c52b172ee02344
     .github/prompts/commit-push-pr.prompt.md: sha256:3bc3d171939149cbbef141cbced553dce6ba6f97dac4a764f4ef1e055c35064d
     .github/prompts/commit.prompt.md: sha256:d1acbc2bf0c50164f48d6bda872de6a343cd9390954ce903c3431c3119e7f8c4
@@ -24,11 +30,19 @@ dependencies:
   is_virtual: true
   package_type: marketplace_plugin
   deployed_files:
+  - .claude/agents/code-architect.md
+  - .claude/agents/code-explorer.md
+  - .claude/agents/code-reviewer.md
+  - .claude/commands/feature-dev.md
   - .github/agents/code-architect.agent.md
   - .github/agents/code-explorer.agent.md
   - .github/agents/code-reviewer.agent.md
   - .github/prompts/feature-dev.prompt.md
   deployed_file_hashes:
+    .claude/agents/code-architect.md: sha256:c50fb08d59a4bbd19660860626a049e44cf1a2b0c1cf782e6c7a99ba7e71b0c3
+    .claude/agents/code-explorer.md: sha256:3b277703de7458988ec3b8021c716f79f642e174950ed332629310f68322029a
+    .claude/agents/code-reviewer.md: sha256:533b9967ca21b7e9572236935cada4bfd03d7dd362cb2e680a2d13aa0d699232
+    .claude/commands/feature-dev.md: sha256:656a01ce40782ee849c444916362df0e4e4173afcd33313777fa86021d89994b
     .github/agents/code-architect.agent.md: sha256:c50fb08d59a4bbd19660860626a049e44cf1a2b0c1cf782e6c7a99ba7e71b0c3
     .github/agents/code-explorer.agent.md: sha256:3b277703de7458988ec3b8021c716f79f642e174950ed332629310f68322029a
     .github/agents/code-reviewer.agent.md: sha256:533b9967ca21b7e9572236935cada4bfd03d7dd362cb2e680a2d13aa0d699232
@@ -41,6 +55,13 @@ dependencies:
   is_virtual: true
   package_type: marketplace_plugin
   deployed_files:
+  - .claude/agents/code-reviewer.md
+  - .claude/agents/code-simplifier.md
+  - .claude/agents/comment-analyzer.md
+  - .claude/agents/pr-test-analyzer.md
+  - .claude/agents/silent-failure-hunter.md
+  - .claude/agents/type-design-analyzer.md
+  - .claude/commands/review-pr.md
   - .github/agents/code-reviewer.agent.md
   - .github/agents/code-simplifier.agent.md
   - .github/agents/comment-analyzer.agent.md
@@ -49,6 +70,13 @@ dependencies:
   - .github/agents/type-design-analyzer.agent.md
   - .github/prompts/review-pr.prompt.md
   deployed_file_hashes:
+    .claude/agents/code-reviewer.md: sha256:533b9967ca21b7e9572236935cada4bfd03d7dd362cb2e680a2d13aa0d699232
+    .claude/agents/code-simplifier.md: sha256:976ddb22b84bc5a714216531a75db5e73169554add6b953442beeedb49b56891
+    .claude/agents/comment-analyzer.md: sha256:da0540c507e42a7f66df0b09f81f3c9d3b246620a8f2be4e84b85b97f7b4e2f5
+    .claude/agents/pr-test-analyzer.md: sha256:d369fd3946a814bb7a9d4f32e971722fe259e301878986bc6312d6f6c56014a8
+    .claude/agents/silent-failure-hunter.md: sha256:fa9b0daec5a267e7e66435cc48b3328301fc9f70c3af259fe248881327a1babc
+    .claude/agents/type-design-analyzer.md: sha256:ad160052fd3b45395d531d5e97e54940a1b660443fb513db3feb613848b6e72d
+    .claude/commands/review-pr.md: sha256:1c3ca6f18f9851ac88ffdc3f98b45e9bd19fb139eb14850f2c22cd18c7a167b2
     .github/agents/code-reviewer.agent.md: sha256:533b9967ca21b7e9572236935cada4bfd03d7dd362cb2e680a2d13aa0d699232
     .github/agents/code-simplifier.agent.md: sha256:976ddb22b84bc5a714216531a75db5e73169554add6b953442beeedb49b56891
     .github/agents/comment-analyzer.agent.md: sha256:da0540c507e42a7f66df0b09f81f3c9d3b246620a8f2be4e84b85b97f7b4e2f5
@@ -64,7 +92,8 @@ dependencies:
   is_virtual: true
   package_type: claude_skill
   deployed_files:
-  - .github/skills/evolutionary-naming
+  - .agents/skills/evolutionary-naming
+  - .claude/skills/evolutionary-naming
   content_hash: sha256:a438787e6c9036a9f6502aee470a1160fe8d30fbffe952ed24aec0f0d70f438b
 - repo_url: mattpocock/skills
   host: github.com
@@ -73,7 +102,8 @@ dependencies:
   is_virtual: true
   package_type: claude_skill
   deployed_files:
-  - .github/skills/design-an-interface
+  - .agents/skills/design-an-interface
+  - .claude/skills/design-an-interface
   content_hash: sha256:885b05367fb1cf61a1e27e0d50f14d2502a05c1fa276c6e9ea050ce6a90e7095
 - repo_url: mattpocock/skills
   host: github.com
@@ -82,7 +112,8 @@ dependencies:
   is_virtual: true
   package_type: claude_skill
   deployed_files:
-  - .github/skills/grill-me
+  - .agents/skills/grill-me
+  - .claude/skills/grill-me
   content_hash: sha256:784f0dbb7403b0f00324bce9a112f715342777a0daee7bbb7385f9c6f0a170ea
 - repo_url: mattpocock/skills
   host: github.com
@@ -91,7 +122,8 @@ dependencies:
   is_virtual: true
   package_type: claude_skill
   deployed_files:
-  - .github/skills/improve-codebase-architecture
+  - .agents/skills/improve-codebase-architecture
+  - .claude/skills/improve-codebase-architecture
   content_hash: sha256:b627d5ecf36847d678b470aa87f46da602ee1013af8c97cd26ad4d005e59662d
 - repo_url: mattpocock/skills
   host: github.com
@@ -100,7 +132,8 @@ dependencies:
   is_virtual: true
   package_type: claude_skill
   deployed_files:
-  - .github/skills/request-refactor-plan
+  - .agents/skills/request-refactor-plan
+  - .claude/skills/request-refactor-plan
   content_hash: sha256:176cf1d0c4dc4fc4d958c4bc4ed67f222f2656bda2f3f15e3a3e98b2e5edaf2f
 - repo_url: mattpocock/skills
   host: github.com
@@ -109,15 +142,70 @@ dependencies:
   is_virtual: true
   package_type: claude_skill
   deployed_files:
-  - .github/skills/to-issues
+  - .agents/skills/to-issues
+  - .claude/skills/to-issues
   content_hash: sha256:2db47f0db7e6975486cd28bc6744f1358b47a434fb98df5b6ad507b6c3685b6a
+- repo_url: millionco/react-doctor
+  host: github.com
+  resolved_commit: 8a3a1bee7e6cc9a18011f6ddc48a3564e3ad9f32
+  package_type: skill_bundle
+  deployed_files:
+  - .agents/skills/react-doctor
+  - .claude/skills/react-doctor
+  content_hash: sha256:5c20a6677ee48e233db3ee80a53b78e438b5d9d73cee805c3078c03872a0c61a
+- repo_url: openai/plugins
+  host: github.com
+  resolved_commit: dc902811491b3a724672e19dec103da57b4880e5
+  virtual_path: plugins/expo
+  is_virtual: true
+  package_type: skill_bundle
+  deployed_files:
+  - .agents/skills/building-native-ui
+  - .agents/skills/codex-expo-run-actions
+  - .agents/skills/expo-api-routes
+  - .agents/skills/expo-cicd-workflows
+  - .agents/skills/expo-deployment
+  - .agents/skills/expo-dev-client
+  - .agents/skills/expo-module
+  - .agents/skills/expo-tailwind-setup
+  - .agents/skills/expo-ui-jetpack-compose
+  - .agents/skills/expo-ui-swift-ui
+  - .agents/skills/native-data-fetching
+  - .agents/skills/upgrading-expo
+  - .agents/skills/use-dom
+  - .claude/skills/building-native-ui
+  - .claude/skills/codex-expo-run-actions
+  - .claude/skills/expo-api-routes
+  - .claude/skills/expo-cicd-workflows
+  - .claude/skills/expo-deployment
+  - .claude/skills/expo-dev-client
+  - .claude/skills/expo-module
+  - .claude/skills/expo-tailwind-setup
+  - .claude/skills/expo-ui-jetpack-compose
+  - .claude/skills/expo-ui-swift-ui
+  - .claude/skills/native-data-fetching
+  - .claude/skills/upgrading-expo
+  - .claude/skills/use-dom
+  content_hash: sha256:76d8a1b1f6b09014117d1538d66b603dc4d569859c59351229d709428760b70f
+- repo_url: sleekdotdesign/agent-skills
+  host: github.com
+  resolved_commit: a6799c715937b2a2617edaf29c424bb963410e89
+  package_type: skill_bundle
+  deployed_files:
+  - .agents/skills/design-mobile-apps
+  - .claude/skills/design-mobile-apps
+  content_hash: sha256:44b7b50585b5bad4929ba6972265a851e04277832a3675095b53aabd98de610f
 - repo_url: vladikk/modularity
   host: github.com
   resolved_commit: bcdca9a595764b9aa88d5d8d6020f52e7f5f1f52
   package_type: marketplace_plugin
   deployed_files:
-  - .github/skills/balanced-coupling
-  - .github/skills/design
-  - .github/skills/document
-  - .github/skills/review
+  - .agents/skills/balanced-coupling
+  - .agents/skills/design
+  - .agents/skills/document
+  - .agents/skills/review
+  - .claude/skills/balanced-coupling
+  - .claude/skills/design
+  - .claude/skills/document
+  - .claude/skills/review
   content_hash: sha256:54ea641fae2a967039ddd249e804e8a55b8c98e938e73202fa0476e1b72f2c2f

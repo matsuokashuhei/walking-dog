@@ -1,6 +1,6 @@
 import { useMutation, type UseMutationResult } from '@tanstack/react-query';
 import { authenticatedRequest } from '@/lib/graphql/client';
-import { RECORD_WALK_EVENT_MUTATION } from '@/lib/graphql/mutations/walk';
+import { ADD_EVENT_MUTATION } from '@/lib/graphql/mutations/walk';
 import { mapApiWalkDogEvent, uiEventToApiType } from '@/lib/graphql/adapters';
 import type {
   RecordWalkEventInput,
@@ -19,7 +19,7 @@ export function useRecordWalkEvent(): UseMutationResult<WalkEvent, Error, Record
         throw new Error('latitude and longitude are required to record a walk event.');
       }
       const data = await authenticatedRequest<RecordWalkEventResponse>(
-        RECORD_WALK_EVENT_MUTATION,
+        ADD_EVENT_MUTATION,
         {
           input: {
             walkId: input.walkId,

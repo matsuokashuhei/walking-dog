@@ -3,15 +3,11 @@ import { endLiveActivity, startLiveActivity } from '@/lib/walk/live-activity';
 import {
   beginWalkTracking,
   flushPendingWalkPoints,
-  MAX_POINTS_PER_BATCH,
-  PERIODIC_FLUSH_INTERVAL_MS,
   resetWalkTrackingState,
   stopWalkTracking,
 } from '@/lib/walk/tracking-manager';
 import { useWalkStore } from '@/stores/walk-store';
 import { useAddWalkPoints, useFinishWalk, useStartWalk } from './use-walk-mutations';
-
-export { MAX_POINTS_PER_BATCH, PERIODIC_FLUSH_INTERVAL_MS };
 
 // テストや再初期化時に、散歩トラッキング側の内部状態をリセットします。
 export function resetWalkSessionTrackingState() {

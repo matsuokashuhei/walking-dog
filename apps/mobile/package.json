@@ -107,5 +107,21 @@
       "text"
     ]
   },
-  "private": true
+  "private": true,
+  "knip": {
+    "ignoreFiles": [
+      ".claude/skills/**",
+      "components/ui/icon-symbol.ios.tsx",
+      "hooks/use-color-scheme.web.ts",
+      "targets/walk-live-activity/expo-target.config.js"
+    ],
+    "ignoreIssues": {
+      "modules/ble-advertiser/index.ts": [
+        "exports"
+      ],
+      "modules/walk-activity/index.ts": [
+        "exports"
+      ]
+    }
+  }
 }

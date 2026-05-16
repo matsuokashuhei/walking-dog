@@ -86,5 +86,3 @@ export const WALKS_QUERY = gql`
     }
   }
 `;
-
-export const MY_WALKS_QUERY = WALKS_QUERY;

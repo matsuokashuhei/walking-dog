@@ -1,7 +1,7 @@
 import { ClientError } from '../graphql/client-error';
 import { extractGraphQLErrorMessage, isNetworkError } from '../graphql/errors';
 
-export type AuthErrorKind =
+type AuthErrorKind =
   | 'invalid-credentials'
   | 'user-exists'
   | 'invalid-password'

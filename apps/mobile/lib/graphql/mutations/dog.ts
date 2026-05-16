@@ -39,6 +39,3 @@ export const REMOVE_DOG_MUTATION = gql`
     }
   }
 `;
-
-export const CREATE_DOG_MUTATION = ADD_DOG_MUTATION;
-export const DELETE_DOG_MUTATION = REMOVE_DOG_MUTATION;

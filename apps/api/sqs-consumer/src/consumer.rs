@@ -1,8 +1,12 @@
-use std::{collections::HashSet, sync::Arc};
+use std::{collections::HashSet, pin::Pin, sync::Arc};
 
 use aws_sdk_sqs::types::{DeleteMessageBatchRequestEntry, Message};
 use futures::{StreamExt, stream::FuturesUnordered};
-use tokio::{sync::watch, task::JoinHandle};
+use tokio::{
+    sync::watch,
+    task::JoinHandle,
+    time::{Sleep, sleep},
+};
 
 use crate::{
     backend::{AwsSqsBackend, BackendError, SqsBackend},
@@ -149,6 +153,7 @@ impl Consumer {
 
     async fn run_loop(mut self) -> Result<(), ConsumerError> {
         self.listener.on_started();
+        let mut aborted_message_ids = Vec::new();
         'running: loop {
             if *self.shutdown_rx.borrow() != ShutdownState::Running {
                 break;
@@ -175,48 +180,20 @@ impl Consumer {
                 self.listener.on_message_received(message);
             }
 
-            let dispatch = self.dispatch_and_ack(messages);
-            let mut shutdown_rx = self.shutdown_rx.clone();
-            tokio::pin!(dispatch);
-            tokio::select! {
-                result = &mut dispatch => {
-                    if let Err(error) = result {
-                        self.listener.on_error(&error);
-                    }
+            if let Err(error) = self.dispatch_and_ack(messages).await {
+                if let ConsumerError::Aborted { message_ids } = &error {
+                    aborted_message_ids = message_ids.clone();
+                    break 'running;
                 }
-                changed = shutdown_rx.changed() => {
-                    if changed.is_err() {
-                        break 'running;
-                    }
-                    let shutdown_state = *shutdown_rx.borrow();
-                    match shutdown_state {
-                        ShutdownState::Abort => break 'running,
-                        ShutdownState::Graceful => {
-                            match tokio::time::timeout(
-                                self.options.polling_complete_wait_time,
-                                &mut dispatch,
-                            )
-                            .await
-                            {
-                                Ok(result) => {
-                                    if let Err(error) = result {
-                                        self.listener.on_error(&error);
-                                    }
-                                }
-                                Err(_) => {
-                                    self.listener.on_error(&ConsumerError::GracefulShutdownTimeout);
-                                }
-                            }
-                            break 'running;
-                        }
-                        ShutdownState::Running => {}
-                    }
-                }
+                self.listener.on_error(&error);
             }
             self.listener.on_response_processed();
+            if *self.shutdown_rx.borrow() != ShutdownState::Running {
+                break;
+            }
         }
         if *self.shutdown_rx.borrow() == ShutdownState::Abort {
-            self.listener.on_aborted();
+            self.listener.on_aborted(&aborted_message_ids);
         } else {
             self.listener.on_stopped();
         }
@@ -298,21 +275,11 @@ impl Consumer {
             return Ok(());
         }
 
-        let heartbeat_handles = self.start_heartbeats(&messages);
-        let result = if let Some(timeout) = self.options.handle_message_timeout {
-            match tokio::time::timeout(timeout, handler.handle_batch(messages.clone())).await {
-                Ok(result) => result,
-                Err(_) => {
-                    for message in &messages {
-                        self.listener.on_timeout_error(message);
-                    }
-                    Err(ConsumerError::Timeout)
-                }
-            }
-        } else {
-            handler.handle_batch(messages.clone()).await
-        };
-        stop_heartbeats(heartbeat_handles).await;
+        let heartbeat_handles = self.start_heartbeats(&messages)?;
+        let result = self
+            .run_batch_handler_until_terminal_state(handler, messages.clone())
+            .await;
+        stop_heartbeats(heartbeat_handles, self.listener.clone()).await;
 
         let (mut acked, nacked) = match result {
             Ok(BatchOutcome::AckAll) => (messages.clone(), Vec::new()),
@@ -342,15 +309,83 @@ impl Consumer {
         self.delete_acked(&acked).await
     }
 
-    fn start_heartbeats(&self, messages: &[Message]) -> HeartbeatGuard {
+    async fn run_batch_handler_until_terminal_state(
+        &self,
+        handler: Arc<dyn DynBatchHandler>,
+        messages: Vec<Message>,
+    ) -> Result<BatchOutcome, ConsumerError> {
+        let message_ids = message_ids(&messages);
+        let handler_messages = messages.clone();
+        let mut handler_task =
+            tokio::spawn(async move { handler.handle_batch(handler_messages).await });
+        let mut shutdown_rx = self.shutdown_rx.clone();
+        let mut handler_timeout = self
+            .options
+            .handle_message_timeout
+            .map(|duration| Box::pin(sleep(duration)));
+        let mut graceful_timeout: Option<Pin<Box<Sleep>>> = None;
+
+        loop {
+            tokio::select! {
+                result = &mut handler_task => {
+                    return result.map_err(ConsumerError::Join)?;
+                }
+                _ = async {
+                    if let Some(timeout) = &mut handler_timeout {
+                        timeout.as_mut().await;
+                    }
+                }, if handler_timeout.is_some() => {
+                    handler_task.abort();
+                    for message in &messages {
+                        self.listener.on_timeout_error(message);
+                    }
+                    return Err(ConsumerError::Timeout);
+                }
+                changed = shutdown_rx.changed() => {
+                    if changed.is_err() {
+                        continue;
+                    }
+                    match *shutdown_rx.borrow() {
+                        ShutdownState::Running => {}
+                        ShutdownState::Graceful => {
+                            if graceful_timeout.is_none() {
+                                graceful_timeout = Some(Box::pin(sleep(self.options.polling_complete_wait_time)));
+                            }
+                        }
+                        ShutdownState::Abort => {
+                            handler_task.abort();
+                            return Err(ConsumerError::Aborted { message_ids });
+                        }
+                    }
+                }
+                _ = async {
+                    if let Some(timeout) = &mut graceful_timeout {
+                        timeout.as_mut().await;
+                    }
+                }, if graceful_timeout.is_some() => {
+                    let error = ConsumerError::GracefulShutdownTimeout {
+                        message_ids: message_ids.clone(),
+                    };
+                    self.listener.on_error(&error);
+                    graceful_timeout = None;
+                }
+            }
+        }
+    }
+
+    fn start_heartbeats(&self, messages: &[Message]) -> Result<HeartbeatGuard, ConsumerError> {
         let Some(config) = &self.options.heartbeat else {
-            return HeartbeatGuard::default();
+            return Ok(HeartbeatGuard::default());
         };
-        let visibility_timeout = config
+        let Some(visibility_timeout) = config
             .visibility_timeout
             .or(self.options.visibility_timeout)
-            .expect("heartbeat validation requires visibility_timeout");
-        messages
+        else {
+            return Err(ConsumerError::InvalidConfig(
+                "heartbeat requires visibility_timeout".into(),
+            ));
+        };
+        Ok(messages
             .iter()
             .filter_map(|message| {
                 spawn_heartbeat(
@@ -362,7 +397,7 @@ impl Consumer {
                     visibility_timeout,
                 )
             })
-            .collect()
+            .collect())
     }
 }
 
@@ -480,6 +515,13 @@ fn validate_ack_ids(
     Ok(ack_ids)
 }
 
+fn message_ids(messages: &[Message]) -> Vec<String> {
+    messages
+        .iter()
+        .filter_map(|message| message.message_id().map(ToOwned::to_owned))
+        .collect()
+}
+
 fn partition_by_ack_ids(
     messages: Vec<Message>,
     ack_message_ids: &HashSet<String>,
@@ -499,13 +541,15 @@ async fn handle_one(
     message: Message,
 ) -> Result<HandleOutcome, ConsumerError> {
     let heartbeats = if let Some(config) = &options.heartbeat {
-        let visibility_timeout = config
-            .visibility_timeout
-            .or(options.visibility_timeout)
-            .expect("heartbeat validation requires visibility_timeout");
+        let Some(visibility_timeout) = config.visibility_timeout.or(options.visibility_timeout)
+        else {
+            return Err(ConsumerError::InvalidConfig(
+                "heartbeat requires visibility_timeout".into(),
+            ));
+        };
         spawn_heartbeat(
             backend,
-            listener,
+            listener.clone(),
             options.queue_url.clone(),
             message.clone(),
             config.interval,
@@ -525,7 +569,7 @@ async fn handle_one(
     } else {
         handler.handle_message(message).await
     };
-    stop_heartbeats(heartbeats).await;
+    stop_heartbeats(heartbeats, listener).await;
     result
 }
 
@@ -547,11 +591,14 @@ impl Drop for HeartbeatGuard {
     }
 }
 
-async fn stop_heartbeats(mut handles: HeartbeatGuard) {
+async fn stop_heartbeats(mut handles: HeartbeatGuard, listener: Arc<dyn ConsumerListener>) {
     let handles = std::mem::take(&mut handles.0);
     for (stop, handle) in handles {
         let _ = stop.send(true);
-        let _ = handle.await;
+        if let Err(error) = handle.await {
+            let error = ConsumerError::Join(error);
+            listener.on_error(&error);
+        }
     }
 }
 
@@ -706,6 +753,32 @@ mod tests {
                     .collect(),
             );
             Ok(BatchOutcome::AckAll)
+        }
+    }
+
+    #[derive(Default)]
+    struct RecordingListener {
+        aborted_message_ids: Arc<std::sync::Mutex<Vec<Vec<String>>>>,
+        graceful_timeout_message_ids: Arc<std::sync::Mutex<Vec<Vec<String>>>>,
+    }
+
+    impl ConsumerListener for RecordingListener {
+        fn on_aborted(&self, aborted_message_ids: &[String]) {
+            self.aborted_message_ids
+                .lock()
+                .unwrap()
+                .push(aborted_message_ids.to_vec());
+        }
+
+        fn on_error(&self, error: &(dyn std::error::Error + 'static)) {
+            if let Some(ConsumerError::GracefulShutdownTimeout { message_ids }) =
+                error.downcast_ref::<ConsumerError>()
+            {
+                self.graceful_timeout_message_ids
+                    .lock()
+                    .unwrap()
+                    .push(message_ids.clone());
+            }
         }
     }
 
@@ -930,7 +1003,9 @@ mod tests {
             message_outcome: HandleOutcome::Ack,
             delay: Some(Duration::from_secs(3_600)),
         };
-        let consumer = consumer(backend.clone(), handler, options());
+        let listener = RecordingListener::default();
+        let aborted_message_ids = listener.aborted_message_ids.clone();
+        let consumer = consumer(backend.clone(), handler, options()).listener(listener);
         let shutdown = consumer.shutdown_handle();
         let task = tokio::spawn(consumer.run());
 
@@ -943,5 +1018,42 @@ mod tests {
             .unwrap()
             .unwrap();
         assert!(backend.deleted.lock().await.is_empty());
+        assert_eq!(*aborted_message_ids.lock().unwrap(), vec![vec!["1"]]);
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn graceful_shutdown_timeout_reports_ids_and_finishes_ack_state() {
+        let backend = Arc::new(MockBackend::default());
+        backend
+            .receives
+            .lock()
+            .await
+            .push_back(Ok(vec![message("1", Some("r1"))]));
+        let handler = TestHandler {
+            batch_outcome: BatchOutcome::AckAll,
+            message_outcome: HandleOutcome::Ack,
+            delay: Some(Duration::from_secs(5)),
+        };
+        let options = ConsumerOptions::builder()
+            .queue_url("queue")
+            .wait_time_seconds(0)
+            .polling_complete_wait_time(Duration::from_millis(100))
+            .build_for_backend()
+            .unwrap();
+        let listener = RecordingListener::default();
+        let timed_out_message_ids = listener.graceful_timeout_message_ids.clone();
+        let consumer = consumer(backend.clone(), handler, options).listener(listener);
+        let shutdown = consumer.shutdown_handle();
+        let task = tokio::spawn(consumer.run());
+
+        tokio::task::yield_now().await;
+        shutdown.graceful();
+        tokio::time::advance(Duration::from_millis(100)).await;
+        tokio::task::yield_now().await;
+        tokio::time::advance(Duration::from_secs(5)).await;
+        task.await.unwrap().unwrap();
+
+        assert_eq!(*timed_out_message_ids.lock().unwrap(), vec![vec!["1"]]);
+        assert_eq!(*backend.deleted.lock().await, vec![vec!["r1"]]);
     }
 }

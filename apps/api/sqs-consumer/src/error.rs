@@ -4,6 +4,8 @@ use std::fmt::Debug;
 pub enum ConsumerError {
     #[error("invalid consumer options: {0}")]
     InvalidOptions(String),
+    #[error("invalid consumer configuration: {0}")]
+    InvalidConfig(String),
     #[error("SQS receive message error")]
     ReceiveMessage(#[source] Box<dyn std::error::Error + Send + Sync>),
     #[error("SQS delete message batch error")]
@@ -18,8 +20,10 @@ pub enum ConsumerError {
     InvalidAck(String),
     #[error("invalid visibility timeout for {field}: {value}")]
     InvalidVisibilityTimeout { field: &'static str, value: i32 },
-    #[error("graceful shutdown timed out while waiting for in-flight processing")]
-    GracefulShutdownTimeout,
+    #[error("graceful shutdown timed out while waiting for in-flight processing: {message_ids:?}")]
+    GracefulShutdownTimeout { message_ids: Vec<String> },
+    #[error("in-flight processing aborted: {message_ids:?}")]
+    Aborted { message_ids: Vec<String> },
     #[error("SQS message {message_id:?} has no receipt handle")]
     MissingReceiptHandle { message_id: Option<String> },
     #[error("shutdown signal error")]

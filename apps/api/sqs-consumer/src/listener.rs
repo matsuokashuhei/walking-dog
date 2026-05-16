@@ -4,7 +4,7 @@ use tracing::{debug, error, info, warn};
 pub trait ConsumerListener: Send + Sync + 'static {
     fn on_started(&self) {}
     fn on_stopped(&self) {}
-    fn on_aborted(&self) {}
+    fn on_aborted(&self, _aborted_message_ids: &[String]) {}
     fn on_empty(&self) {}
     fn on_message_received(&self, _message: &Message) {}
     fn on_response_processed(&self) {}
@@ -31,8 +31,8 @@ impl ConsumerListener for TracingListener {
         info!("sqs consumer stopped");
     }
 
-    fn on_aborted(&self) {
-        warn!("sqs consumer aborted");
+    fn on_aborted(&self, aborted_message_ids: &[String]) {
+        warn!(?aborted_message_ids, "sqs consumer aborted");
     }
 
     fn on_empty(&self) {

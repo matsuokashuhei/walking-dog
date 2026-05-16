@@ -1,8 +1,9 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useDogDetailViewModel } from '@/hooks/use-dog-detail-view-model';
 import { DogHero } from '@/components/dogs/DogHero';
-import { DogHeroNavBar } from '@/components/dogs/DogHeroNavBar';
 import { DogStatsCard } from '@/components/dogs/DogStatsCard';
 import { DogWalksList } from '@/components/dogs/DogWalksList';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
@@ -10,28 +11,54 @@ import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { GroupedCard } from '@/components/ui/GroupedCard';
 import { GroupedRow } from '@/components/ui/GroupedRow';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useColors } from '@/hooks/use-colors';
 import { spacing, typography } from '@/theme/tokens';
 
 // 犬詳細画面はヒーロー表示、散歩統計、メンバー/友達導線、削除操作をまとめます。
 export default function DogDetailScreen() {
   const { t } = useTranslation();
+  const router = useRouter();
   const theme = useColors();
   const vm = useDogDetailViewModel();
 
   if (vm.status === 'loading') return <LoadingScreen />;
 
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(tabs)/dogs');
+    }
+  };
+
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
+    <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: theme.background }]}>
+      <ScreenHeader
+        variant="inline"
+        testID="dog-detail-header"
+        title={vm.dog.name}
+        leftAction={{ label: t('dogs.detail.back'), onPress: handleBack }}
+        rightAction={
+          vm.isOwner
+            ? {
+                label: t('dogs.detail.edit'),
+                onPress: () =>
+                  router.push({
+                    pathname: '/dogs/[id]/edit',
+                    params: { id: vm.dog.id },
+                  }),
+              }
+            : undefined
+        }
+      />
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.content}
         contentInsetAdjustmentBehavior="never"
       >
         <DogHero photoUrl={vm.dog.photoUrl} />
-
         <View style={styles.nameBlock}>
-          <Text style={[styles.dogName, { color: theme.onSurface }]}>{vm.dog.name}</Text>
           {vm.meta ? (
             <Text style={[styles.dogMeta, { color: theme.onSurfaceVariant }]}>{vm.meta}</Text>
           ) : null}
@@ -44,7 +71,7 @@ export default function DogDetailScreen() {
           </View>
         ) : null}
 
-        <View style={styles.walksSection}>
+        <View testID="dog-detail-walks-section" style={styles.walksSection}>
           <DogWalksList
             walks={vm.dogWalks}
             onPressWalk={vm.handleOpenWalk}
@@ -94,8 +121,7 @@ export default function DogDetailScreen() {
           />
         ) : null}
       </ScrollView>
-      <DogHeroNavBar dogId={vm.dog.id} isOwner={vm.isOwner} />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -108,9 +134,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.step20,
     paddingTop: spacing.sm,
   },
-  dogName: {
-    ...typography.numericBig,
-  },
   dogMeta: {
     ...typography.subheadline,
     marginTop: spacing.xs / 2,
@@ -120,7 +143,7 @@ const styles = StyleSheet.create({
     paddingTop: spacing.lg,
   },
   walksSection: {
-    paddingHorizontal: spacing.xs,
+    paddingHorizontal: spacing.md,
   },
   group: {
     marginHorizontal: spacing.lg,

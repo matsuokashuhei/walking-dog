@@ -306,8 +306,7 @@ fn duration_to_visibility_timeout(
 ) -> Result<i32, ConsumerError> {
     let seconds = duration
         .as_secs()
-        .checked_add(u64::from(duration.subsec_nanos() > 0))
-        .unwrap_or(u64::MAX);
+        .saturating_add(u64::from(duration.subsec_nanos() > 0));
     let value = i32::try_from(seconds).unwrap_or(i32::MAX);
     validate_visibility_timeout(field, value)?;
     Ok(value)

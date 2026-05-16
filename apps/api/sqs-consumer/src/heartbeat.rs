@@ -8,6 +8,20 @@ use tokio::{
 
 use crate::{backend::SqsBackend, listener::ConsumerListener};
 
+pub(crate) struct HeartbeatSpawn {
+    pub(crate) backend: Arc<dyn SqsBackend>,
+    pub(crate) listener: Arc<dyn ConsumerListener>,
+    pub(crate) queue_url: String,
+    pub(crate) message: Message,
+    pub(crate) receipt_handle: String,
+    pub(crate) message_id: String,
+    pub(crate) interval: Duration,
+    pub(crate) visibility_timeout: i32,
+    pub(crate) stop_tx: watch::Sender<bool>,
+    pub(crate) stop_rx: watch::Receiver<bool>,
+    pub(crate) failure_tx: mpsc::UnboundedSender<String>,
+}
+
 pub(crate) fn spawn_heartbeat(
     backend: Arc<dyn SqsBackend>,
     listener: Arc<dyn ConsumerListener>,
@@ -20,7 +34,7 @@ pub(crate) fn spawn_heartbeat(
     let message_id = message.message_id().unwrap_or(&receipt_handle).to_owned();
     let (stop_tx, stop_rx) = watch::channel(false);
     let (failure_tx, _failure_rx) = mpsc::unbounded_channel::<String>();
-    spawn_heartbeat_with_failure_channel(
+    spawn_heartbeat_with_failure_channel(HeartbeatSpawn {
         backend,
         listener,
         queue_url,
@@ -32,7 +46,7 @@ pub(crate) fn spawn_heartbeat(
         stop_tx,
         stop_rx,
         failure_tx,
-    )
+    })
 }
 
 pub(crate) struct HeartbeatTask {
@@ -40,19 +54,20 @@ pub(crate) struct HeartbeatTask {
     pub(crate) handle: JoinHandle<()>,
 }
 
-pub(crate) fn spawn_heartbeat_with_failure_channel(
-    backend: Arc<dyn SqsBackend>,
-    listener: Arc<dyn ConsumerListener>,
-    queue_url: String,
-    message: Message,
-    receipt_handle: String,
-    message_id: String,
-    interval: Duration,
-    visibility_timeout: i32,
-    stop_tx: watch::Sender<bool>,
-    mut stop_rx: watch::Receiver<bool>,
-    failure_tx: mpsc::UnboundedSender<String>,
-) -> Option<HeartbeatTask> {
+pub(crate) fn spawn_heartbeat_with_failure_channel(spawn: HeartbeatSpawn) -> Option<HeartbeatTask> {
+    let HeartbeatSpawn {
+        backend,
+        listener,
+        queue_url,
+        message,
+        receipt_handle,
+        message_id,
+        interval,
+        visibility_timeout,
+        stop_tx,
+        mut stop_rx,
+        failure_tx,
+    } = spawn;
     let handle = tokio::spawn(async move {
         loop {
             tokio::select! {

@@ -11,7 +11,9 @@ use crate::{
     backend::{AwsSqsBackend, BackendError, SqsBackend},
     error::ConsumerError,
     handler::{BatchMessageHandler, BatchOutcome, HandleOutcome, MessageHandler},
-    heartbeat::{HeartbeatTask, spawn_heartbeat, spawn_heartbeat_with_failure_channel},
+    heartbeat::{
+        HeartbeatSpawn, HeartbeatTask, spawn_heartbeat, spawn_heartbeat_with_failure_channel,
+    },
     listener::{ConsumerListener, NoopListener},
     options::{
         ConsumerOptions, TerminateVisibility, resolve_heartbeat_visibility_timeout,
@@ -110,19 +112,17 @@ impl Consumer {
         if !self.options.should_delete_messages || messages.is_empty() {
             return Ok(());
         }
-        let message_ids = message_ids(messages);
-        let entries = messages
-            .iter()
-            .enumerate()
-            .map(|(index, message)| {
-                let Some(receipt_handle) = message.receipt_handle() else {
-                    return Err(ConsumerError::MissingReceiptHandle {
-                        message_id: message.message_id().map(ToOwned::to_owned),
-                    });
-                };
-                Ok((index.to_string(), receipt_handle.to_owned()))
-            })
-            .collect::<Result<Vec<_>, _>>()?;
+        let mut message_ids = Vec::with_capacity(messages.len());
+        let mut entries = Vec::with_capacity(messages.len());
+        for (index, message) in messages.iter().enumerate() {
+            let Some(receipt_handle) = message.receipt_handle() else {
+                return Err(ConsumerError::MissingReceiptHandle {
+                    message_id: message.message_id().map(ToOwned::to_owned),
+                });
+            };
+            message_ids.push(message.message_id().unwrap_or(receipt_handle).to_owned());
+            entries.push((index.to_string(), receipt_handle.to_owned()));
+        }
 
         self.backend
             .delete_message_batch(&self.options.queue_url, entries)
@@ -440,19 +440,19 @@ impl Consumer {
                     let receipt_handle = message.receipt_handle()?.to_owned();
                     let message_id = message.message_id().unwrap_or(&receipt_handle).to_owned();
                     let (stop_tx, stop_rx) = watch::channel(false);
-                    spawn_heartbeat_with_failure_channel(
-                        self.backend.clone(),
-                        self.listener.clone(),
-                        self.options.queue_url.clone(),
-                        message.clone(),
+                    spawn_heartbeat_with_failure_channel(HeartbeatSpawn {
+                        backend: self.backend.clone(),
+                        listener: self.listener.clone(),
+                        queue_url: self.options.queue_url.clone(),
+                        message: message.clone(),
                         receipt_handle,
                         message_id,
-                        config.interval,
+                        interval: config.interval,
                         visibility_timeout,
                         stop_tx,
                         stop_rx,
-                        failure_tx.clone(),
-                    )
+                        failure_tx: failure_tx.clone(),
+                    })
                 })
                 .collect(),
             failure_rx: Some(failure_rx),
@@ -743,8 +743,10 @@ mod tests {
     #[derive(Default)]
     struct MockBackend {
         receives: Mutex<VecDeque<Result<Vec<Message>, BackendError>>>,
+        receive_count: Mutex<usize>,
         deleted: Mutex<Vec<Vec<String>>>,
         visibility_changes: Mutex<Vec<(String, i32)>>,
+        delete_failure_indexes: Option<Vec<usize>>,
         fail_delete: bool,
         fail_visibility: bool,
     }
@@ -760,6 +762,7 @@ mod tests {
             _attribute_names: &[aws_sdk_sqs::types::MessageSystemAttributeName],
             _message_attribute_names: &[String],
         ) -> Result<Vec<Message>, BackendError> {
+            *self.receive_count.lock().await += 1;
             self.receives
                 .lock()
                 .await
@@ -772,6 +775,9 @@ mod tests {
             _queue_url: &str,
             entries: Vec<(String, String)>,
         ) -> Result<(), BackendError> {
+            if let Some(indexes) = &self.delete_failure_indexes {
+                return Err(BackendError::DeleteBatchFailed(indexes.clone()));
+            }
             if self.fail_delete {
                 return Err(BackendError::DeleteBatchFailed(vec![0]));
             }
@@ -884,6 +890,7 @@ mod tests {
         aborted_message_ids: Arc<std::sync::Mutex<Vec<Vec<String>>>>,
         graceful_timeout_message_ids: Arc<std::sync::Mutex<Vec<Vec<String>>>>,
         error_message_ids: Arc<std::sync::Mutex<Vec<Vec<String>>>>,
+        timeout_message_ids: Arc<std::sync::Mutex<Vec<String>>>,
         message_processed_ids: Arc<std::sync::Mutex<Vec<String>>>,
         response_processed_counts: Arc<std::sync::Mutex<Vec<usize>>>,
         polling_started_count: Arc<std::sync::Mutex<usize>>,
@@ -949,6 +956,15 @@ mod tests {
         fn on_polling_wait_exceeded(&self) {
             *self.polling_wait_exceeded_count.lock().unwrap() += 1;
         }
+
+        fn on_timeout_error(&self, message: &Message) {
+            if let Some(message_id) = message.message_id() {
+                self.timeout_message_ids
+                    .lock()
+                    .unwrap()
+                    .push(message_id.to_owned());
+            }
+        }
     }
 
     fn message(id: &str, receipt: Option<&str>) -> Message {
@@ -957,6 +973,13 @@ mod tests {
             builder = builder.receipt_handle(receipt);
         }
         builder.build()
+    }
+
+    fn message_without_id(receipt: &str) -> Message {
+        Message::builder()
+            .body("{}")
+            .receipt_handle(receipt)
+            .build()
     }
 
     fn options() -> ConsumerOptions {
@@ -1099,6 +1122,33 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn delete_batch_failure_preserves_failed_entry_index_without_message_id() {
+        let backend = Arc::new(MockBackend {
+            delete_failure_indexes: Some(vec![1]),
+            ..MockBackend::default()
+        });
+        backend
+            .receives
+            .lock()
+            .await
+            .push_back(Ok(vec![message("1", Some("r1")), message_without_id("r2")]));
+        let handler = TestHandler {
+            batch_outcome: BatchOutcome::AckAll,
+            message_outcome: HandleOutcome::Ack,
+            delay: None,
+        };
+
+        let error = consumer(backend, handler, options())
+            .run_once()
+            .await
+            .unwrap_err();
+
+        assert!(
+            matches!(error, ConsumerError::DeleteMessageBatch { failed_message_ids, .. } if failed_message_ids == vec!["r2"])
+        );
+    }
+
+    #[tokio::test]
     async fn run_once_notifies_polling_lifecycle_and_processed_count() {
         let backend = Arc::new(MockBackend::default());
         backend
@@ -1165,6 +1215,85 @@ mod tests {
         assert_eq!(*backend.deleted.lock().await, vec![vec!["r1"]]);
         assert!(*waiting_for_polling_count.lock().unwrap() >= 1);
         assert!(*polling_wait_exceeded_count.lock().unwrap() >= 1);
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn handle_message_timeout_notifies_and_nacks_message() {
+        let backend = Arc::new(MockBackend::default());
+        backend
+            .receives
+            .lock()
+            .await
+            .push_back(Ok(vec![message("1", Some("r1"))]));
+        let listener = RecordingListener::default();
+        let timeout_message_ids = listener.timeout_message_ids.clone();
+        let handler = TestHandler {
+            batch_outcome: BatchOutcome::AckAll,
+            message_outcome: HandleOutcome::Ack,
+            delay: Some(Duration::from_secs(1)),
+        };
+        let options = ConsumerOptions::builder()
+            .queue_url("queue")
+            .wait_time_seconds(0)
+            .handle_message_timeout(Duration::from_millis(100))
+            .terminate_visibility(TerminateVisibility::Reset)
+            .build_for_backend()
+            .unwrap();
+        let consumer = consumer(backend.clone(), handler, options).listener(listener);
+
+        let task = tokio::spawn(async move { consumer.run_once().await });
+        tokio::time::advance(Duration::from_millis(100)).await;
+        let error = task.await.unwrap().unwrap_err();
+
+        assert!(matches!(error, ConsumerError::Timeout));
+        assert_eq!(*timeout_message_ids.lock().unwrap(), vec!["1"]);
+        assert!(backend.deleted.lock().await.is_empty());
+        assert_eq!(
+            *backend.visibility_changes.lock().await,
+            vec![("r1".into(), 0)]
+        );
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn receive_error_backoff_delays_retry() {
+        let backend = Arc::new(MockBackend::default());
+        backend
+            .receives
+            .lock()
+            .await
+            .push_back(Err(BackendError::Test("receive failed".into())));
+        backend
+            .receives
+            .lock()
+            .await
+            .push_back(Ok(vec![message("1", Some("r1"))]));
+        let handler = TestHandler {
+            batch_outcome: BatchOutcome::AckAll,
+            message_outcome: HandleOutcome::Ack,
+            delay: None,
+        };
+        let options = ConsumerOptions::builder()
+            .queue_url("queue")
+            .wait_time_seconds(0)
+            .receive_error_backoff(Duration::from_secs(10))
+            .build_for_backend()
+            .unwrap();
+        let consumer = consumer(backend.clone(), handler, options);
+        let shutdown = consumer.shutdown_handle();
+
+        let task = tokio::spawn(async move { consumer.run().await });
+        tokio::task::yield_now().await;
+        assert_eq!(*backend.receive_count.lock().await, 1);
+        tokio::time::advance(Duration::from_secs(9)).await;
+        tokio::task::yield_now().await;
+        assert_eq!(*backend.receive_count.lock().await, 1);
+        tokio::time::advance(Duration::from_secs(1)).await;
+        tokio::task::yield_now().await;
+        shutdown.graceful();
+        task.await.unwrap().unwrap();
+
+        assert!(*backend.receive_count.lock().await >= 2);
+        assert_eq!(*backend.deleted.lock().await, vec![vec!["r1"]]);
     }
 
     #[tokio::test(start_paused = true)]
@@ -1255,6 +1384,68 @@ mod tests {
         assert_eq!(
             *backend.visibility_changes.lock().await,
             vec![("r1".into(), 0)]
+        );
+    }
+
+    #[tokio::test]
+    async fn fixed_terminate_visibility_uses_configured_timeout() {
+        let backend = Arc::new(MockBackend::default());
+        backend
+            .receives
+            .lock()
+            .await
+            .push_back(Ok(vec![message("1", Some("r1"))]));
+        let handler = TestHandler {
+            batch_outcome: BatchOutcome::NackAll,
+            message_outcome: HandleOutcome::Ack,
+            delay: None,
+        };
+        let options = ConsumerOptions::builder()
+            .queue_url("queue")
+            .wait_time_seconds(0)
+            .terminate_visibility(TerminateVisibility::Fixed(30))
+            .build_for_backend()
+            .unwrap();
+
+        consumer(backend.clone(), handler, options)
+            .run_once()
+            .await
+            .unwrap();
+
+        assert_eq!(
+            *backend.visibility_changes.lock().await,
+            vec![("r1".into(), 30)]
+        );
+    }
+
+    #[tokio::test]
+    async fn dynamic_terminate_visibility_uses_resolved_timeout() {
+        let backend = Arc::new(MockBackend::default());
+        backend
+            .receives
+            .lock()
+            .await
+            .push_back(Ok(vec![message("1", Some("r1"))]));
+        let handler = TestHandler {
+            batch_outcome: BatchOutcome::NackAll,
+            message_outcome: HandleOutcome::Ack,
+            delay: None,
+        };
+        let options = ConsumerOptions::builder()
+            .queue_url("queue")
+            .wait_time_seconds(0)
+            .terminate_visibility(TerminateVisibility::Dynamic(Arc::new(|_| 45)))
+            .build_for_backend()
+            .unwrap();
+
+        consumer(backend.clone(), handler, options)
+            .run_once()
+            .await
+            .unwrap();
+
+        assert_eq!(
+            *backend.visibility_changes.lock().await,
+            vec![("r1".into(), 45)]
         );
     }
 

@@ -1669,4 +1669,34 @@ mod tests {
         assert_eq!(*timed_out_message_ids.lock().unwrap(), vec![vec!["1"]]);
         assert_eq!(*backend.deleted.lock().await, vec![vec!["r1"]]);
     }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn shutdown_signal_completes_on_sigterm() {
+        let signal_task = tokio::spawn(shutdown_signal());
+        tokio::time::sleep(Duration::from_millis(50)).await;
+
+        nix::sys::signal::raise(nix::sys::signal::Signal::SIGTERM).unwrap();
+
+        tokio::time::timeout(Duration::from_secs(1), signal_task)
+            .await
+            .unwrap()
+            .unwrap()
+            .unwrap();
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn shutdown_signal_completes_on_sigint() {
+        let signal_task = tokio::spawn(shutdown_signal());
+        tokio::time::sleep(Duration::from_millis(50)).await;
+
+        nix::sys::signal::raise(nix::sys::signal::Signal::SIGINT).unwrap();
+
+        tokio::time::timeout(Duration::from_secs(1), signal_task)
+            .await
+            .unwrap()
+            .unwrap()
+            .unwrap();
+    }
 }

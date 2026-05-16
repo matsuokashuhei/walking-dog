@@ -8,14 +8,20 @@ pub enum ConsumerError {
     InvalidConfig(String),
     #[error("SQS receive message error")]
     ReceiveMessage(#[source] Box<dyn std::error::Error + Send + Sync>),
-    #[error("SQS delete message batch error")]
-    DeleteMessageBatch(#[source] Box<dyn std::error::Error + Send + Sync>),
+    #[error("SQS delete message batch error for messages {failed_message_ids:?}")]
+    DeleteMessageBatch {
+        failed_message_ids: Vec<String>,
+        #[source]
+        source: Box<dyn std::error::Error + Send + Sync>,
+    },
     #[error("SQS change message visibility error")]
     ChangeMessageVisibility(#[source] Box<dyn std::error::Error + Send + Sync>),
     #[error("handler processing error")]
     Processing(#[source] Box<dyn std::error::Error + Send + Sync>),
     #[error("handler timed out")]
     Timeout,
+    #[error("heartbeat failed for message {message_id}")]
+    HeartbeatFailed { message_id: String },
     #[error("handler returned invalid acknowledgement: {0}")]
     InvalidAck(String),
     #[error("invalid visibility timeout for {field}: {value}")]

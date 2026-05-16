@@ -14,8 +14,8 @@ pub(crate) enum BackendError {
     Receive(#[source] Box<ReceiveMessageError>),
     #[error("delete message batch failed")]
     DeleteBatch(#[source] Box<DeleteMessageBatchError>),
-    #[error("delete message batch returned failed entries: {0:?}")]
-    DeleteBatchFailed(Vec<String>),
+    #[error("delete message batch returned failed entry indexes: {0:?}")]
+    DeleteBatchFailed(Vec<usize>),
     #[error("change message visibility failed")]
     ChangeVisibility(#[source] Box<ChangeMessageVisibilityError>),
     #[cfg(test)]
@@ -36,7 +36,7 @@ pub(crate) trait SqsBackend: Send + Sync + 'static {
     async fn delete_message_batch(
         &self,
         queue_url: &str,
-        entries: Vec<DeleteMessageBatchRequestEntry>,
+        entries: Vec<(String, String)>,
     ) -> Result<(), BackendError>;
 
     async fn change_message_visibility(
@@ -87,11 +87,21 @@ impl SqsBackend for AwsSqsBackend {
     async fn delete_message_batch(
         &self,
         queue_url: &str,
-        entries: Vec<DeleteMessageBatchRequestEntry>,
+        entries: Vec<(String, String)>,
     ) -> Result<(), BackendError> {
         if entries.is_empty() {
             return Ok(());
         }
+        let entries = entries
+            .into_iter()
+            .map(|(id, receipt_handle)| {
+                DeleteMessageBatchRequestEntry::builder()
+                    .id(id)
+                    .receipt_handle(receipt_handle)
+                    .build()
+                    .expect("DeleteMessageBatchRequestEntry build should not fail")
+            })
+            .collect::<Vec<_>>();
         let output = self
             .client
             .delete_message_batch()
@@ -104,7 +114,7 @@ impl SqsBackend for AwsSqsBackend {
         let failed = output
             .failed()
             .iter()
-            .map(|entry| entry.id().to_owned())
+            .filter_map(|entry| entry.id().parse::<usize>().ok())
             .collect::<Vec<_>>();
         if failed.is_empty() {
             Ok(())

@@ -259,3 +259,51 @@ pub enum TrackPointError {
     #[error("Query error")]
     QueryError(#[source] QueryError),
 }
+
+#[cfg(test)]
+mod tests {
+    use std::error::Error as _;
+
+    use aws_sdk_dynamodb::operation::query::QueryError;
+
+    use super::*;
+    use crate::util::error::format_error_chain;
+
+    #[test]
+    fn track_point_error_preserves_dynamodb_query_source_chain() {
+        #[derive(Debug)]
+        struct ThrottlingException;
+
+        impl std::fmt::Display for ThrottlingException {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, "ThrottlingException")
+            }
+        }
+
+        impl std::error::Error for ThrottlingException {}
+
+        #[derive(Debug)]
+        struct QueryFailure(ThrottlingException);
+
+        impl std::fmt::Display for QueryFailure {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, "DynamoDB Query failed")
+            }
+        }
+
+        impl std::error::Error for QueryFailure {
+            fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+                Some(&self.0)
+            }
+        }
+
+        let error =
+            TrackPointError::QueryError(QueryError::unhandled(QueryFailure(ThrottlingException)));
+        assert!(error.source().is_some());
+
+        let chain = format_error_chain(&error);
+        assert!(chain.contains("Query error"), "{chain}");
+        assert!(chain.contains("DynamoDB Query failed"), "{chain}");
+        assert!(chain.contains("ThrottlingException"), "{chain}");
+    }
+}

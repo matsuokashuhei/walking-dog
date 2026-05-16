@@ -6,7 +6,15 @@ use tokio::{
     task::JoinHandle,
 };
 
-use crate::{backend::SqsBackend, listener::ConsumerListener};
+use crate::{
+    backend::{BackendError, SqsBackend},
+    listener::ConsumerListener,
+};
+
+pub(crate) struct HeartbeatFailure {
+    pub(crate) message_id: String,
+    pub(crate) source: BackendError,
+}
 
 pub(crate) struct HeartbeatSpawn {
     pub(crate) backend: Arc<dyn SqsBackend>,
@@ -19,7 +27,7 @@ pub(crate) struct HeartbeatSpawn {
     pub(crate) visibility_timeout: i32,
     pub(crate) stop_tx: watch::Sender<bool>,
     pub(crate) stop_rx: watch::Receiver<bool>,
-    pub(crate) failure_tx: mpsc::UnboundedSender<String>,
+    pub(crate) failure_tx: mpsc::UnboundedSender<HeartbeatFailure>,
 }
 
 pub(crate) fn spawn_heartbeat(
@@ -29,11 +37,11 @@ pub(crate) fn spawn_heartbeat(
     message: Message,
     interval: Duration,
     visibility_timeout: i32,
-) -> Option<(HeartbeatTask, mpsc::UnboundedReceiver<String>)> {
+) -> Option<(HeartbeatTask, mpsc::UnboundedReceiver<HeartbeatFailure>)> {
     let receipt_handle = message.receipt_handle()?.to_owned();
     let message_id = message.message_id().unwrap_or(&receipt_handle).to_owned();
     let (stop_tx, stop_rx) = watch::channel(false);
-    let (failure_tx, failure_rx) = mpsc::unbounded_channel::<String>();
+    let (failure_tx, failure_rx) = mpsc::unbounded_channel::<HeartbeatFailure>();
     spawn_heartbeat_with_failure_channel(HeartbeatSpawn {
         backend,
         listener,
@@ -83,7 +91,10 @@ pub(crate) fn spawn_heartbeat_with_failure_channel(spawn: HeartbeatSpawn) -> Opt
                         .await
                     {
                         listener.on_visibility_error(&message, &error);
-                        let _ = failure_tx.send(message_id);
+                        let _ = failure_tx.send(HeartbeatFailure {
+                            message_id,
+                            source: error,
+                        });
                         break;
                     }
                 }

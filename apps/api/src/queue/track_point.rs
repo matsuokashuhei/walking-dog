@@ -139,7 +139,12 @@ impl fmt::Display for DynamoDbTrackPointBatchWriteError {
     }
 }
 
-impl std::error::Error for DynamoDbTrackPointBatchWriteError {}
+impl std::error::Error for DynamoDbTrackPointBatchWriteError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        let error: &(dyn std::error::Error + Send + Sync + 'static) = self.0.as_ref();
+        error.source()
+    }
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum TrackPointBatchHandlerError {
@@ -255,6 +260,7 @@ pub enum TrackPointQueueError {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::util::error::format_error_chain;
     use aws_sdk_sqs::types::Message;
     use std::sync::{
         Arc,
@@ -307,6 +313,45 @@ mod tests {
         };
 
         assert!(matches!(error, TrackPointQueueError::MissingQueueUrl));
+    }
+
+    #[test]
+    fn batch_handler_error_preserves_dynamodb_writer_source_chain() {
+        #[derive(Debug)]
+        struct ThrottlingException;
+
+        impl std::fmt::Display for ThrottlingException {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, "ThrottlingException")
+            }
+        }
+
+        impl std::error::Error for ThrottlingException {}
+
+        #[derive(Debug)]
+        struct BatchWriteFailure(ThrottlingException);
+
+        impl std::fmt::Display for BatchWriteFailure {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, "DynamoDB BatchWriteItem failed")
+            }
+        }
+
+        impl std::error::Error for BatchWriteFailure {
+            fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+                Some(&self.0)
+            }
+        }
+
+        let error =
+            TrackPointBatchHandlerError::BatchWrite(Box::new(DynamoDbTrackPointBatchWriteError(
+                anyhow::Error::new(BatchWriteFailure(ThrottlingException)),
+            )));
+
+        let chain = format_error_chain(&error);
+        assert!(chain.contains("DynamoDB batch write failed"), "{chain}");
+        assert!(chain.contains("DynamoDB BatchWriteItem failed"), "{chain}");
+        assert!(chain.contains("ThrottlingException"), "{chain}");
     }
 
     #[derive(Clone, Default)]

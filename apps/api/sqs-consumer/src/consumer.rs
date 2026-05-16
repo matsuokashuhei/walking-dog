@@ -12,7 +12,8 @@ use crate::{
     error::ConsumerError,
     handler::{BatchMessageHandler, BatchOutcome, HandleOutcome, MessageHandler},
     heartbeat::{
-        HeartbeatSpawn, HeartbeatTask, spawn_heartbeat, spawn_heartbeat_with_failure_channel,
+        HeartbeatFailure, HeartbeatSpawn, HeartbeatTask, spawn_heartbeat,
+        spawn_heartbeat_with_failure_channel,
     },
     listener::{ConsumerListener, NoopListener},
     options::{
@@ -36,6 +37,17 @@ where
         MessageHandler::handle_message(self, message)
             .await
             .map_err(|error| ConsumerError::Processing(Box::new(error)))
+    }
+}
+
+#[cfg(unix)]
+async fn shutdown_signal_with_ready(on_ready: impl FnOnce()) -> Result<(), std::io::Error> {
+    let mut sigint = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::interrupt())?;
+    let mut sigterm = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())?;
+    on_ready();
+    tokio::select! {
+        _ = sigint.recv() => Ok(()),
+        _ = sigterm.recv() => Ok(()),
     }
 }
 
@@ -417,13 +429,13 @@ impl Consumer {
                     self.listener.on_error(&error, Some(&messages));
                     graceful_timeout = None;
                 }
-                failed_message_id = heartbeats.recv_failure(), if heartbeats.has_failure_channel() => {
-                    let Some(message_id) = failed_message_id else {
+                heartbeat_failure = heartbeats.recv_failure(), if heartbeats.has_failure_channel() => {
+                    let Some(heartbeat_failure) = heartbeat_failure else {
                         heartbeats.clear_failure_channel();
                         continue;
                     };
                     handler_task.abort();
-                    return Err(ConsumerError::HeartbeatFailed { message_id });
+                    return Err(map_heartbeat_failure(heartbeat_failure));
                 }
             }
         }
@@ -658,13 +670,13 @@ async fn handle_one(
                 handler_task.abort();
                 break Err(ConsumerError::Timeout);
             }
-            failed_message_id = heartbeats.recv_failure(), if heartbeats.has_failure_channel() => {
-                let Some(message_id) = failed_message_id else {
+            heartbeat_failure = heartbeats.recv_failure(), if heartbeats.has_failure_channel() => {
+                let Some(heartbeat_failure) = heartbeat_failure else {
                     heartbeats.clear_failure_channel();
                     continue;
                 };
                 handler_task.abort();
-                break Err(ConsumerError::HeartbeatFailed { message_id });
+                break Err(map_heartbeat_failure(heartbeat_failure));
             }
         }
     };
@@ -675,7 +687,7 @@ async fn handle_one(
 #[derive(Default)]
 struct HeartbeatGuard {
     tasks: Vec<HeartbeatTask>,
-    failure_rx: Option<mpsc::UnboundedReceiver<String>>,
+    failure_rx: Option<mpsc::UnboundedReceiver<HeartbeatFailure>>,
 }
 
 impl FromIterator<HeartbeatTask> for HeartbeatGuard {
@@ -692,7 +704,7 @@ impl HeartbeatGuard {
         self.failure_rx.is_some()
     }
 
-    async fn recv_failure(&mut self) -> Option<String> {
+    async fn recv_failure(&mut self) -> Option<HeartbeatFailure> {
         match &mut self.failure_rx {
             Some(failure_rx) => failure_rx.recv().await,
             None => None,
@@ -746,15 +758,17 @@ fn map_visibility_error(error: BackendError) -> ConsumerError {
     ConsumerError::ChangeMessageVisibility(Box::new(error))
 }
 
+fn map_heartbeat_failure(failure: HeartbeatFailure) -> ConsumerError {
+    ConsumerError::HeartbeatFailed {
+        message_id: failure.message_id,
+        source: Box::new(failure.source),
+    }
+}
+
 pub async fn shutdown_signal() -> Result<(), std::io::Error> {
     #[cfg(unix)]
     {
-        let mut sigterm =
-            tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())?;
-        tokio::select! {
-            signal = tokio::signal::ctrl_c() => signal,
-            _ = sigterm.recv() => Ok(()),
-        }
+        shutdown_signal_with_ready(|| {}).await
     }
 
     #[cfg(not(unix))]
@@ -765,13 +779,25 @@ pub async fn shutdown_signal() -> Result<(), std::io::Error> {
 
 #[cfg(test)]
 mod tests {
-    use std::{collections::VecDeque, sync::Arc, time::Duration};
+    use std::{collections::VecDeque, error::Error as _, sync::Arc, time::Duration};
+    #[cfg(unix)]
+    use std::{process::Command, time::Instant};
 
     use async_trait::async_trait;
+    #[cfg(unix)]
+    use nix::{
+        sys::signal::{self, Signal},
+        unistd::Pid,
+    };
     use tokio::sync::Mutex;
 
     use super::*;
     use crate::{options::ConsumerOptions, options::HeartbeatConfig};
+
+    #[cfg(unix)]
+    const SIGNAL_CHILD_ENV: &str = "SQS_CONSUMER_SIGNAL_CHILD";
+    #[cfg(unix)]
+    const SIGNAL_READY_PATH_ENV: &str = "SQS_CONSUMER_SIGNAL_READY_PATH";
 
     #[derive(Default)]
     struct MockBackend {
@@ -1012,7 +1038,7 @@ mod tests {
                     .unwrap()
                     .push(message_id.to_owned());
             }
-            if let Some(ConsumerError::HeartbeatFailed { message_id }) =
+            if let Some(ConsumerError::HeartbeatFailed { message_id, .. }) =
                 error.downcast_ref::<ConsumerError>()
             {
                 self.heartbeat_failed_message_ids
@@ -1381,8 +1407,13 @@ mod tests {
         tokio::time::advance(Duration::from_secs(1)).await;
         let error = task.await.unwrap().unwrap_err();
 
-        assert!(
-            matches!(error, ConsumerError::HeartbeatFailed { message_id } if message_id == "1")
+        assert!(matches!(
+            error,
+            ConsumerError::HeartbeatFailed { ref message_id, .. } if message_id == "1"
+        ));
+        assert_eq!(
+            error.source().map(ToString::to_string),
+            Some("test backend error: visibility failed".to_string())
         );
         assert!(backend.deleted.lock().await.is_empty());
     }
@@ -1671,32 +1702,80 @@ mod tests {
     }
 
     #[cfg(unix)]
-    #[tokio::test]
-    async fn shutdown_signal_completes_on_sigterm() {
-        let signal_task = tokio::spawn(shutdown_signal());
-        tokio::time::sleep(Duration::from_millis(50)).await;
+    #[test]
+    fn shutdown_signal_completes_on_sigterm() {
+        assert_shutdown_signal_child_exits_after(Signal::SIGTERM);
+    }
 
-        nix::sys::signal::raise(nix::sys::signal::Signal::SIGTERM).unwrap();
+    #[cfg(unix)]
+    #[test]
+    fn shutdown_signal_completes_on_sigint() {
+        assert_shutdown_signal_child_exits_after(Signal::SIGINT);
+    }
 
-        tokio::time::timeout(Duration::from_secs(1), signal_task)
-            .await
-            .unwrap()
-            .unwrap()
+    #[cfg(unix)]
+    fn assert_shutdown_signal_child_exits_after(signal: Signal) {
+        let ready_path = std::env::temp_dir().join(format!(
+            "sqs-consumer-signal-ready-{}-{}",
+            std::process::id(),
+            signal as i32
+        ));
+        let _ = std::fs::remove_file(&ready_path);
+        let mut child = Command::new(std::env::current_exe().unwrap())
+            .arg("--ignored")
+            .arg("--nocapture")
+            .arg("shutdown_signal_child_waits_for_signal")
+            .env(SIGNAL_CHILD_ENV, "1")
+            .env(SIGNAL_READY_PATH_ENV, &ready_path)
+            .spawn()
             .unwrap();
+
+        let ready_deadline = Instant::now() + Duration::from_secs(5);
+        while !ready_path.exists() {
+            if let Some(status) = child.try_wait().unwrap() {
+                panic!("shutdown signal child exited before readiness: {status}");
+            }
+            if Instant::now() >= ready_deadline {
+                let _ = child.kill();
+                let _ = child.wait();
+                panic!("shutdown signal child did not report readiness");
+            }
+            std::thread::sleep(Duration::from_millis(10));
+        }
+
+        signal::kill(Pid::from_raw(child.id() as i32), signal).unwrap();
+
+        let exit_deadline = Instant::now() + Duration::from_secs(5);
+        let status = loop {
+            if let Some(status) = child.try_wait().unwrap() {
+                break status;
+            }
+            if Instant::now() >= exit_deadline {
+                let _ = child.kill();
+                let _ = child.wait();
+                panic!("shutdown signal child did not exit after {signal:?}");
+            }
+            std::thread::sleep(Duration::from_millis(10));
+        };
+        let _ = std::fs::remove_file(&ready_path);
+        assert!(
+            status.success(),
+            "shutdown signal child exited unsuccessfully: {status}"
+        );
     }
 
     #[cfg(unix)]
     #[tokio::test]
-    async fn shutdown_signal_completes_on_sigint() {
-        let signal_task = tokio::spawn(shutdown_signal());
-        tokio::time::sleep(Duration::from_millis(50)).await;
-
-        nix::sys::signal::raise(nix::sys::signal::Signal::SIGINT).unwrap();
-
-        tokio::time::timeout(Duration::from_secs(1), signal_task)
-            .await
-            .unwrap()
-            .unwrap()
-            .unwrap();
+    #[ignore]
+    async fn shutdown_signal_child_waits_for_signal() {
+        if std::env::var_os(SIGNAL_CHILD_ENV).is_none() {
+            return;
+        }
+        let ready_path = std::env::var_os(SIGNAL_READY_PATH_ENV).unwrap();
+        shutdown_signal_with_ready(|| {
+            std::fs::write(&ready_path, b"ready").unwrap();
+        })
+        .await
+        .unwrap();
     }
 }

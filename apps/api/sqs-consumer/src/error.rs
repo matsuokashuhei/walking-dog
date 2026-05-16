@@ -21,7 +21,11 @@ pub enum ConsumerError {
     #[error("handler timed out")]
     Timeout,
     #[error("heartbeat failed for message {message_id}")]
-    HeartbeatFailed { message_id: String },
+    HeartbeatFailed {
+        message_id: String,
+        #[source]
+        source: Box<dyn std::error::Error + Send + Sync>,
+    },
     #[error("handler returned invalid acknowledgement: {0}")]
     InvalidAck(String),
     #[error("invalid visibility timeout for {field}: {value}")]

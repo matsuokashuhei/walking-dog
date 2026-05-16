@@ -17,9 +17,10 @@ impl UserMutation {
         let user = ctx.data::<user::Model>().unwrap();
         let mut active_model = input.into_active_model(user.id);
         if let Some(file) = input.avatar
-            && let Ok(file) = upload_avatar(ctx, file).await {
-                active_model.avatar = Set(Some(file));
-            }
+            && let Ok(file) = upload_avatar(ctx, file).await
+        {
+            active_model.avatar = Set(Some(file));
+        }
         let db = ctx.data::<sea_orm::DatabaseConnection>().unwrap();
         let updated_user = active_model.update(db).await?;
         Ok(User::from(updated_user))
@@ -33,6 +34,7 @@ struct UpdateUserInput {
 }
 
 impl UpdateUserInput {
+    #[allow(clippy::wrong_self_convention)]
     fn into_active_model(&self, id: uuid::Uuid) -> user::ActiveModel {
         user::ActiveModel {
             id: Set(id),

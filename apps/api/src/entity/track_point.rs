@@ -1,10 +1,6 @@
 use anyhow::{Result, anyhow};
 use aws_sdk_dynamodb::{
-    operation::{
-        batch_write_item::BatchWriteItemError,
-        put_item::PutItemError,
-        query::QueryError,
-    },
+    operation::{batch_write_item::BatchWriteItemError, put_item::PutItemError, query::QueryError},
     types::{AttributeValue, PutRequest, WriteRequest},
 };
 use std::collections::HashMap;
@@ -79,14 +75,8 @@ impl Model {
                                         model.tracked_at.timestamp_micros().to_string(),
                                     ),
                                 )
-                                .item(
-                                    "latitude",
-                                    AttributeValue::N(model.latitude.to_string()),
-                                )
-                                .item(
-                                    "longitude",
-                                    AttributeValue::N(model.longitude.to_string()),
-                                )
+                                .item("latitude", AttributeValue::N(model.latitude.to_string()))
+                                .item("longitude", AttributeValue::N(model.longitude.to_string()))
                                 .build()
                                 .expect("PutRequest build should not fail"),
                         )
@@ -107,9 +97,7 @@ impl Model {
                     .request_items(&table_name, requests)
                     .send()
                     .await
-                    .map_err(|e| {
-                        TrackPointError::BatchWriteItemError(e.into_service_error())
-                    })?;
+                    .map_err(|e| TrackPointError::BatchWriteItemError(e.into_service_error()))?;
 
                 let remaining = output
                     .unprocessed_items()
@@ -264,10 +252,58 @@ impl TryFrom<&HashMap<String, AttributeValue>> for Model {
 
 #[derive(Debug, thiserror::Error)]
 pub enum TrackPointError {
-    #[error("Put item error: {0}")]
-    PutItemError(PutItemError),
-    #[error("Batch write item error: {0}")]
-    BatchWriteItemError(BatchWriteItemError),
-    #[error("Query error: {0}")]
-    QueryError(QueryError),
+    #[error("Put item error")]
+    PutItemError(#[source] PutItemError),
+    #[error("Batch write item error")]
+    BatchWriteItemError(#[source] BatchWriteItemError),
+    #[error("Query error")]
+    QueryError(#[source] QueryError),
+}
+
+#[cfg(test)]
+mod tests {
+    use std::error::Error as _;
+
+    use aws_sdk_dynamodb::operation::query::QueryError;
+
+    use super::*;
+    use crate::util::error::format_error_chain;
+
+    #[test]
+    fn track_point_error_preserves_dynamodb_query_source_chain() {
+        #[derive(Debug)]
+        struct ThrottlingException;
+
+        impl std::fmt::Display for ThrottlingException {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, "ThrottlingException")
+            }
+        }
+
+        impl std::error::Error for ThrottlingException {}
+
+        #[derive(Debug)]
+        struct QueryFailure(ThrottlingException);
+
+        impl std::fmt::Display for QueryFailure {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, "DynamoDB Query failed")
+            }
+        }
+
+        impl std::error::Error for QueryFailure {
+            fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+                Some(&self.0)
+            }
+        }
+
+        let error =
+            TrackPointError::QueryError(QueryError::unhandled(QueryFailure(ThrottlingException)));
+        assert!(error.source().is_some());
+
+        let chain = format_error_chain(&error);
+        assert!(chain.contains("Query error"), "{chain}");
+        assert!(chain.contains("DynamoDB Query failed"), "{chain}");
+        assert!(chain.contains("ThrottlingException"), "{chain}");
+    }
 }

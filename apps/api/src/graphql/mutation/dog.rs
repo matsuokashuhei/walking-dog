@@ -141,6 +141,7 @@ struct AddDogInput {
 }
 
 impl AddDogInput {
+    #[allow(clippy::wrong_self_convention)]
     fn into_active_model(&self) -> dog::ActiveModel {
         dog::ActiveModel {
             name: Set(self.name.clone()),
@@ -169,6 +170,7 @@ struct UpdateDogInput {
 }
 
 impl UpdateDogInput {
+    #[allow(clippy::wrong_self_convention)]
     fn into_active_model(&self) -> dog::ActiveModel {
         dog::ActiveModel {
             id: Set(self.id),

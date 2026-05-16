@@ -4,6 +4,8 @@ use std::{ffi::OsStr, io::Read, path::Path};
 use tracing::error;
 use url::Url;
 
+use crate::util::error::format_error_chain;
+
 const DEFAULT_MAX_UPLOAD_BYTES: u64 = 20 * 1024 * 1024;
 const MAX_UPLOAD_BYTES_ENV: &str = "MAX_UPLOAD_BYTES";
 
@@ -45,8 +47,14 @@ async fn upload_file(ctx: &Context<'_>, file: Upload, bucket: &str) -> Result<St
         .send()
         .await
         .map_err(|e| {
-            error!("Failed to upload file: {:?} to bucket: {}", e, bucket);
-            StorageError::InternalError(e.to_string())
+            let error_chain = format_error_chain(&e);
+            error!(
+                error = ?e,
+                %error_chain,
+                bucket,
+                "Failed to upload file"
+            );
+            StorageError::InternalError(error_chain)
         })?;
     Ok(key)
 }

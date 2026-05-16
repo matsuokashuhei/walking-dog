@@ -1,15 +1,17 @@
-use std::{env, sync::Arc};
+use std::{env, fmt, time::Duration};
 
 use anyhow::Result;
-use aws_sdk_sqs::types::Message;
-use tokio::{sync::Semaphore, task::JoinSet, time::Duration};
-use tracing::{error, info, warn};
-use walking_dog::entity::track_point;
-use walking_dog::queue::track_point::{TrackPointMessage, TrackPointQueueError};
+use sqs_consumer::{Consumer, ConsumerOptions, TracingListener};
+use tokio::task::JoinSet;
+use walking_dog::queue::track_point::{
+    DynamoDbTrackPointBatchWriter, TrackPointBatchHandler, TrackPointBatchWriter,
+};
 
 const DEFAULT_WORKER_CONCURRENCY: usize = 10;
-const RECEIVE_WAIT_SECONDS: i32 = 20;
-const RECEIVE_MAX_MESSAGES: i32 = 10;
+const DEFAULT_BATCH_SIZE: i32 = 10;
+const DEFAULT_VISIBILITY_TIMEOUT_SECONDS: i32 = 60;
+const DEFAULT_HEARTBEAT_INTERVAL_SECONDS: u64 = 30;
+const DEFAULT_HANDLER_TIMEOUT_SECONDS: u64 = 50;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -19,178 +21,160 @@ async fn main() -> Result<()> {
 
     let sqs_client = build_sqs_client().await;
     let dynamodb_client = build_dynamodb_client().await;
-    let worker_concurrency = env::var("TRACK_POINT_WORKER_CONCURRENCY")
-        .ok()
-        .and_then(|value| value.parse::<usize>().ok())
-        .filter(|value| *value > 0)
-        .unwrap_or(DEFAULT_WORKER_CONCURRENCY);
+    let queue_url = env::var("AWS_SQS_QUEUE_URL_TRACK_POINT")?;
+    let worker_concurrency =
+        positive_usize_env("TRACK_POINT_WORKER_CONCURRENCY", DEFAULT_WORKER_CONCURRENCY);
+    let batch_size = sqs_batch_size_env("TRACK_POINT_WORKER_BATCH_SIZE", DEFAULT_BATCH_SIZE);
+    let handler_timeout_seconds = positive_u64_env(
+        "TRACK_POINT_HANDLER_TIMEOUT_SECONDS",
+        DEFAULT_HANDLER_TIMEOUT_SECONDS,
+    );
 
-    run_worker(sqs_client, dynamodb_client, worker_concurrency).await
+    let options = ConsumerOptions::builder()
+        .queue_url(queue_url)
+        .sqs_client(sqs_client)
+        .batch_size(batch_size)
+        .wait_time_seconds(20)
+        .visibility_timeout(DEFAULT_VISIBILITY_TIMEOUT_SECONDS)
+        .handle_message_timeout(Duration::from_secs(handler_timeout_seconds))
+        .heartbeat(sqs_consumer::HeartbeatConfig::new(Duration::from_secs(
+            DEFAULT_HEARTBEAT_INTERVAL_SECONDS,
+        )))
+        .build()?;
+    let handler = TrackPointBatchHandler::new(DynamoDbTrackPointBatchWriter::new(dynamodb_client));
+
+    run_consumers(options, handler, worker_concurrency).await?;
+
+    Ok(())
 }
 
-async fn run_worker(
-    sqs_client: aws_sdk_sqs::Client,
-    dynamodb_client: aws_sdk_dynamodb::Client,
+async fn run_consumers<W>(
+    options: ConsumerOptions,
+    handler: TrackPointBatchHandler<W>,
     worker_concurrency: usize,
-) -> Result<()> {
-    let semaphore = Arc::new(Semaphore::new(worker_concurrency));
+) -> Result<()>
+where
+    W: TrackPointBatchWriter + Clone,
+{
     let mut tasks = JoinSet::new();
+    let mut shutdown_handles = Vec::with_capacity(worker_concurrency);
 
-    info!(worker_concurrency, "track point worker started");
-
-    loop {
-        while let Some(result) = tasks.try_join_next() {
-            if let Err(error) = result {
-                error!(?error, "track point worker task panicked");
-            }
-        }
-
-        let messages = match receive_messages(&sqs_client).await {
-            Ok(messages) => messages,
-            Err(error) => {
-                error!(?error, "failed to receive track point messages");
-                tokio::time::sleep(Duration::from_secs(1)).await;
-                continue;
-            }
-        };
-        if messages.is_empty() {
-            continue;
-        }
-
-        let permit = Arc::clone(&semaphore).acquire_owned().await?;
-        let sqs_client = sqs_client.clone();
-        let dynamodb_client = dynamodb_client.clone();
-
+    for worker_index in 0..worker_concurrency {
+        let consumer = Consumer::with_batch_handler(options.clone(), handler.clone())?
+            .listener(TracingListener);
+        shutdown_handles.push(consumer.shutdown_handle());
         tasks.spawn(async move {
-            let _permit = permit;
-            if let Err(error) = process_batch(&sqs_client, &dynamodb_client, messages).await {
-                error!(?error, "failed to process track point batch");
-            }
+            tracing::info!(worker_index, "track point consumer started");
+            consumer.run().await
         });
     }
-}
 
-async fn receive_messages(
-    sqs_client: &aws_sdk_sqs::Client,
-) -> Result<Vec<Message>, TrackPointQueueError> {
-    let queue_url = std::env::var("AWS_SQS_QUEUE_URL_TRACK_POINT").unwrap();
-    let output = sqs_client
-        .receive_message()
-        .queue_url(&queue_url)
-        .max_number_of_messages(RECEIVE_MAX_MESSAGES)
-        .wait_time_seconds(RECEIVE_WAIT_SECONDS)
-        .send()
-        .await
-        .map_err(|error| TrackPointQueueError::ReceiveMessage(error.into_service_error()))?;
-
-    Ok(output.messages().to_vec())
-}
-
-async fn process_batch(
-    sqs_client: &aws_sdk_sqs::Client,
-    dynamodb_client: &aws_sdk_dynamodb::Client,
-    messages: Vec<Message>,
-) -> Result<()> {
-    let queue_url = std::env::var("AWS_SQS_QUEUE_URL_TRACK_POINT").unwrap();
-
-    let mut models = Vec::with_capacity(messages.len());
-    let mut successful_messages: Vec<&Message> = Vec::with_capacity(messages.len());
-
-    for message in &messages {
-        let body = match message.body() {
-            Some(b) => b,
-            None => {
-                warn!(message_id = message.message_id(), "message has no body, skipping");
-                delete_message(sqs_client, &queue_url, message).await;
-                continue;
+    loop {
+        tokio::select! {
+            signal = sqs_consumer::shutdown_signal() => {
+                signal?;
+                tracing::info!("graceful shutdown triggered");
+                for shutdown in &shutdown_handles {
+                    shutdown.graceful();
+                }
+                break;
             }
-        };
-
-        match TrackPointMessage::from_json(body) {
-            Ok(track_point_message) => {
-                models.push(track_point::Model::from(track_point_message));
-                successful_messages.push(message);
-            }
-            Err(error) => {
-                warn!(
-                    message_id = message.message_id(),
-                    ?error,
-                    "failed to deserialize message, skipping"
-                );
-                delete_message(sqs_client, &queue_url, message).await;
+            result = tasks.join_next(), if !tasks.is_empty() => {
+                match result {
+                    Some(Ok(Ok(()))) => {
+                        if tasks.is_empty() {
+                            return Ok(());
+                        }
+                    }
+                    Some(Ok(Err(error))) => {
+                        for shutdown in &shutdown_handles {
+                            shutdown.abort();
+                        }
+                        return Err(error.into());
+                    }
+                    Some(Err(error)) => {
+                        for shutdown in &shutdown_handles {
+                            shutdown.abort();
+                        }
+                        return Err(error.into());
+                    }
+                    None => return Ok(()),
+                }
             }
         }
     }
 
-    if models.is_empty() {
-        return Ok(());
+    while let Some(result) = tasks.join_next().await {
+        result??;
     }
-
-    let batch_size = models.len();
-    track_point::Model::batch_put_write(dynamodb_client, &models).await?;
-
-    delete_message_batch(sqs_client, &queue_url, &successful_messages).await?;
-
-    info!(batch_size, "processed track point batch");
 
     Ok(())
 }
 
-async fn delete_message(sqs_client: &aws_sdk_sqs::Client, queue_url: &str, message: &Message) {
-    if let Some(receipt_handle) = message.receipt_handle()
-        && let Err(error) = sqs_client
-            .delete_message()
-            .queue_url(queue_url)
-            .receipt_handle(receipt_handle)
-            .send()
-            .await
-        {
-            error!(?error, "failed to delete message from queue");
+fn positive_usize_env(name: &str, default: usize) -> usize {
+    let value = env::var(name).ok();
+    positive_usize_env_value(name, value.as_deref(), default)
+}
+
+fn positive_usize_env_value(name: &str, value: Option<&str>, default: usize) -> usize {
+    let Some(value) = value else {
+        return default;
+    };
+    match value.parse::<usize>() {
+        Ok(parsed) if parsed > 0 => parsed,
+        _ => {
+            warn_invalid_env_value(name, value, default);
+            default
         }
+    }
 }
 
-async fn delete_message_batch(
-    sqs_client: &aws_sdk_sqs::Client,
-    queue_url: &str,
-    messages: &[&Message],
-) -> Result<()> {
-    use aws_sdk_sqs::types::DeleteMessageBatchRequestEntry;
+fn positive_u64_env(name: &str, default: u64) -> u64 {
+    let value = env::var(name).ok();
+    positive_u64_env_value(name, value.as_deref(), default)
+}
 
-    let entries: Vec<DeleteMessageBatchRequestEntry> = messages
-        .iter()
-        .enumerate()
-        .filter_map(|(i, msg)| {
-            msg.receipt_handle().map(|handle| {
-                DeleteMessageBatchRequestEntry::builder()
-                    .id(i.to_string())
-                    .receipt_handle(handle)
-                    .build()
-                    .expect("DeleteMessageBatchRequestEntry build should not fail")
-            })
-        })
-        .collect();
-
-    if entries.is_empty() {
-        return Ok(());
+fn positive_u64_env_value(name: &str, value: Option<&str>, default: u64) -> u64 {
+    let Some(value) = value else {
+        return default;
+    };
+    match value.parse::<u64>() {
+        Ok(parsed) if parsed > 0 => parsed,
+        _ => {
+            warn_invalid_env_value(name, value, default);
+            default
+        }
     }
+}
 
-    let output = sqs_client
-        .delete_message_batch()
-        .queue_url(queue_url)
-        .set_entries(Some(entries))
-        .send()
-        .await
-        .map_err(|e| TrackPointQueueError::DeleteMessageBatch(e.into_service_error()))?;
+fn sqs_batch_size_env(name: &str, default: i32) -> i32 {
+    let value = env::var(name).ok();
+    sqs_batch_size_env_value(name, value.as_deref(), default)
+}
 
-    let failed = output.failed();
-    if !failed.is_empty() {
-        warn!(
-            failed_count = failed.len(),
-            "some messages failed to delete from queue"
-        );
+fn sqs_batch_size_env_value(name: &str, value: Option<&str>, default: i32) -> i32 {
+    let Some(value) = value else {
+        return default;
+    };
+    match value.parse::<i32>() {
+        Ok(parsed) if (1..=10).contains(&parsed) => parsed,
+        _ => {
+            warn_invalid_env_value(name, value, default);
+            default
+        }
     }
+}
 
-    Ok(())
+fn warn_invalid_env_value<T>(name: &str, value: &str, default: T)
+where
+    T: fmt::Display,
+{
+    tracing::warn!(
+        env_var = name,
+        value,
+        default = %default,
+        "invalid environment variable, using default"
+    );
 }
 
 async fn build_dynamodb_client() -> aws_sdk_dynamodb::Client {
@@ -209,4 +193,73 @@ async fn build_sqs_client() -> aws_sdk_sqs::Client {
         Err(_) => config_loader.load().await,
     };
     aws_sdk_sqs::Client::new(&config)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{
+        io::{Result as IoResult, Write},
+        sync::{Arc, Mutex},
+    };
+
+    use tracing_subscriber::fmt::MakeWriter;
+
+    use super::*;
+
+    #[test]
+    fn positive_env_helpers_read_valid_values() {
+        assert_eq!(positive_usize_env_value("TEST_USIZE", Some("5"), 10), 5);
+        assert_eq!(positive_u64_env_value("TEST_U64", Some("6"), 10), 6);
+        assert_eq!(sqs_batch_size_env_value("TEST_BATCH", Some("7"), 10), 7);
+    }
+
+    #[test]
+    fn invalid_env_helpers_use_defaults_and_warn() {
+        let output = capture_warnings(|| {
+            assert_eq!(positive_usize_env_value("TEST_USIZE", Some("foo"), 10), 10);
+            assert_eq!(positive_u64_env_value("TEST_U64", Some("0"), 10), 10);
+            assert_eq!(sqs_batch_size_env_value("TEST_BATCH", Some("11"), 10), 10);
+        });
+
+        assert!(output.contains("TEST_USIZE"));
+        assert!(output.contains("TEST_U64"));
+        assert!(output.contains("TEST_BATCH"));
+    }
+
+    fn capture_warnings(run: impl FnOnce()) -> String {
+        let output = Arc::new(Mutex::new(Vec::new()));
+        let subscriber = tracing_subscriber::fmt()
+            .with_max_level(tracing::Level::WARN)
+            .with_writer(BufferMakeWriter(output.clone()))
+            .without_time()
+            .finish();
+
+        tracing::subscriber::with_default(subscriber, run);
+
+        String::from_utf8(output.lock().unwrap().clone()).unwrap()
+    }
+
+    #[derive(Clone)]
+    struct BufferMakeWriter(Arc<Mutex<Vec<u8>>>);
+
+    impl<'a> MakeWriter<'a> for BufferMakeWriter {
+        type Writer = BufferWriter;
+
+        fn make_writer(&'a self) -> Self::Writer {
+            BufferWriter(self.0.clone())
+        }
+    }
+
+    struct BufferWriter(Arc<Mutex<Vec<u8>>>);
+
+    impl Write for BufferWriter {
+        fn write(&mut self, buf: &[u8]) -> IoResult<usize> {
+            self.0.lock().unwrap().extend_from_slice(buf);
+            Ok(buf.len())
+        }
+
+        fn flush(&mut self) -> IoResult<()> {
+            Ok(())
+        }
+    }
 }

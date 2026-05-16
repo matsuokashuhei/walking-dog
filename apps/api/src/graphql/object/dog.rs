@@ -189,51 +189,84 @@ mod tests {
     #[test]
     fn year_unknown_is_none() {
         assert_eq!(calculate_age(&birthday(None, None, None), today()), None);
-        assert_eq!(calculate_age(&birthday(None, Some(3), Some(4)), today()), None);
+        assert_eq!(
+            calculate_age(&birthday(None, Some(3), Some(4)), today()),
+            None
+        );
     }
 
     #[test]
     fn year_only_treats_missing_parts_as_january_first() {
         // 2020-01-01 → 2026-05-10 は満 6 歳。
-        assert_eq!(calculate_age(&birthday(Some(2020), None, None), today()), Some(6));
+        assert_eq!(
+            calculate_age(&birthday(Some(2020), None, None), today()),
+            Some(6)
+        );
     }
 
     #[test]
     fn birthday_month_not_yet_reached_this_year() {
         // 2020-08-01: 2026 年 5 月の時点で 8 月はまだ来ていない → 満 5 歳。
-        assert_eq!(calculate_age(&birthday(Some(2020), Some(8), None), today()), Some(5));
+        assert_eq!(
+            calculate_age(&birthday(Some(2020), Some(8), None), today()),
+            Some(5)
+        );
     }
 
     #[test]
     fn boundary_on_and_before_birthday() {
         // 2020-05-10 生まれ → 2026-05-10 にちょうど満 6 歳。
-        assert_eq!(calculate_age(&birthday(Some(2020), Some(5), Some(10)), today()), Some(6));
+        assert_eq!(
+            calculate_age(&birthday(Some(2020), Some(5), Some(10)), today()),
+            Some(6)
+        );
         // 2020-05-11 生まれ → 2026-05-10 はまだ満 5 歳（誕生日前日）。
-        assert_eq!(calculate_age(&birthday(Some(2020), Some(5), Some(11)), today()), Some(5));
+        assert_eq!(
+            calculate_age(&birthday(Some(2020), Some(5), Some(11)), today()),
+            Some(5)
+        );
     }
 
     #[test]
     fn newborn_is_zero() {
-        assert_eq!(calculate_age(&birthday(Some(2026), Some(1), Some(1)), today()), Some(0));
+        assert_eq!(
+            calculate_age(&birthday(Some(2026), Some(1), Some(1)), today()),
+            Some(0)
+        );
     }
 
     #[test]
     fn future_birthday_is_none() {
-        assert_eq!(calculate_age(&birthday(Some(2030), Some(1), Some(1)), today()), None);
+        assert_eq!(
+            calculate_age(&birthday(Some(2030), Some(1), Some(1)), today()),
+            None
+        );
         // 同じ年でも基準日より後 → まだ生まれていない → None。
-        assert_eq!(calculate_age(&birthday(Some(2026), Some(12), Some(31)), today()), None);
+        assert_eq!(
+            calculate_age(&birthday(Some(2026), Some(12), Some(31)), today()),
+            None
+        );
     }
 
     #[test]
     fn out_of_range_month_or_day_treated_as_january_first() {
         // month 13 / 0、day 40 / 0 はいずれも {2020, None, None} と同じ扱い → 満 6 歳。
-        assert_eq!(calculate_age(&birthday(Some(2020), Some(13), Some(40)), today()), Some(6));
-        assert_eq!(calculate_age(&birthday(Some(2020), Some(0), Some(0)), today()), Some(6));
+        assert_eq!(
+            calculate_age(&birthday(Some(2020), Some(13), Some(40)), today()),
+            Some(6)
+        );
+        assert_eq!(
+            calculate_age(&birthday(Some(2020), Some(0), Some(0)), today()),
+            Some(6)
+        );
     }
 
     #[test]
     fn day_not_valid_for_month_falls_back_to_first_of_month() {
         // 2024-02-30 は存在しない → 2024-02-01 として扱う → 2026-05-10 で満 2 歳。
-        assert_eq!(calculate_age(&birthday(Some(2024), Some(2), Some(30)), today()), Some(2));
+        assert_eq!(
+            calculate_age(&birthday(Some(2024), Some(2), Some(30)), today()),
+            Some(2)
+        );
     }
 }

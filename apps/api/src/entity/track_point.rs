@@ -1,10 +1,6 @@
 use anyhow::{Result, anyhow};
 use aws_sdk_dynamodb::{
-    operation::{
-        batch_write_item::BatchWriteItemError,
-        put_item::PutItemError,
-        query::QueryError,
-    },
+    operation::{batch_write_item::BatchWriteItemError, put_item::PutItemError, query::QueryError},
     types::{AttributeValue, PutRequest, WriteRequest},
 };
 use std::collections::HashMap;
@@ -79,14 +75,8 @@ impl Model {
                                         model.tracked_at.timestamp_micros().to_string(),
                                     ),
                                 )
-                                .item(
-                                    "latitude",
-                                    AttributeValue::N(model.latitude.to_string()),
-                                )
-                                .item(
-                                    "longitude",
-                                    AttributeValue::N(model.longitude.to_string()),
-                                )
+                                .item("latitude", AttributeValue::N(model.latitude.to_string()))
+                                .item("longitude", AttributeValue::N(model.longitude.to_string()))
                                 .build()
                                 .expect("PutRequest build should not fail"),
                         )
@@ -107,9 +97,7 @@ impl Model {
                     .request_items(&table_name, requests)
                     .send()
                     .await
-                    .map_err(|e| {
-                        TrackPointError::BatchWriteItemError(e.into_service_error())
-                    })?;
+                    .map_err(|e| TrackPointError::BatchWriteItemError(e.into_service_error()))?;
 
                 let remaining = output
                     .unprocessed_items()

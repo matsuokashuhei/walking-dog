@@ -7,8 +7,7 @@ pub fn haversine_meters(lat1: f64, lng1: f64, lat2: f64, lng2: f64) -> f64 {
     let phi2 = lat2.to_radians();
     let dphi = (lat2 - lat1).to_radians();
     let dlambda = (lng2 - lng1).to_radians();
-    let a = (dphi / 2.0).sin().powi(2)
-        + phi1.cos() * phi2.cos() * (dlambda / 2.0).sin().powi(2);
+    let a = (dphi / 2.0).sin().powi(2) + phi1.cos() * phi2.cos() * (dlambda / 2.0).sin().powi(2);
     let c = 2.0 * a.sqrt().atan2((1.0 - a).sqrt());
     EARTH_RADIUS_M * c
 }
@@ -67,6 +66,9 @@ mod tests {
         let p2 = point(35.6812, 139.7671, 120);
         let total = cumulative_distance_meters(&[p0, p1, p2]);
         // round-trip Tokyo → Shinjuku → Tokyo ≈ 12.2km.
-        assert!((total - 12_200.0).abs() < 200.0, "expected ~12200m, got {total}");
+        assert!(
+            (total - 12_200.0).abs() < 200.0,
+            "expected ~12200m, got {total}"
+        );
     }
 }

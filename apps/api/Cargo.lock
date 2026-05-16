@@ -4754,6 +4754,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "sqs-consumer"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "aws-config",
+ "aws-sdk-sqs",
+ "futures",
+ "thiserror",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "stable_deref_trait"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5393,6 +5406,7 @@ dependencies = [
  "anyhow",
  "async-graphql",
  "async-graphql-axum",
+ "async-trait",
  "aws-config",
  "aws-sdk-cognitoidentityprovider",
  "aws-sdk-dynamodb",
@@ -5407,6 +5421,7 @@ dependencies = [
  "sea-orm",
  "serde",
  "serde_json",
+ "sqs-consumer",
  "thiserror",
  "tokio",
  "tracing",

@@ -11,11 +11,13 @@ test-utils = []
 
 [dependencies]
 migration = { path = "./migration" }
+sqs-consumer = { path = "./sqs-consumer" }
 
 axum = { version = "0.8.9" }
 axum-extra = { version = "0.12.6", features = ["typed-header"] }
 async-graphql = { version = "7.2.1", features = ["chrono", "uuid", "url", "tracing"] }
 async-graphql-axum = { version = "7.2.1" }
+async-trait = "0.1.89"
 tokio = { version = "1.52.3", features = ["macros", "rt-multi-thread", "sync", "time"] }
 tracing = { version = "0.1.44" }
 tracing-subscriber = { version = "0.3.23" }
@@ -55,4 +57,4 @@ features = [
 serde_json = { version = "1.0.103" }
 
 [workspace]
-members = [".", "migration"]
+members = [".", "migration", "sqs-consumer"]

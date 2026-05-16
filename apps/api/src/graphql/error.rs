@@ -46,6 +46,7 @@ impl ErrorExtensions for AppError {
     }
 }
 
+#[allow(clippy::enum_variant_names)]
 #[derive(Debug, thiserror::Error)]
 pub enum AuthError {
     #[error("Sign up error: {0}")]

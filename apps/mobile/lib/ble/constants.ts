@@ -11,12 +11,6 @@
 // symbolism while satisfying UUID's strict hex-only requirement.
 export const WALKING_DOG_SERVICE_UUID = '57440001-0000-1000-8000-00805F9B34FB';
 
-// Manufacturer data company ID (0xFFFF = reserved for testing/development).
-export const COMPANY_ID = 0xffff;
-
-// Protocol version byte.
-export const PROTOCOL_VERSION = 0x01;
-
 // BLE encounter detection thresholds.
 export const ENCOUNTER_THRESHOLD_MS = 30_000; // 30 seconds continuous detection
 export const STALE_TIMEOUT_MS = 60_000; // 60 seconds without signal → discard

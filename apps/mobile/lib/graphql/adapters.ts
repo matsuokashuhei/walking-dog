@@ -76,15 +76,15 @@ export function mapApiUser(user: ApiUser): User {
   };
 }
 
-export function mapApiTrackPoint(point: ApiTrackPoint): TrackPoint {
+function mapApiTrackPoint(point: ApiTrackPoint): TrackPoint {
   return point;
 }
 
-export function mapApiWalkPhoto(photo: ApiWalkPhoto): WalkPhoto {
+function mapApiWalkPhoto(photo: ApiWalkPhoto): WalkPhoto {
   return photo;
 }
 
-export function eventToUiType(event: ApiWalkEventType): WalkEvent['eventType'] {
+function eventToUiType(event: ApiWalkEventType): WalkEvent['eventType'] {
   return API_TO_UI_WALK_EVENT_TYPE[event];
 }
 
@@ -112,11 +112,11 @@ export function mapApiWalkDogEvent(
   };
 }
 
-export function mapApiWalkDogEventStrict(event: ApiWalkDogEvent): WalkDogEvent {
+function mapApiWalkDogEventStrict(event: ApiWalkDogEvent): WalkDogEvent {
   return event;
 }
 
-export function mapApiWalkDog(walkDog: ApiWalkDog): WalkDog {
+function mapApiWalkDog(walkDog: ApiWalkDog): WalkDog {
   return {
     ...walkDog,
     dog: mapApiDog(walkDog.dog),

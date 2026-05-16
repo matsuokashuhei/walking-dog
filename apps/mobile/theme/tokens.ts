@@ -47,8 +47,6 @@ export const colors = {
   },
 } as const;
 
-export type ColorScheme = keyof typeof colors;
-
 export interface ColorTokens {
   background: string;
   surface: string;
@@ -95,8 +93,6 @@ export const spacing = {
   step60: 60, // Precise huge (section margin)
 } as const;
 
-export type SpacingTokens = typeof spacing;
-
 // Six-step radius — chips 4 / small 8 / rows 12 / cards 16 / sheets 24 / phone 44
 export const radius = {
   sm: 4,
@@ -110,13 +106,9 @@ export const radius = {
   full: 9999,
 } as const;
 
-export type RadiusTokens = typeof radius;
-
 export const shadow = {
   primary: colors.light.interactive,
 } as const;
-
-export type ShadowTokens = typeof shadow;
 
 // Soft layered shadows — never hard
 export const elevation = {
@@ -156,8 +148,6 @@ export const elevation = {
     elevation: 8,
   },
 } as const;
-
-export type ElevationTokens = typeof elevation;
 
 export const layout = {
   statusBar: 54,
@@ -224,8 +214,6 @@ export const typography = {
     textTransform: 'uppercase' as const,
   },
 } as const;
-
-export type TypographyTokens = typeof typography;
 
 export const components = {
   button: {

@@ -151,11 +151,3 @@ export async function startAdvertising(
     return null;
   }
 }
-
-/** Destroy the BLE manager (call on app unmount). */
-export function destroyBleManager(): void {
-  if (bleManagerInstance) {
-    bleManagerInstance.destroy();
-    bleManagerInstance = null;
-  }
-}

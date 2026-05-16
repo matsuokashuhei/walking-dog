@@ -7,8 +7,8 @@ import { extractGraphQLErrorMessage } from '@/lib/graphql/errors';
 import { mapInviteErrorKey, type InviteErrorKey } from '@/lib/errors/invite-error-map';
 
 // 招待受け入れ画面で表示する状態を表します。
-export type AcceptInviteStatus = 'idle' | 'loading' | 'success' | 'error';
-export type AcceptInviteErrorKey = InviteErrorKey | 'invite.error.saveFailed';
+type AcceptInviteStatus = 'idle' | 'loading' | 'success' | 'error';
+type AcceptInviteErrorKey = InviteErrorKey | 'invite.error.saveFailed';
 
 interface AcceptInviteFlowState {
   status: AcceptInviteStatus;

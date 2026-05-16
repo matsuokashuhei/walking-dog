@@ -5,7 +5,7 @@ import {
   setRefreshHandler,
 } from '@/lib/graphql/client';
 import { isNetworkError } from '@/lib/graphql/errors';
-import { ME_QUERY } from '@/lib/graphql/queries/me';
+import { USER_QUERY } from '@/lib/graphql/queries/me';
 
 export interface BootstrapAuthResult {
   accessToken: string | null;
@@ -37,7 +37,7 @@ export async function bootstrapAuth({
   setAuthToken(stored.accessToken);
 
   try {
-    await authenticatedRequest(ME_QUERY);
+    await authenticatedRequest(USER_QUERY);
     const current = await getToken();
 
     return {

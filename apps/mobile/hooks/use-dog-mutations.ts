@@ -1,9 +1,9 @@
 import { useMutation } from '@tanstack/react-query';
 import { authenticatedRequest } from '@/lib/graphql/client';
 import {
-  CREATE_DOG_MUTATION,
+  ADD_DOG_MUTATION,
   UPDATE_DOG_MUTATION,
-  DELETE_DOG_MUTATION,
+  REMOVE_DOG_MUTATION,
 } from '@/lib/graphql/mutations/dog';
 import { mapApiDog } from '@/lib/graphql/adapters';
 import { useInvalidateUserQueries } from './use-invalidate-user-queries';
@@ -29,7 +29,7 @@ export function useCreateDog() {
   const invalidateUserQueries = useInvalidateUserQueries();
   return useMutation<Dog, Error, CreateDogInput>({
     mutationFn: async (input) => {
-      const data = await authenticatedRequest<CreateDogResponse>(CREATE_DOG_MUTATION, {
+      const data = await authenticatedRequest<CreateDogResponse>(ADD_DOG_MUTATION, {
         input: {
           name: input.name,
           breed: input.breed,
@@ -68,20 +68,11 @@ export function useDeleteDog() {
   const invalidateUserQueries = useInvalidateUserQueries();
   return useMutation<Dog, Error, string>({
     mutationFn: async (id) => {
-      const data = await authenticatedRequest<DeleteDogResponse>(DELETE_DOG_MUTATION, {
+      const data = await authenticatedRequest<DeleteDogResponse>(REMOVE_DOG_MUTATION, {
         input: { id },
       });
       return mapApiDog(data.removeDog);
     },
     onSuccess: invalidateUserQueries,
-  });
-}
-
-// 犬プロフィール写真を直接アップロードするための署名付き URL を発行します。
-export function useGeneratePhotoUploadUrl() {
-  return useMutation<never, Error, { dogId: string; contentType: string }>({
-    mutationFn: async () => {
-      throw new Error('Dog photo upload URLs are not supported by the current GraphQL schema.');
-    },
   });
 }

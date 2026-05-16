@@ -102,21 +102,3 @@ export const ADD_EVENT_MUTATION = gql`
     }
   }
 `;
-
-export const TAKE_PHOTO_MUTATION = gql`
-  mutation TakePhoto($input: TakePhotoInput!) {
-    takePhoto(input: $input) {
-      id
-      walkId
-      occurredAt
-      file
-      coordinate { latitude longitude }
-      createdAt
-      updatedAt
-    }
-  }
-`;
-
-export const FINISH_WALK_MUTATION = END_WALK_MUTATION;
-export const ADD_WALK_POINTS_MUTATION = TRACK_POINT_MUTATION;
-export const RECORD_WALK_EVENT_MUTATION = ADD_EVENT_MUTATION;

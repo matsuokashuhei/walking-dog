@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { authenticatedRequest } from '@/lib/graphql/client';
-import { WALK_QUERY, MY_WALKS_QUERY } from '@/lib/graphql/queries/walk';
+import { WALK_QUERY, WALKS_QUERY } from '@/lib/graphql/queries/walk';
 import { walkKeys } from '@/lib/graphql/keys';
 import { mapApiWalk } from '@/lib/graphql/adapters';
 import { useIsAuthenticated } from './use-is-authenticated';
@@ -28,7 +28,7 @@ export function useMyWalks(limit = 20) {
   return useQuery<Walk[]>({
     queryKey: walkKeys.list(limit),
     queryFn: async () => {
-      const data = await authenticatedRequest<WalksResponse>(MY_WALKS_QUERY, { first: limit });
+      const data = await authenticatedRequest<WalksResponse>(WALKS_QUERY, { first: limit });
       return data.user.walks.nodes.map(mapApiWalk);
     },
     enabled: isAuthenticated,

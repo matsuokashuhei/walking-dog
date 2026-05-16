@@ -1,12 +1,12 @@
 import { act, renderHook } from '@testing-library/react-native';
 import {
   useWalkSession,
-  MAX_POINTS_PER_BATCH,
   resetWalkSessionTrackingState,
 } from './use-walk-session';
 import * as walkMutations from './use-walk-mutations';
 import * as gpsTracker from '@/lib/walk/gps-tracker';
 import * as liveActivity from '@/lib/walk/live-activity';
+import { MAX_POINTS_PER_BATCH } from '@/lib/walk/tracking-manager';
 import type { LiveActivityState } from '@/stores/walk-store';
 import type { WalkPoint } from '@/types/graphql';
 

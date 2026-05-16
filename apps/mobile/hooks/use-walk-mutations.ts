@@ -2,8 +2,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { authenticatedRequest } from '@/lib/graphql/client';
 import {
   START_WALK_MUTATION,
-  FINISH_WALK_MUTATION,
-  ADD_WALK_POINTS_MUTATION,
+  END_WALK_MUTATION,
+  TRACK_POINT_MUTATION,
 } from '@/lib/graphql/mutations/walk';
 import { walkKeys } from '@/lib/graphql/keys';
 import { mapApiWalk } from '@/lib/graphql/adapters';
@@ -35,7 +35,7 @@ export function useFinishWalk() {
   return useMutation<Walk, Error, { walkId: string }>({
     mutationFn: async ({ walkId }) => {
       const data = await authenticatedRequest<FinishWalkResponse>(
-        FINISH_WALK_MUTATION,
+        END_WALK_MUTATION,
         { input: { id: walkId } },
       );
       return mapApiWalk(data.endWalk);
@@ -51,7 +51,7 @@ export function useAddWalkPoints() {
   return useMutation<boolean, Error, { walkId: string; points: WalkPointInput[] }>({
     mutationFn: async ({ walkId, points }) => {
       for (const point of points) {
-        await authenticatedRequest<AddWalkPointsResponse>(ADD_WALK_POINTS_MUTATION, {
+        await authenticatedRequest<AddWalkPointsResponse>(TRACK_POINT_MUTATION, {
           input: {
             walkId,
             trackedAt: point.recordedAt,

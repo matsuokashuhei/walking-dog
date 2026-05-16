@@ -34,10 +34,6 @@ export interface LiveActivityStartInput {
   distanceM: number;
 }
 
-export function isLiveActivitySupported(): boolean {
-  return mod?.isSupported() ?? false;
-}
-
 /**
  * Starts an iOS Live Activity. Returns the activity id on success or null when
  * Live Activities are unsupported, config is missing, or the native call
@@ -75,24 +71,6 @@ export async function updateLiveActivityDistance(
     await mod.updateActivity(activityId, { distanceM });
   } catch (err) {
     console.error('[live-activity] update failed', err);
-  }
-}
-
-export async function updateLiveActivityEvent(
-  activityId: string,
-  distanceM: number,
-  eventKind: string,
-  eventAt: Date,
-): Promise<void> {
-  if (!mod) return;
-  try {
-    await mod.updateActivity(activityId, {
-      distanceM,
-      lastEventKind: eventKind,
-      lastEventAtMs: eventAt.getTime(),
-    });
-  } catch (err) {
-    console.error('[live-activity] event update failed', err);
   }
 }
 

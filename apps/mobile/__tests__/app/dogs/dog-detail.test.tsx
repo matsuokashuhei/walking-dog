@@ -1,6 +1,8 @@
+import { StyleSheet } from 'react-native';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import DogDetailScreen from '../../../app/dogs/[id]/index';
+import { spacing } from '@/theme/tokens';
 
 const mockPush = jest.fn();
 const mockReplace = jest.fn();
@@ -24,6 +26,7 @@ jest.mock('expo-image', () => ({
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 44, bottom: 34, left: 0, right: 0 }),
   SafeAreaProvider: ({ children }: { children: React.ReactNode }) => children,
+  SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
 }));
 
 const mockDog = {
@@ -111,7 +114,15 @@ describe('DogDetailScreen', () => {
     expect(screen.queryByText('Delete')).toBeNull();
   });
 
-  it('renders edit button exactly once in hero nav overlay for owner', () => {
+  it('renders the inline screen header with dog title and back action', () => {
+    renderWithProviders(<DogDetailScreen />);
+
+    expect(screen.getByTestId('dog-detail-header')).toBeTruthy();
+    expect(screen.getAllByText('Buddy')).toHaveLength(1);
+    expect(screen.getByLabelText('Dogs')).toBeTruthy();
+  });
+
+  it('renders edit button exactly once in screen header for owner', () => {
     renderWithProviders(<DogDetailScreen />);
     // Regression guard: Edit must appear exactly once (no duplicate from
     // a stray Stack header reintroduction).
@@ -147,6 +158,22 @@ describe('DogDetailScreen', () => {
     fireEvent.press(screen.getByLabelText('Dogs'));
     expect(mockReplace).toHaveBeenCalledWith('/(tabs)/dogs');
     expect(mockBack).not.toHaveBeenCalled();
+  });
+
+  it('keeps dog metadata visible without duplicating the body dog name', () => {
+    renderWithProviders(<DogDetailScreen />);
+
+    expect(screen.getAllByText('Buddy')).toHaveLength(1);
+    expect(screen.getByText('Golden Retriever')).toBeTruthy();
+  });
+
+  it('uses the medium horizontal inset for the walks section', () => {
+    renderWithProviders(<DogDetailScreen />);
+
+    const walksSection = screen.getByTestId('dog-detail-walks-section');
+    const style = StyleSheet.flatten(walksSection.props.style);
+
+    expect(style.paddingHorizontal).toBe(spacing.md);
   });
 
   it('hides delete button when user is not in members list', () => {

@@ -1,7 +1,8 @@
+use std::sync::Arc;
+
 use anyhow::Result;
 use async_graphql::{Context, InputObject, Object};
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait};
-use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::graphql::{
@@ -50,9 +51,7 @@ impl TrackPointMutation {
             input.longitude.value(),
             accepted_at,
         );
-        let track_point_enqueuer = ctx.data::<Arc<TrackPointEnqueuer>>().map_err(|_| {
-            AppError::InternalServerError("Track point enqueuer is not configured".to_string())
-        })?;
+        let track_point_enqueuer = ctx.data::<Arc<TrackPointEnqueuer>>().unwrap();
         track_point_enqueuer
             .enqueue(&message)
             .await

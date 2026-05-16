@@ -12,7 +12,7 @@ use crate::{
         cursor::UuidCursor,
         object::{walk::Walk, walk_connection::WalkConnectionFields},
     },
-    storage::avatar_url,
+    util::storage::avatar_url,
 };
 
 #[derive(Enum, Debug, Copy, Clone, Eq, PartialEq)]

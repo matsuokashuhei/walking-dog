@@ -98,6 +98,7 @@ describe('Walk tab route', () => {
   it('shows the NoDogsBody CTA when there are zero dogs', () => {
     mockDogs = [];
     render(<WalkScreen />);
+    expect(screen.getByRole('header', { name: 'Walk' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Add your first dog' })).toBeTruthy();
   });
 

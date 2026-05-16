@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ScrollView, Share, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useDog } from '@/hooks/use-dog';
@@ -14,6 +15,7 @@ import { DogMembersList } from '@/components/dogs/DogMembersList';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useColors } from '@/hooks/use-colors';
 import { spacing } from '@/theme/tokens';
 
@@ -76,33 +78,40 @@ export default function DogMembersScreen() {
   }
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={styles.listSection}>
-        <DogMembersList
-          members={members}
-          currentUserId={currentUserId}
-          isOwner={isOwner}
-          onRemove={(userId, name) => setConfirmRemove({ userId, name })}
-        />
-      </View>
+    <SafeAreaView edges={['top']} style={[styles.safeArea, { backgroundColor: theme.background }]}>
+      <ScreenHeader
+        variant="inline"
+        title={t('dogs.members.title')}
+        leftAction="back"
+      />
+      <ScrollView style={styles.container}>
+        <View style={styles.listSection}>
+          <DogMembersList
+            members={members}
+            currentUserId={currentUserId}
+            isOwner={isOwner}
+            onRemove={(userId, name) => setConfirmRemove({ userId, name })}
+          />
+        </View>
 
-      <View style={styles.actions}>
-        {/* owner は招待、member は退出だけを表示して誤操作を防ぎます。 */}
-        {isOwner ? (
-          <Button
-            label={t('dogs.members.invite')}
-            onPress={handleInvite}
-            loading={generateInvitation.isPending}
-          />
-        ) : (
-          <Button
-            label={t('dogs.members.leave')}
-            variant="destructive"
-            onPress={() => setShowLeaveConfirm(true)}
-            loading={leaveDog.isPending}
-          />
-        )}
-      </View>
+        <View style={styles.actions}>
+          {/* owner は招待、member は退出だけを表示して誤操作を防ぎます。 */}
+          {isOwner ? (
+            <Button
+              label={t('dogs.members.invite')}
+              onPress={handleInvite}
+              loading={generateInvitation.isPending}
+            />
+          ) : (
+            <Button
+              label={t('dogs.members.leave')}
+              variant="destructive"
+              onPress={() => setShowLeaveConfirm(true)}
+              loading={leaveDog.isPending}
+            />
+          )}
+        </View>
+      </ScrollView>
 
       <ConfirmDialog
         visible={confirmRemove !== null}
@@ -123,11 +132,12 @@ export default function DogMembersScreen() {
         onCancel={() => setShowLeaveConfirm(false)}
         destructive
       />
-    </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: { flex: 1 },
   container: { flex: 1 },
   listSection: { padding: spacing.lg },
   actions: { padding: spacing.lg, paddingTop: spacing.xs - spacing.xs },

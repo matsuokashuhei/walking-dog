@@ -1,4 +1,4 @@
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { useDogsScreenViewModel } from '@/hooks/use-dogs-screen-view-model';
@@ -6,9 +6,10 @@ import { DogListItem } from '@/components/dogs/DogListItem';
 import { PackRollupCard } from '@/components/dogs/PackRollupCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { useColors } from '@/hooks/use-colors';
-import { spacing, typography } from '@/theme/tokens';
+import { spacing } from '@/theme/tokens';
 
 // 犬一覧タブは pack 全体の進捗と登録済み犬の一覧操作を view-model へ委譲します。
 export default function DogsScreen() {
@@ -18,25 +19,9 @@ export default function DogsScreen() {
 
   if (vm.isLoading) return <LoadingScreen />;
 
-  // 一覧の先頭には画面タイトル、追加導線、pack の集計カードをまとめて表示します。
+  // 一覧の先頭には pack の集計カードとセクション見出しをまとめて表示します。
   const ListHeader = (
     <View style={styles.headerContainer}>
-      <View style={styles.titleRow}>
-        <Text style={[styles.heroTitle, { color: theme.onSurface }]}>
-          {t('dogs.list.title')}
-        </Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('dogs.list.addDog')}
-          onPress={vm.handleAddDog}
-          hitSlop={12}
-        >
-          <Text style={[styles.addCta, { color: theme.interactive }]}>
-            {t('dogs.list.addCta')}
-          </Text>
-        </Pressable>
-      </View>
-
       <View style={styles.rollupWrap}>
         <PackRollupCard
           todayKm={vm.pack.todayKm}
@@ -57,6 +42,10 @@ export default function DogsScreen() {
       edges={['top']}
       style={[styles.container, { backgroundColor: theme.background }]}
     >
+      <ScreenHeader
+        title={t('dogs.list.title')}
+        rightAction={{ label: t('dogs.list.addCta'), onPress: vm.handleAddDog }}
+      />
       <FlatList
         data={vm.dogs}
         keyExtractor={(dog) => dog.id}
@@ -90,18 +79,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
     paddingBottom: spacing.md,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.lg,
-  },
-  heroTitle: {
-    ...typography.largeTitle,
-  },
-  addCta: {
-    ...typography.body,
   },
   rollupWrap: {
     marginBottom: spacing.xl,

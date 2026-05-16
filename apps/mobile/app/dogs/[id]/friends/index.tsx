@@ -1,12 +1,14 @@
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { FlatList, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useDogFriends } from '@/hooks/use-dog-friends';
 import { FriendCard } from '@/components/dogs/FriendCard';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useColors } from '@/hooks/use-colors';
-import { spacing, typography } from '@/theme/tokens';
+import { spacing } from '@/theme/tokens';
 import type { Friendship } from '@/types/graphql';
 
 // 友達一覧画面は遭遇から生まれた犬同士の関係を一覧化し、個別詳細へつなげます。
@@ -21,16 +23,12 @@ export default function DogFriendsScreen() {
   if (isLoading) return <LoadingScreen />;
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={styles.header}>
-        <Text style={[styles.sectionLabel, { color: theme.onSurfaceVariant }]}>
-          {t('dogs.friends.sectionLabel', 'FRIENDS').toUpperCase()}
-        </Text>
-        <Text style={[styles.heroTitle, { color: theme.onSurface }]}>
-          {t('dogs.friends.title', 'Friends')}
-        </Text>
-      </View>
-
+    <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: theme.background }]}>
+      <ScreenHeader
+        variant="inline"
+        title={t('dogs.friends.title')}
+        leftAction="back"
+      />
       {!friends || friends.length === 0 ? (
         // 友達がまだいない場合は、散歩開始を促す空状態だけを表示します。
         <EmptyState
@@ -49,25 +47,15 @@ export default function DogFriendsScreen() {
           contentContainerStyle={styles.list}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: {
-    padding: spacing.lg,
-    paddingBottom: spacing.md,
-  },
-  sectionLabel: {
-    ...typography.metricLabel,
-    marginBottom: spacing.xs,
-  },
-  heroTitle: {
-    ...typography.title1,
-  },
   list: {
     paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
     paddingBottom: spacing.xxl,
   },
 });

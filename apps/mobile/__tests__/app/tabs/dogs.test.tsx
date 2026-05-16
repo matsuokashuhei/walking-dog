@@ -58,9 +58,9 @@ describe('DogsScreen', () => {
     expect(screen.getByText('YOUR PACK')).toBeTruthy();
   });
 
-  it('renders Dogs heading', () => {
+  it('renders Dogs as the shared screen header', () => {
     render(<DogsScreen />);
-    expect(screen.getByText('My Dogs')).toBeTruthy();
+    expect(screen.getByRole('header', { name: 'My Dogs' })).toBeTruthy();
   });
 
   it('renders Today walking goal rollup title', () => {
@@ -70,6 +70,6 @@ describe('DogsScreen', () => {
 
   it('renders header + Add CTA', () => {
     render(<DogsScreen />);
-    expect(screen.getByRole('button', { name: 'Add Dog' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '+ Add' })).toBeTruthy();
   });
 });

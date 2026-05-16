@@ -1,7 +1,12 @@
 {
   "common": {
     "error": "エラー",
-    "retry": "再試行"
+    "retry": "再試行",
+    "action": {
+      "back": "戻る",
+      "cancel": "キャンセル",
+      "save": "保存"
+    }
   },
   "tabs": {
     "dogs": "愛犬",
@@ -79,10 +84,6 @@
       "streak": "🔥 {{days}}日",
       "todayStats": "今日 {{km}} km · {{count}}回"
     },
-    "action": {
-      "cancel": "キャンセル",
-      "save": "保存"
-    },
     "new": {
       "title": "犬を登録",
       "photoUploadError": "写真のアップロードに失敗しました。Edit 画面から再度お試しください。"
@@ -120,6 +121,12 @@
       "leaveTitle": "グループを離れる",
       "leaveConfirm": "{{name}}のグループを離れますか？この犬は表示されなくなります。",
       "leaveError": "グループの離脱に失敗しました"
+    },
+    "encounters": {
+      "title": "遭遇履歴"
+    },
+    "friends": {
+      "title": "友達"
     },
     "edit": {
       "title": "犬を編集",

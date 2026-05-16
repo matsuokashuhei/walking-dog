@@ -9,18 +9,11 @@ use std::{env, sync::Arc};
 
 use crate::graphql::query::Query;
 use crate::queue::track_point::TrackPointEnqueuer;
+use anyhow::Result;
 use async_graphql::{EmptySubscription, extensions::Tracing};
 
 pub async fn build_schema()
 -> anyhow::Result<async_graphql::Schema<Query, mutation::Mutation, EmptySubscription>> {
-    let sqs_client = build_sqs_client().await;
-    let track_point_queue_url = match env::var("AWS_SQS_QUEUE_URL_TRACK_POINT") {
-        Ok(value) if !value.is_empty() => value,
-        _ => anyhow::bail!("AWS_SQS_QUEUE_URL_TRACK_POINT is not set"),
-    };
-    let track_point_enqueuer =
-        Arc::new(TrackPointEnqueuer::new(sqs_client, track_point_queue_url)?);
-
     Ok(async_graphql::Schema::build(
         Query::default(),
         mutation::Mutation::default(),
@@ -29,7 +22,7 @@ pub async fn build_schema()
     .data(build_database_connection().await)
     .data(build_cognitoidentityprovider_client().await)
     .data(build_dynamodb_client().await)
-    .data(track_point_enqueuer)
+    .data(build_track_point_enqueuer().await?)
     .data(build_s3_client().await)
     .extension(Tracing)
     .finish())
@@ -77,4 +70,16 @@ async fn build_s3_client() -> aws_sdk_s3::Client {
     } else {
         aws_sdk_s3::Client::new(&config)
     }
+}
+
+async fn build_track_point_enqueuer() -> Result<Arc<TrackPointEnqueuer>> {
+    let sqs_client = build_sqs_client().await;
+    let track_point_queue_url = match env::var("AWS_SQS_QUEUE_URL_TRACK_POINT") {
+        Ok(value) if !value.is_empty() => value,
+        _ => anyhow::bail!("AWS_SQS_QUEUE_URL_TRACK_POINT is not set"),
+    };
+    Ok(Arc::new(TrackPointEnqueuer::new(
+        sqs_client,
+        track_point_queue_url,
+    )?))
 }

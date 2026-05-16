@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 use crate::entity::{user, walk, walk_photo};
 use crate::graphql::{error::AppError, guard::AuthGuard, object::walk_photo::WalkPhoto};
-use crate::storage::upload_walk_photo;
+use crate::util::storage::upload_walk_photo;
 
 #[derive(Default, Debug)]
 pub struct WalkPhotoMutation;

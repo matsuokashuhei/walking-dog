@@ -13,7 +13,7 @@ use crate::{
         error::AppError,
         object::{dog::Dog, walk::Walk, walk_connection::WalkConnectionFields},
     },
-    storage::avatar_url,
+    util::storage::avatar_url,
 };
 
 #[derive(SimpleObject, Clone, Debug)]

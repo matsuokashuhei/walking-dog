@@ -16,7 +16,7 @@ use crate::graphql::{
 };
 use crate::{
     entity::{birthday::Model, dog, sea_orm_active_enums::GenderType, user, user_dog},
-    storage::{StorageError, upload_avatar},
+    util::storage::{StorageError, upload_avatar},
 };
 
 #[derive(Default, Debug)]
@@ -35,7 +35,7 @@ impl DogMutation {
             //     active_model.avatar = Set(Some(file));
             // }
             let key = upload_avatar(ctx, file).await.map_err(|e| {
-                if let Some(storage_error) = e.downcast_ref::<crate::storage::StorageError>() {
+                if let Some(storage_error) = e.downcast_ref::<StorageError>() {
                     error!("Failed to upload avatar: {:?}", storage_error);
                     match storage_error {
                         StorageError::ContentTooLarge(_) => AppError::ContentTooLarge,

@@ -1,6 +1,7 @@
 use anyhow::Result;
 use async_graphql::{Context, InputObject, Object};
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait};
+use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::graphql::{
@@ -10,7 +11,7 @@ use crate::graphql::{
         track_point::TrackPointReceipt,
     },
 };
-use crate::queue::track_point::{TrackPointMessage, enqueue_track_point};
+use crate::queue::track_point::{TrackPointEnqueuer, TrackPointMessage};
 use crate::{entity::user, graphql::guard::AuthGuard};
 
 #[derive(Default, Debug)]
@@ -48,7 +49,11 @@ impl TrackPointMutation {
             input.longitude.value(),
             accepted_at,
         );
-        enqueue_track_point(ctx.data::<aws_sdk_sqs::Client>().unwrap(), &message)
+        let track_point_enqueuer = ctx.data::<Arc<TrackPointEnqueuer>>().map_err(|_| {
+            AppError::InternalServerError("Track point enqueuer is not configured".to_string())
+        })?;
+        track_point_enqueuer
+            .enqueue(&message)
             .await
             .map_err(|e| AppError::InternalServerError(e.to_string()))?;
 

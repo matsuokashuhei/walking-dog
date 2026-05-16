@@ -21,12 +21,12 @@ use walking_dog::{
 };
 
 #[tokio::main]
-async fn main() {
+async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::INFO)
         .init();
-    run_migrations().await;
-    let schema = graphql::build_schema().await;
+    run_migrations().await?;
+    let schema = graphql::build_schema().await?;
     let app = Router::new()
         .route("/graphql", get(graphql_playground).post(graphql_handler))
         .route_layer(middleware::from_fn_with_state(
@@ -36,9 +36,8 @@ async fn main() {
         .route("/health", get(|| async { StatusCode::OK }))
         .with_state(schema);
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
-    axum::serve(TcpListener::bind(addr).await.unwrap(), app)
-        .await
-        .unwrap();
+    axum::serve(TcpListener::bind(addr).await.unwrap(), app).await?;
+    Ok(())
 }
 
 async fn graphql_handler(
@@ -57,14 +56,11 @@ async fn graphql_playground() -> impl IntoResponse {
     Html(GraphiQLSource::build().finish())
 }
 
-async fn run_migrations() {
-    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL is not set");
-    let db = Database::connect(&database_url)
-        .await
-        .expect("Failed to connect to the database for migrations");
+async fn run_migrations() -> anyhow::Result<()> {
+    let database_url = std::env::var("DATABASE_URL")?;
+    let db = Database::connect(&database_url).await?;
     info!("Running database migrations");
-    Migrator::up(&db, None)
-        .await
-        .expect("Failed to run database migrations");
+    Migrator::up(&db, None).await?;
     info!("Database migrations applied");
+    Ok(())
 }

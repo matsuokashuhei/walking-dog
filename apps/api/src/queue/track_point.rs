@@ -66,20 +66,41 @@ impl From<TrackPointMessage> for track_point::Model {
     }
 }
 
-pub async fn enqueue_track_point(
-    client: &aws_sdk_sqs::Client,
-    message: &TrackPointMessage,
-) -> Result<(), TrackPointQueueError> {
-    let queue_url = std::env::var("AWS_SQS_QUEUE_URL_TRACK_POINT").unwrap();
-    client
-        .send_message()
-        .queue_url(&queue_url)
-        .message_body(message.to_json()?)
-        .send()
-        .await
-        .map_err(|e| TrackPointQueueError::SendMessage(Box::new(e.into_service_error())))?;
+#[derive(Clone)]
+pub struct TrackPointEnqueuer {
+    client: aws_sdk_sqs::Client,
+    queue_url: String,
+}
 
-    Ok(())
+impl TrackPointEnqueuer {
+    pub fn new(
+        client: aws_sdk_sqs::Client,
+        queue_url: impl Into<String>,
+    ) -> Result<Self, TrackPointQueueError> {
+        let queue_url = queue_url.into();
+        if queue_url.is_empty() {
+            return Err(TrackPointQueueError::MissingQueueUrl);
+        }
+        Ok(Self { client, queue_url })
+    }
+
+    pub fn from_env(client: aws_sdk_sqs::Client) -> Result<Self, TrackPointQueueError> {
+        let queue_url = std::env::var("AWS_SQS_QUEUE_URL_TRACK_POINT")
+            .map_err(|_| TrackPointQueueError::MissingQueueUrl)?;
+        Self::new(client, queue_url)
+    }
+
+    pub async fn enqueue(&self, message: &TrackPointMessage) -> Result<(), TrackPointQueueError> {
+        self.client
+            .send_message()
+            .queue_url(&self.queue_url)
+            .message_body(message.to_json()?)
+            .send()
+            .await
+            .map_err(|e| TrackPointQueueError::SendMessage(Box::new(e.into_service_error())))?;
+
+        Ok(())
+    }
 }
 
 #[async_trait]
@@ -244,6 +265,8 @@ pub enum TrackPointQueueError {
     UnsupportedVersion(u16),
     #[error("SQS send message error: {0}")]
     SendMessage(Box<SendMessageError>),
+    #[error("AWS_SQS_QUEUE_URL_TRACK_POINT is not set")]
+    MissingQueueUrl,
     #[error("SQS receive message error: {0}")]
     ReceiveMessage(Box<ReceiveMessageError>),
     #[error("SQS delete message error: {0}")]
@@ -296,6 +319,21 @@ mod tests {
 
         let error = TrackPointMessage::from_json(body).unwrap_err();
         assert!(matches!(error, TrackPointQueueError::UnsupportedVersion(2)));
+    }
+
+    #[test]
+    fn track_point_enqueuer_requires_queue_url_at_construction() {
+        let config = aws_sdk_sqs::Config::builder()
+            .behavior_version_latest()
+            .build();
+        let client = aws_sdk_sqs::Client::from_conf(config);
+
+        let error = match TrackPointEnqueuer::new(client, "") {
+            Ok(_) => panic!("empty queue URL should be rejected"),
+            Err(error) => error,
+        };
+
+        assert!(matches!(error, TrackPointQueueError::MissingQueueUrl));
     }
 
     #[derive(Clone, Default)]

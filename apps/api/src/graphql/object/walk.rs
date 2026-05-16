@@ -8,6 +8,7 @@ use crate::graphql::{
     error::AppError,
     object::{dog::Dog, track_point::TrackPoint, walk_dog::WalkDog, walk_photo::WalkPhoto},
 };
+use crate::util::error::format_error_chain;
 
 #[derive(SimpleObject, Clone, Debug)]
 #[graphql(complex)]
@@ -34,7 +35,17 @@ impl Walk {
         // DynamoDB Query は range key (tracked_at) で昇順ソート済みで返るため、再ソートは不要。
         let points = track_point::Model::find_all_by_walk_id(client, self.id)
             .await
-            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+            .map_err(|error| {
+                let error_ref: &(dyn std::error::Error + Send + Sync + 'static) = error.as_ref();
+                let error_chain = format_error_chain(error_ref);
+                tracing::error!(
+                    walk_id = %self.id,
+                    error = ?error,
+                    %error_chain,
+                    "failed to load track points for live distance"
+                );
+                AppError::InternalServerError(error_chain)
+            })?;
         let distance_m = crate::util::distance::cumulative_distance_meters(&points);
         Ok(Some(distance_m.round() as i64))
     }
@@ -76,7 +87,17 @@ impl Walk {
         let client = ctx.data::<aws_sdk_dynamodb::Client>().unwrap();
         let track_points = track_point::Model::find_all_by_walk_id(client, self.id)
             .await
-            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+            .map_err(|error| {
+                let error_ref: &(dyn std::error::Error + Send + Sync + 'static) = error.as_ref();
+                let error_chain = format_error_chain(error_ref);
+                tracing::error!(
+                    walk_id = %self.id,
+                    error = ?error,
+                    %error_chain,
+                    "failed to load track points"
+                );
+                AppError::InternalServerError(error_chain)
+            })?;
         Ok(track_points.into_iter().map(TrackPoint::from).collect())
     }
 }

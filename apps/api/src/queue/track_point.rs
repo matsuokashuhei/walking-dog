@@ -242,8 +242,8 @@ pub enum TrackPointQueueError {
     Deserialize(serde_json::Error),
     #[error("Unsupported track point message version: {0}")]
     UnsupportedVersion(u16),
-    #[error("SQS send message error: {0}")]
-    SendMessage(Box<SendMessageError>),
+    #[error("SQS send message error")]
+    SendMessage(#[source] Box<SendMessageError>),
     #[error("AWS_SQS_QUEUE_URL_TRACK_POINT is not set")]
     MissingQueueUrl,
     #[error("SQS message has no body")]

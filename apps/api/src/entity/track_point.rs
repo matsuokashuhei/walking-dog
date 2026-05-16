@@ -252,10 +252,10 @@ impl TryFrom<&HashMap<String, AttributeValue>> for Model {
 
 #[derive(Debug, thiserror::Error)]
 pub enum TrackPointError {
-    #[error("Put item error: {0}")]
-    PutItemError(PutItemError),
-    #[error("Batch write item error: {0}")]
-    BatchWriteItemError(BatchWriteItemError),
-    #[error("Query error: {0}")]
-    QueryError(QueryError),
+    #[error("Put item error")]
+    PutItemError(#[source] PutItemError),
+    #[error("Batch write item error")]
+    BatchWriteItemError(#[source] BatchWriteItemError),
+    #[error("Query error")]
+    QueryError(#[source] QueryError),
 }

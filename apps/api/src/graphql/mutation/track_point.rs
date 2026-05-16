@@ -12,6 +12,7 @@ use crate::graphql::{
     },
 };
 use crate::queue::track_point::{TrackPointEnqueuer, TrackPointMessage};
+use crate::util::error::format_error_chain;
 use crate::{entity::user, graphql::guard::AuthGuard};
 
 #[derive(Default, Debug)]
@@ -55,7 +56,15 @@ impl TrackPointMutation {
         track_point_enqueuer
             .enqueue(&message)
             .await
-            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+            .map_err(|error| {
+                let error_chain = format_error_chain(&error);
+                tracing::error!(
+                    error = ?error,
+                    %error_chain,
+                    "enqueue_track_point error"
+                );
+                AppError::InternalServerError(format!("enqueue_track_point error: {error_chain}"))
+            })?;
 
         Ok(TrackPointReceipt {
             walk_id: input.walk_id,

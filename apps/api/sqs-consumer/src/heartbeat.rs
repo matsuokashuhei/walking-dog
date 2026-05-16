@@ -29,11 +29,11 @@ pub(crate) fn spawn_heartbeat(
     message: Message,
     interval: Duration,
     visibility_timeout: i32,
-) -> Option<HeartbeatTask> {
+) -> Option<(HeartbeatTask, mpsc::UnboundedReceiver<String>)> {
     let receipt_handle = message.receipt_handle()?.to_owned();
     let message_id = message.message_id().unwrap_or(&receipt_handle).to_owned();
     let (stop_tx, stop_rx) = watch::channel(false);
-    let (failure_tx, _failure_rx) = mpsc::unbounded_channel::<String>();
+    let (failure_tx, failure_rx) = mpsc::unbounded_channel::<String>();
     spawn_heartbeat_with_failure_channel(HeartbeatSpawn {
         backend,
         listener,
@@ -47,6 +47,7 @@ pub(crate) fn spawn_heartbeat(
         stop_rx,
         failure_tx,
     })
+    .map(|task| (task, failure_rx))
 }
 
 pub(crate) struct HeartbeatTask {

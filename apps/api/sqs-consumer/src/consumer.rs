@@ -418,7 +418,10 @@ impl Consumer {
                     graceful_timeout = None;
                 }
                 failed_message_id = heartbeats.recv_failure(), if heartbeats.has_failure_channel() => {
-                    let message_id = failed_message_id.expect("heartbeat failure channel should be open while tasks run");
+                    let Some(message_id) = failed_message_id else {
+                        heartbeats.clear_failure_channel();
+                        continue;
+                    };
                     handler_task.abort();
                     return Err(ConsumerError::HeartbeatFailed { message_id });
                 }
@@ -433,29 +436,30 @@ impl Consumer {
         let visibility_timeout =
             resolve_heartbeat_visibility_timeout(config, self.options.visibility_timeout)?;
         let (failure_tx, failure_rx) = mpsc::unbounded_channel();
-        Ok(HeartbeatGuard {
-            tasks: messages
-                .iter()
-                .filter_map(|message| {
-                    let receipt_handle = message.receipt_handle()?.to_owned();
-                    let message_id = message.message_id().unwrap_or(&receipt_handle).to_owned();
-                    let (stop_tx, stop_rx) = watch::channel(false);
-                    spawn_heartbeat_with_failure_channel(HeartbeatSpawn {
-                        backend: self.backend.clone(),
-                        listener: self.listener.clone(),
-                        queue_url: self.options.queue_url.clone(),
-                        message: message.clone(),
-                        receipt_handle,
-                        message_id,
-                        interval: config.interval,
-                        visibility_timeout,
-                        stop_tx,
-                        stop_rx,
-                        failure_tx: failure_tx.clone(),
-                    })
+        let tasks = messages
+            .iter()
+            .filter_map(|message| {
+                let receipt_handle = message.receipt_handle()?.to_owned();
+                let message_id = message.message_id().unwrap_or(&receipt_handle).to_owned();
+                let (stop_tx, stop_rx) = watch::channel(false);
+                spawn_heartbeat_with_failure_channel(HeartbeatSpawn {
+                    backend: self.backend.clone(),
+                    listener: self.listener.clone(),
+                    queue_url: self.options.queue_url.clone(),
+                    message: message.clone(),
+                    receipt_handle,
+                    message_id,
+                    interval: config.interval,
+                    visibility_timeout,
+                    stop_tx,
+                    stop_rx,
+                    failure_tx: failure_tx.clone(),
                 })
-                .collect(),
-            failure_rx: Some(failure_rx),
+            })
+            .collect::<Vec<_>>();
+        Ok(HeartbeatGuard {
+            failure_rx: (!tasks.is_empty()).then_some(failure_rx),
+            tasks,
         })
     }
 }
@@ -614,30 +618,55 @@ async fn handle_one(
     options: ConsumerOptions,
     message: Message,
 ) -> Result<HandleOutcome, ConsumerError> {
-    let heartbeats = if let Some(config) = &options.heartbeat {
+    let mut heartbeats = if let Some(config) = &options.heartbeat {
         let visibility_timeout =
             resolve_heartbeat_visibility_timeout(config, options.visibility_timeout)?;
-        spawn_heartbeat(
+        match spawn_heartbeat(
             backend,
             listener.clone(),
             options.queue_url.clone(),
             message.clone(),
             config.interval,
             visibility_timeout,
-        )
-        .into_iter()
-        .collect()
+        ) {
+            Some((task, failure_rx)) => HeartbeatGuard {
+                tasks: vec![task],
+                failure_rx: Some(failure_rx),
+            },
+            None => HeartbeatGuard::default(),
+        }
     } else {
         HeartbeatGuard::default()
     };
 
-    let result = if let Some(timeout) = options.handle_message_timeout {
-        match tokio::time::timeout(timeout, handler.handle_message(message.clone())).await {
-            Ok(result) => result,
-            Err(_) => Err(ConsumerError::Timeout),
+    let handler_message = message.clone();
+    let mut handler_task =
+        tokio::spawn(async move { handler.handle_message(handler_message).await });
+    let mut handler_timeout = options
+        .handle_message_timeout
+        .map(|duration| Box::pin(sleep(duration)));
+    let result = loop {
+        tokio::select! {
+            result = &mut handler_task => {
+                break result.map_err(ConsumerError::Join)?;
+            }
+            _ = async {
+                if let Some(timeout) = &mut handler_timeout {
+                    timeout.as_mut().await;
+                }
+            }, if handler_timeout.is_some() => {
+                handler_task.abort();
+                break Err(ConsumerError::Timeout);
+            }
+            failed_message_id = heartbeats.recv_failure(), if heartbeats.has_failure_channel() => {
+                let Some(message_id) = failed_message_id else {
+                    heartbeats.clear_failure_channel();
+                    continue;
+                };
+                handler_task.abort();
+                break Err(ConsumerError::HeartbeatFailed { message_id });
+            }
         }
-    } else {
-        handler.handle_message(message).await
     };
     stop_heartbeats(heartbeats, listener).await;
     result
@@ -668,6 +697,10 @@ impl HeartbeatGuard {
             Some(failure_rx) => failure_rx.recv().await,
             None => None,
         }
+    }
+
+    fn clear_failure_channel(&mut self) {
+        self.failure_rx = None;
     }
 }
 
@@ -891,6 +924,8 @@ mod tests {
         graceful_timeout_message_ids: Arc<std::sync::Mutex<Vec<Vec<String>>>>,
         error_message_ids: Arc<std::sync::Mutex<Vec<Vec<String>>>>,
         timeout_message_ids: Arc<std::sync::Mutex<Vec<String>>>,
+        processing_error_message_ids: Arc<std::sync::Mutex<Vec<String>>>,
+        heartbeat_failed_message_ids: Arc<std::sync::Mutex<Vec<String>>>,
         message_processed_ids: Arc<std::sync::Mutex<Vec<String>>>,
         response_processed_counts: Arc<std::sync::Mutex<Vec<usize>>>,
         polling_started_count: Arc<std::sync::Mutex<usize>>,
@@ -963,6 +998,27 @@ mod tests {
                     .lock()
                     .unwrap()
                     .push(message_id.to_owned());
+            }
+        }
+
+        fn on_processing_error(
+            &self,
+            message: &Message,
+            error: &(dyn std::error::Error + 'static),
+        ) {
+            if let Some(message_id) = message.message_id() {
+                self.processing_error_message_ids
+                    .lock()
+                    .unwrap()
+                    .push(message_id.to_owned());
+            }
+            if let Some(ConsumerError::HeartbeatFailed { message_id }) =
+                error.downcast_ref::<ConsumerError>()
+            {
+                self.heartbeat_failed_message_ids
+                    .lock()
+                    .unwrap()
+                    .push(message_id.clone());
             }
         }
     }
@@ -1328,6 +1384,75 @@ mod tests {
         assert!(
             matches!(error, ConsumerError::HeartbeatFailed { message_id } if message_id == "1")
         );
+        assert!(backend.deleted.lock().await.is_empty());
+    }
+
+    #[tokio::test]
+    async fn heartbeat_guard_has_no_failure_channel_when_no_tasks_start() {
+        let backend = Arc::new(MockBackend::default());
+        let handler = TestHandler {
+            batch_outcome: BatchOutcome::AckAll,
+            message_outcome: HandleOutcome::Ack,
+            delay: None,
+        };
+        let options = ConsumerOptions::builder()
+            .queue_url("queue")
+            .wait_time_seconds(0)
+            .visibility_timeout(10)
+            .heartbeat(HeartbeatConfig::new(Duration::from_secs(1)))
+            .build_for_backend()
+            .unwrap();
+        let consumer = consumer(backend, handler, options);
+
+        let empty_guard = consumer.start_heartbeats(&[]).unwrap();
+        let no_receipt_guard = consumer.start_heartbeats(&[message("1", None)]).unwrap();
+
+        assert!(!empty_guard.has_failure_channel());
+        assert!(!no_receipt_guard.has_failure_channel());
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn per_message_heartbeat_failure_aborts_handler() {
+        let backend = Arc::new(MockBackend {
+            fail_visibility: true,
+            ..MockBackend::default()
+        });
+        backend
+            .receives
+            .lock()
+            .await
+            .push_back(Ok(vec![message("1", Some("r1"))]));
+        let listener = RecordingListener::default();
+        let processing_error_message_ids = listener.processing_error_message_ids.clone();
+        let heartbeat_failed_message_ids = listener.heartbeat_failed_message_ids.clone();
+        let handler = TestHandler {
+            batch_outcome: BatchOutcome::AckAll,
+            message_outcome: HandleOutcome::Ack,
+            delay: Some(Duration::from_secs(60)),
+        };
+        let options = ConsumerOptions::builder()
+            .queue_url("queue")
+            .wait_time_seconds(0)
+            .visibility_timeout(10)
+            .heartbeat(HeartbeatConfig::new(Duration::from_secs(1)))
+            .build_for_backend()
+            .unwrap();
+        let consumer = Consumer::with_test_backend(
+            options,
+            backend.clone(),
+            HandlerKind::Message(Arc::new(handler)),
+        )
+        .listener(listener);
+
+        let task = tokio::spawn(async move { consumer.run_once().await });
+        tokio::task::yield_now().await;
+        tokio::time::advance(Duration::from_secs(1)).await;
+        tokio::task::yield_now().await;
+
+        assert!(task.is_finished());
+        task.await.unwrap().unwrap();
+        assert_eq!(*processing_error_message_ids.lock().unwrap(), vec!["1"]);
+        assert_eq!(*heartbeat_failed_message_ids.lock().unwrap(), vec!["1"]);
         assert!(backend.deleted.lock().await.is_empty());
     }
 

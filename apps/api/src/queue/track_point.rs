@@ -1,8 +1,5 @@
 use async_trait::async_trait;
-use aws_sdk_sqs::operation::{
-    delete_message::DeleteMessageError, delete_message_batch::DeleteMessageBatchError,
-    receive_message::ReceiveMessageError, send_message::SendMessageError,
-};
+use aws_sdk_sqs::operation::send_message::SendMessageError;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqs_consumer::{BatchMessageHandler, BatchOutcome};
@@ -249,12 +246,6 @@ pub enum TrackPointQueueError {
     SendMessage(Box<SendMessageError>),
     #[error("AWS_SQS_QUEUE_URL_TRACK_POINT is not set")]
     MissingQueueUrl,
-    #[error("SQS receive message error: {0}")]
-    ReceiveMessage(Box<ReceiveMessageError>),
-    #[error("SQS delete message error: {0}")]
-    DeleteMessage(Box<DeleteMessageError>),
-    #[error("SQS delete message batch error: {0}")]
-    DeleteMessageBatch(Box<DeleteMessageBatchError>),
     #[error("SQS message has no body")]
     MissingBody,
     #[error("SQS message has no receipt handle")]

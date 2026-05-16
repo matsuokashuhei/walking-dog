@@ -9,7 +9,6 @@ use walking_dog::queue::track_point::{
 
 const DEFAULT_WORKER_CONCURRENCY: usize = 10;
 const DEFAULT_BATCH_SIZE: i32 = 10;
-const RECEIVE_WAIT_SECONDS: i32 = 20;
 const DEFAULT_VISIBILITY_TIMEOUT_SECONDS: i32 = 60;
 const DEFAULT_HEARTBEAT_INTERVAL_SECONDS: u64 = 30;
 const DEFAULT_HANDLER_TIMEOUT_SECONDS: u64 = 50;
@@ -35,7 +34,7 @@ async fn main() -> Result<()> {
         .queue_url(queue_url)
         .sqs_client(sqs_client)
         .batch_size(batch_size)
-        .wait_time_seconds(RECEIVE_WAIT_SECONDS)
+        .wait_time_seconds(20)
         .visibility_timeout(DEFAULT_VISIBILITY_TIMEOUT_SECONDS)
         .handle_message_timeout(Duration::from_secs(handler_timeout_seconds))
         .heartbeat(sqs_consumer::HeartbeatConfig::new(Duration::from_secs(

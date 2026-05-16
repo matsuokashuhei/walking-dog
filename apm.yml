@@ -1,20 +1,22 @@
 name: walking-dog
 version: 1.0.0
-description: APM project for walking-dog
-author: matsuokashuhei
+targets:
+  - copilot
 dependencies:
   apm:
-    - mattpocock/skills/improve-codebase-architecture
-    - kawasima/evolutionary-naming/skills/evolutionary-naming
-    - vladikk/modularity
-    - anthropics/claude-plugins-official/plugins/feature-dev
     - anthropics/claude-plugins-official/plugins/commit-commands
+    - anthropics/claude-plugins-official/plugins/feature-dev
     - anthropics/claude-plugins-official/plugins/pr-review-toolkit
-    - mattpocock/skills/grill-me
-    - mattpocock/skills/request-refactor-plan
+    - kawasima/evolutionary-naming/skills/evolutionary-naming
     - mattpocock/skills/design-an-interface
+    - mattpocock/skills/grill-me
     - mattpocock/skills/improve-codebase-architecture
+    - mattpocock/skills/request-refactor-plan
     - mattpocock/skills/to-issues
+    - millionco/react-doctor
+    - sleekdotdesign/agent-skills
+    - vladikk/modularity
+    - openai/plugins/plugins/expo
   mcp: []
 includes: auto
 scripts: {}

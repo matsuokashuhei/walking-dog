@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -10,10 +10,11 @@ import {
   isDogFormValid,
   type DogFormValues,
 } from '@/components/dogs/DogForm';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useColors } from '@/hooks/use-colors';
-import { spacing, typography } from '@/theme/tokens';
+import { spacing } from '@/theme/tokens';
 
-// 新規犬登録画面 — 02b. Dog edit に合わせた Cancel/Save の自前 nav bar を持つ。
+// 新規犬登録画面 — inline ScreenHeader でフォームの Cancel/Save を提供します。
 export default function NewDogScreen() {
   const { t } = useTranslation();
   const router = useRouter();
@@ -52,36 +53,17 @@ export default function NewDogScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={[styles.safeArea, { backgroundColor: theme.background }]}>
-      <View style={styles.navBar}>
-        <Pressable
-          onPress={() => router.back()}
-          hitSlop={12}
-          accessibilityRole="button"
-          accessibilityLabel={t('dogs.action.cancel')}
-        >
-          <Text style={[styles.navAction, { color: theme.interactive }]}>
-            {t('dogs.action.cancel')}
-          </Text>
-        </Pressable>
-        <Text style={[styles.navTitle, { color: theme.onSurface }]}>{t('dogs.new.title')}</Text>
-        <Pressable
-          onPress={handleSave}
-          disabled={!canSave}
-          hitSlop={12}
-          accessibilityRole="button"
-          accessibilityLabel={t('dogs.action.save')}
-          accessibilityState={{ disabled: !canSave }}
-        >
-          <Text
-            style={[
-              styles.navActionStrong,
-              { color: canSave ? theme.interactive : theme.textDisabled },
-            ]}
-          >
-            {t('dogs.action.save')}
-          </Text>
-        </Pressable>
-      </View>
+      <ScreenHeader
+        variant="inline"
+        title={t('dogs.new.title')}
+        leftAction={{ label: t('common.action.cancel'), onPress: () => router.back() }}
+        rightAction={{
+          label: t('common.action.save'),
+          onPress: handleSave,
+          strong: true,
+          disabled: !canSave,
+        }}
+      />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
@@ -94,16 +76,5 @@ export default function NewDogScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
-  navBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.step12,
-    minHeight: spacing.step44,
-  },
-  navTitle: { ...typography.headline },
-  navAction: { ...typography.body },
-  navActionStrong: { ...typography.body, fontWeight: typography.headline.fontWeight },
   scrollContent: { flexGrow: 1, padding: spacing.lg },
 });

@@ -1,7 +1,12 @@
 {
   "common": {
     "error": "Error",
-    "retry": "Retry"
+    "retry": "Retry",
+    "action": {
+      "back": "Back",
+      "cancel": "Cancel",
+      "save": "Save"
+    }
   },
   "tabs": {
     "dogs": "Dogs",
@@ -79,10 +84,6 @@
       "streak": "🔥 {{days}}d",
       "todayStats": "{{km}} km today · {{count}} walks"
     },
-    "action": {
-      "cancel": "Cancel",
-      "save": "Save"
-    },
     "new": {
       "title": "Register dog",
       "photoUploadError": "Failed to upload photo. You can try again from Edit."
@@ -120,6 +121,12 @@
       "leaveTitle": "Leave Group",
       "leaveConfirm": "Leave {{name}} group? You will no longer see this dog.",
       "leaveError": "Failed to leave group"
+    },
+    "encounters": {
+      "title": "Encounter History"
+    },
+    "friends": {
+      "title": "Friends"
     },
     "edit": {
       "title": "Edit dog",

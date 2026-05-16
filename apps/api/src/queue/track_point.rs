@@ -201,13 +201,9 @@ where
         messages: Vec<aws_sdk_sqs::types::Message>,
     ) -> Result<BatchOutcome, Self::Error> {
         let mut models = Vec::with_capacity(messages.len());
-        let mut invalid_message_ids = Vec::new();
 
         for message in &messages {
             let Some(body) = message.body() else {
-                if let Some(message_id) = message.message_id() {
-                    invalid_message_ids.push(message_id.to_owned());
-                }
                 tracing::warn!(
                     message_id = message.message_id(),
                     "message has no body, acking"
@@ -220,9 +216,6 @@ where
                     models.push(track_point::Model::from(track_point_message));
                 }
                 Err(error) => {
-                    if let Some(message_id) = message.message_id() {
-                        invalid_message_ids.push(message_id.to_owned());
-                    }
                     tracing::warn!(
                         message_id = message.message_id(),
                         ?error,
@@ -236,22 +229,11 @@ where
             return Ok(BatchOutcome::AckAll);
         }
 
-        match self.writer.batch_put_write(&models).await {
-            Ok(()) => Ok(BatchOutcome::AckAll),
-            Err(error) if invalid_message_ids.is_empty() => {
-                Err(TrackPointBatchHandlerError::BatchWrite(Box::new(error)))
-            }
-            Err(error) => {
-                tracing::error!(
-                    ?error,
-                    invalid_count = invalid_message_ids.len(),
-                    "DynamoDB write failed after invalid track point messages were identified"
-                );
-                Ok(BatchOutcome::Partial {
-                    ack_message_ids: invalid_message_ids,
-                })
-            }
-        }
+        self.writer
+            .batch_put_write(&models)
+            .await
+            .map_err(|error| TrackPointBatchHandlerError::BatchWrite(Box::new(error)))?;
+        Ok(BatchOutcome::AckAll)
     }
 }
 
@@ -449,24 +431,19 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn track_point_batch_handler_acks_only_invalid_messages_when_write_fails() {
+    async fn track_point_batch_handler_nacks_all_when_write_fails_after_pre_ack() {
         let writer = FakeWriter::default();
         writer.fail.store(true, Ordering::SeqCst);
         let handler = TrackPointBatchHandler::new(writer);
 
-        let outcome = handler
+        let error = handler
             .handle_batch(vec![
                 sqs_message("invalid", Some("{".into())),
                 sqs_message("valid", Some(valid_body())),
             ])
             .await
-            .unwrap();
+            .unwrap_err();
 
-        assert_eq!(
-            outcome,
-            BatchOutcome::Partial {
-                ack_message_ids: vec!["invalid".into()]
-            }
-        );
+        assert!(error.to_string().contains("DynamoDB batch write failed"));
     }
 }

@@ -2,7 +2,7 @@
 
 ## Context / 背景
 
-[screen-header-audit.md](screen-header-audit.md) で洗い出した不揃いを解消するため、`apps/mobile/components/ui/ScreenHeader.tsx` という共通プリミティブを新設する。本ドキュメントはその**インターフェース設計（API 形と命名の確定）**を扱う。実装は別ステップ。
+[screen-header-audit.md](screen-header-audit.md) で洗い出した不揃いを解消するため、`apps/mobile/components/ui/ScreenHeader.tsx` という共通プリミティブを新設した。本ドキュメントは PR #230 で shipped された **インターフェース設計（API 形と命名の確定）** の記録として扱う。
 
 ## 1. Variant の決定 / Variant decisions
 
@@ -48,20 +48,20 @@ export interface ScreenHeaderProps {
 
   /**
    * 左側のアクション。
-   * - `null` / 省略: 左ボタン無し（ただし上段枠は予約される）
+   * - undefined / 省略: 左ボタン無し（ただし上段枠は予約される）
    * - `'back'`: 共通 back ショートカット。chevron + `common.action.back` で
    *   `router.back()` を呼ぶ。
    * - object: 任意のラベルとハンドラを指定。
    */
-  leftAction?: ScreenHeaderAction | 'back' | null;
+  leftAction?: ScreenHeaderAction | 'back';
 
   /**
    * 右側のアクション。
-   * - `null` / 省略: 右ボタン無し（ただし上段枠は予約される）
+   * - undefined / 省略: 右ボタン無し（ただし上段枠は予約される）
    * - object: 任意のラベルとハンドラを指定。
    *   `strong: true` で fontWeight 600 になる（Save 等の主要 CTA 想定）。
    */
-  rightAction?: ScreenHeaderAction | null;
+  rightAction?: ScreenHeaderAction;
 
   /** テスト・E2E 用 ID。ScreenHeader 自体の View に付与される。 */
   testID?: string;
@@ -85,8 +85,8 @@ export interface ScreenHeaderAction {
 |---|---|---|
 | `title: string` | 必須・文字列のみ（ReactNode 不可） | design.html ですべて文字列。柔軟性を捨てて API を狭く保つ |
 | `variant` | union 2 値 / default `'largeTitle'` | 利用頻度の高い root tab を default に。文字列リテラル union は既存 `Button.tsx` の `variant` 流儀と一致 |
-| `leftAction` | union: object \| `'back'` \| `null` | `'back'` は出現頻度が高いショートカット。i18n と `router.back()` を内包 |
-| `rightAction` | union: object \| `null`（`'back'` 等のショートカット無し） | 右側は文脈依存（Save / +Add / Done など多様）でショートカット定義の意味が薄い |
+| `leftAction` | union: object \| `'back'`、省略で action 無し | `'back'` は出現頻度が高いショートカット。i18n と `router.back()` を内包 |
+| `rightAction` | union: object、省略で action 無し（`'back'` 等のショートカット無し） | 右側は文脈依存（Save / +Add / Done など多様）でショートカット定義の意味が薄い |
 | `strong` on rightAction | boolean | design.html では Save のみ fontWeight 600。「右側は強調可能」というセマンティクスを直接表す |
 | `disabled` on rightAction | boolean | フォーム未入力時の Save 無効化に必須 |
 | **SafeAreaView は内包しない** | 呼び出し側が引き続き `SafeAreaView edges={['top']}` でラップ | 既存 6 画面がすべてそうしている。内包すると padding 重複や入れ子のリスク |
@@ -233,34 +233,23 @@ ScreenHeader は内部で以下を担保する：
 
 ---
 
-## 8. オープン質問 / Open questions
+## 8. 決定事項 / Resolved decisions
 
-実装前にユーザーの判断が必要なポイント：
+All open questions raised during interface design were resolved before
+implementation. PR #230 ships with:
 
-1. **back chevron の表示**
-   - `leftAction='back'` のとき、design.html のような literal `‹` テキストか、SF Symbol の chevron アイコンか？
-   - 推奨: **SF Symbol** (`icon-symbol` コンポーネント使用)。iOS HIG 準拠で他画面 (DogHeroNavBar 等) と整合
-   - 代替: 見た目を design.html に厳密に合わせるなら literal `‹` テキスト
-
-2. **`dogs.action.{cancel, save}` の即時削除**
-   - `common.action.{cancel, save}` に統合する案だが、置き換え PR と同時にキー削除するか、後続 PR で削除するか？
-   - 推奨: **同時削除**（dead key を残さない / `feedback_same_scope_legacy_cleanup` ルール）
-
-3. **`(tabs)/walk.tsx` にタイトル「Walk」を追加するか？**
-   - 現状はタイトル無し。design.html では `Walk`。追加すると見た目が変わる
-   - 推奨: **追加する**（design.html に合わせる）。が、UX 判断としてユーザーの確認を取る
-
-4. **`leftAction='back'` のデフォルトラベルを `'Back'` 固定にするか、画面ごとに上書きしやすくするか？**
-   - 推奨: ショートカット `'back'` はデフォルトで `t('common.action.back')`。固有ラベルが必要なら object 形式で渡せばよい（API ですでに対応済み）
+| # | Decision | Outcome |
+|---|---|---|
+| 1 | Back button glyph | SF Symbol `chevron.backward` via `icon-symbol`. |
+| 2 | `dogs.action.{cancel, save}` removal | Removed in the same PR, replaced by `common.action.{cancel, save}`. |
+| 3 | Walk tab title | Added (`title='Walk'`) per design.html. |
+| 4 | `leftAction='back'` default label | `t('common.action.back')`. |
 
 ---
 
-## 9. 次のステップ / Next step
+## 9. Status / 状況
 
-このインターフェース設計でユーザー合意が取れたら：
-
-1. オープン質問 1〜4 に回答をもらう
-2. `ScreenHeader.tsx` + `ScreenHeader.test.tsx` を TDD で実装（RED → GREEN → REFACTOR）
-3. i18n キー (`common.action.*`) を追加
-4. 1画面ずつ置き換え（PR 分割推奨: tab 群 / dogs new+edit / detail 配下）
-5. iOS Simulator で Dogs ⇄ Me ⇄ Walk の縦位置一致を目視確認
+Shipped in PR #230 "Unify mobile screen headers" on branch
+`claude/hopeful-lederberg-0d3dcc`. See `apps/mobile/components/ui/ScreenHeader.tsx`
+and `apps/mobile/components/ui/ScreenHeader.test.tsx` for the implementation
+and test coverage.

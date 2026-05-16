@@ -32,20 +32,21 @@ describe('ScreenHeader', () => {
     render(<ScreenHeader title="My Dogs" testID="header" />);
 
     const title = screen.getByRole('header', { name: 'My Dogs' });
-    const header = getTestNode('header');
+    const actionRow = screen.getByTestId('header-action-row');
+    const titleRow = screen.getByTestId('header-large-title-row');
 
     expect(title).toBeTruthy();
+    expect(actionRow).toBeTruthy();
+    expect(titleRow).toBeTruthy();
     expect(flattenStyle(title.props.style).fontSize).toBe(
       typography.largeTitle.fontSize,
     );
-    expect(header.children).toHaveLength(2);
   });
 
   it('keeps the largeTitle action row and slot frames when no actions are provided', () => {
     render(<ScreenHeader title="Me" testID="header" />);
 
-    const header = getTestNode('header');
-    const actionRow = childAt(header, 0);
+    const actionRow = screen.getByTestId('header-action-row');
     const leftSlot = screen.getByTestId('header-left-action-slot');
     const rightSlot = screen.getByTestId('header-right-action-slot');
 
@@ -53,18 +54,33 @@ describe('ScreenHeader', () => {
     expect(screen.getByRole('header', { name: 'Me' })).toBeTruthy();
     expect(flattenStyle(actionRow.props.style).height).toBe(layout.navBar);
     expect(flattenStyle(leftSlot.props.style).minWidth).toBe(spacing.step60);
+    expect(flattenStyle(leftSlot.props.style).minHeight).toBe(layout.navBar);
     expect(flattenStyle(rightSlot.props.style).minWidth).toBe(spacing.step60);
+    expect(flattenStyle(rightSlot.props.style).minHeight).toBe(layout.navBar);
   });
 
   it('renders inline as one row with header title typography', () => {
     render(<ScreenHeader variant="inline" title="Edit dog" testID="header" />);
 
-    const header = getTestNode('header');
+    const actionRow = screen.getByTestId('header-action-row');
     const title = screen.getByRole('header', { name: 'Edit dog' });
 
-    expect(header.children).toHaveLength(1);
+    expect(actionRow).toBeTruthy();
+    expect(screen.queryByTestId('header-large-title-row')).toBeNull();
+    expect(flattenStyle(actionRow.props.style).height).toBe(layout.navBar);
     expect(title).toBeTruthy();
     expect(flattenStyle(title.props.style).fontSize).toBe(typography.headline.fontSize);
+  });
+
+  it('renders the back shortcut in largeTitle variant', () => {
+    render(<ScreenHeader title="Detail" leftAction="back" testID="header" />);
+
+    expect(screen.getByText('chevron.backward')).toBeTruthy();
+    expect(screen.getByTestId('header-left-action-slot')).toBeTruthy();
+
+    fireEvent.press(screen.getByRole('button', { name: 'Back' }));
+
+    expect(mockBack).toHaveBeenCalledTimes(1);
   });
 
   it('renders the English back shortcut with chevron and calls router.back', () => {
@@ -94,9 +110,11 @@ describe('ScreenHeader', () => {
       />,
     );
 
+    const label = screen.getByText('Cancel');
     fireEvent.press(screen.getByRole('button', { name: 'Cancel' }));
 
     expect(onPress).toHaveBeenCalledTimes(1);
+    expect(flattenStyle(label.props.style).color).toBe(colors.light.interactive);
   });
 
   it('renders a strong right action with headline font weight', () => {
@@ -135,14 +153,29 @@ describe('ScreenHeader', () => {
     expect(flattenStyle(label.props.style).color).toBe(colors.light.textDisabled);
   });
 
-  it('renders no buttons when both actions are null while keeping the header visible', () => {
+  it('lets disabled visual state override strong emphasis', () => {
+    const onPress = jest.fn();
     render(
       <ScreenHeader
-        title="Me"
-        leftAction={null}
-        rightAction={null}
+        variant="inline"
+        title="Register dog"
+        rightAction={{ label: 'Save', onPress, strong: true, disabled: true }}
       />,
     );
+
+    const button = screen.getByRole('button', { name: 'Save' });
+    const labelStyle = flattenStyle(screen.getByText('Save').props.style);
+
+    fireEvent.press(button);
+
+    expect(onPress).not.toHaveBeenCalled();
+    expect(button.props.accessibilityState?.disabled).toBe(true);
+    expect(labelStyle.color).toBe(colors.light.textDisabled);
+    expect(labelStyle.fontWeight).toBe(typography.body.fontWeight);
+  });
+
+  it('renders no buttons when actions are omitted while keeping the header visible', () => {
+    render(<ScreenHeader title="Me" />);
 
     expect(screen.queryByRole('button')).toBeNull();
     expect(screen.getByRole('header', { name: 'Me' })).toBeTruthy();
@@ -163,27 +196,24 @@ describe('ScreenHeader', () => {
 
     expect(cancel.props.accessibilityLabel).toBe('Cancel');
     expect(save.props.accessibilityLabel).toBe('Save');
-    expect(cancel.props.hitSlop).toBe(12);
-    expect(save.props.hitSlop).toBe(12);
+    expect(cancel.props.hitSlop).toBe(spacing.step12);
+    expect(save.props.hitSlop).toBe(spacing.step12);
     expect(flattenStyle(cancel.props.style).minHeight).toBe(layout.navBar);
     expect(flattenStyle(save.props.style).minHeight).toBe(layout.navBar);
   });
+
+  it('applies the largeTitle row vertical padding tokens', () => {
+    render(<ScreenHeader title="Dogs" testID="header" />);
+
+    const titleRow = screen.getByTestId('header-large-title-row');
+    const rowStyle = flattenStyle(titleRow.props.style);
+
+    expect(rowStyle.paddingTop).toBe(spacing.step6);
+    expect(rowStyle.paddingBottom).toBe(spacing.step10);
+  });
 });
 
-interface TestNode {
-  props: Record<string, unknown>;
-  children: unknown[];
-}
-
 type StyleRecord = Record<string, unknown>;
-
-function getTestNode(testID: string): TestNode {
-  return screen.getByTestId(testID) as unknown as TestNode;
-}
-
-function childAt(node: TestNode, index: number): TestNode {
-  return node.children[index] as TestNode;
-}
 
 function flattenStyle(style: unknown): StyleRecord {
   const flattened = StyleSheet.flatten(style);

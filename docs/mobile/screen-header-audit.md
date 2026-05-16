@@ -1,5 +1,12 @@
 # 画面ベース部分の共通化 — 改善点の洗い出し / Screen header unification — improvement audit
 
+> **Status: Historical (Pre-PR #230 planning record).**
+> This document describes the screen-header inconsistencies that existed
+> **before** PR #230 "Unify mobile screen headers" was merged. The "現状"
+> tables capture the codebase state at the time of the audit. For the
+> shipped component, see [screen-header-interface.md](screen-header-interface.md)
+> and `apps/mobile/components/ui/ScreenHeader.tsx`.
+
 ## Context / 背景
 
 `apps/mobile` の各画面で「最上部の両端ボタン（Cancel / + Add / ‹ Back / Save）」と「その下の画面タイトル」が画面ごとに別実装になっている。とくに **My Dog（Dogs 一覧タブ）** と **Me（Settings タブ）** で同じはずのヘッダー構造が揃っていない。

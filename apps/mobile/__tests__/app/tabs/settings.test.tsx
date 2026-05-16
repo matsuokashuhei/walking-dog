@@ -47,6 +47,10 @@ jest.mock('@/components/settings/SignOutRow', () => ({
 describe('SettingsScreen', () => {
   it('renders Me as the shared screen header', () => {
     render(<SettingsScreen />);
+
     expect(screen.getByRole('header', { name: 'Me' })).toBeTruthy();
+    expect(screen.getByTestId('settings-header-large-title-row')).toBeTruthy();
+    expect(screen.getByTestId('settings-header-left-action-slot')).toBeTruthy();
+    expect(screen.getByTestId('settings-header-right-action-slot')).toBeTruthy();
   });
 });

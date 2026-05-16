@@ -26,7 +26,7 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={[styles.safeArea, { backgroundColor: theme.background }]}>
-      <ScreenHeader title={t('settings.title')} />
+      <ScreenHeader title={t('settings.title')} testID="settings-header" />
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         <ProfileCard displayName={vm.me.name ?? vm.me.displayName ?? null} />
         <PreferencesSection />

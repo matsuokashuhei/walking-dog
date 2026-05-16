@@ -44,6 +44,7 @@ export default function DogsScreen() {
     >
       <ScreenHeader
         title={t('dogs.list.title')}
+        testID="dogs-header"
         rightAction={{ label: t('dogs.list.addCta'), onPress: vm.handleAddDog }}
       />
       <FlatList

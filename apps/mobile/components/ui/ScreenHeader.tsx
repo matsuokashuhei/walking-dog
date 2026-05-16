@@ -10,29 +10,29 @@ export interface ScreenHeaderProps {
   title: string;
 
   /**
-   * - `'largeTitle'` (default): 2-row. Row 1 reserves 44px frame with left/right
-   *   action slots (each minWidth: spacing.step60). Row 2 shows the title with
-   *   `typography.largeTitle`, padding top spacing.step6 bottom spacing.step10.
-   * - `'inline'`: 1-row, height layout.navBar (44px). Title centered with
+   * - `'largeTitle'` (default): 2-row. Row 1 reserves a `layout.navBar`
+   *   high frame with `spacing.step60`-wide action slots. Row 2 shows the title with
+   *   `typography.largeTitle`.
+   * - `'inline'`: 1-row, height `layout.navBar`. Title centered with
    *   `typography.headline`.
    */
   variant?: 'largeTitle' | 'inline';
 
   /**
-   * - `null` / undefined: no button, but the slot frame is still rendered to
+   * - undefined / omitted: no button, but the slot frame is still rendered to
    *   preserve row height.
    * - `'back'`: SF Symbol chevron.backward + t('common.action.back'). Pressing
    *   it calls router.back() from useRouter().
    * - object: explicit label and onPress.
    */
-  leftAction?: ScreenHeaderAction | 'back' | null;
+  leftAction?: ScreenHeaderAction | 'back';
 
   /**
-   * - `null` / undefined: no button, frame still rendered.
+   * - undefined / omitted: no button, frame still rendered.
    * - object: explicit label and onPress. `strong: true` applies
-   *   `typography.headline.fontWeight` ('600').
+   *   `typography.headline.fontWeight`.
    */
-  rightAction?: ScreenHeaderAction | null;
+  rightAction?: ScreenHeaderAction;
 
   /** Wrapper testID. */
   testID?: string;
@@ -41,7 +41,7 @@ export interface ScreenHeaderProps {
 export interface ScreenHeaderAction {
   label: string;
   onPress: () => void;
-  /** fontWeight '600' for primary CTAs like Save. default: false */
+  /** Emphasized font weight for primary CTAs like Save. default: false */
   strong?: boolean;
   /** Disabled visual + accessibilityState.disabled. onPress is not called. */
   disabled?: boolean;
@@ -70,16 +70,17 @@ export function ScreenHeader({
           onPress: () => router.back(),
           icon: 'chevron.backward' as const,
         }
-      : leftAction ?? null;
-  const resolvedRightAction = rightAction ?? null;
+      : leftAction;
+  const resolvedRightAction = rightAction;
 
   const renderActionSlot = (
-    action: ResolvedScreenHeaderAction | null,
+    action: ResolvedScreenHeaderAction | undefined,
     side: ActionSide,
     inline: boolean,
     slotTestID?: string,
   ) => {
     const isDisabled = action?.disabled === true;
+    const isStrong = action?.strong === true && !isDisabled;
     const actionColor = isDisabled ? theme.textDisabled : theme.interactive;
 
     return (
@@ -114,7 +115,7 @@ export function ScreenHeader({
             <Text
               style={[
                 styles.actionLabel,
-                action.strong === true ? styles.strongActionLabel : null,
+                isStrong ? styles.strongActionLabel : null,
                 { color: actionColor },
               ]}
             >
@@ -129,7 +130,7 @@ export function ScreenHeader({
   if (variant === 'inline') {
     return (
       <View testID={testID}>
-        <View style={styles.inlineRow}>
+        <View testID={derivedTestID(testID, 'action-row')} style={styles.inlineRow}>
           {renderActionSlot(
             resolvedLeftAction,
             'left',
@@ -156,7 +157,10 @@ export function ScreenHeader({
 
   return (
     <View testID={testID}>
-      <View style={styles.largeTitleActionRow}>
+      <View
+        testID={derivedTestID(testID, 'action-row')}
+        style={styles.largeTitleActionRow}
+      >
         {renderActionSlot(
           resolvedLeftAction,
           'left',
@@ -170,7 +174,10 @@ export function ScreenHeader({
           slotTestID(testID, 'right'),
         )}
       </View>
-      <View style={styles.largeTitleRow}>
+      <View
+        testID={derivedTestID(testID, 'large-title-row')}
+        style={styles.largeTitleRow}
+      >
         <Text
           accessibilityRole="header"
           numberOfLines={1}
@@ -185,6 +192,10 @@ export function ScreenHeader({
 
 function slotTestID(testID: string | undefined, side: ActionSide): string | undefined {
   return testID ? `${testID}-${side}-action-slot` : undefined;
+}
+
+function derivedTestID(testID: string | undefined, suffix: string): string | undefined {
+  return testID ? `${testID}-${suffix}` : undefined;
 }
 
 const styles = StyleSheet.create({
@@ -214,6 +225,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     textAlign: 'center',
   },
+  // minWidth/minHeight の予約枠は、My Dog と Me の縦ズレ再発を防ぐために維持する。
   actionSlot: {
     minWidth: spacing.step60,
     minHeight: layout.navBar,

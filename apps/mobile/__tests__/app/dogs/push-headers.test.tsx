@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import DogDetailLayout from '../../../app/dogs/[id]/_layout';
 import DogEncountersScreen from '../../../app/dogs/[id]/encounters';
@@ -13,17 +14,30 @@ jest.mock('@/hooks/use-color-scheme', () => ({
 
 jest.mock('expo-router', () => {
   const React = jest.requireActual<typeof import('react')>('react');
-  const StackScreen = jest.fn(() => null);
+  const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
 
   function Stack({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
+  }
+
+  function StackScreen({
+    name,
+    options,
+  }: {
+    name: string;
+    options?: { headerShown?: boolean; title?: string };
+  }) {
+    if (options?.headerShown === false) {
+      return null;
+    }
+
+    return <Text accessibilityRole="header">{options?.title ?? name}</Text>;
   }
 
   Stack.Screen = StackScreen;
 
   return {
     Stack,
-    __mockStackScreen: StackScreen,
     useLocalSearchParams: () => ({ id: 'dog-1' }),
     useRouter: () => ({ back: mockBack, push: mockPush, replace: mockReplace }),
   };
@@ -84,46 +98,44 @@ describe('dog push screen headers', () => {
     jest.clearAllMocks();
   });
 
-  it('disables native Stack headers for screens migrated to ScreenHeader', () => {
-    render(<DogDetailLayout />);
+  it('renders Members with exactly one inline ScreenHeader and back action', () => {
+    renderWithLayout(<DogMembersScreen />);
 
-    expectStackHeaderHidden('members');
-    expectStackHeaderHidden('friends/index');
-    expectStackHeaderHidden('encounters');
-  });
-
-  it('renders Members with an inline ScreenHeader back action', () => {
-    render(<DogMembersScreen />);
-
-    expect(screen.getByRole('header', { name: 'Members' })).toBeTruthy();
+    expectSingleHeader('Members');
     fireEvent.press(screen.getByRole('button', { name: 'Back' }));
 
     expect(mockBack).toHaveBeenCalledTimes(1);
   });
 
-  it('renders Encounter History with an inline ScreenHeader back action', () => {
-    render(<DogEncountersScreen />);
+  it('renders Encounter History with exactly one inline ScreenHeader and back action', () => {
+    renderWithLayout(<DogEncountersScreen />);
 
-    expect(screen.getByRole('header', { name: 'Encounter History' })).toBeTruthy();
+    expectSingleHeader('Encounter History');
     fireEvent.press(screen.getByRole('button', { name: 'Back' }));
 
     expect(mockBack).toHaveBeenCalledTimes(1);
   });
 
-  it('renders Friends with an inline ScreenHeader back action', () => {
-    render(<DogFriendsScreen />);
+  it('renders Friends with exactly one inline ScreenHeader and back action', () => {
+    renderWithLayout(<DogFriendsScreen />);
 
-    expect(screen.getByRole('header', { name: 'Friends' })).toBeTruthy();
+    expectSingleHeader('Friends');
     fireEvent.press(screen.getByRole('button', { name: 'Back' }));
 
     expect(mockBack).toHaveBeenCalledTimes(1);
   });
 });
 
-function expectStackHeaderHidden(name: string) {
-  const { __mockStackScreen } = jest.requireMock('expo-router') as {
-    __mockStackScreen: jest.Mock;
-  };
-  const call = __mockStackScreen.mock.calls.find(([props]) => props?.name === name);
-  expect(call?.[0]?.options?.headerShown).toBe(false);
+function renderWithLayout(screenElement: ReactElement) {
+  render(
+    <>
+      <DogDetailLayout />
+      {screenElement}
+    </>,
+  );
+}
+
+function expectSingleHeader(name: string) {
+  expect(screen.getAllByRole('header')).toHaveLength(1);
+  expect(screen.getByRole('header', { name })).toBeTruthy();
 }

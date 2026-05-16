@@ -60,7 +60,11 @@ describe('DogsScreen', () => {
 
   it('renders Dogs as the shared screen header', () => {
     render(<DogsScreen />);
+
     expect(screen.getByRole('header', { name: 'My Dogs' })).toBeTruthy();
+    expect(screen.getByTestId('dogs-header-large-title-row')).toBeTruthy();
+    expect(screen.getByTestId('dogs-header-left-action-slot')).toBeTruthy();
+    expect(screen.getByTestId('dogs-header-right-action-slot')).toBeTruthy();
   });
 
   it('renders Today walking goal rollup title', () => {

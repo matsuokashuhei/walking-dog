@@ -5,7 +5,7 @@ use aws_sdk_sqs::{
         change_message_visibility::ChangeMessageVisibilityError,
         delete_message_batch::DeleteMessageBatchError, receive_message::ReceiveMessageError,
     },
-    types::{DeleteMessageBatchRequestEntry, Message},
+    types::{DeleteMessageBatchRequestEntry, Message, MessageSystemAttributeName},
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -31,6 +31,8 @@ pub(crate) trait SqsBackend: Send + Sync + 'static {
         max_number_of_messages: i32,
         wait_time_seconds: i32,
         visibility_timeout: Option<i32>,
+        attribute_names: &[MessageSystemAttributeName],
+        message_attribute_names: &[String],
     ) -> Result<Vec<Message>, BackendError>;
 
     async fn delete_message_batch(
@@ -65,17 +67,23 @@ impl SqsBackend for AwsSqsBackend {
         max_number_of_messages: i32,
         wait_time_seconds: i32,
         visibility_timeout: Option<i32>,
+        attribute_names: &[MessageSystemAttributeName],
+        message_attribute_names: &[String],
     ) -> Result<Vec<Message>, BackendError> {
         let mut request = self
             .client
             .receive_message()
             .queue_url(queue_url)
             .max_number_of_messages(max_number_of_messages)
-            .wait_time_seconds(wait_time_seconds)
-            .message_attribute_names("All")
-            .message_system_attribute_names(aws_sdk_sqs::types::MessageSystemAttributeName::All);
+            .wait_time_seconds(wait_time_seconds);
         if let Some(visibility_timeout) = visibility_timeout {
             request = request.visibility_timeout(visibility_timeout);
+        }
+        if !attribute_names.is_empty() {
+            request = request.set_message_system_attribute_names(Some(attribute_names.to_vec()));
+        }
+        if !message_attribute_names.is_empty() {
+            request = request.set_message_attribute_names(Some(message_attribute_names.to_vec()));
         }
         let output = request
             .send()

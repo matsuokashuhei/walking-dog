@@ -38,10 +38,9 @@ async fn main() -> Result<()> {
         .wait_time_seconds(RECEIVE_WAIT_SECONDS)
         .visibility_timeout(DEFAULT_VISIBILITY_TIMEOUT_SECONDS)
         .handle_message_timeout(Duration::from_secs(handler_timeout_seconds))
-        .heartbeat(sqs_consumer::HeartbeatConfig {
-            interval: Duration::from_secs(DEFAULT_HEARTBEAT_INTERVAL_SECONDS),
-            visibility_timeout: None,
-        })
+        .heartbeat(sqs_consumer::HeartbeatConfig::new(Duration::from_secs(
+            DEFAULT_HEARTBEAT_INTERVAL_SECONDS,
+        )))
         .build()?;
     let handler = TrackPointBatchHandler::new(DynamoDbTrackPointBatchWriter::new(dynamodb_client));
 

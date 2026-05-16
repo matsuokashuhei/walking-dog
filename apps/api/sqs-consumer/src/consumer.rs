@@ -13,7 +13,10 @@ use crate::{
     handler::{BatchMessageHandler, BatchOutcome, HandleOutcome, MessageHandler},
     heartbeat::{HeartbeatTask, spawn_heartbeat, spawn_heartbeat_with_failure_channel},
     listener::{ConsumerListener, NoopListener},
-    options::{ConsumerOptions, TerminateVisibility, validate_visibility_timeout},
+    options::{
+        ConsumerOptions, TerminateVisibility, resolve_heartbeat_visibility_timeout,
+        validate_visibility_timeout,
+    },
     shutdown::{ShutdownHandle, ShutdownState},
 };
 
@@ -86,15 +89,21 @@ impl Consumer {
     }
 
     async fn receive_once(&self) -> Result<Vec<Message>, ConsumerError> {
-        self.backend
+        self.listener.on_polling_started();
+        let result = self
+            .backend
             .receive_messages(
                 &self.options.queue_url,
                 self.options.batch_size,
                 self.options.wait_time_seconds,
                 self.options.visibility_timeout,
+                &self.options.attribute_names,
+                &self.options.message_attribute_names,
             )
             .await
-            .map_err(map_receive_error)
+            .map_err(map_receive_error);
+        self.listener.on_polling_completed();
+        result
     }
 
     async fn delete_acked(&self, messages: &[Message]) -> Result<(), ConsumerError> {
@@ -170,20 +179,28 @@ impl Consumer {
             };
             if messages.is_empty() {
                 self.listener.on_empty();
+                if !self.wait_for_polling().await {
+                    break;
+                }
                 continue;
             }
+            let message_count = messages.len();
             for message in &messages {
                 self.listener.on_message_received(message);
             }
 
-            if let Err(error) = self.dispatch_and_ack(messages).await {
+            let result = self.dispatch_and_ack(messages.clone()).await;
+            if result.is_ok() {
+                self.notify_messages_processed(&messages);
+            }
+            if let Err(error) = result {
                 if let ConsumerError::Aborted { message_ids } = &error {
                     aborted_message_ids = message_ids.clone();
                     break 'running;
                 }
                 self.listener.on_error(&error, None);
             }
-            self.listener.on_response_processed();
+            self.listener.on_response_processed(message_count);
             if *self.shutdown_rx.borrow() != ShutdownState::Running {
                 break;
             }
@@ -194,6 +211,30 @@ impl Consumer {
             self.listener.on_stopped();
         }
         Ok(())
+    }
+
+    async fn wait_for_polling(&self) -> bool {
+        if self.options.polling_wait_time.is_zero() {
+            return true;
+        }
+        self.listener.on_waiting_for_polling();
+        let mut shutdown_rx = self.shutdown_rx.clone();
+        tokio::select! {
+            _ = sleep(self.options.polling_wait_time) => {
+                self.listener.on_polling_wait_exceeded();
+                true
+            }
+            changed = shutdown_rx.changed() => {
+                let _ = changed;
+                false
+            }
+        }
+    }
+
+    fn notify_messages_processed(&self, messages: &[Message]) {
+        for message in messages {
+            self.listener.on_message_processed(message);
+        }
     }
 
     async fn receive_until_shutdown(&self) -> Option<Result<Vec<Message>, ConsumerError>> {
@@ -389,14 +430,8 @@ impl Consumer {
         let Some(config) = &self.options.heartbeat else {
             return Ok(HeartbeatGuard::default());
         };
-        let Some(visibility_timeout) = config
-            .visibility_timeout
-            .or(self.options.visibility_timeout)
-        else {
-            return Err(ConsumerError::InvalidConfig(
-                "heartbeat requires visibility_timeout".into(),
-            ));
-        };
+        let visibility_timeout =
+            resolve_heartbeat_visibility_timeout(config, self.options.visibility_timeout)?;
         let (failure_tx, failure_rx) = mpsc::unbounded_channel();
         Ok(HeartbeatGuard {
             tasks: messages
@@ -450,11 +485,15 @@ impl Consumer {
             self.listener.on_empty();
             return Ok(());
         }
+        let message_count = messages.len();
         for message in &messages {
             self.listener.on_message_received(message);
         }
-        let result = self.dispatch_and_ack(messages).await;
-        self.listener.on_response_processed();
+        let result = self.dispatch_and_ack(messages.clone()).await;
+        if result.is_ok() {
+            self.notify_messages_processed(&messages);
+        }
+        self.listener.on_response_processed(message_count);
         result
     }
 }
@@ -468,6 +507,7 @@ impl Consumer {
             .sqs_client
             .clone()
             .ok_or_else(|| ConsumerError::InvalidOptions("sqs_client is required".into()))?;
+        warn_if_fifo_queue(&options);
         Ok(Self::new(
             options,
             Arc::new(AwsSqsBackend::new(client)),
@@ -486,6 +526,7 @@ impl Consumer {
             .sqs_client
             .clone()
             .ok_or_else(|| ConsumerError::InvalidOptions("sqs_client is required".into()))?;
+        warn_if_fifo_queue(&options);
         Ok(Self::new(
             options,
             Arc::new(AwsSqsBackend::new(client)),
@@ -512,6 +553,15 @@ impl Consumer {
         handler: HandlerKind,
     ) -> Self {
         Self::new(options, backend, handler)
+    }
+}
+
+fn warn_if_fifo_queue(options: &ConsumerOptions) {
+    if !options.suppress_fifo_warning && options.queue_url.ends_with(".fifo") {
+        tracing::warn!(
+            queue_url = %options.queue_url,
+            "sqs-consumer does not provide FIFO-specific ordering guarantees"
+        );
     }
 }
 
@@ -565,12 +615,8 @@ async fn handle_one(
     message: Message,
 ) -> Result<HandleOutcome, ConsumerError> {
     let heartbeats = if let Some(config) = &options.heartbeat {
-        let Some(visibility_timeout) = config.visibility_timeout.or(options.visibility_timeout)
-        else {
-            return Err(ConsumerError::InvalidConfig(
-                "heartbeat requires visibility_timeout".into(),
-            ));
-        };
+        let visibility_timeout =
+            resolve_heartbeat_visibility_timeout(config, options.visibility_timeout)?;
         spawn_heartbeat(
             backend,
             listener.clone(),
@@ -711,6 +757,8 @@ mod tests {
             _max_number_of_messages: i32,
             _wait_time_seconds: i32,
             _visibility_timeout: Option<i32>,
+            _attribute_names: &[aws_sdk_sqs::types::MessageSystemAttributeName],
+            _message_attribute_names: &[String],
         ) -> Result<Vec<Message>, BackendError> {
             self.receives
                 .lock()
@@ -836,9 +884,23 @@ mod tests {
         aborted_message_ids: Arc<std::sync::Mutex<Vec<Vec<String>>>>,
         graceful_timeout_message_ids: Arc<std::sync::Mutex<Vec<Vec<String>>>>,
         error_message_ids: Arc<std::sync::Mutex<Vec<Vec<String>>>>,
+        message_processed_ids: Arc<std::sync::Mutex<Vec<String>>>,
+        response_processed_counts: Arc<std::sync::Mutex<Vec<usize>>>,
+        polling_started_count: Arc<std::sync::Mutex<usize>>,
+        polling_completed_count: Arc<std::sync::Mutex<usize>>,
+        waiting_for_polling_count: Arc<std::sync::Mutex<usize>>,
+        polling_wait_exceeded_count: Arc<std::sync::Mutex<usize>>,
     }
 
     impl ConsumerListener for RecordingListener {
+        fn on_polling_started(&self) {
+            *self.polling_started_count.lock().unwrap() += 1;
+        }
+
+        fn on_polling_completed(&self) {
+            *self.polling_completed_count.lock().unwrap() += 1;
+        }
+
         fn on_aborted(&self, aborted_message_ids: &[String]) {
             self.aborted_message_ids
                 .lock()
@@ -865,6 +927,27 @@ mod tests {
                     .unwrap()
                     .push(message_ids(messages));
             }
+        }
+
+        fn on_message_processed(&self, message: &Message) {
+            if let Some(message_id) = message.message_id() {
+                self.message_processed_ids
+                    .lock()
+                    .unwrap()
+                    .push(message_id.to_owned());
+            }
+        }
+
+        fn on_response_processed(&self, count: usize) {
+            self.response_processed_counts.lock().unwrap().push(count);
+        }
+
+        fn on_waiting_for_polling(&self) {
+            *self.waiting_for_polling_count.lock().unwrap() += 1;
+        }
+
+        fn on_polling_wait_exceeded(&self) {
+            *self.polling_wait_exceeded_count.lock().unwrap() += 1;
         }
     }
 
@@ -1015,6 +1098,75 @@ mod tests {
         );
     }
 
+    #[tokio::test]
+    async fn run_once_notifies_polling_lifecycle_and_processed_count() {
+        let backend = Arc::new(MockBackend::default());
+        backend
+            .receives
+            .lock()
+            .await
+            .push_back(Ok(vec![message("1", Some("r1"))]));
+        let listener = RecordingListener::default();
+        let message_processed_ids = listener.message_processed_ids.clone();
+        let response_processed_counts = listener.response_processed_counts.clone();
+        let polling_started_count = listener.polling_started_count.clone();
+        let polling_completed_count = listener.polling_completed_count.clone();
+        let handler = TestHandler {
+            batch_outcome: BatchOutcome::AckAll,
+            message_outcome: HandleOutcome::Ack,
+            delay: None,
+        };
+
+        consumer(backend, handler, options())
+            .listener(listener)
+            .run_once()
+            .await
+            .unwrap();
+
+        assert_eq!(*polling_started_count.lock().unwrap(), 1);
+        assert_eq!(*polling_completed_count.lock().unwrap(), 1);
+        assert_eq!(*message_processed_ids.lock().unwrap(), vec!["1"]);
+        assert_eq!(*response_processed_counts.lock().unwrap(), vec![1]);
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn empty_response_waits_before_next_poll() {
+        let backend = Arc::new(MockBackend::default());
+        backend.receives.lock().await.push_back(Ok(Vec::new()));
+        backend
+            .receives
+            .lock()
+            .await
+            .push_back(Ok(vec![message("1", Some("r1"))]));
+        let listener = RecordingListener::default();
+        let waiting_for_polling_count = listener.waiting_for_polling_count.clone();
+        let polling_wait_exceeded_count = listener.polling_wait_exceeded_count.clone();
+        let handler = TestHandler {
+            batch_outcome: BatchOutcome::AckAll,
+            message_outcome: HandleOutcome::Ack,
+            delay: None,
+        };
+        let options = ConsumerOptions::builder()
+            .queue_url("queue")
+            .wait_time_seconds(0)
+            .polling_wait_time(Duration::from_secs(5))
+            .build_for_backend()
+            .unwrap();
+        let consumer = consumer(backend.clone(), handler, options).listener(listener);
+        let shutdown = consumer.shutdown_handle();
+
+        let task = tokio::spawn(async move { consumer.run().await });
+        tokio::task::yield_now().await;
+        tokio::time::advance(Duration::from_secs(5)).await;
+        tokio::task::yield_now().await;
+        shutdown.graceful();
+        task.await.unwrap().unwrap();
+
+        assert_eq!(*backend.deleted.lock().await, vec![vec!["r1"]]);
+        assert!(*waiting_for_polling_count.lock().unwrap() >= 1);
+        assert!(*polling_wait_exceeded_count.lock().unwrap() >= 1);
+    }
+
     #[tokio::test(start_paused = true)]
     async fn heartbeat_failure_aborts_handler_and_surfaces_error() {
         let backend = Arc::new(MockBackend {
@@ -1035,10 +1187,7 @@ mod tests {
             .queue_url("queue")
             .wait_time_seconds(0)
             .visibility_timeout(10)
-            .heartbeat(HeartbeatConfig {
-                interval: Duration::from_secs(1),
-                visibility_timeout: None,
-            })
+            .heartbeat(HeartbeatConfig::new(Duration::from_secs(1)))
             .build_for_backend()
             .unwrap();
 
@@ -1126,10 +1275,7 @@ mod tests {
             .queue_url("queue")
             .wait_time_seconds(0)
             .visibility_timeout(10)
-            .heartbeat(HeartbeatConfig {
-                interval: Duration::from_secs(1),
-                visibility_timeout: None,
-            })
+            .heartbeat(HeartbeatConfig::new(Duration::from_secs(1)))
             .build_for_backend()
             .unwrap();
 

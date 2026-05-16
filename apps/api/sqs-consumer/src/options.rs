@@ -1,6 +1,6 @@
 use std::{sync::Arc, time::Duration};
 
-use aws_sdk_sqs::Client;
+use aws_sdk_sqs::{Client, types::MessageSystemAttributeName};
 
 use crate::error::ConsumerError;
 
@@ -18,6 +18,10 @@ pub struct ConsumerOptions {
     pub(crate) should_delete_messages: bool,
     pub(crate) always_acknowledge: bool,
     pub(crate) receive_error_backoff: Duration,
+    pub(crate) polling_wait_time: Duration,
+    pub(crate) attribute_names: Vec<MessageSystemAttributeName>,
+    pub(crate) message_attribute_names: Vec<String>,
+    pub(crate) suppress_fifo_warning: bool,
     pub(crate) handle_message_timeout: Option<Duration>,
     pub(crate) terminate_visibility: TerminateVisibility,
     pub(crate) heartbeat: Option<HeartbeatConfig>,
@@ -33,7 +37,21 @@ impl ConsumerOptions {
 #[derive(Clone)]
 pub struct HeartbeatConfig {
     pub interval: Duration,
-    pub visibility_timeout: Option<i32>,
+    pub extension: Option<Duration>,
+}
+
+impl HeartbeatConfig {
+    pub fn new(interval: Duration) -> Self {
+        Self {
+            interval,
+            extension: None,
+        }
+    }
+
+    pub fn extension(mut self, extension: Duration) -> Self {
+        self.extension = Some(extension);
+        self
+    }
 }
 
 #[derive(Clone, Default)]
@@ -54,6 +72,10 @@ pub struct ConsumerOptionsBuilder {
     should_delete_messages: bool,
     always_acknowledge: bool,
     receive_error_backoff: Duration,
+    polling_wait_time: Duration,
+    attribute_names: Vec<MessageSystemAttributeName>,
+    message_attribute_names: Vec<String>,
+    suppress_fifo_warning: bool,
     handle_message_timeout: Option<Duration>,
     terminate_visibility: TerminateVisibility,
     heartbeat: Option<HeartbeatConfig>,
@@ -70,7 +92,11 @@ impl Default for ConsumerOptionsBuilder {
             visibility_timeout: None,
             should_delete_messages: true,
             always_acknowledge: false,
-            receive_error_backoff: Duration::from_secs(1),
+            receive_error_backoff: Duration::from_secs(10),
+            polling_wait_time: Duration::ZERO,
+            attribute_names: Vec::new(),
+            message_attribute_names: Vec::new(),
+            suppress_fifo_warning: false,
             handle_message_timeout: None,
             terminate_visibility: TerminateVisibility::Off,
             heartbeat: None,
@@ -117,6 +143,26 @@ impl ConsumerOptionsBuilder {
 
     pub fn receive_error_backoff(mut self, receive_error_backoff: Duration) -> Self {
         self.receive_error_backoff = receive_error_backoff;
+        self
+    }
+
+    pub fn polling_wait_time(mut self, polling_wait_time: Duration) -> Self {
+        self.polling_wait_time = polling_wait_time;
+        self
+    }
+
+    pub fn attribute_names(mut self, attribute_names: Vec<MessageSystemAttributeName>) -> Self {
+        self.attribute_names = attribute_names;
+        self
+    }
+
+    pub fn message_attribute_names(mut self, message_attribute_names: Vec<String>) -> Self {
+        self.message_attribute_names = message_attribute_names;
+        self
+    }
+
+    pub fn suppress_fifo_warning(mut self, suppress_fifo_warning: bool) -> Self {
+        self.suppress_fifo_warning = suppress_fifo_warning;
         self
     }
 
@@ -180,29 +226,19 @@ impl ConsumerOptionsBuilder {
                     "heartbeat interval must be greater than zero".into(),
                 ));
             }
-            if let Some(heartbeat_visibility_timeout) = heartbeat.visibility_timeout {
-                validate_visibility_timeout(
-                    "heartbeat.visibility_timeout",
-                    heartbeat_visibility_timeout,
-                )?;
-            }
-            let Some(visibility_timeout) = heartbeat.visibility_timeout.or(self.visibility_timeout)
-            else {
-                return Err(ConsumerError::InvalidOptions(
-                    "heartbeat requires visibility_timeout".into(),
-                ));
-            };
-            if visibility_timeout == 0 {
+            let extension = heartbeat_extension_duration(heartbeat, self.visibility_timeout)?;
+            if extension.is_zero() {
                 return Err(ConsumerError::InvalidVisibilityTimeout {
-                    field: "heartbeat effective visibility_timeout",
-                    value: visibility_timeout,
+                    field: "heartbeat.extension",
+                    value: 0,
                 });
             }
-            if heartbeat.interval >= Duration::from_secs(visibility_timeout as u64) {
+            if heartbeat.interval >= extension {
                 return Err(ConsumerError::InvalidOptions(
-                    "heartbeat interval must be less than visibility_timeout".into(),
+                    "heartbeat interval must be less than heartbeat extension".into(),
                 ));
             }
+            let _ = duration_to_visibility_timeout("heartbeat.extension", extension)?;
         }
         if require_client && self.sqs_client.is_none() {
             return Err(ConsumerError::InvalidOptions(
@@ -219,6 +255,10 @@ impl ConsumerOptionsBuilder {
             should_delete_messages: self.should_delete_messages,
             always_acknowledge: self.always_acknowledge,
             receive_error_backoff: self.receive_error_backoff,
+            polling_wait_time: self.polling_wait_time,
+            attribute_names: self.attribute_names,
+            message_attribute_names: self.message_attribute_names,
+            suppress_fifo_warning: self.suppress_fifo_warning,
             handle_message_timeout: self.handle_message_timeout,
             terminate_visibility: self.terminate_visibility,
             heartbeat: self.heartbeat,
@@ -235,4 +275,59 @@ pub(crate) fn validate_visibility_timeout(
         return Err(ConsumerError::InvalidVisibilityTimeout { field, value });
     }
     Ok(())
+}
+
+pub(crate) fn resolve_heartbeat_visibility_timeout(
+    heartbeat: &HeartbeatConfig,
+    visibility_timeout: Option<i32>,
+) -> Result<i32, ConsumerError> {
+    let extension = heartbeat_extension_duration(heartbeat, visibility_timeout)?;
+    duration_to_visibility_timeout("heartbeat.extension", extension)
+}
+
+fn heartbeat_extension_duration(
+    heartbeat: &HeartbeatConfig,
+    visibility_timeout: Option<i32>,
+) -> Result<Duration, ConsumerError> {
+    if let Some(extension) = heartbeat.extension {
+        return Ok(extension);
+    }
+    let Some(visibility_timeout) = visibility_timeout else {
+        return Err(ConsumerError::InvalidOptions(
+            "heartbeat requires visibility_timeout".into(),
+        ));
+    };
+    Ok(Duration::from_secs(visibility_timeout as u64))
+}
+
+fn duration_to_visibility_timeout(
+    field: &'static str,
+    duration: Duration,
+) -> Result<i32, ConsumerError> {
+    let seconds = duration
+        .as_secs()
+        .checked_add(u64::from(duration.subsec_nanos() > 0))
+        .unwrap_or(u64::MAX);
+    let value = i32::try_from(seconds).unwrap_or(i32::MAX);
+    validate_visibility_timeout(field, value)?;
+    Ok(value)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn defaults_match_plan_aligned_options() {
+        let options = ConsumerOptions::builder()
+            .queue_url("queue")
+            .build_for_backend()
+            .unwrap();
+
+        assert_eq!(options.receive_error_backoff, Duration::from_secs(10));
+        assert_eq!(options.polling_wait_time, Duration::ZERO);
+        assert!(options.attribute_names.is_empty());
+        assert!(options.message_attribute_names.is_empty());
+        assert!(!options.suppress_fifo_warning);
+    }
 }

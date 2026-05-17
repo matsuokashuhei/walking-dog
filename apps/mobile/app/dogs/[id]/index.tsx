@@ -1,5 +1,5 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useDogDetailViewModel } from '@/hooks/use-dog-detail-view-model';
@@ -11,9 +11,25 @@ import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { GroupedCard } from '@/components/ui/GroupedCard';
 import { GroupedRow } from '@/components/ui/GroupedRow';
-import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useColors } from '@/hooks/use-colors';
-import { spacing, typography } from '@/theme/tokens';
+import { layout, spacing, typography } from '@/theme/tokens';
+
+// Hardcoded for legibility over arbitrary user photos; this chrome must stay
+// pure white regardless of the active color scheme.
+const OVERLAY_TEXT = '#FFFFFF';
+const OVERLAY_SHADOW_OFFSET_X = 0;
+const OVERLAY_SHADOW_OFFSET_Y = 1;
+const OVERLAY_TEXT_SHADOW = {
+  textShadowColor: 'rgba(0,0,0,0.3)',
+  textShadowOffset: { width: OVERLAY_SHADOW_OFFSET_X, height: OVERLAY_SHADOW_OFFSET_Y },
+  textShadowRadius: spacing.xs,
+} as const;
+
+// Lifts the name block into the hero's 60pt bottom fade without changing DogHero.
+const NAME_OVERLAP = 50;
+// Pins the absolute overlay to both screen edges.
+const SCREEN_EDGE = 0;
 
 // 犬詳細画面はヒーロー表示、散歩統計、メンバー/友達導線、削除操作をまとめます。
 export default function DogDetailScreen() {
@@ -21,6 +37,7 @@ export default function DogDetailScreen() {
   const router = useRouter();
   const theme = useColors();
   const vm = useDogDetailViewModel();
+  const insets = useSafeAreaInsets();
 
   if (vm.status === 'loading') return <LoadingScreen />;
 
@@ -33,31 +50,21 @@ export default function DogDetailScreen() {
   };
 
   return (
-    <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: theme.background }]}>
-      <ScreenHeader
-        testID="dog-detail-header"
-        title={vm.dog.name}
-        leftAction={{ label: t('dogs.detail.back'), onPress: handleBack }}
-        rightAction={
-          vm.isOwner
-            ? {
-                label: t('dogs.detail.edit'),
-                onPress: () =>
-                  router.push({
-                    pathname: '/dogs/[id]/edit',
-                    params: { id: vm.dog.id },
-                  }),
-              }
-            : undefined
-        }
-      />
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.content}
         contentInsetAdjustmentBehavior="never"
       >
         <DogHero photoUrl={vm.dog.photoUrl} />
-        <View style={styles.nameBlock}>
+        <View testID="dog-detail-header-large-title-row" style={styles.nameBlock}>
+          <Text
+            accessibilityRole="header"
+            numberOfLines={1}
+            style={[styles.dogName, { color: theme.onSurface }]}
+          >
+            {vm.dog.name}
+          </Text>
           {vm.meta ? (
             <Text style={[styles.dogMeta, { color: theme.onSurfaceVariant }]}>{vm.meta}</Text>
           ) : null}
@@ -120,7 +127,51 @@ export default function DogDetailScreen() {
           />
         ) : null}
       </ScrollView>
-    </SafeAreaView>
+
+      <View
+        pointerEvents="box-none"
+        testID="dog-detail-header"
+        style={[styles.headerOverlay, { top: insets.top }]}
+      >
+        <View
+          pointerEvents="box-none"
+          testID="dog-detail-header-action-row"
+          style={styles.headerActionRow}
+        >
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('dogs.detail.back')}
+            hitSlop={spacing.step12}
+            onPress={handleBack}
+            style={styles.headerLeft}
+          >
+            <IconSymbol
+              name="chevron.backward"
+              size={typography.body.fontSize}
+              color={OVERLAY_TEXT}
+            />
+            <Text style={styles.headerText}>{t('dogs.detail.back')}</Text>
+          </Pressable>
+
+          {vm.isOwner ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('dogs.detail.edit')}
+              hitSlop={spacing.step12}
+              onPress={() =>
+                router.push({
+                  pathname: '/dogs/[id]/edit',
+                  params: { id: vm.dog.id },
+                })
+              }
+              style={styles.headerRight}
+            >
+              <Text style={styles.headerText}>{t('dogs.detail.edit')}</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      </View>
+    </View>
   );
 }
 
@@ -131,7 +182,10 @@ const styles = StyleSheet.create({
   },
   nameBlock: {
     paddingHorizontal: spacing.step20,
-    paddingTop: spacing.sm,
+    marginTop: -NAME_OVERLAP,
+  },
+  dogName: {
+    ...typography.largeTitle,
   },
   dogMeta: {
     ...typography.subheadline,
@@ -154,5 +208,33 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     width: '100%',
+  },
+  headerOverlay: {
+    position: 'absolute',
+    left: SCREEN_EDGE,
+    right: SCREEN_EDGE,
+    height: layout.navBar,
+  },
+  headerActionRow: {
+    height: layout.navBar,
+    paddingHorizontal: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  headerLeft: {
+    minHeight: layout.navBar,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.step6,
+  },
+  headerRight: {
+    minHeight: layout.navBar,
+    justifyContent: 'center',
+  },
+  headerText: {
+    ...typography.body,
+    ...OVERLAY_TEXT_SHADOW,
+    color: OVERLAY_TEXT,
   },
 });

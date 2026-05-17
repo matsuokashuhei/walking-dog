@@ -9,8 +9,6 @@ import { DogWalksList } from '@/components/dogs/DogWalksList';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { GroupedCard } from '@/components/ui/GroupedCard';
-import { GroupedRow } from '@/components/ui/GroupedRow';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useColors } from '@/hooks/use-colors';
 import { layout, spacing, typography } from '@/theme/tokens';
@@ -85,23 +83,6 @@ export default function DogDetailScreen() {
             onRetry={vm.retryWalks}
           />
         </View>
-
-        <GroupedCard style={styles.group}>
-          {/* 共有中の犬だけメンバー管理導線を出し、友達一覧は常に確認できるようにします。 */}
-          {vm.memberCount > 0 ? (
-            <GroupedRow
-              label={t('dogs.detail.members')}
-              value={t('dogs.detail.membersCount', { count: vm.memberCount })}
-              onPress={vm.handleOpenMembers}
-            />
-          ) : null}
-          <GroupedRow
-            label={t('dogs.detail.friends', 'Friends')}
-            value={t('dogs.detail.viewFriendsList', 'View encounter history')}
-            separator={false}
-            onPress={vm.handleOpenFriends}
-          />
-        </GroupedCard>
 
         {vm.isOwner ? (
           // 削除操作は owner のみに限定し、確認ダイアログを経由して実行します。
@@ -197,10 +178,6 @@ const styles = StyleSheet.create({
   },
   walksSection: {
     paddingHorizontal: spacing.md,
-  },
-  group: {
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.lg,
   },
   actions: {
     paddingHorizontal: spacing.lg,

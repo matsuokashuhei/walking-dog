@@ -40,7 +40,6 @@
 | **New Dog (Add Dog)** | [apps/mobile/app/dogs/new.tsx:54](apps/mobile/app/dogs/new.tsx) | `Cancel`（自前 Pressable） | `Save`（自前 Pressable） | `headline 17/600` 中央 | 仕様一致だが**自前 navBar の重複実装** |
 | **Edit Dog** | [apps/mobile/app/dogs/[id]/edit.tsx:78](apps/mobile/app/dogs/[id]/edit.tsx) | `Cancel` | `Save` | `headline 17/600` 中央 | new.tsx と**完全に同じコードが二重定義** |
 | **Dog Detail** | [apps/mobile/app/dogs/[id]/index.tsx](apps/mobile/app/dogs/[id]/index.tsx) + [DogHeroNavBar.tsx](apps/mobile/components/dogs/DogHeroNavBar.tsx) | カスタム Back | 条件付き Edit | Hero 画像オーバーレイ | 画面固有の特殊ヘッダー。共通化対象外として扱う |
-| **Members / Encounters / Friends** | [apps/mobile/app/dogs/[id]/_layout.tsx:14](apps/mobile/app/dogs/[id]/_layout.tsx) | Stack 標準 Back | — | Stack 標準（`title:`） | inline variant 想定だが、**自前 ScreenHeader を使う他画面と見た目が混在** |
 
 ## 識別された改善点 / Improvement points
 
@@ -65,9 +64,8 @@
 
 4. **New Dog と Edit Dog のヘッダーコードが二重定義**（[new.tsx](apps/mobile/app/dogs/new.tsx) と [edit.tsx](apps/mobile/app/dogs/[id]/edit.tsx) がほぼ同一）
 5. **Walk タブにタイトルが無い**（design.html では `Walk` のタイトルが入っている）
-6. **Members / Encounters / Friends が Stack 標準ヘッダー**を使い、他の自前ヘッダー画面とフォント・余白・戻るボタン形状が微妙に違う
-7. **iOS large title の scroll-collapse 動作を捨てている**（自前実装のためスクロール時に縮小・消滅しない）— ただし design.html は常時 large title 表示なので、これは**意図通り**として現状維持で OK
-8. **Stack ヘッダーが画面によって on/off 混在**（[app/_layout.tsx](apps/mobile/app/_layout.tsx) で全 group が `headerShown: false`、子 layout で再有効化）→ 共通コンポーネントに統一すれば整理できる
+6. **iOS large title の scroll-collapse 動作を捨てている**（自前実装のためスクロール時に縮小・消滅しない）— ただし design.html は常時 large title 表示なので、これは**意図通り**として現状維持で OK
+7. **Stack ヘッダーが画面によって on/off 混在**（[app/_layout.tsx](apps/mobile/app/_layout.tsx) で全 group が `headerShown: false`、子 layout で再有効化）→ 共通コンポーネントに統一すれば整理できる
 
 ## 統一方針（推奨） / Recommended unification strategy
 
@@ -98,7 +96,6 @@ interface ScreenHeaderProps {
 | Walk | `<ScreenHeader title={t('tabs.walk')} />` |
 | New Dog | `<ScreenHeader variant="modal" title={t('dogs.new.title')} leftAction={{ label: t('dogs.action.cancel'), onPress: back }} rightAction={{ label: t('dogs.action.save'), onPress: save, strong: true, disabled: !canSave }} />` |
 | Edit Dog | 同上（title だけ `dogs.edit.title`） |
-| Members / Encounters / Friends | `<ScreenHeader variant="inline" title={...} leftAction="back" />` + `Stack.Screen options={{ headerShown: false }}` に変更 |
 | Dog Detail | Hero 専用ヘッダー（DogHeroNavBar）はそのまま。将来「Hero variant」を ScreenHeader に取り込む選択肢は残す |
 
 ### 棄却した代替案
@@ -116,7 +113,7 @@ interface ScreenHeaderProps {
   - [apps/mobile/app/(tabs)/walk.tsx](apps/mobile/app/(tabs)/walk.tsx) — ScreenHeader を追加
   - [apps/mobile/app/dogs/new.tsx](apps/mobile/app/dogs/new.tsx) — 自前 navBar 削除、ScreenHeader 採用
   - [apps/mobile/app/dogs/[id]/edit.tsx](apps/mobile/app/dogs/[id]/edit.tsx) — 同上
-  - [apps/mobile/app/dogs/[id]/_layout.tsx](apps/mobile/app/dogs/[id]/_layout.tsx) — members / encounters / friends を `headerShown: false` に変更し、子画面側に `ScreenHeader variant="inline"` を追加
+  - [apps/mobile/app/dogs/[id]/_layout.tsx](apps/mobile/app/dogs/[id]/_layout.tsx) — Stack のヘッダーは Index と Edit の 2 画面分のみで、それぞれ子画面側に `ScreenHeader variant="inline"` を持つ
 - **参照のみ**: [apps/mobile/theme/tokens.ts](apps/mobile/theme/tokens.ts)（既存 `layout.*` / `typography.*` をそのまま利用）
 
 ## 検証 / Verification
@@ -125,7 +122,7 @@ interface ScreenHeaderProps {
 
 - iOS Simulator で Dogs ⇄ Me ⇄ Walk タブを切り替え、**largeTitle の Y 座標が完全に一致**することを目視確認（タブ切替時の上下ブレが無い）
 - New Dog / Edit Dog のモーダル ヘッダーが同じ高さ・同じフォントで表示されることを確認
-- Dog Detail から Members / Encounters / Friends に push 遷移したとき、ヘッダーが Stack 標準ではなく `ScreenHeader variant="inline"` で統一されることを確認
+- Dog Detail から Edit に push 遷移したとき、ヘッダーが Stack 標準ではなく `ScreenHeader variant="inline"` で統一されることを確認
 - Dark mode / Light mode 両方で色トークンが正しく適用されることを確認
 - `apps/mobile/components/ui/ScreenHeader.test.tsx` を追加し、3つの variant それぞれで a11y label と minimum touch target (44pt) が満たされることをテスト
 - `npm run typecheck && npm run lint` (Docker 経由) が通ること

@@ -1,6 +1,5 @@
 type WalkStatus = 'ACTIVE' | 'FINISHED';
 export type StatsPeriod = 'WEEK' | 'MONTH' | 'YEAR' | 'ALL';
-type DogMemberRole = 'owner' | 'member';
 type Gender = 'MALE' | 'FEMALE' | 'OTHER';
 export type WalkEventType = 'pee' | 'poo' | 'sniff' | 'greet' | 'photo';
 export type WalkActivityEventType = Exclude<WalkEventType, 'photo'>;
@@ -49,29 +48,8 @@ export interface Dog {
   updatedAt?: string;
   birthday?: Birthday | null;
   photoUrl?: string | null;
-  role?: DogMemberRole;
+  role?: 'owner' | 'member';
   latestWalk?: LatestWalk | null;
-}
-
-interface DogMemberUser {
-  name?: string | null;
-  avatar?: string | null;
-  displayName?: string | null;
-  avatarUrl?: string | null;
-}
-
-export interface DogMember {
-  id: string;
-  userId: string;
-  role: DogMemberRole;
-  user: DogMemberUser;
-  createdAt: string;
-}
-
-export interface DogInvitation {
-  id: string;
-  token: string;
-  expiresAt: string;
 }
 
 interface Walker {
@@ -84,7 +62,6 @@ interface Walker {
 
 export interface DogWithStats extends Dog {
   walkStats: WalkStats | null;
-  members?: DogMember[];
 }
 
 export interface WalkDogEvent {
@@ -170,7 +147,6 @@ export interface User {
   dogs: Dog[];
   displayName?: string | null;
   avatarUrl?: string | null;
-  encounterDetectionEnabled?: boolean;
 }
 
 export interface CreateDogInput {
@@ -335,27 +311,3 @@ export type AddWalkPointsResponse = TrackPointResponse;
 export type FinishWalkResponse = EndWalkResponse;
 export type RecordWalkEventResponse = AddEventResponse;
 
-interface FriendDog {
-  id: string;
-  name: string;
-  breed: string | null;
-  photoUrl: string | null;
-  avatar?: string | null;
-}
-
-export interface Friendship {
-  id: string;
-  encounterCount: number;
-  totalInteractionSec: number;
-  firstMetAt: string;
-  lastMetAt: string;
-  friend: FriendDog;
-}
-
-export interface Encounter {
-  id: string;
-  durationSec: number;
-  metAt: string;
-  dog1: FriendDog;
-  dog2: FriendDog;
-}

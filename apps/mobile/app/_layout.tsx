@@ -12,10 +12,6 @@ import { useAuthStore } from '@/stores/auth-store';
 import { useSettingsStore } from '@/stores/settings-store';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { ErrorScreen } from '@/components/ui/ErrorScreen';
-import {
-  getPendingInviteToken,
-  deletePendingInviteToken,
-} from '@/lib/auth/pending-invite-token';
 import { nativeStackHeader } from '@/theme/overrides';
 
 // 認証状態と現在の route group を見て、ログイン画面とアプリ本体の行き先を制御します。
@@ -32,15 +28,7 @@ function NavigationGuard() {
     if (!isAuthenticated && !inAuthGroup) {
       router.replace('/(auth)/login');
     } else if (isAuthenticated && inAuthGroup) {
-      // 未ログイン時に受け取った招待 deep link は、認証完了後に本来の招待画面へ戻します。
-      getPendingInviteToken().then((token) => {
-        if (token) {
-          deletePendingInviteToken();
-          router.replace(`/invite/${token}`);
-        } else {
-          router.replace('/(tabs)/walk');
-        }
-      });
+      router.replace('/(tabs)/walk');
     }
   }, [isAuthenticated, isLoading, segments, router]);
 
@@ -83,7 +71,6 @@ function RootLayout() {
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           <Stack.Screen name="dogs" options={{ headerShown: false }} />
           <Stack.Screen name="walks" options={{ headerShown: false }} />
-          <Stack.Screen name="invite" options={{ headerShown: false }} />
           <Stack.Screen
             name="walk-recording"
             options={{ headerShown: false, animation: 'fade', gestureEnabled: false }}

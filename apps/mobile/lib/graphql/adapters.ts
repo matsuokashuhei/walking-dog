@@ -72,7 +72,6 @@ export function mapApiUser(user: ApiUser): User {
     dogs: user.dogs.map(mapApiDog),
     displayName: user.name,
     avatarUrl: user.avatar,
-    encounterDetectionEnabled: false,
   };
 }
 

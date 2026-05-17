@@ -23,7 +23,6 @@ const mockDog = {
   photoUrl: null,
   createdAt: '2026-01-01',
   walkStats: null,
-  members: [],
 } satisfies DogWithStats;
 
 jest.mock('@/hooks/use-dog', () => ({

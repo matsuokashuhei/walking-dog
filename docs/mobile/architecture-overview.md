@@ -20,7 +20,6 @@
 | GraphQL client | `graffle` + `graphql` | GraphQL リクエスト送信 |
 | Secure storage | `expo-secure-store` | 認証トークン |
 | Maps / GPS | `react-native-maps` + `expo-location` | 地図描画 / 位置情報 |
-| BLE | `react-native-ble-plx` | （将来用）Bluetooth デバイス通信 |
 | Native UI bridge | `@expo/ui`, `expo-blur`, `expo-symbols` | iOS ネイティブの形をそのまま使う |
 | iOS targets | `@bacons/apple-targets` | Live Activity / Widget extension |
 | i18n | `i18next` + `react-i18next` | 翻訳 |
@@ -127,7 +126,7 @@ sequenceDiagram
     Providers->>Theme: mount Dark/Default theme
     Theme->>Guard: mount NavigationGuard
     Guard->>Guard: 認証 × current segment を見て router.replace
-    Theme->>Stack: render Stack with 7 screens
+    Theme->>Stack: render Stack with 6 screens
   end
 ```
 
@@ -139,7 +138,7 @@ sequenceDiagram
 | 2 | `<AppProviders>` = `QueryClientProvider` | [lib/providers.tsx](../../apps/mobile/lib/providers.tsx) | TanStack Query。**401 を受けたら `useAuthStore.clearAuth()` で自動ログアウト** |
 | 3 | `<ThemeProvider>` | [app/_layout.tsx:79](../../apps/mobile/app/_layout.tsx) | Dark / Light を `useColorScheme` で切替 |
 | 4 | `<NavigationGuard>` | [app/_layout.tsx:22](../../apps/mobile/app/_layout.tsx) | `isAuthenticated` × `segments[0]` で `/(auth)/login` か `/(tabs)/walk` へ redirect |
-| 5 | `<Stack>` | [app/_layout.tsx:81](../../apps/mobile/app/_layout.tsx) | 7 screens: `(tabs)`, `(auth)`, `dogs`, `walks`, `invite`, `walk-recording`, `walk-recording-controls` |
+| 5 | `<Stack>` | [app/_layout.tsx:81](../../apps/mobile/app/_layout.tsx) | 6 screens: `(tabs)`, `(auth)`, `dogs`, `walks`, `walk-recording`, `walk-recording-controls` |
 
 ### 3-3. ルートツリー
 
@@ -148,9 +147,8 @@ flowchart TD
   Root["RootLayout<br/>(Stack)"]
   Root --> Tabs["(tabs)/_layout<br/>NativeTabs"]
   Root --> Auth["(auth)/_layout<br/>login / register"]
-  Root --> Dogs["dogs/<br/>new, [id]/index|edit|members|encounters|friends/*"]
+  Root --> Dogs["dogs/<br/>new, [id]/index|edit"]
   Root --> Walks["walks/[id]"]
-  Root --> Invite["invite/[token]<br/>(deep link)"]
   Root --> RecMap["walk-recording<br/>(fade modal, full-screen map)"]
   Root --> RecCtrl["walk-recording-controls<br/>(formSheet 15% ↔ 45%)"]
 
@@ -166,8 +164,7 @@ flowchart TD
 | `isLoading === true` | `<LoadingScreen />`（Guard は何もしない） |
 | `networkError === true` | `<ErrorScreen onRetry={initialize} />` |
 | `!isAuthenticated && !inAuthGroup` | `router.replace('/(auth)/login')` |
-| `isAuthenticated && inAuthGroup` & pending invite token あり | `router.replace('/invite/{token}')` |
-| `isAuthenticated && inAuthGroup` & pending invite token なし | `router.replace('/(tabs)/walk')` |
+| `isAuthenticated && inAuthGroup` | `router.replace('/(tabs)/walk')` |
 
 > 📐 認証は **Rust API 経由のみ**（モバイルから Cognito に直接通信しない）。`lib/auth/api.ts` の `refreshToken` がリフレッシュを担う。
 > 401 自動ログアウトの実装位置は `lib/providers.tsx` の `QueryCache.onError` / `MutationCache.onError`。

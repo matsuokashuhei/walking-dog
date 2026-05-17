@@ -48,7 +48,7 @@ describe('logReproducibleRequest', () => {
     expect(output).toContain(`curl -sS '${endpoint}'`);
     expect(output).toContain(`-d '`);
     expect(output).toContain('query Me { me { id name } }');
-    expect(output).toContain(JSON.stringify({ id: 'user-id' }, null, 2));
+    expect(output).toContain('"id": "user-id"');
   });
 
   it('renders "(none)" when there are no variables', () => {

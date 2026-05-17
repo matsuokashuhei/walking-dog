@@ -2,6 +2,8 @@ use async_graphql::{Error, ErrorExtensions};
 use aws_sdk_cognitoidentityprovider::operation::{
     change_password::ChangePasswordError, confirm_sign_up::ConfirmSignUpError,
     global_sign_out::GlobalSignOutError, initiate_auth::InitiateAuthError, sign_up::SignUpError,
+    update_user_attributes::UpdateUserAttributesError,
+    verify_user_attribute::VerifyUserAttributeError,
 };
 use aws_sdk_s3::error::ProvideErrorMetadata;
 use tracing::error;
@@ -59,6 +61,10 @@ pub enum AuthError {
     SignOutError(GlobalSignOutError),
     #[error("Change password error: {0}")]
     ChangePasswordError(ChangePasswordError),
+    #[error("Update user attributes error: {0}")]
+    UpdateUserAttributesError(UpdateUserAttributesError),
+    #[error("Verify user attribute error: {0}")]
+    VerifyUserAttributeError(VerifyUserAttributeError),
 }
 
 impl ErrorExtensions for AuthError {
@@ -88,6 +94,22 @@ impl ErrorExtensions for AuthError {
                 error!("Change password error: {:?}", change_password_error);
                 e.set("code", 422);
                 e.set("message", change_password_error.message());
+            }
+            AuthError::UpdateUserAttributesError(update_user_attributes_error) => {
+                error!(
+                    "Update user attributes error: {:?}",
+                    update_user_attributes_error
+                );
+                e.set("code", 422);
+                e.set("message", update_user_attributes_error.message());
+            }
+            AuthError::VerifyUserAttributeError(verify_user_attribute_error) => {
+                error!(
+                    "Verify user attribute error: {:?}",
+                    verify_user_attribute_error
+                );
+                e.set("code", 422);
+                e.set("message", verify_user_attribute_error.message());
             }
         })
     }

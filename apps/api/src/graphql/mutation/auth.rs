@@ -101,6 +101,53 @@ impl AuthMutation {
             .map_err(|e| AuthError::ChangePasswordError(e.into_service_error()))?;
         Ok(SignOutOutput { success: true })
     }
+
+    async fn update_email(
+        &self,
+        ctx: &Context<'_>,
+        input: UpdateEmailInput,
+    ) -> Result<UpdateEmailOutput> {
+        use aws_sdk_cognitoidentityprovider::types::AttributeType;
+
+        let cognitoidentityprovider_client = ctx
+            .data::<aws_sdk_cognitoidentityprovider::Client>()
+            .unwrap();
+        let authorization = ctx.data::<authorization::Bearer>().unwrap();
+        cognitoidentityprovider_client
+            .update_user_attributes()
+            .access_token(authorization.token())
+            .user_attributes(
+                AttributeType::builder()
+                    .name("email")
+                    .value(input.new_email)
+                    .build()
+                    .unwrap(),
+            )
+            .send()
+            .await
+            .map_err(|e| AuthError::UpdateUserAttributesError(e.into_service_error()))?;
+        Ok(UpdateEmailOutput { success: true })
+    }
+
+    async fn confirm_email_change(
+        &self,
+        ctx: &Context<'_>,
+        input: ConfirmEmailChangeInput,
+    ) -> Result<ConfirmEmailChangeOutput> {
+        let cognitoidentityprovider_client = ctx
+            .data::<aws_sdk_cognitoidentityprovider::Client>()
+            .unwrap();
+        let authorization = ctx.data::<authorization::Bearer>().unwrap();
+        cognitoidentityprovider_client
+            .verify_user_attribute()
+            .access_token(authorization.token())
+            .attribute_name("email")
+            .code(input.code)
+            .send()
+            .await
+            .map_err(|e| AuthError::VerifyUserAttributeError(e.into_service_error()))?;
+        Ok(ConfirmEmailChangeOutput { success: true })
+    }
 }
 
 #[derive(SimpleObject)]
@@ -146,6 +193,26 @@ pub struct SignInOutput {
 pub struct ChangePasswordInput {
     old_password: String,
     new_password: String,
+}
+
+#[derive(Clone, Debug, InputObject)]
+pub struct UpdateEmailInput {
+    new_email: String,
+}
+
+#[derive(SimpleObject)]
+pub struct UpdateEmailOutput {
+    success: bool,
+}
+
+#[derive(Clone, Debug, InputObject)]
+pub struct ConfirmEmailChangeInput {
+    code: String,
+}
+
+#[derive(SimpleObject)]
+pub struct ConfirmEmailChangeOutput {
+    success: bool,
 }
 
 impl From<InitiateAuthOutput> for SignInOutput {

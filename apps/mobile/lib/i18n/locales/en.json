@@ -74,7 +74,7 @@
   },
   "dogs": {
     "list": {
-      "title": "My Dogs",
+      "title": "Dogs",
       "sectionLabel": "YOUR PACK",
       "empty": "No dogs registered yet",
       "addDog": "Add Dog",

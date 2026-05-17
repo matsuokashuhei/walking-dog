@@ -104,6 +104,10 @@
     },
     "edit": {
       "title": "Edit dog",
+      "remove": "Remove {{name}}",
+      "removeAction": "Remove",
+      "removeConfirmTitle": "Remove {{name}}?",
+      "removeConfirmMessage": "This action cannot be undone.",
       "photoUploadError": "Failed to upload photo. Please try again."
     },
     "form": {

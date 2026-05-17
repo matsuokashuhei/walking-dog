@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useDog } from '@/hooks/use-dog';
-import { useUpdateDog } from '@/hooks/use-dog-mutations';
+import { useDeleteDog, useUpdateDog } from '@/hooks/use-dog-mutations';
+import { useMutationWithAlert } from '@/hooks/use-mutation-with-alert';
 import {
   DogForm,
   birthdayValuesToInput,
@@ -15,7 +16,7 @@ import {
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useColors } from '@/hooks/use-colors';
-import { spacing } from '@/theme/tokens';
+import { components, spacing } from '@/theme/tokens';
 
 // 犬編集画面 — inline ScreenHeader でフォームの Cancel/Save を提供します。
 // dog データのロード待ちは外側、form state 初期化は内側コンポーネントに分離して
@@ -29,6 +30,7 @@ export default function EditDogScreen() {
   return (
     <EditDogContent
       id={id}
+      dogName={dog.name}
       initialValues={{
         name: dog.name,
         breed: dog.breed ?? '',
@@ -41,14 +43,17 @@ export default function EditDogScreen() {
 
 interface EditDogContentProps {
   id: string;
+  dogName: string;
   initialValues: DogFormValues;
 }
 
-function EditDogContent({ id, initialValues }: EditDogContentProps) {
+function EditDogContent({ id, dogName, initialValues }: EditDogContentProps) {
   const { t } = useTranslation();
   const router = useRouter();
   const theme = useColors();
   const { mutateAsync: updateDog } = useUpdateDog();
+  const { mutateAsync: deleteDog } = useDeleteDog();
+  const runWithAlert = useMutationWithAlert();
 
   const [values, setValues] = useState<DogFormValues>(initialValues);
   const [submitting, setSubmitting] = useState(false);
@@ -75,6 +80,30 @@ function EditDogContent({ id, initialValues }: EditDogContentProps) {
     }
   }
 
+  async function handleRemove() {
+    const ok = await runWithAlert(() => deleteDog(id), 'dogs.detail.deleteError');
+    if (ok) {
+      router.replace('/(tabs)/dogs');
+    }
+  }
+
+  function openRemoveConfirm() {
+    Alert.alert(
+      t('dogs.edit.removeConfirmTitle', { name: dogName }),
+      t('dogs.edit.removeConfirmMessage'),
+      [
+        { text: t('common.action.cancel'), style: 'cancel' },
+        {
+          text: t('dogs.edit.removeAction'),
+          style: 'destructive',
+          onPress: () => {
+            void handleRemove();
+          },
+        },
+      ],
+    );
+  }
+
   return (
     <SafeAreaView edges={['top']} style={[styles.safeArea, { backgroundColor: theme.background }]}>
       <ScreenHeader
@@ -93,6 +122,16 @@ function EditDogContent({ id, initialValues }: EditDogContentProps) {
         keyboardShouldPersistTaps="handled"
       >
         <DogForm values={values} onChange={setValues} />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('dogs.edit.remove', { name: dogName })}
+          onPress={openRemoveConfirm}
+          style={styles.removeButton}
+        >
+          <Text style={[styles.removeButtonText, { color: theme.error }]}>
+            {t('dogs.edit.remove', { name: dogName })}
+          </Text>
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );
@@ -101,4 +140,14 @@ function EditDogContent({ id, initialValues }: EditDogContentProps) {
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   scrollContent: { flexGrow: 1, padding: spacing.lg },
+  removeButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: components.row.minHeight,
+    marginTop: spacing.lg,
+    backgroundColor: 'transparent',
+  },
+  removeButtonText: {
+    ...components.button.fontGhost,
+  },
 });

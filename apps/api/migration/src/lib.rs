@@ -9,6 +9,7 @@ mod m20260502_155759_create_walk_photo;
 mod m20260502_155803_create_walk_dog_event;
 mod m20260503_052813_create_track_point;
 mod m20260510_000000_add_birthday_to_dog;
+mod m20260517_000000_create_dog_walk_goal;
 
 pub struct Migrator;
 
@@ -25,6 +26,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20260502_155803_create_walk_dog_event::Migration),
             Box::new(m20260503_052813_create_track_point::Migration),
             Box::new(m20260510_000000_add_birthday_to_dog::Migration),
+            Box::new(m20260517_000000_create_dog_walk_goal::Migration),
         ]
     }
 }

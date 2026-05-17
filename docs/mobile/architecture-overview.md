@@ -20,7 +20,6 @@
 | GraphQL client | `graffle` + `graphql` | GraphQL リクエスト送信 |
 | Secure storage | `expo-secure-store` | 認証トークン |
 | Maps / GPS | `react-native-maps` + `expo-location` | 地図描画 / 位置情報 |
-| BLE | `react-native-ble-plx` | （将来用）Bluetooth デバイス通信 |
 | Native UI bridge | `@expo/ui`, `expo-blur`, `expo-symbols` | iOS ネイティブの形をそのまま使う |
 | iOS targets | `@bacons/apple-targets` | Live Activity / Widget extension |
 | i18n | `i18next` + `react-i18next` | 翻訳 |
@@ -148,7 +147,7 @@ flowchart TD
   Root["RootLayout<br/>(Stack)"]
   Root --> Tabs["(tabs)/_layout<br/>NativeTabs"]
   Root --> Auth["(auth)/_layout<br/>login / register"]
-  Root --> Dogs["dogs/<br/>new, [id]/index|edit|encounters|friends/*"]
+  Root --> Dogs["dogs/<br/>new, [id]/index|edit"]
   Root --> Walks["walks/[id]"]
   Root --> RecMap["walk-recording<br/>(fade modal, full-screen map)"]
   Root --> RecCtrl["walk-recording-controls<br/>(formSheet 15% ↔ 45%)"]

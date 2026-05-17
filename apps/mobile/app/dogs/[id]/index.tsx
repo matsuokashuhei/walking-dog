@@ -35,7 +35,6 @@ export default function DogDetailScreen() {
   return (
     <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: theme.background }]}>
       <ScreenHeader
-        variant="inline"
         testID="dog-detail-header"
         title={vm.dog.name}
         leftAction={{ label: t('dogs.detail.back'), onPress: handleBack }}

@@ -114,10 +114,12 @@ describe('DogDetailScreen', () => {
     expect(screen.queryByText('Delete')).toBeNull();
   });
 
-  it('renders the inline screen header with dog title and back action', () => {
+  it('renders the large title screen header with dog title and back action', () => {
     renderWithProviders(<DogDetailScreen />);
 
     expect(screen.getByTestId('dog-detail-header')).toBeTruthy();
+    expect(screen.getByTestId('dog-detail-header-action-row')).toBeTruthy();
+    expect(screen.getByTestId('dog-detail-header-large-title-row')).toBeTruthy();
     expect(screen.getAllByText('Buddy')).toHaveLength(1);
     expect(screen.getByLabelText('Dogs')).toBeTruthy();
   });

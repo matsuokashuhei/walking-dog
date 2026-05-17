@@ -6,11 +6,21 @@ import {
 } from './middleware/refresh-on-401';
 import { logReproducibleRequest } from './request-log';
 
-type Variables = Record<string, unknown>;
+export type Variables = Record<string, unknown>;
+export type UploadFile = {
+  uri: string;
+  name: string;
+  type: string;
+};
+
 type GraphQLResult = {
   data?: unknown;
   errors?: readonly unknown[];
   extensions?: unknown;
+};
+type MultipartOperations = {
+  query: string;
+  variables?: Variables;
 };
 
 const endpoint = `${process.env.EXPO_PUBLIC_API_URL}/graphql`;
@@ -54,6 +64,95 @@ function parseResponseBodySafely(body: string): Partial<GraphQLResponse> {
   }
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function cloneGraphQLValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(cloneGraphQLValue);
+  }
+
+  if (isRecord(value)) {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, child]) => [key, cloneGraphQLValue(child)]),
+    );
+  }
+
+  return value;
+}
+
+function setPathValue(root: Record<string, unknown>, path: string, value: unknown): void {
+  const parts = path.split('.');
+  if (parts.some((part) => part.length === 0)) {
+    throw new Error(`Invalid upload variable path: ${path}`);
+  }
+
+  let current = root;
+  parts.forEach((part, index) => {
+    if (index === parts.length - 1) {
+      current[part] = value;
+      return;
+    }
+
+    const next = current[part];
+    if (next === undefined) {
+      const child: Record<string, unknown> = {};
+      current[part] = child;
+      current = child;
+      return;
+    }
+
+    if (!isRecord(next)) {
+      throw new Error(`Cannot inject upload variable at ${path}`);
+    }
+
+    current = next;
+  });
+}
+
+function createMultipartOperations(
+  document: string,
+  variables: Variables | undefined,
+  fileMap: Record<string, UploadFile>,
+): MultipartOperations {
+  const operations: MultipartOperations = {
+    query: document,
+    ...(variables ? { variables: cloneGraphQLValue(variables) as Variables } : {}),
+  };
+
+  for (const variablePath of Object.keys(fileMap)) {
+    setPathValue(operations as Record<string, unknown>, variablePath, null);
+  }
+
+  return operations;
+}
+
+function createMultipartBody(
+  document: string,
+  variables: Variables | undefined,
+  fileMap: Record<string, UploadFile>,
+): FormData {
+  const body = new FormData();
+  const operations = createMultipartOperations(document, variables, fileMap);
+  const map: Record<string, string[]> = {};
+
+  body.append('operations', JSON.stringify(operations));
+
+  Object.entries(fileMap).forEach(([variablePath], index) => {
+    const key = String(index);
+    map[key] = [variablePath];
+  });
+
+  body.append('map', JSON.stringify(map));
+
+  Object.values(fileMap).forEach((file, index) => {
+    body.append(String(index), file as unknown as Blob);
+  });
+
+  return body;
+}
+
 function createClientErrorFromBody(
   response: Response,
   query: string,
@@ -85,6 +184,38 @@ async function createClientErrorFromResponse(
   return createClientErrorFromBody(response, query, body, variables);
 }
 
+async function readGraphQLResponse<T>(
+  response: Response,
+  query: string,
+  variables: Variables | undefined,
+  operation: { kind: string; name: string },
+  startedAt: number,
+): Promise<T> {
+  const elapsedMs = Date.now() - startedAt;
+
+  if (!response.ok) {
+    console.warn(
+      `[graphql] ← ${operation.kind} ${operation.name} ${response.status} (${elapsedMs}ms)`,
+    );
+    throw await createClientErrorFromResponse(response, query, variables);
+  }
+
+  const body = await response.text();
+  const parsedBody = parseResponseBodySafely(body);
+
+  if (parsedBody.errors?.length) {
+    console.warn(
+      `[graphql] ← ${operation.kind} ${operation.name} ${response.status} with ${parsedBody.errors.length} errors (${elapsedMs}ms)`,
+    );
+    throw createClientErrorFromBody(response, query, body, variables);
+  }
+
+  console.log(
+    `[graphql] ← ${operation.kind} ${operation.name} ${response.status} ok (${elapsedMs}ms)`,
+  );
+  return parsedBody.data as T;
+}
+
 function parseOperation(document: string): { kind: string; name: string } {
   const m = document.match(/(query|mutation|subscription)\s+(\w+)/);
   return m ? { kind: m[1], name: m[2] } : { kind: 'query', name: 'anonymous' };
@@ -106,6 +237,18 @@ export async function authenticatedRequest<T>(
 ): Promise<T> {
   function request(): Promise<T> {
     return graphqlClient.request<T>(document, variables);
+  }
+
+  return wrap ? wrap(request) : request();
+}
+
+export async function authenticatedMultipartRequest<T>(
+  document: string,
+  variables: Variables,
+  fileMap: Record<string, UploadFile>,
+): Promise<T> {
+  function request(): Promise<T> {
+    return multipartGraphqlClient.request<T>(document, variables, fileMap);
   }
 
   return wrap ? wrap(request) : request();
@@ -150,24 +293,41 @@ export const graphqlClient = {
       throw err;
     }
 
-    const elapsedMs = Date.now() - startedAt;
+    return readGraphQLResponse<T>(response, document, variables, op, startedAt);
+  },
+};
 
-    if (!response.ok) {
-      console.warn(`[graphql] ← ${op.kind} ${op.name} ${response.status} (${elapsedMs}ms)`);
-      throw await createClientErrorFromResponse(response, document, variables);
-    }
+export const multipartGraphqlClient = {
+  async request<T>(
+    document: string,
+    variables: Variables,
+    fileMap: Record<string, UploadFile>,
+  ): Promise<T> {
+    const op = parseOperation(document);
+    const startedAt = Date.now();
+    console.log(`[graphql] → ${op.kind} ${op.name} ${endpoint}`, {
+      variableKeys: Object.keys(variables),
+    });
 
-    const body = await response.text();
-    const parsedBody = parseResponseBodySafely(body);
+    const headers: HeadersInit = {
+      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+    };
 
-    if (parsedBody.errors?.length) {
-      console.warn(
-        `[graphql] ← ${op.kind} ${op.name} ${response.status} with ${parsedBody.errors.length} errors (${elapsedMs}ms)`,
+    let response: Response;
+    try {
+      response = await fetch(endpoint, {
+        method: 'POST',
+        headers,
+        body: createMultipartBody(document, variables, fileMap),
+      });
+    } catch (err) {
+      console.error(
+        `[graphql] ✗ ${op.kind} ${op.name} network failure after ${Date.now() - startedAt}ms`,
+        err,
       );
-      throw createClientErrorFromBody(response, document, body, variables);
+      throw err;
     }
 
-    console.log(`[graphql] ← ${op.kind} ${op.name} ${response.status} ok (${elapsedMs}ms)`);
-    return parsedBody.data as T;
+    return readGraphQLResponse<T>(response, document, variables, op, startedAt);
   },
 };

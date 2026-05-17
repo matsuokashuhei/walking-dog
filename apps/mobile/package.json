@@ -59,7 +59,6 @@
     "react-dom": "19.2.0",
     "react-i18next": "^16.6.1",
     "react-native": "0.83.6",
-    "react-native-ble-plx": "3.5.1",
     "react-native-gesture-handler": "~2.30.0",
     "react-native-maps": "1.27.2",
     "react-native-reanimated": "4.2.1",
@@ -116,9 +115,6 @@
       "targets/walk-live-activity/expo-target.config.js"
     ],
     "ignoreIssues": {
-      "modules/ble-advertiser/index.ts": [
-        "exports"
-      ],
       "modules/walk-activity/index.ts": [
         "exports"
       ]

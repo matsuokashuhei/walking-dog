@@ -102,12 +102,6 @@
       "streakDays": "{{days}}d",
       "back": "Dogs"
     },
-    "encounters": {
-      "title": "Encounter History"
-    },
-    "friends": {
-      "title": "Friends"
-    },
     "edit": {
       "title": "Edit dog",
       "photoUploadError": "Failed to upload photo. Please try again."

@@ -13,10 +13,12 @@ import {
   isDogFormValid,
   type DogFormValues,
 } from '@/components/dogs/DogForm';
+import { DogAvatarEditor } from '@/components/dogs/DogAvatarEditor';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useColors } from '@/hooks/use-colors';
 import { components, spacing } from '@/theme/tokens';
+import type { UploadFile } from '@/lib/graphql/client';
 
 // 犬編集画面 — inline ScreenHeader でフォームの Cancel/Save を提供します。
 // dog データのロード待ちは外側、form state 初期化は内側コンポーネントに分離して
@@ -37,6 +39,7 @@ export default function EditDogScreen() {
         gender: dog.gender ?? '',
         ...dogBirthdayToFormValues(dog.birthday),
       }}
+      currentAvatar={dog.avatar ?? dog.photoUrl ?? null}
     />
   );
 }
@@ -45,9 +48,10 @@ interface EditDogContentProps {
   id: string;
   dogName: string;
   initialValues: DogFormValues;
+  currentAvatar: string | null;
 }
 
-function EditDogContent({ id, dogName, initialValues }: EditDogContentProps) {
+function EditDogContent({ id, dogName, initialValues, currentAvatar }: EditDogContentProps) {
   const { t } = useTranslation();
   const router = useRouter();
   const theme = useColors();
@@ -56,6 +60,7 @@ function EditDogContent({ id, dogName, initialValues }: EditDogContentProps) {
   const runWithAlert = useMutationWithAlert();
 
   const [values, setValues] = useState<DogFormValues>(initialValues);
+  const [avatarFile, setAvatarFile] = useState<UploadFile | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const canSave = isDogFormValid(values) && !submitting;
@@ -72,6 +77,7 @@ function EditDogContent({ id, dogName, initialValues }: EditDogContentProps) {
           breed: values.breed.trim() || undefined,
           gender: values.gender.trim() || undefined,
           birthday: birthdayValuesToInput(values),
+          ...(avatarFile ? { avatarFile } : {}),
         },
       });
       router.back();
@@ -121,6 +127,7 @@ function EditDogContent({ id, dogName, initialValues }: EditDogContentProps) {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
+        <DogAvatarEditor value={currentAvatar} onChange={setAvatarFile} dogName={dogName} />
         <DogForm values={values} onChange={setValues} />
         <Pressable
           accessibilityRole="button"

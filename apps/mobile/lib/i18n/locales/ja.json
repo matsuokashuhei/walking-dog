@@ -130,7 +130,10 @@
       "birthdayMonth": "月",
       "birthdayMonthPlaceholder": "例: 6",
       "birthdayDay": "日",
-      "birthdayDayPlaceholder": "例: 15"
+      "birthdayDayPlaceholder": "例: 15",
+      "changePhoto": "写真を変更",
+      "photoPermissionDenied": "写真へのアクセスが拒否されました",
+      "photoPermissionMessage": "設定で写真ライブラリへのアクセスを許可してください。"
     },
     "stats": {
       "walks": "散歩",

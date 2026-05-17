@@ -282,6 +282,9 @@ export const components = {
     inputPadding: 0,
     inlineLabelWidth: 70,
   },
+  birthdayPicker: {
+    columnMaxHeight: 180,
+  },
 } as const;
 
 export type ComponentTokens = typeof components;

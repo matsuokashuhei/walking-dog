@@ -130,7 +130,10 @@
       "birthdayMonth": "Month",
       "birthdayMonthPlaceholder": "e.g. 6",
       "birthdayDay": "Day",
-      "birthdayDayPlaceholder": "e.g. 15"
+      "birthdayDayPlaceholder": "e.g. 15",
+      "changePhoto": "Change photo",
+      "photoPermissionDenied": "Photo access denied",
+      "photoPermissionMessage": "Please allow photo library access in Settings."
     },
     "stats": {
       "walks": "Walks",

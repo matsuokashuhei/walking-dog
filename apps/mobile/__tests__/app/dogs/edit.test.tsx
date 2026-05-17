@@ -1,5 +1,6 @@
 import { Alert } from 'react-native';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import * as ImagePicker from 'expo-image-picker';
 import EditDogScreen from '../../../app/dogs/[id]/edit';
 import type { DogWithStats } from '@/types/graphql';
 
@@ -17,13 +18,33 @@ jest.mock('expo-router', () => ({
   useRouter: () => ({ back: mockBack, replace: mockReplace }),
 }));
 
+jest.mock('expo-image', () => ({
+  Image: 'Image',
+}));
+
+jest.mock('expo-image-picker', () => ({
+  PermissionStatus: { GRANTED: 'granted' },
+  requestMediaLibraryPermissionsAsync: jest.fn(),
+  launchImageLibraryAsync: jest.fn(),
+}));
+
+const mockRequestMediaLibraryPermissionsAsync =
+  ImagePicker.requestMediaLibraryPermissionsAsync as jest.MockedFunction<
+    typeof ImagePicker.requestMediaLibraryPermissionsAsync
+  >;
+const mockLaunchImageLibraryAsync =
+  ImagePicker.launchImageLibraryAsync as jest.MockedFunction<
+    typeof ImagePicker.launchImageLibraryAsync
+  >;
+
 const mockDog = {
   id: 'dog-1',
   name: 'Buddy',
   breed: 'Golden Retriever',
   gender: 'MALE',
+  avatar: 'https://example.com/buddy.jpg',
   birthday: null,
-  photoUrl: null,
+  photoUrl: 'https://example.com/buddy.jpg',
   createdAt: '2026-01-01',
   walkStats: null,
 } satisfies DogWithStats;
@@ -47,6 +68,16 @@ describe('EditDogScreen', () => {
     mockUpdateDog.mockResolvedValue(mockDog);
     mockDeleteDog.mockResolvedValue(mockDog);
     jest.spyOn(Alert, 'alert').mockImplementation(jest.fn());
+    mockRequestMediaLibraryPermissionsAsync.mockResolvedValue({
+      granted: true,
+      status: ImagePicker.PermissionStatus.GRANTED,
+      canAskAgain: true,
+      expires: 'never',
+    });
+    mockLaunchImageLibraryAsync.mockResolvedValue({
+      canceled: true,
+      assets: null,
+    });
   });
 
   it('renders the inline ScreenHeader title and common actions', () => {
@@ -116,5 +147,44 @@ describe('EditDogScreen', () => {
       expect(mockDeleteDog).toHaveBeenCalledWith('dog-1');
     });
     expect(mockReplace).toHaveBeenCalledWith('/(tabs)/dogs');
+  });
+
+  it('saves the selected avatar file with the form values', async () => {
+    mockLaunchImageLibraryAsync.mockResolvedValue({
+      canceled: false,
+      assets: [
+        {
+          uri: 'file:///buddy.png',
+          width: 100,
+          height: 100,
+          fileName: 'buddy.png',
+          mimeType: 'image/png',
+        },
+      ],
+    });
+    render(<EditDogScreen />);
+
+    fireEvent.press(screen.getByRole('button', { name: 'Change photo' }));
+    await waitFor(() => {
+      expect(mockLaunchImageLibraryAsync).toHaveBeenCalled();
+    });
+    fireEvent.press(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(mockUpdateDog).toHaveBeenCalledWith({
+        id: 'dog-1',
+        input: {
+          name: 'Buddy',
+          breed: 'Golden Retriever',
+          gender: 'MALE',
+          birthday: null,
+          avatarFile: {
+            uri: 'file:///buddy.png',
+            name: 'buddy.png',
+            type: 'image/png',
+          },
+        },
+      });
+    });
   });
 });

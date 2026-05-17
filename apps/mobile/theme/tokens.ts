@@ -291,6 +291,13 @@ export const components = {
     segmentRadius: 6,
     segmentPaddingH: 10,
   },
+  dogAvatarEditor: {
+    size: 100,
+    radius: 50,
+    placeholderFontSize: 40,
+    pickerQuality: 0.8,
+    pickerAspect: [1, 1] as const,
+  },
 } as const;
 
 export type ComponentTokens = typeof components;

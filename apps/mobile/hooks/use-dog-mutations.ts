@@ -1,5 +1,9 @@
 import { useMutation } from '@tanstack/react-query';
-import { authenticatedRequest } from '@/lib/graphql/client';
+import {
+  authenticatedMultipartRequest,
+  authenticatedRequest,
+  type UploadFile,
+} from '@/lib/graphql/client';
 import {
   ADD_DOG_MUTATION,
   UPDATE_DOG_MUTATION,
@@ -24,6 +28,34 @@ function toApiGender(gender: string | undefined): 'MALE' | 'FEMALE' | 'OTHER' {
   return 'OTHER';
 }
 
+type UpdateDogMutationInput = UpdateDogInput & {
+  avatarFile?: UploadFile;
+};
+
+type UpdateDogMutationVariables = {
+  id: string;
+  input: UpdateDogMutationInput;
+};
+
+function toUpdateDogRequestInput(
+  id: string,
+  input: UpdateDogMutationInput,
+): {
+  id: string;
+  name: string | undefined;
+  breed: string | undefined;
+  gender: 'MALE' | 'FEMALE' | 'OTHER' | undefined;
+  birthday: UpdateDogInput['birthday'];
+} {
+  return {
+    id,
+    name: input.name,
+    breed: input.breed,
+    gender: input.gender ? toApiGender(input.gender) : undefined,
+    birthday: input.birthday,
+  };
+}
+
 // 犬の作成後、ユーザー関連キャッシュを更新して一覧へ反映します。
 export function useCreateDog() {
   const invalidateUserQueries = useInvalidateUserQueries();
@@ -46,17 +78,23 @@ export function useCreateDog() {
 // 犬のプロフィール更新後、詳細と一覧で使うユーザー関連キャッシュを更新します。
 export function useUpdateDog() {
   const invalidateUserQueries = useInvalidateUserQueries();
-  return useMutation<Dog, Error, { id: string; input: UpdateDogInput }>({
+  return useMutation<Dog, Error, UpdateDogMutationVariables>({
     mutationFn: async ({ id, input }) => {
-      const data = await authenticatedRequest<UpdateDogResponse>(UPDATE_DOG_MUTATION, {
-        input: {
-          id,
-          name: input.name,
-          breed: input.breed,
-          gender: input.gender ? toApiGender(input.gender) : undefined,
-          birthday: input.birthday,
-        },
-      });
+      const requestInput = toUpdateDogRequestInput(id, input);
+      const data = input.avatarFile
+        ? await authenticatedMultipartRequest<UpdateDogResponse>(
+            UPDATE_DOG_MUTATION,
+            {
+              input: {
+                ...requestInput,
+                avatar: null,
+              },
+            },
+            { 'variables.input.avatar': input.avatarFile },
+          )
+        : await authenticatedRequest<UpdateDogResponse>(UPDATE_DOG_MUTATION, {
+            input: requestInput,
+          });
       return mapApiDog(data.updateDog);
     },
     onSuccess: invalidateUserQueries,

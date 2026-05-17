@@ -114,13 +114,15 @@ copilot \
 
 **parallel モードでは Bash の `run_in_background: true` で全タスクを同時起動する。** Bash tool は完了通知を返すので、各通知が来たら次の処理に進める（`sleep` で poll しないこと）。ただし**ユーザーから「進捗は？」と聞かれた場合や、長時間 (>5 min) 応答がない場合は `Read tasks/copilot/<session>/logs/<task-id>.log` でログを覗いてよい** — 完了通知ベースでドライブしつつ、安全弁としての覗き見は許容。
 
-**common deny（全モード共通）** — allow は `--allow-all-tools` で済むので、denylist だけ書く：
-- `--deny-tool='shell(git push)'` — push は禁止（worktree 隔離のため）
-- `--deny-tool='shell(rm -rf)'` — 危険な削除は禁止
-- `--deny-tool='shell(sudo)'` — 権限昇格は禁止
-- `--deny-tool='shell(docker)'` — 本番資源への接続を防ぐ（プロジェクトの Rust ローカル開発は `docker compose run --rm` を別途許可するなら個別調整）
+**common deny（全モード共通）** — allow は `--allow-all-tools` で済むので、denylist だけ書く。Copilot の `--deny-tool` は `--allow-all-tools` より優先される（help 記載の precedence）ので、両者を同時指定して問題ない：
 
-言語別の追加 deny は `references/permissions.md`。
+- `--deny-tool='shell(git push)'` — push は禁止（worktree 隔離のため）
+- `--deny-tool='shell(rm:*)'` — `rm` 全般を禁止。`shell(rm -rf)` は exact-match で literal `rm -rf` しかブロックせず、引数付き `rm -rf /foo` がすり抜ける。`:*` の prefix match で確実に止める
+- `--deny-tool='shell(sudo)'` — 権限昇格は禁止
+
+**`docker` は本プロジェクトでは deny しない** — Rust / Terraform / npm の開発はすべて Docker Compose 経由が必須 (`feedback_rust_docker.md` ほか)。`references/permissions.md` 側で言語別に `shell(docker:*)` を allow する運用に合わせる。
+
+言語別の追加 deny / allow は `references/permissions.md`。
 
 ### 4. 進捗監視 & 結果収集
 
@@ -180,14 +182,34 @@ copilot \
 
 ### 5b. Visual verification (Mobile only)
 
-`apps/mobile/` 配下の編集を含むタスクは Jest + tsc に加え、**iOS Simulator での目視確認** が必須。手順:
+`apps/mobile/` 配下の編集を含むタスクは Jest + tsc に加え、**iOS Simulator での目視確認** が必須。
 
-1. main の Metro を一旦停止 (`kill $(lsof -t -i :8081)`)
-2. worktree の `apps/mobile` から Metro を立ち上げ（`APP_ENV=local EXPO_PUBLIC_API_URL=http://localhost:3000 nohup npx expo start --port 8081 &`）
-3. シミュレータのアプリを `xcrun simctl terminate && launch com.walkingdog.app` でリロードして worktree のバンドルを読み込ませる
-4. 該当画面までナビゲートして before/after のスクリーンショットを `tasks/copilot/<session>/{before,after}.png` に保存
-5. `results.md` の "Visual verification" セクションに添付し、A1/A2/... のような diff item ごとに ✅/⚠ を付ける
-6. 最後に main の Metro を復元（worktree Metro を停止 → main で再起動）
+Metro 切り替え方針は **`main の Metro はそのまま、worktree Metro を別ポートで立てる`** を default にする。main を一旦停止する旧フローは、途中で Jest 失敗 / シミュレータクラッシュ等が起きると main の Metro が復元されず "main Metro が落ちたまま" の状態をユーザーに残してしまう。別ポート方式なら main 側は終始無傷。
+
+手順:
+
+1. main の Metro はそのまま稼働させる。worktree の `apps/mobile` から **port 8082** で Metro を立ち上げる:
+
+   ```bash
+   (cd <worktree>/apps/mobile && \
+     EXPO_PUBLIC_API_URL=http://localhost:3000 \
+     nohup npx expo start --port 8082 > /tmp/metro-worktree.log 2>&1 &)
+   ```
+
+   `APP_ENV` は **設定しない** — `apps/mobile/app.config.*` から `APP_ENV` 参照は撤去済み (2026-04-26) で no-op。
+2. シミュレータのアプリを `--env RCT_METRO_PORT=8082` 付きで relaunch して worktree のバンドルに繋ぐ:
+
+   ```bash
+   xcrun simctl terminate $UDID com.walkingdog.app
+   xcrun simctl launch --terminate-running-process \
+     --env RCT_METRO_PORT=8082 \
+     $UDID com.walkingdog.app
+   ```
+
+   `RCT_METRO_PORT` が効かない Expo バージョンでは fallback として、いったん main の Metro (8081) を停止 → 1 の Metro を `--port 8081` で起動し直し → 検証後に main を `cd <main>/apps/mobile && nohup npx expo start --port 8081 &` で復元する。**この fallback を使う場合は、検証手順の頭で main Metro の起動コマンドを `ps -o args= -p $(lsof -t -i :8081)` で記録してから kill すること**。
+3. 該当画面までナビゲートして before/after のスクリーンショットを `tasks/copilot/<session>/{before,after}.png` に保存
+4. `results.md` の "Visual verification" セクションに添付し、A1/A2/... のような diff item ごとに ✅/⚠ を付ける
+5. 後片付け: `kill $(lsof -t -i :8082)` で worktree Metro を落とすだけ。fallback フローを使った場合のみ main Metro を 1 で記録したコマンドで restart する
 
 詳細スクリプトは `ios-sim-test` skill を呼ぶ。`apps/api/` 単独タスクには不要（cargo test で十分）。
 
@@ -196,7 +218,7 @@ copilot \
 ユーザーが結合方針を返したら：
 
 - **squash merge**: `git checkout main && git merge --squash copilot/${TASK_ID} && git commit -m "..."` でローカル merge。push は別途ユーザー指示で。
-- **PR**: `commit-push-pr` skill か直接 `gh pr create` で別途実行。PR 本文には instruction.md のスコープ表、テスト結果、視覚確認結果、スコープ外の追跡項目を入れる。`NOTES.md` が §5 で除去済みであることを再確認。
+- **PR**: `/commit-push-pr` slash command (`.claude/commands/commit-push-pr.md`)、または `commit-commands:commit-push-pr` plugin skill、または直接 `gh pr create`。**`commit-push-pr` という名前の skill は存在しない** ので `Skill(name="commit-push-pr")` 呼び出しはしない。PR 本文には instruction.md のスコープ表、テスト結果、視覚確認結果、スコープ外の追跡項目を入れる。`NOTES.md` が §5 で除去済みであることを再確認。
 - **cherry-pick**: 既存ブランチに `git cherry-pick <sha>`。
 
 PR を作るときは、delegation の `tasks/copilot/<session>/` ディレクトリを PR の差分に含めるかは判断もの — 通常は **含めない**（セッション metadata であり、コードベースの一部ではない）。`.gitignore` に `tasks/copilot/` を追加しておくか、push 前に未追跡のままにする運用が望ましい。

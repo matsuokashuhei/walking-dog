@@ -147,7 +147,6 @@ export interface User {
   dogs: Dog[];
   displayName?: string | null;
   avatarUrl?: string | null;
-  encounterDetectionEnabled?: boolean;
 }
 
 export interface CreateDogInput {
@@ -312,18 +311,3 @@ export type AddWalkPointsResponse = TrackPointResponse;
 export type FinishWalkResponse = EndWalkResponse;
 export type RecordWalkEventResponse = AddEventResponse;
 
-interface FriendDog {
-  id: string;
-  name: string;
-  breed: string | null;
-  photoUrl: string | null;
-  avatar?: string | null;
-}
-
-export interface Encounter {
-  id: string;
-  durationSec: number;
-  metAt: string;
-  dog1: FriendDog;
-  dog2: FriendDog;
-}

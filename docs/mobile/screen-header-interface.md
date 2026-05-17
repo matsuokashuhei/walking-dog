@@ -136,9 +136,6 @@ export interface ScreenHeaderAction {
   rightAction={{ label: t('common.action.save'), onPress: handleSave, strong: true, disabled: !canSave }}
 />
 
-// dogs/[id]/members.tsx — Members (Stack push)
-<ScreenHeader variant="inline" title={t('dogs.members.title')} leftAction="back" />
-
 // dogs/[id]/encounters.tsx — Encounter History
 <ScreenHeader variant="inline" title={t('dogs.encounters.title')} leftAction="back" />
 

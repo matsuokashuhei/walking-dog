@@ -1,5 +1,6 @@
 pub mod auth;
 pub mod dog;
+mod dog_walk_goal;
 pub mod track_point;
 pub mod user;
 pub mod walk;
@@ -12,6 +13,7 @@ use async_graphql::MergedObject;
 pub struct Mutation(
     auth::AuthMutation,
     dog::DogMutation,
+    dog_walk_goal::DogWalkGoalMutation,
     track_point::TrackPointMutation,
     user::UserMutation,
     walk::WalkMutation,

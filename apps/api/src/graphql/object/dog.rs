@@ -7,10 +7,11 @@ use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
 use url::Url;
 
 use crate::{
-    entity::{sea_orm_active_enums::GenderType, user, walk, walk_dog},
+    entity::{dog_walk_goal, sea_orm_active_enums::GenderType, user, walk, walk_dog},
     graphql::{
         cursor::UuidCursor,
-        object::{walk::Walk, walk_connection::WalkConnectionFields},
+        error::AppError,
+        object::{dog_walk_goal::DogWalkGoal, walk::Walk, walk_connection::WalkConnectionFields},
     },
     util::storage::avatar_url,
 };
@@ -89,6 +90,17 @@ impl Dog {
     /// 基準日は UTC の今日。
     async fn age(&self) -> Option<i32> {
         calculate_age(self.birthday.as_ref()?, chrono::Utc::now().date_naive())
+    }
+
+    async fn walk_goal(&self, ctx: &Context<'_>) -> Result<Option<DogWalkGoal>> {
+        let db = ctx.data::<sea_orm::DatabaseConnection>().unwrap();
+        let goal = dog_walk_goal::Entity::find()
+            .filter(dog_walk_goal::Column::DogId.eq(self.id))
+            .filter(dog_walk_goal::Column::EffectiveTo.is_null())
+            .one(db)
+            .await
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+        Ok(goal.map(DogWalkGoal::from))
     }
 
     async fn walks(

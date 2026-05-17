@@ -2,11 +2,13 @@
 
 pub mod birthday;
 pub mod dog;
+pub mod dog_walk_goal;
 pub mod sea_orm_active_enums;
 pub mod track_point;
 pub mod user;
 pub mod user_dog;
 pub mod walk;
+pub mod walk_amount;
 pub mod walk_dog;
 pub mod walk_dog_event;
 pub mod walk_photo;

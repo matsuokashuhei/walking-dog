@@ -320,15 +320,6 @@ interface FriendDog {
   avatar?: string | null;
 }
 
-export interface Friendship {
-  id: string;
-  encounterCount: number;
-  totalInteractionSec: number;
-  firstMetAt: string;
-  lastMetAt: string;
-  friend: FriendDog;
-}
-
 export interface Encounter {
   id: string;
   durationSec: number;

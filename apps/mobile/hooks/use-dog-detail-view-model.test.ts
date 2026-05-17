@@ -240,13 +240,12 @@ describe('useDogDetailViewModel', () => {
     expect(mockRefetchWalks).toHaveBeenCalledTimes(1);
   });
 
-  it('exposes walk navigation and disables unsupported friends navigation', () => {
+  it('exposes walk navigation through the view model', () => {
     const { result } = renderHook(() => useDogDetailViewModel());
     const vm = expectReadyViewModel(result.current);
 
     act(() => {
       vm.handleOpenWalk('walk-8');
-      vm.handleOpenFriends();
     });
 
     expect(mockPush).toHaveBeenNthCalledWith(1, '/walks/walk-8');

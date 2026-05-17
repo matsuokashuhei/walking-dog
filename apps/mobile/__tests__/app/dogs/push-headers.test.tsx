@@ -2,7 +2,6 @@ import type { ReactElement } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import DogDetailLayout from '../../../app/dogs/[id]/_layout';
 import DogEncountersScreen from '../../../app/dogs/[id]/encounters';
-import DogFriendsScreen from '../../../app/dogs/[id]/friends';
 
 const mockBack = jest.fn();
 const mockPush = jest.fn();
@@ -69,10 +68,6 @@ jest.mock('@/hooks/use-dog-encounters', () => ({
   useDogEncounters: () => ({ data: [], isLoading: false }),
 }));
 
-jest.mock('@/hooks/use-dog-friends', () => ({
-  useDogFriends: () => ({ data: [], isLoading: false }),
-}));
-
 describe('dog push screen headers', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -87,14 +82,6 @@ describe('dog push screen headers', () => {
     expect(mockBack).toHaveBeenCalledTimes(1);
   });
 
-  it('renders Friends with exactly one inline ScreenHeader and back action', () => {
-    renderWithLayout(<DogFriendsScreen />);
-
-    expectSingleHeader('Friends');
-    fireEvent.press(screen.getByRole('button', { name: 'Back' }));
-
-    expect(mockBack).toHaveBeenCalledTimes(1);
-  });
 });
 
 function renderWithLayout(screenElement: ReactElement) {

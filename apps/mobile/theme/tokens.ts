@@ -285,6 +285,12 @@ export const components = {
   birthdayPicker: {
     columnMaxHeight: 180,
   },
+  segmentedControl: {
+    height: 32,
+    padding: 2,
+    segmentRadius: 6,
+    segmentPaddingH: 10,
+  },
 } as const;
 
 export type ComponentTokens = typeof components;

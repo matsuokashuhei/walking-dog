@@ -26,11 +26,14 @@ describe('DogForm', () => {
     return { onChange, ...utils };
   }
 
-  it('renders name/breed/gender fields', () => {
+  it('renders name/breed fields and gender options', () => {
     setup();
     expect(screen.getByLabelText('Name')).toBeTruthy();
     expect(screen.getByLabelText('Breed')).toBeTruthy();
-    expect(screen.getByLabelText('Gender')).toBeTruthy();
+    expect(screen.getByText('Gender')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Male' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Female' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Other' })).toBeTruthy();
   });
 
   it('renders the birthday placeholder when no birthday is set', () => {
@@ -58,8 +61,8 @@ describe('DogForm', () => {
 
   it('calls onChange with patched values when gender changes', () => {
     const { onChange } = setup(makeValues({ name: 'Hana', breed: 'Poodle' }));
-    fireEvent.changeText(screen.getByLabelText('Gender'), 'male');
-    expect(onChange).toHaveBeenCalledWith(makeValues({ name: 'Hana', breed: 'Poodle', gender: 'male' }));
+    fireEvent.press(screen.getByRole('button', { name: 'Female' }));
+    expect(onChange).toHaveBeenCalledWith(makeValues({ name: 'Hana', breed: 'Poodle', gender: 'FEMALE' }));
   });
 
   it('opens the birthday picker modal from the birthday row', () => {
@@ -89,7 +92,7 @@ describe('DogForm', () => {
     setup(makeValues({ name: 'Kuro', breed: 'Labrador', gender: 'male', birthdayYear: '2021', birthdayMonth: '6' }));
     expect(screen.getByDisplayValue('Kuro')).toBeTruthy();
     expect(screen.getByDisplayValue('Labrador')).toBeTruthy();
-    expect(screen.getByDisplayValue('male')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Male' }).props.accessibilityState?.selected).toBe(true);
     expect(screen.getByText('Jun 2021')).toBeTruthy();
   });
 });

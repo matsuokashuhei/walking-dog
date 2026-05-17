@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { GroupedCard } from '@/components/ui/GroupedCard';
+import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { TextInput } from '@/components/ui/TextInput';
 import { useColors } from '@/hooks/use-colors';
 import { components, radius, spacing, typography } from '@/theme/tokens';
@@ -28,6 +29,8 @@ const MONTH_COUNT = 12;
 const DEFAULT_DAY_COUNT = 31;
 const MONTH_SAMPLE_YEAR = 2020;
 const MONTH_SAMPLE_DAY = 1;
+const DOG_GENDER_VALUES = ['MALE', 'FEMALE', 'OTHER'] as const;
+type DogGenderValue = (typeof DOG_GENDER_VALUES)[number];
 
 // 02b. Dog edit の inset-grouped 形式: 1 枚のカードに行を積み上げ、hairline で区切る。
 // 純粋な controlled component — values と onChange のみ受け取る。Submit / loading は呼び出し元の
@@ -38,6 +41,12 @@ export function DogForm({ values, onChange }: DogFormProps) {
   const [birthdayPickerVisible, setBirthdayPickerVisible] = useState(false);
   const set = (patch: Partial<DogFormValues>) => onChange({ ...values, ...patch });
   const birthdayDisplay = formatBirthdayDisplay(values, i18n.language, t);
+  const genderValue = normalizeGenderValue(values.gender);
+  const genderOptions = [
+    { value: 'MALE', label: t('dogs.form.genderMale') },
+    { value: 'FEMALE', label: t('dogs.form.genderFemale') },
+    { value: 'OTHER', label: t('dogs.form.genderOther') },
+  ];
   const selectedYear = toPositiveInt(values.birthdayYear);
   const selectedMonth = toBoundedInt(values.birthdayMonth, MONTH_COUNT);
   const selectedDay = toBoundedInt(values.birthdayDay, DEFAULT_DAY_COUNT);
@@ -95,13 +104,19 @@ export function DogForm({ values, onChange }: DogFormProps) {
           onChangeText={(breed) => set({ breed })}
           placeholder={t('dogs.form.breedPlaceholder')}
         />
-        <TextInput
-          label={t('dogs.form.gender')}
-          labelPosition="inline"
-          value={values.gender}
-          onChangeText={(gender) => set({ gender })}
-          placeholder={t('dogs.form.genderPlaceholder')}
-        />
+        <View style={styles.inlineRow}>
+          <Text style={[styles.inlineLabel, { color: theme.onSurfaceVariant }]}>
+            {t('dogs.form.gender')}
+          </Text>
+          <View style={styles.genderControlWrap}>
+            <SegmentedControl
+              options={genderOptions}
+              value={genderValue}
+              onChange={(gender) => set({ gender })}
+              testID="dog-gender-segmented-control"
+            />
+          </View>
+        </View>
       </GroupedCard>
 
       <Text style={[styles.sectionHeader, { color: theme.onSurfaceVariant }]}>
@@ -365,6 +380,13 @@ function getMaxDay(year: number | undefined, month: number | undefined): number 
   return new Date(year, month, 0).getDate();
 }
 
+function normalizeGenderValue(gender: string): DogGenderValue | '' {
+  const normalized = gender.trim().toUpperCase();
+  return DOG_GENDER_VALUES.includes(normalized as DogGenderValue)
+    ? (normalized as DogGenderValue)
+    : '';
+}
+
 const styles = StyleSheet.create({
   container: { width: '100%' },
   sectionHeader: {
@@ -398,6 +420,9 @@ const styles = StyleSheet.create({
   },
   chevron: {
     ...typography.body,
+  },
+  genderControlWrap: {
+    flex: 1,
   },
   modalBackdrop: {
     flex: 1,

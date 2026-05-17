@@ -26,18 +26,25 @@ describe('DogForm', () => {
     return { onChange, ...utils };
   }
 
-  it('renders name/breed/gender fields', () => {
+  it('renders name/breed fields and gender options', () => {
     setup();
     expect(screen.getByLabelText('Name')).toBeTruthy();
     expect(screen.getByLabelText('Breed')).toBeTruthy();
-    expect(screen.getByLabelText('Gender')).toBeTruthy();
+    expect(screen.getByText('Gender')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Male' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Female' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Other' })).toBeTruthy();
   });
 
-  it('renders birthday year/month/day fields', () => {
+  it('renders the birthday placeholder when no birthday is set', () => {
     setup();
-    expect(screen.getByLabelText('Year')).toBeTruthy();
-    expect(screen.getByLabelText('Month')).toBeTruthy();
-    expect(screen.getByLabelText('Day')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Birthday (whatever you know)' })).toBeTruthy();
+    expect(screen.getByText('Add birthday')).toBeTruthy();
+  });
+
+  it('renders a formatted birthday when all birthday values are set', () => {
+    setup(makeValues({ birthdayYear: '2021', birthdayMonth: '6', birthdayDay: '15' }));
+    expect(screen.getByText('Jun 15, 2021')).toBeTruthy();
   });
 
   it('calls onChange with patched values when name changes', () => {
@@ -54,23 +61,39 @@ describe('DogForm', () => {
 
   it('calls onChange with patched values when gender changes', () => {
     const { onChange } = setup(makeValues({ name: 'Hana', breed: 'Poodle' }));
-    fireEvent.changeText(screen.getByLabelText('Gender'), 'male');
-    expect(onChange).toHaveBeenCalledWith(makeValues({ name: 'Hana', breed: 'Poodle', gender: 'male' }));
+    fireEvent.press(screen.getByRole('button', { name: 'Female' }));
+    expect(onChange).toHaveBeenCalledWith(makeValues({ name: 'Hana', breed: 'Poodle', gender: 'FEMALE' }));
   });
 
-  it('keeps only digits when birthday year changes', () => {
+  it('opens the birthday picker modal from the birthday row', () => {
+    setup();
+    fireEvent.press(screen.getByRole('button', { name: 'Birthday (whatever you know)' }));
+    expect(screen.getByText('Birthday')).toBeTruthy();
+    expect(screen.getByTestId('birthday-year-unknown')).toBeTruthy();
+  });
+
+  it('calls onChange when selecting a birthday year', () => {
     const { onChange } = setup(makeValues({ name: 'Hana', gender: 'male' }));
-    fireEvent.changeText(screen.getByLabelText('Year'), '20a2');
-    expect(onChange).toHaveBeenCalledWith(makeValues({ name: 'Hana', gender: 'male', birthdayYear: '202' }));
+    fireEvent.press(screen.getByRole('button', { name: 'Birthday (whatever you know)' }));
+    fireEvent.press(screen.getByTestId('birthday-year-2021'));
+    expect(onChange).toHaveBeenCalledWith(makeValues({ name: 'Hana', gender: 'male', birthdayYear: '2021' }));
+  });
+
+  it('clears month and day when selecting Unknown for year', () => {
+    const { onChange } = setup(
+      makeValues({ name: 'Hana', gender: 'male', birthdayYear: '2021', birthdayMonth: '6', birthdayDay: '15' }),
+    );
+    fireEvent.press(screen.getByRole('button', { name: 'Birthday (whatever you know)' }));
+    fireEvent.press(screen.getByTestId('birthday-year-unknown'));
+    expect(onChange).toHaveBeenCalledWith(makeValues({ name: 'Hana', gender: 'male' }));
   });
 
   it('pre-fills initial values', () => {
     setup(makeValues({ name: 'Kuro', breed: 'Labrador', gender: 'male', birthdayYear: '2021', birthdayMonth: '6' }));
     expect(screen.getByDisplayValue('Kuro')).toBeTruthy();
     expect(screen.getByDisplayValue('Labrador')).toBeTruthy();
-    expect(screen.getByDisplayValue('male')).toBeTruthy();
-    expect(screen.getByDisplayValue('2021')).toBeTruthy();
-    expect(screen.getByDisplayValue('6')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Male' }).props.accessibilityState?.selected).toBe(true);
+    expect(screen.getByText('Jun 2021')).toBeTruthy();
   });
 });
 

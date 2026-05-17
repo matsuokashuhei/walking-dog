@@ -104,6 +104,10 @@
     },
     "edit": {
       "title": "Edit dog",
+      "remove": "Remove {{name}}",
+      "removeAction": "Remove",
+      "removeConfirmTitle": "Remove {{name}}?",
+      "removeConfirmMessage": "This action cannot be undone.",
       "photoUploadError": "Failed to upload photo. Please try again."
     },
     "form": {
@@ -112,8 +116,15 @@
       "breed": "Breed",
       "breedPlaceholder": "e.g. Golden Retriever",
       "gender": "Gender",
+      "genderMale": "Male",
+      "genderFemale": "Female",
+      "genderOther": "Other",
       "genderPlaceholder": "e.g. Male",
       "birthday": "Birthday (whatever you know)",
+      "birthdayPlaceholder": "Add birthday",
+      "birthdayUnknown": "Unknown",
+      "birthdayPickerTitle": "Birthday",
+      "birthdayYearOnly": "{{year}}",
       "birthdayYear": "Year",
       "birthdayYearPlaceholder": "e.g. 2021",
       "birthdayMonth": "Month",

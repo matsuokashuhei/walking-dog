@@ -104,6 +104,10 @@
     },
     "edit": {
       "title": "犬を編集",
+      "remove": "{{name}}を削除",
+      "removeAction": "削除",
+      "removeConfirmTitle": "{{name}}を削除しますか?",
+      "removeConfirmMessage": "この操作は取り消せません。",
       "photoUploadError": "写真のアップロードに失敗しました。もう一度お試しください。"
     },
     "form": {
@@ -112,8 +116,15 @@
       "breed": "犬種",
       "breedPlaceholder": "例: 柴犬",
       "gender": "性別",
+      "genderMale": "オス",
+      "genderFemale": "メス",
+      "genderOther": "その他",
       "genderPlaceholder": "例: オス",
       "birthday": "誕生日（わかる範囲でOK）",
+      "birthdayPlaceholder": "誕生日を追加",
+      "birthdayUnknown": "不明",
+      "birthdayPickerTitle": "誕生日",
+      "birthdayYearOnly": "{{year}}年",
       "birthdayYear": "年",
       "birthdayYearPlaceholder": "例: 2021",
       "birthdayMonth": "月",

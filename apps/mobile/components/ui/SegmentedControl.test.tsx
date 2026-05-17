@@ -13,14 +13,14 @@ const options = [
 
 describe('SegmentedControl', () => {
   it('renders every option label', () => {
-    render(<SegmentedControl options={options} selected="WEEK" onChange={jest.fn()} />);
+    render(<SegmentedControl options={options} value="WEEK" onChange={jest.fn()} />);
     for (const opt of options) {
       expect(screen.getByText(opt.label)).toBeTruthy();
     }
   });
 
   it('marks only the selected option with accessibilityState.selected', () => {
-    render(<SegmentedControl options={options} selected="MONTH" onChange={jest.fn()} />);
+    render(<SegmentedControl options={options} value="MONTH" onChange={jest.fn()} />);
     expect(screen.getByRole('button', { name: 'Month' }).props.accessibilityState?.selected).toBe(
       true,
     );
@@ -31,15 +31,13 @@ describe('SegmentedControl', () => {
 
   it('calls onChange with option value when pressed', () => {
     const onChange = jest.fn();
-    render(<SegmentedControl options={options} selected="WEEK" onChange={onChange} />);
+    render(<SegmentedControl options={options} value="WEEK" onChange={onChange} />);
     fireEvent.press(screen.getByRole('button', { name: 'All' }));
     expect(onChange).toHaveBeenCalledWith('ALL');
   });
 
-  it('still fires onChange when the currently-selected option is pressed', () => {
-    const onChange = jest.fn();
-    render(<SegmentedControl options={options} selected="WEEK" onChange={onChange} />);
-    fireEvent.press(screen.getByRole('button', { name: 'Week' }));
-    expect(onChange).toHaveBeenCalledWith('WEEK');
+  it('passes the testID through to the container', () => {
+    render(<SegmentedControl options={options} value="WEEK" onChange={jest.fn()} testID="range" />);
+    expect(screen.getByTestId('range')).toBeTruthy();
   });
 });

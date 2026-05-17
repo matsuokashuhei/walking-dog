@@ -282,6 +282,15 @@ export const components = {
     inputPadding: 0,
     inlineLabelWidth: 70,
   },
+  birthdayPicker: {
+    columnMaxHeight: 180,
+  },
+  segmentedControl: {
+    height: 32,
+    padding: 2,
+    segmentRadius: 6,
+    segmentPaddingH: 10,
+  },
 } as const;
 
 export type ComponentTokens = typeof components;

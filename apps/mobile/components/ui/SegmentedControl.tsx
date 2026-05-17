@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useColors } from '@/hooks/use-colors';
-import { spacing, radius, typography } from '@/theme/tokens';
+import { components, radius, typography } from '@/theme/tokens';
 
 interface SegmentOption {
   label: string;
@@ -9,17 +9,21 @@ interface SegmentOption {
 
 interface SegmentedControlProps {
   options: SegmentOption[];
-  selected: string;
+  value: string;
   onChange: (value: string) => void;
+  testID?: string;
 }
 
-export function SegmentedControl({ options, selected, onChange }: SegmentedControlProps) {
+export function SegmentedControl({ options, value, onChange, testID }: SegmentedControlProps) {
   const theme = useColors();
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.surfaceContainer }]}>
+    <View
+      testID={testID}
+      style={[styles.container, { backgroundColor: theme.surfaceContainer }]}
+    >
       {options.map((opt) => {
-        const isSelected = opt.value === selected;
+        const isSelected = opt.value === value;
         return (
           <Pressable
             key={opt.value}
@@ -50,18 +54,19 @@ export function SegmentedControl({ options, selected, onChange }: SegmentedContr
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
+    height: components.segmentedControl.height,
     borderRadius: radius.md,
-    padding: spacing.xs / 2,
+    padding: components.segmentedControl.padding,
   },
   segment: {
     flex: 1,
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: components.segmentedControl.segmentPaddingH,
     alignItems: 'center',
-    borderRadius: radius.md - spacing.xs / 2,
+    justifyContent: 'center',
+    borderRadius: components.segmentedControl.segmentRadius,
   },
   selectedSegment: {},
   label: {
-    ...typography.metricLabel,
+    ...typography.footnote,
   },
 });

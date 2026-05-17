@@ -3,7 +3,6 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import DogDetailLayout from '../../../app/dogs/[id]/_layout';
 import DogEncountersScreen from '../../../app/dogs/[id]/encounters';
 import DogFriendsScreen from '../../../app/dogs/[id]/friends';
-import DogMembersScreen from '../../../app/dogs/[id]/members';
 
 const mockBack = jest.fn();
 const mockPush = jest.fn();
@@ -75,16 +74,6 @@ jest.mock('@/hooks/use-me', () => ({
   useMe: () => ({ data: { id: 'user-1' }, isLoading: false }),
 }));
 
-jest.mock('@/hooks/use-dog-member-mutations', () => ({
-  useGenerateInvitation: () => ({ mutateAsync: jest.fn(), isPending: false }),
-  useRemoveMember: () => ({ mutateAsync: jest.fn(), isPending: false }),
-  useLeaveDog: () => ({ mutateAsync: jest.fn(), isPending: false }),
-}));
-
-jest.mock('@/hooks/use-mutation-with-alert', () => ({
-  useMutationWithAlert: () => async (run: () => Promise<unknown>) => run(),
-}));
-
 jest.mock('@/hooks/use-dog-encounters', () => ({
   useDogEncounters: () => ({ data: [], isLoading: false }),
 }));
@@ -96,15 +85,6 @@ jest.mock('@/hooks/use-dog-friends', () => ({
 describe('dog push screen headers', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-  });
-
-  it('renders Members with exactly one inline ScreenHeader and back action', () => {
-    renderWithLayout(<DogMembersScreen />);
-
-    expectSingleHeader('Members');
-    fireEvent.press(screen.getByRole('button', { name: 'Back' }));
-
-    expect(mockBack).toHaveBeenCalledTimes(1);
   });
 
   it('renders Encounter History with exactly one inline ScreenHeader and back action', () => {

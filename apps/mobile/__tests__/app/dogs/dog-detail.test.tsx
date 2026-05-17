@@ -2,6 +2,7 @@ import { StyleSheet } from 'react-native';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import DogDetailScreen from '../../../app/dogs/[id]/index';
+import type { DogWithStats } from '@/types/graphql';
 import { spacing } from '@/theme/tokens';
 
 const mockPush = jest.fn();
@@ -29,36 +30,20 @@ jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
 }));
 
-const mockDog = {
+const mockDog: DogWithStats = {
   id: 'dog-1',
   name: 'Buddy',
   breed: 'Golden Retriever',
   gender: 'Male',
   birthday: null,
   photoUrl: null,
-  role: 'owner' as const,
+  role: 'owner',
   createdAt: '2024-01-01',
   walkStats: null,
-  members: [
-    {
-      id: 'member-1',
-      userId: 'user-1',
-      role: 'owner' as const,
-      user: { displayName: 'Owner User', avatarUrl: null },
-      createdAt: '2024-01-01',
-    },
-    {
-      id: 'member-2',
-      userId: 'user-2',
-      role: 'member' as const,
-      user: { displayName: 'Member User', avatarUrl: null },
-      createdAt: '2024-01-02',
-    },
-  ],
 };
 
 let mockMeData: { id: string } | undefined = { id: 'user-1' };
-let mockDogData = mockDog;
+let mockDogData: DogWithStats = mockDog;
 
 jest.mock('@/hooks/use-dog', () => ({
   useDog: () => ({ data: mockDogData, isLoading: false }),
@@ -109,7 +94,7 @@ describe('DogDetailScreen', () => {
   });
 
   it('hides delete button for non-owner member', () => {
-    mockMeData = { id: 'user-2' }; // member, not owner
+    mockDogData = { ...mockDog, role: 'member' };
     renderWithProviders(<DogDetailScreen />);
     expect(screen.queryByText('Delete')).toBeNull();
   });
@@ -132,7 +117,7 @@ describe('DogDetailScreen', () => {
   });
 
   it('hides edit button for non-owner member', () => {
-    mockMeData = { id: 'user-2' }; // member, not owner
+    mockDogData = { ...mockDog, role: 'member' };
     renderWithProviders(<DogDetailScreen />);
     expect(screen.queryByText('Edit')).toBeNull();
   });
@@ -178,8 +163,8 @@ describe('DogDetailScreen', () => {
     expect(style.paddingHorizontal).toBe(spacing.md);
   });
 
-  it('hides delete button when user is not in members list', () => {
-    mockMeData = { id: 'user-unknown' };
+  it('hides delete button when dog has no role', () => {
+    mockDogData = { ...mockDog, role: undefined };
     renderWithProviders(<DogDetailScreen />);
     expect(screen.queryByText('Delete')).toBeNull();
   });

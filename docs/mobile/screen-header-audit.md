@@ -116,7 +116,7 @@ interface ScreenHeaderProps {
   - [apps/mobile/app/(tabs)/walk.tsx](apps/mobile/app/(tabs)/walk.tsx) — ScreenHeader を追加
   - [apps/mobile/app/dogs/new.tsx](apps/mobile/app/dogs/new.tsx) — 自前 navBar 削除、ScreenHeader 採用
   - [apps/mobile/app/dogs/[id]/edit.tsx](apps/mobile/app/dogs/[id]/edit.tsx) — 同上
-  - [apps/mobile/app/dogs/[id]/_layout.tsx](apps/mobile/app/dogs/[id]/_layout.tsx) — members / encounters / friends を `headerShown: false` に変更し、子画面側に `ScreenHeader variant="inline"` を追加
+  - [apps/mobile/app/dogs/[id]/_layout.tsx](apps/mobile/app/dogs/[id]/_layout.tsx) — encounters / friends を `headerShown: false` に変更し、子画面側に `ScreenHeader variant="inline"` を追加
 - **参照のみ**: [apps/mobile/theme/tokens.ts](apps/mobile/theme/tokens.ts)（既存 `layout.*` / `typography.*` をそのまま利用）
 
 ## 検証 / Verification
@@ -125,7 +125,7 @@ interface ScreenHeaderProps {
 
 - iOS Simulator で Dogs ⇄ Me ⇄ Walk タブを切り替え、**largeTitle の Y 座標が完全に一致**することを目視確認（タブ切替時の上下ブレが無い）
 - New Dog / Edit Dog のモーダル ヘッダーが同じ高さ・同じフォントで表示されることを確認
-- Dog Detail から Members / Encounters / Friends に push 遷移したとき、ヘッダーが Stack 標準ではなく `ScreenHeader variant="inline"` で統一されることを確認
+- Dog Detail から Encounters / Friends に push 遷移したとき、ヘッダーが Stack 標準ではなく `ScreenHeader variant="inline"` で統一されることを確認
 - Dark mode / Light mode 両方で色トークンが正しく適用されることを確認
 - `apps/mobile/components/ui/ScreenHeader.test.tsx` を追加し、3つの variant それぞれで a11y label と minimum touch target (44pt) が満たされることをテスト
 - `npm run typecheck && npm run lint` (Docker 経由) が通ること

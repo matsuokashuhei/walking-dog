@@ -38,12 +38,12 @@ describe('useMutationWithAlert', () => {
     await act(async () => {
       value = await result.current(
         () => Promise.reject(boom),
-        'dogs.members.inviteError',
+        'dogs.detail.deleteError',
       );
     });
 
     expect(value).toBeNull();
-    expect(Alert.alert).toHaveBeenCalledWith('common.error', 'dogs.members.inviteError');
+    expect(Alert.alert).toHaveBeenCalledWith('common.error', 'dogs.detail.deleteError');
   });
 
   it('resolves the message key from the thrown error', async () => {

@@ -50,8 +50,8 @@ describe('isNetworkError', () => {
 
 describe('extractGraphQLErrorMessage', () => {
   it('extracts message from ClientError with GraphQL errors', () => {
-    const error = makeClientErrorWithMessage('Invitation has expired');
-    expect(extractGraphQLErrorMessage(error)).toBe('Invitation has expired');
+    const error = makeClientErrorWithMessage('Walk has expired');
+    expect(extractGraphQLErrorMessage(error)).toBe('Walk has expired');
   });
 
   it('returns error.message from ClientError without GraphQL errors', () => {

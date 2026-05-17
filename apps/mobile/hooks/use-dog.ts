@@ -26,7 +26,6 @@ export function useDog(id: string, period: StatsPeriod = 'ALL') {
             totalDistanceM,
             totalDurationSec,
           },
-          members: [],
         }
       : null;
 

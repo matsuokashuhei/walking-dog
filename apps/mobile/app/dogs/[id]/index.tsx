@@ -87,14 +87,6 @@ export default function DogDetailScreen() {
         </View>
 
         <GroupedCard style={styles.group}>
-          {/* 共有中の犬だけメンバー管理導線を出し、友達一覧は常に確認できるようにします。 */}
-          {vm.memberCount > 0 ? (
-            <GroupedRow
-              label={t('dogs.detail.members')}
-              value={t('dogs.detail.membersCount', { count: vm.memberCount })}
-              onPress={vm.handleOpenMembers}
-            />
-          ) : null}
           <GroupedRow
             label={t('dogs.detail.friends', 'Friends')}
             value={t('dogs.detail.viewFriendsList', 'View encounter history')}

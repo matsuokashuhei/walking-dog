@@ -3,7 +3,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useDog } from '@/hooks/use-dog';
 import { useDogDetailAuthorization } from '@/hooks/use-dog-detail-authorization';
 import { useDeleteDog } from '@/hooks/use-dog-mutations';
-import { useMe } from '@/hooks/use-me';
 import { useMutationWithAlert } from '@/hooks/use-mutation-with-alert';
 import { usePackProgress } from '@/hooks/use-pack-progress';
 import { useMyWalks } from '@/hooks/use-walks';
@@ -41,7 +40,6 @@ interface DogDetailReadyViewModel {
   status: 'ready';
   dog: DogWithStats;
   meta: string;
-  memberCount: number;
   streakDays: number;
   dogWalks: Walk[];
   // 散歩履歴の取得に失敗したときだけ非 null。空配列と「失敗」を画面側で区別するために持ちます。
@@ -50,7 +48,6 @@ interface DogDetailReadyViewModel {
   isOwner: boolean;
   showDeleteConfirm: boolean;
   handleOpenWalk: (walkId: string) => void;
-  handleOpenMembers: () => void;
   handleOpenFriends: () => void;
   openDeleteConfirm: () => void;
   closeDeleteConfirm: () => void;
@@ -66,13 +63,12 @@ export function useDogDetailViewModel(): DogDetailViewModel {
   const router = useRouter();
 
   const { data: dog, isLoading } = useDog(dogId ?? '', 'ALL');
-  const { data: me } = useMe();
   const { data: walks = [], error: walksErrorRaw, refetch: refetchWalks } = useMyWalks(100);
   const walksError = walksErrorRaw ?? null;
   const pack = usePackProgress();
   const { mutateAsync: deleteDog } = useDeleteDog();
   const runWithAlert = useMutationWithAlert();
-  const { isOwner } = useDogDetailAuthorization(dog ?? undefined, me ?? undefined);
+  const { isOwner } = useDogDetailAuthorization(dog ?? undefined);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // 全散歩履歴から、現在表示している犬が参加した散歩だけを抽出します。
@@ -91,10 +87,6 @@ export function useDogDetailViewModel(): DogDetailViewModel {
   const retryWalks = useCallback(() => {
     void refetchWalks?.();
   }, [refetchWalks]);
-
-  const handleOpenMembers = useCallback(() => {
-    return;
-  }, []);
 
   const handleOpenFriends = useCallback(() => {
     return;
@@ -126,7 +118,6 @@ export function useDogDetailViewModel(): DogDetailViewModel {
     status: 'ready',
     dog,
     meta: buildMeta(dog),
-    memberCount: 0,
     streakDays: pack.perDog[dog.id]?.streakDays ?? 0,
     dogWalks,
     walksError,
@@ -134,7 +125,6 @@ export function useDogDetailViewModel(): DogDetailViewModel {
     isOwner,
     showDeleteConfirm,
     handleOpenWalk,
-    handleOpenMembers,
     handleOpenFriends,
     openDeleteConfirm,
     closeDeleteConfirm,

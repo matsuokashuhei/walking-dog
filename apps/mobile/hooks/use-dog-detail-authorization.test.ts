@@ -1,19 +1,8 @@
 import { renderHook } from '@testing-library/react-native';
 import { useDogDetailAuthorization } from './use-dog-detail-authorization';
-import type { DogWithStats, User } from '@/types/graphql';
+import type { DogWithStats } from '@/types/graphql';
 
-function makeMe(id: string): User {
-  return {
-    id,
-    displayName: null,
-    avatarUrl: null,
-    encounterDetectionEnabled: true,
-    dogs: [],
-    createdAt: '',
-  };
-}
-
-function makeDog(members: { userId: string; role: 'owner' | 'member' }[]): DogWithStats {
+function makeDog(role: 'owner' | 'member' | undefined): DogWithStats {
   return {
     id: 'd-1',
     name: 'Rex',
@@ -23,66 +12,28 @@ function makeDog(members: { userId: string; role: 'owner' | 'member' }[]): DogWi
     photoUrl: null,
     createdAt: '',
     walkStats: null,
-    members: members.map((m, i) => ({
-      id: `m-${i}`,
-      userId: m.userId,
-      role: m.role,
-      user: { displayName: null, avatarUrl: null },
-      createdAt: '',
-    })),
+    role,
   };
 }
 
 describe('useDogDetailAuthorization', () => {
-  it('isOwner is true when current user is the owner', () => {
-    const { result } = renderHook(() =>
-      useDogDetailAuthorization(
-        makeDog([{ userId: 'u-1', role: 'owner' }]),
-        makeMe('u-1'),
-      ),
-    );
+  it('isOwner is true when dog.role is owner', () => {
+    const { result } = renderHook(() => useDogDetailAuthorization(makeDog('owner')));
     expect(result.current.isOwner).toBe(true);
   });
 
-  it('isOwner is false when current user is a member (not owner)', () => {
-    const { result } = renderHook(() =>
-      useDogDetailAuthorization(
-        makeDog([
-          { userId: 'u-1', role: 'owner' },
-          { userId: 'u-2', role: 'member' },
-        ]),
-        makeMe('u-2'),
-      ),
-    );
+  it('isOwner is false when dog.role is member', () => {
+    const { result } = renderHook(() => useDogDetailAuthorization(makeDog('member')));
     expect(result.current.isOwner).toBe(false);
   });
 
-  it('isOwner is false when current user is not a member of the dog', () => {
-    const { result } = renderHook(() =>
-      useDogDetailAuthorization(
-        makeDog([{ userId: 'u-1', role: 'owner' }]),
-        makeMe('u-other'),
-      ),
-    );
-    expect(result.current.isOwner).toBe(false);
-  });
-
-  it('isOwner is false when dog has no members field', () => {
-    const { result } = renderHook(() =>
-      useDogDetailAuthorization({ ...makeDog([]), members: undefined }, makeMe('u-1')),
-    );
-    expect(result.current.isOwner).toBe(false);
-  });
-
-  it('isOwner is false when me is undefined', () => {
-    const { result } = renderHook(() =>
-      useDogDetailAuthorization(makeDog([{ userId: 'u-1', role: 'owner' }]), undefined),
-    );
+  it('isOwner is false when dog.role is undefined', () => {
+    const { result } = renderHook(() => useDogDetailAuthorization(makeDog(undefined)));
     expect(result.current.isOwner).toBe(false);
   });
 
   it('isOwner is false when dog is undefined', () => {
-    const { result } = renderHook(() => useDogDetailAuthorization(undefined, makeMe('u-1')));
+    const { result } = renderHook(() => useDogDetailAuthorization(undefined));
     expect(result.current.isOwner).toBe(false);
   });
 });

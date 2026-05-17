@@ -18,22 +18,6 @@ let mockDog: DogWithStats | null = {
   photoUrl: null,
   createdAt: '2026-01-01T00:00:00Z',
   walkStats: null,
-  members: [
-    {
-      id: 'member-1',
-      userId: 'user-1',
-      role: 'owner',
-      user: { displayName: 'Mio', avatarUrl: null },
-      createdAt: '2026-01-01T00:00:00Z',
-    },
-    {
-      id: 'member-2',
-      userId: 'user-2',
-      role: 'member',
-      user: { displayName: 'Ken', avatarUrl: null },
-      createdAt: '2026-01-02T00:00:00Z',
-    },
-  ],
 };
 let mockDogLoading = false;
 let mockWalks: Walk[] = [
@@ -156,22 +140,6 @@ describe('useDogDetailViewModel', () => {
       photoUrl: null,
       createdAt: '2026-01-01T00:00:00Z',
       walkStats: null,
-      members: [
-        {
-          id: 'member-1',
-          userId: 'user-1',
-          role: 'owner',
-          user: { displayName: 'Mio', avatarUrl: null },
-          createdAt: '2026-01-01T00:00:00Z',
-        },
-        {
-          id: 'member-2',
-          userId: 'user-2',
-          role: 'member',
-          user: { displayName: 'Ken', avatarUrl: null },
-          createdAt: '2026-01-02T00:00:00Z',
-        },
-      ],
     };
     mockWalks = [
       {
@@ -240,13 +208,12 @@ describe('useDogDetailViewModel', () => {
     expect(result.current.status).toBe('loading');
   });
 
-  it('builds the meta text, disabled member count, streak, and filtered dog walks', () => {
+  it('builds the meta text, streak, and filtered dog walks', () => {
     const { result } = renderHook(() => useDogDetailViewModel());
 
     const vm = expectReadyViewModel(result.current);
 
     expect(vm.meta).toBe('4y · Shiba Inu');
-    expect(vm.memberCount).toBe(0);
     expect(vm.streakDays).toBe(5);
     expect(vm.dogWalks.map((walk) => walk.id)).toEqual(['walk-1']);
     expect(vm.isOwner).toBe(true);
@@ -273,13 +240,12 @@ describe('useDogDetailViewModel', () => {
     expect(mockRefetchWalks).toHaveBeenCalledTimes(1);
   });
 
-  it('exposes walk navigation and disables unsupported members/friends navigation', () => {
+  it('exposes walk navigation and disables unsupported friends navigation', () => {
     const { result } = renderHook(() => useDogDetailViewModel());
     const vm = expectReadyViewModel(result.current);
 
     act(() => {
       vm.handleOpenWalk('walk-8');
-      vm.handleOpenMembers();
       vm.handleOpenFriends();
     });
 

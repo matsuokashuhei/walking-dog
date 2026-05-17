@@ -11,7 +11,7 @@
 | variant | 用途 | 構造 | 例 |
 |---|---|---|---|
 | `largeTitle` (default) | ルートタブ画面 (Dogs / Me / Walk) | 行1: 左/右ボタンの44px枠（**ボタン無しでも常に予約**）／ 行2: 34/700 large title 左寄せ | Dogs, Me, Walk |
-| `inline` | push 画面・modal 画面 | 1行: 左ボタン — 中央タイトル 17/600 — 右ボタン | New Dog (modal), Edit Dog (modal), Members, Encounters, Friends |
+| `inline` | push 画面・modal 画面 | 1行: 左ボタン — 中央タイトル 17/600 — 右ボタン | New Dog (modal), Edit Dog (modal) |
 
 ### Rationale / 設計判断
 
@@ -136,11 +136,6 @@ export interface ScreenHeaderAction {
   rightAction={{ label: t('common.action.save'), onPress: handleSave, strong: true, disabled: !canSave }}
 />
 
-// dogs/[id]/encounters.tsx — Encounter History
-<ScreenHeader variant="inline" title={t('dogs.encounters.title')} leftAction="back" />
-
-// dogs/[id]/friends/index.tsx — Friends
-<ScreenHeader variant="inline" title={t('dogs.friends.title')} leftAction="back" />
 ```
 
 ---

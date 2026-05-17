@@ -55,15 +55,6 @@ const mockDog = {
   photoUrl: null,
   createdAt: '2026-01-01',
   walkStats: null,
-  members: [
-    {
-      id: 'member-1',
-      userId: 'user-1',
-      role: 'owner' as const,
-      user: { displayName: 'Alice', avatarUrl: null },
-      createdAt: '2026-01-01',
-    },
-  ],
 };
 
 jest.mock('@/hooks/use-dog', () => ({

@@ -33,7 +33,7 @@ export function useWalkScreenViewModel(): WalkScreenViewModel {
     });
   }, [action, phase, router]);
 
-  // 散歩開始時は GPS 権限を確認し、散歩セッションと必要に応じて遭遇検知を開始します。
+  // 散歩開始時は GPS 権限を確認してから散歩セッションを開始します。
   const handleStart = useCallback(async () => {
     const gpsGranted = await permissions.requestGpsPermission();
     if (!gpsGranted) {

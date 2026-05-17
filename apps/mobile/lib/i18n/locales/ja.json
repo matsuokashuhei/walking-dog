@@ -102,12 +102,6 @@
       "streakDays": "{{days}}日",
       "back": "愛犬"
     },
-    "encounters": {
-      "title": "遭遇履歴"
-    },
-    "friends": {
-      "title": "友達"
-    },
     "edit": {
       "title": "犬を編集",
       "photoUploadError": "写真のアップロードに失敗しました。もう一度お試しください。"

@@ -4,16 +4,11 @@ import { useWalkScreenViewModel } from './use-walk-screen-view-model';
 
 const mockPush = jest.fn();
 const mockWalkSessionStart = jest.fn();
-const mockBleStart = jest.fn();
-const mockEncounterStart = jest.fn();
-const mockEncounterOnDeviceDetected = jest.fn();
 const mockRequestGpsPermission = jest.fn();
-const mockRequestBlePermission = jest.fn();
 
 let mockPhase: 'ready' | 'recording' | 'finished' = 'ready';
 let mockSelectedDogIds = ['dog-1'];
 let mockAction: string | undefined;
-let mockEncounterDetectionEnabled = true;
 let mockWalkSessionIsStarting = false;
 
 jest.mock('expo-router', () => ({
@@ -49,12 +44,6 @@ jest.mock('@/stores/walk-store', () => ({
     selector({ phase: mockPhase, selectedDogIds: mockSelectedDogIds }),
 }));
 
-jest.mock('@/hooks/use-me', () => ({
-  useMe: () => ({
-    data: { encounterDetectionEnabled: mockEncounterDetectionEnabled },
-  }),
-}));
-
 jest.mock('@/hooks/use-walk-session', () => ({
   useWalkSession: () => ({
     start: mockWalkSessionStart,
@@ -62,23 +51,9 @@ jest.mock('@/hooks/use-walk-session', () => ({
   }),
 }));
 
-jest.mock('@/hooks/use-ble-session', () => ({
-  useBleSession: () => ({
-    start: mockBleStart,
-  }),
-}));
-
-jest.mock('@/hooks/use-encounter-session', () => ({
-  useEncounterSession: () => ({
-    start: mockEncounterStart,
-    onDeviceDetected: mockEncounterOnDeviceDetected,
-  }),
-}));
-
 jest.mock('@/hooks/use-walk-permissions', () => ({
   useWalkPermissions: () => ({
     requestGpsPermission: mockRequestGpsPermission,
-    requestBlePermission: mockRequestBlePermission,
   }),
 }));
 
@@ -88,10 +63,8 @@ describe('useWalkScreenViewModel', () => {
     mockPhase = 'ready';
     mockSelectedDogIds = ['dog-1'];
     mockAction = undefined;
-    mockEncounterDetectionEnabled = true;
     mockWalkSessionIsStarting = false;
     mockRequestGpsPermission.mockResolvedValue(true);
-    mockRequestBlePermission.mockResolvedValue(true);
     mockWalkSessionStart.mockResolvedValue('walk-1');
   });
 
@@ -133,8 +106,7 @@ describe('useWalkScreenViewModel', () => {
     alertSpy.mockRestore();
   });
 
-  it('starts a single-dog walk without BLE flow when encounter detection is disabled', async () => {
-    mockEncounterDetectionEnabled = false;
+  it('starts a single-dog walk after GPS permission is granted', async () => {
     mockSelectedDogIds = ['dog-1'];
 
     const { result } = renderHook(() => useWalkScreenViewModel());
@@ -147,12 +119,9 @@ describe('useWalkScreenViewModel', () => {
       selectedDogIds: ['dog-1'],
       liveActivityDogName: 'Walking',
     });
-    expect(mockRequestBlePermission).not.toHaveBeenCalled();
-    expect(mockEncounterStart).not.toHaveBeenCalled();
-    expect(mockBleStart).not.toHaveBeenCalled();
   });
 
-  it('starts a multi-dog walk without BLE encounter flow because encounters are unsupported', async () => {
+  it('starts a multi-dog walk with the count-based Live Activity label', async () => {
     mockSelectedDogIds = ['dog-1', 'dog-2'];
 
     const { result } = renderHook(() => useWalkScreenViewModel());
@@ -165,9 +134,6 @@ describe('useWalkScreenViewModel', () => {
       selectedDogIds: ['dog-1', 'dog-2'],
       liveActivityDogName: 'Walking with 2 dogs',
     });
-    expect(mockRequestBlePermission).not.toHaveBeenCalled();
-    expect(mockEncounterStart).not.toHaveBeenCalled();
-    expect(mockBleStart).not.toHaveBeenCalled();
   });
 
   it('shows a start failure alert when the session start throws', async () => {

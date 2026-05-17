@@ -48,7 +48,6 @@ interface DogDetailReadyViewModel {
   isOwner: boolean;
   showDeleteConfirm: boolean;
   handleOpenWalk: (walkId: string) => void;
-  handleOpenFriends: () => void;
   openDeleteConfirm: () => void;
   closeDeleteConfirm: () => void;
   handleDelete: () => Promise<void>;
@@ -88,10 +87,6 @@ export function useDogDetailViewModel(): DogDetailViewModel {
     void refetchWalks?.();
   }, [refetchWalks]);
 
-  const handleOpenFriends = useCallback(() => {
-    return;
-  }, []);
-
   const openDeleteConfirm = useCallback(() => {
     setShowDeleteConfirm(true);
   }, []);
@@ -125,7 +120,6 @@ export function useDogDetailViewModel(): DogDetailViewModel {
     isOwner,
     showDeleteConfirm,
     handleOpenWalk,
-    handleOpenFriends,
     openDeleteConfirm,
     closeDeleteConfirm,
     handleDelete,

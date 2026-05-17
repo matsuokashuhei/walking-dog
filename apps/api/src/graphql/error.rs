@@ -100,7 +100,10 @@ impl ErrorExtensions for AuthError {
                     "Update user attributes error: {:?}",
                     update_user_attributes_error
                 );
-                e.set("code", 422);
+                e.set(
+                    "code",
+                    cognito_email_change_status_code(update_user_attributes_error.code()),
+                );
                 e.set("message", update_user_attributes_error.message());
             }
             AuthError::VerifyUserAttributeError(verify_user_attribute_error) => {
@@ -108,10 +111,33 @@ impl ErrorExtensions for AuthError {
                     "Verify user attribute error: {:?}",
                     verify_user_attribute_error
                 );
-                e.set("code", 422);
+                e.set(
+                    "code",
+                    cognito_email_change_status_code(verify_user_attribute_error.code()),
+                );
                 e.set("message", verify_user_attribute_error.message());
             }
         })
+    }
+}
+
+fn cognito_email_change_status_code(error_code: Option<&str>) -> i32 {
+    match error_code {
+        Some("NotAuthorizedException") => 401,
+        Some("ForbiddenException")
+        | Some("PasswordResetRequiredException")
+        | Some("UserNotConfirmedException") => 403,
+        Some("TooManyRequestsException") | Some("LimitExceededException") => 429,
+        Some("ResourceNotFoundException") | Some("UserNotFoundException") => 404,
+        Some("CodeDeliveryFailureException")
+        | Some("InternalErrorException")
+        | Some("InvalidEmailRoleAccessPolicyException")
+        | Some("InvalidLambdaResponseException")
+        | Some("InvalidSmsRoleAccessPolicyException")
+        | Some("InvalidSmsRoleTrustRelationshipException")
+        | Some("UnexpectedLambdaException")
+        | None => 500,
+        Some(_) => 422,
     }
 }
 

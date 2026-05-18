@@ -5,7 +5,7 @@ FROM base AS dev
 RUN <<EOT
 apt-get update
 apt-get install -y curl pkg-config libssl-dev
-cargo install cargo-watch sea-orm-cli@^2.0.0-rc seaography-cli@^2.0.0-rc
+cargo install cargo-watch sea-orm-cli@^2.0.0-rc evcxr_repl
 rustup component add clippy rustfmt
 EOT
 

@@ -74,14 +74,8 @@ pub fn avatar_url(key: Option<&str>) -> Option<Url> {
     }
 
     let bucket = std::env::var("AWS_S3_BUCKET_AVATAR").ok()?;
-    if let Ok(endpoint) = std::env::var("AWS_S3_ENDPOINT") {
-        return Url::parse(&format!(
-            "{}/{}/{}",
-            endpoint.trim_end_matches('/'),
-            bucket,
-            key
-        ))
-        .ok();
+    if let Ok(_) = std::env::var("AWS_S3_ENDPOINT") {
+        return Url::parse(&format!("{}/{}/{}", "http://localhost:9000", bucket, key)).ok();
     }
 
     Url::parse(&format!("https://{}.s3.amazonaws.com/{}", bucket, key)).ok()

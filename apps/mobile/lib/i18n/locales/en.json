@@ -119,6 +119,7 @@
       "genderMale": "Male",
       "genderFemale": "Female",
       "genderOther": "Other",
+      "genderSelect": "Select gender",
       "genderPlaceholder": "e.g. Male",
       "birthday": "Birthday (whatever you know)",
       "birthdayPlaceholder": "Add birthday",

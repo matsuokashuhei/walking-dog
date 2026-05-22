@@ -119,6 +119,7 @@
       "genderMale": "オス",
       "genderFemale": "メス",
       "genderOther": "その他",
+      "genderSelect": "性別を選択",
       "genderPlaceholder": "例: オス",
       "birthday": "誕生日（わかる範囲でOK）",
       "birthdayPlaceholder": "誕生日を追加",

@@ -1,3 +1,4 @@
+import { ActionSheetIOS } from 'react-native';
 import { render, screen, fireEvent } from '@testing-library/react-native';
 import {
   DogForm,
@@ -20,20 +21,25 @@ function makeValues(overrides: Partial<DogFormValues> = {}): DogFormValues {
 }
 
 describe('DogForm', () => {
+  beforeEach(() => {
+    jest.spyOn(ActionSheetIOS, 'showActionSheetWithOptions').mockImplementation(
+      (_config, cb) => cb(1),
+    );
+  });
+
   function setup(initial: DogFormValues = makeValues()) {
     const onChange = jest.fn();
     const utils = render(<DogForm values={initial} onChange={onChange} />);
     return { onChange, ...utils };
   }
 
-  it('renders name/breed fields and gender options', () => {
+  it('renders name/breed fields and the selected gender value', () => {
     setup();
     expect(screen.getByLabelText('Name')).toBeTruthy();
     expect(screen.getByLabelText('Breed')).toBeTruthy();
     expect(screen.getByText('Gender')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Male' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Female' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Other' })).toBeTruthy();
+    expect(screen.getByText('Select gender')).toBeTruthy();
+    expect(screen.queryByTestId('dog-gender-segmented-control')).toBeNull();
   });
 
   it('renders the birthday placeholder when no birthday is set', () => {
@@ -59,9 +65,16 @@ describe('DogForm', () => {
     expect(onChange).toHaveBeenCalledWith(makeValues({ name: 'Hana', breed: 'Poodle', gender: 'male' }));
   });
 
-  it('calls onChange with patched values when gender changes', () => {
+  it('opens the gender ActionSheet and calls onChange with patched values', () => {
     const { onChange } = setup(makeValues({ name: 'Hana', breed: 'Poodle' }));
-    fireEvent.press(screen.getByRole('button', { name: 'Female' }));
+    fireEvent.press(screen.getByRole('button', { name: 'Gender' }));
+    expect(ActionSheetIOS.showActionSheetWithOptions).toHaveBeenCalledWith(
+      {
+        options: ['Male', 'Female', 'Other', 'Cancel'],
+        cancelButtonIndex: 3,
+      },
+      expect.any(Function),
+    );
     expect(onChange).toHaveBeenCalledWith(makeValues({ name: 'Hana', breed: 'Poodle', gender: 'FEMALE' }));
   });
 
@@ -92,7 +105,7 @@ describe('DogForm', () => {
     setup(makeValues({ name: 'Kuro', breed: 'Labrador', gender: 'male', birthdayYear: '2021', birthdayMonth: '6' }));
     expect(screen.getByDisplayValue('Kuro')).toBeTruthy();
     expect(screen.getByDisplayValue('Labrador')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Male' }).props.accessibilityState?.selected).toBe(true);
+    expect(screen.getByText('Male')).toBeTruthy();
     expect(screen.getByText('Jun 2021')).toBeTruthy();
   });
 });

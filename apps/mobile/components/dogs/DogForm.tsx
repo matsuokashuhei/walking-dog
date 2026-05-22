@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { GroupedCard } from '@/components/ui/GroupedCard';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 import { TextInput } from '@/components/ui/TextInput';
 import { useColors } from '@/hooks/use-colors';
 import { components, radius, spacing, typography } from '@/theme/tokens';
@@ -47,8 +48,16 @@ export function DogForm({ values, onChange }: DogFormProps) {
   const { t, i18n } = useTranslation();
   const theme = useColors();
   const [birthdayPickerVisible, setBirthdayPickerVisible] = useState(false);
+  const [birthdayDraft, setBirthdayDraft] = useState<
+    Pick<DogFormValues, 'birthdayYear' | 'birthdayMonth' | 'birthdayDay'>
+  >({ birthdayYear: '', birthdayMonth: '', birthdayDay: '' });
   const set = (patch: Partial<DogFormValues>) => onChange({ ...values, ...patch });
   const birthdayDisplay = formatBirthdayDisplay(values, i18n.language, t);
+  const birthdayDraftDisplay = formatBirthdayDisplay(
+    { ...values, ...birthdayDraft },
+    i18n.language,
+    t,
+  );
   const genderValue = normalizeGenderValue(values.gender);
   const genderOptions = [
     { value: 'MALE', label: t('dogs.form.genderMale') },
@@ -58,9 +67,9 @@ export function DogForm({ values, onChange }: DogFormProps) {
   const genderLabel =
     genderOptions.find((option) => option.value === genderValue)?.label ??
     t('dogs.form.genderSelect');
-  const selectedYear = toPositiveInt(values.birthdayYear);
-  const selectedMonth = toBoundedInt(values.birthdayMonth, MONTH_COUNT);
-  const selectedDay = toBoundedInt(values.birthdayDay, DEFAULT_DAY_COUNT);
+  const selectedYear = toPositiveInt(birthdayDraft.birthdayYear);
+  const selectedMonth = toBoundedInt(birthdayDraft.birthdayMonth, MONTH_COUNT);
+  const selectedDay = toBoundedInt(birthdayDraft.birthdayDay, DEFAULT_DAY_COUNT);
   const maxDay = getMaxDay(selectedYear, selectedMonth);
   const years = useMemo(() => {
     const currentYear = new Date().getFullYear();
@@ -80,20 +89,43 @@ export function DogForm({ values, onChange }: DogFormProps) {
 
   function selectYear(year: string) {
     if (year === '') {
-      set({ birthdayYear: '', birthdayMonth: '', birthdayDay: '' });
+      setBirthdayDraft({ birthdayYear: '', birthdayMonth: '', birthdayDay: '' });
       return;
     }
-    set({ birthdayYear: year });
+    setBirthdayDraft((current) => ({ ...current, birthdayYear: year }));
   }
 
   function selectMonth(month: string) {
     if (month === '') {
-      set({ birthdayMonth: '', birthdayDay: '' });
+      setBirthdayDraft((current) => ({ ...current, birthdayMonth: '', birthdayDay: '' }));
       return;
     }
     const nextMaxDay = getMaxDay(selectedYear, Number(month));
-    const birthdayDay = selectedDay && selectedDay <= nextMaxDay ? values.birthdayDay : '';
-    set({ birthdayMonth: month, birthdayDay });
+    const birthdayDay =
+      selectedDay && selectedDay <= nextMaxDay ? birthdayDraft.birthdayDay : '';
+    setBirthdayDraft((current) => ({ ...current, birthdayMonth: month, birthdayDay }));
+  }
+
+  function openBirthdayPicker() {
+    setBirthdayDraft({
+      birthdayYear: values.birthdayYear,
+      birthdayMonth: values.birthdayMonth,
+      birthdayDay: values.birthdayDay,
+    });
+    setBirthdayPickerVisible(true);
+  }
+
+  function cancelBirthdayPicker() {
+    setBirthdayPickerVisible(false);
+  }
+
+  function saveBirthdayPicker() {
+    set({
+      birthdayYear: birthdayDraft.birthdayYear,
+      birthdayMonth: birthdayDraft.birthdayMonth,
+      birthdayDay: birthdayDraft.birthdayDay,
+    });
+    setBirthdayPickerVisible(false);
   }
 
   function presentGenderSheet() {
@@ -157,32 +189,27 @@ export function DogForm({ values, onChange }: DogFormProps) {
             </Text>
           </Pressable>
         </View>
-      </GroupedCard>
-
-      <Text style={[styles.sectionHeader, { color: theme.onSurfaceVariant }]}>
-        {t('dogs.form.birthday')}
-      </Text>
-      <GroupedCard>
+        <View style={[styles.separator, { backgroundColor: theme.border }]} />
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t('dogs.form.birthday')}
-          onPress={() => setBirthdayPickerVisible(true)}
+          onPress={openBirthdayPicker}
           style={styles.inlineRow}
         >
           <Text style={[styles.inlineLabel, { color: theme.onSurfaceVariant }]}>
             {t('dogs.form.birthday')}
           </Text>
-          <View style={styles.birthdayValueWrap}>
+          {birthdayDisplay.isPlaceholder ? null : (
             <Text
               style={[
                 styles.birthdayValue,
-                { color: birthdayDisplay.isPlaceholder ? theme.onSurfaceVariant : theme.onSurface },
+                { color: theme.onSurface },
               ]}
+              numberOfLines={1}
             >
               {birthdayDisplay.text}
             </Text>
-            <Text style={[styles.chevron, { color: theme.onSurfaceVariant }]}>›</Text>
-          </View>
+          )}
         </Pressable>
       </GroupedCard>
       <Modal
@@ -194,26 +221,43 @@ export function DogForm({ values, onChange }: DogFormProps) {
         <View style={[styles.modalBackdrop, { backgroundColor: theme.overlay }]}>
           <View style={[styles.modalCard, { backgroundColor: theme.surface }]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: theme.onSurface }]}>
-                {t('dogs.form.birthdayPickerTitle')}
-              </Text>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={t('common.action.cancel')}
-                onPress={() => setBirthdayPickerVisible(false)}
-                style={styles.modalCloseButton}
+                onPress={cancelBirthdayPicker}
+                style={[styles.modalIconButton, { backgroundColor: theme.surfaceContainer }]}
               >
-                <Text style={[styles.modalCloseText, { color: theme.interactive }]}>
-                  {t('common.action.cancel')}
-                </Text>
+                <IconSymbol
+                  name="xmark"
+                  size={typography.headline.fontSize}
+                  color={theme.onSurfaceVariant}
+                />
+              </Pressable>
+              <View accessibilityRole="header" style={styles.modalHeaderSpacer} />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('common.action.save')}
+                onPress={saveBirthdayPicker}
+                style={[styles.modalIconButton, { backgroundColor: theme.success }]}
+              >
+                <IconSymbol
+                  name="checkmark"
+                  size={typography.headline.fontSize}
+                  color={theme.onInteractive}
+                />
               </Pressable>
             </View>
+            {birthdayDraftDisplay.isPlaceholder ? null : (
+              <Text style={[styles.modalSummary, { color: theme.onSurface }]}>
+                {birthdayDraftDisplay.text}
+              </Text>
+            )}
             <View style={styles.pickerColumns}>
               <BirthdayPickerColumn
                 title={t('dogs.form.birthdayYear')}
                 unknownLabel={t('dogs.form.birthdayUnknown')}
                 values={years}
-                selectedValue={values.birthdayYear}
+                selectedValue={birthdayDraft.birthdayYear}
                 formatValue={(year) => year}
                 onSelect={selectYear}
                 testIDPrefix="birthday-year"
@@ -222,7 +266,7 @@ export function DogForm({ values, onChange }: DogFormProps) {
                 title={t('dogs.form.birthdayMonth')}
                 unknownLabel={t('dogs.form.birthdayUnknown')}
                 values={months}
-                selectedValue={values.birthdayMonth}
+                selectedValue={birthdayDraft.birthdayMonth}
                 formatValue={(month) => formatMonthName(Number(month), i18n.language)}
                 onSelect={selectMonth}
                 disabled={!selectedYear}
@@ -232,10 +276,12 @@ export function DogForm({ values, onChange }: DogFormProps) {
                 title={t('dogs.form.birthdayDay')}
                 unknownLabel={t('dogs.form.birthdayUnknown')}
                 values={days}
-                selectedValue={values.birthdayDay}
+                selectedValue={birthdayDraft.birthdayDay}
                 formatValue={(day) => day}
-                onSelect={(birthdayDay) => set({ birthdayDay })}
-                disabled={!selectedYear}
+                onSelect={(birthdayDay) =>
+                  setBirthdayDraft((current) => ({ ...current, birthdayDay }))
+                }
+                disabled={!selectedMonth}
                 testIDPrefix="birthday-day"
               />
             </View>
@@ -346,8 +392,8 @@ export function isDogFormValid(values: DogFormValues): boolean {
 // 月/日は妥当な範囲のものだけ採用する。
 export function birthdayValuesToInput(values: DogFormValues): BirthdayInput | null {
   const year = toPositiveInt(values.birthdayYear);
-  const month = toPositiveInt(values.birthdayMonth);
-  const day = toPositiveInt(values.birthdayDay);
+  const month = year ? toPositiveInt(values.birthdayMonth) : undefined;
+  const day = year && month ? toPositiveInt(values.birthdayDay) : undefined;
 
   const input: BirthdayInput = {};
   if (year !== undefined) input.year = year;
@@ -429,12 +475,6 @@ function normalizeGenderValue(gender: string): DogGenderValue | '' {
 
 const styles = StyleSheet.create({
   container: { width: '100%' },
-  sectionHeader: {
-    ...typography.footnote,
-    marginTop: spacing.lg,
-    marginBottom: spacing.xs,
-    marginLeft: spacing.md,
-  },
   inlineRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -447,19 +487,9 @@ const styles = StyleSheet.create({
     ...typography.subheadline,
     width: components.textInput.inlineLabelWidth,
   },
-  birthdayValueWrap: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: spacing.sm,
-  },
   birthdayValue: {
     ...typography.body,
-    textAlign: 'right',
-  },
-  chevron: {
-    ...typography.body,
+    flex: 1,
   },
   genderValueWrap: {
     flex: 1,
@@ -486,15 +516,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: spacing.md,
   },
-  modalTitle: {
-    ...typography.headline,
+  modalHeaderSpacer: {
+    flex: 1,
   },
-  modalCloseButton: {
-    minHeight: components.row.minHeight,
+  modalIconButton: {
+    width: spacing.step44,
+    height: spacing.step44,
+    borderRadius: radius.full,
+    alignItems: 'center',
     justifyContent: 'center',
   },
-  modalCloseText: {
-    ...typography.body,
+  modalSummary: {
+    ...typography.headline,
+    textAlign: 'center',
   },
   pickerColumns: {
     flexDirection: 'row',
@@ -520,5 +554,9 @@ const styles = StyleSheet.create({
   },
   pickerOptionText: {
     ...typography.subheadline,
+  },
+  separator: {
+    height: StyleSheet.hairlineWidth,
+    marginLeft: spacing.lg,
   },
 });

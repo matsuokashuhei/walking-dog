@@ -23,6 +23,8 @@ const MAPPING = {
   'doc.text': 'description',
   'lock.fill': 'lock',
   'info.circle': 'info',
+  xmark: 'close',
+  checkmark: 'check',
 } satisfies Record<string, ComponentProps<typeof MaterialIcons>['name']>;
 
 type IconSymbolName = keyof typeof MAPPING;

@@ -8,6 +8,10 @@ import {
   type DogFormValues,
 } from './DogForm';
 
+jest.mock('@/components/ui/icon-symbol', () => ({
+  IconSymbol: () => null,
+}));
+
 function makeValues(overrides: Partial<DogFormValues> = {}): DogFormValues {
   return {
     name: '',
@@ -42,10 +46,10 @@ describe('DogForm', () => {
     expect(screen.queryByTestId('dog-gender-segmented-control')).toBeNull();
   });
 
-  it('renders the birthday placeholder when no birthday is set', () => {
+  it('renders birthday in the profile group without an empty-state value', () => {
     setup();
-    expect(screen.getByRole('button', { name: 'Birthday (whatever you know)' })).toBeTruthy();
-    expect(screen.getByText('Add birthday')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Birthday' })).toBeTruthy();
+    expect(screen.queryByText('Add birthday')).toBeNull();
   });
 
   it('renders a formatted birthday when all birthday values are set', () => {
@@ -80,25 +84,65 @@ describe('DogForm', () => {
 
   it('opens the birthday picker modal from the birthday row', () => {
     setup();
-    fireEvent.press(screen.getByRole('button', { name: 'Birthday (whatever you know)' }));
-    expect(screen.getByText('Birthday')).toBeTruthy();
+    fireEvent.press(screen.getByRole('button', { name: 'Birthday' }));
+    expect(screen.getByText('Year')).toBeTruthy();
+    expect(screen.getByText('Month')).toBeTruthy();
+    expect(screen.getByText('Day')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy();
     expect(screen.getByTestId('birthday-year-unknown')).toBeTruthy();
+    expect(screen.getAllByText('---')).toHaveLength(3);
+    expect(screen.queryByText('Unknown')).toBeNull();
   });
 
-  it('calls onChange when selecting a birthday year', () => {
+  it('stages birthday changes until Save is pressed', () => {
     const { onChange } = setup(makeValues({ name: 'Hana', gender: 'male' }));
-    fireEvent.press(screen.getByRole('button', { name: 'Birthday (whatever you know)' }));
+    fireEvent.press(screen.getByRole('button', { name: 'Birthday' }));
     fireEvent.press(screen.getByTestId('birthday-year-2021'));
+    expect(onChange).not.toHaveBeenCalled();
+    fireEvent.press(screen.getByRole('button', { name: 'Save' }));
     expect(onChange).toHaveBeenCalledWith(makeValues({ name: 'Hana', gender: 'male', birthdayYear: '2021' }));
   });
 
-  it('clears month and day when selecting Unknown for year', () => {
+  it('discards staged birthday changes when Cancel is pressed', () => {
+    const { onChange } = setup(makeValues({ name: 'Hana', gender: 'male' }));
+    fireEvent.press(screen.getByRole('button', { name: 'Birthday' }));
+    fireEvent.press(screen.getByTestId('birthday-year-2021'));
+    fireEvent.press(screen.getByRole('button', { name: 'Cancel' }));
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('clears month and day when selecting Unknown for year before Save', () => {
     const { onChange } = setup(
       makeValues({ name: 'Hana', gender: 'male', birthdayYear: '2021', birthdayMonth: '6', birthdayDay: '15' }),
     );
-    fireEvent.press(screen.getByRole('button', { name: 'Birthday (whatever you know)' }));
+    fireEvent.press(screen.getByRole('button', { name: 'Birthday' }));
     fireEvent.press(screen.getByTestId('birthday-year-unknown'));
+    expect(onChange).not.toHaveBeenCalled();
+    fireEvent.press(screen.getByRole('button', { name: 'Save' }));
     expect(onChange).toHaveBeenCalledWith(makeValues({ name: 'Hana', gender: 'male' }));
+  });
+
+  it('clears day when selecting Unknown for month before Save', () => {
+    const { onChange } = setup(
+      makeValues({ name: 'Hana', gender: 'male', birthdayYear: '2021', birthdayMonth: '6', birthdayDay: '15' }),
+    );
+    fireEvent.press(screen.getByRole('button', { name: 'Birthday' }));
+    fireEvent.press(screen.getByTestId('birthday-month-unknown'));
+    fireEvent.press(screen.getByRole('button', { name: 'Save' }));
+    expect(onChange).toHaveBeenCalledWith(makeValues({ name: 'Hana', gender: 'male', birthdayYear: '2021' }));
+  });
+
+  it('requires year before month and month before day can be selected', () => {
+    setup();
+    fireEvent.press(screen.getByRole('button', { name: 'Birthday' }));
+    expect(screen.getByTestId('birthday-month-1').props.accessibilityState.disabled).toBe(true);
+    expect(screen.getByTestId('birthday-day-1').props.accessibilityState.disabled).toBe(true);
+    fireEvent.press(screen.getByTestId('birthday-year-2021'));
+    expect(screen.getByTestId('birthday-month-1').props.accessibilityState.disabled).toBe(false);
+    expect(screen.getByTestId('birthday-day-1').props.accessibilityState.disabled).toBe(true);
+    fireEvent.press(screen.getByTestId('birthday-month-6'));
+    expect(screen.getByTestId('birthday-day-1').props.accessibilityState.disabled).toBe(false);
   });
 
   it('pre-fills initial values', () => {
@@ -162,6 +206,11 @@ describe('birthdayValuesToInput', () => {
 
   it('ignores non-positive / non-integer values', () => {
     expect(birthdayValuesToInput(makeValues({ birthdayYear: '0', birthdayMonth: '00', birthdayDay: '' }))).toBeNull();
+  });
+
+  it('ignores month and day values without their parent values', () => {
+    expect(birthdayValuesToInput(makeValues({ birthdayMonth: '6', birthdayDay: '15' }))).toBeNull();
+    expect(birthdayValuesToInput(makeValues({ birthdayYear: '2021', birthdayDay: '15' }))).toEqual({ year: 2021 });
   });
 });
 

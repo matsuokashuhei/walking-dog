@@ -1,8 +1,16 @@
 import { useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ActionSheetIOS,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { GroupedCard } from '@/components/ui/GroupedCard';
-import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { TextInput } from '@/components/ui/TextInput';
 import { useColors } from '@/hooks/use-colors';
 import { components, radius, spacing, typography } from '@/theme/tokens';
@@ -46,7 +54,10 @@ export function DogForm({ values, onChange }: DogFormProps) {
     { value: 'MALE', label: t('dogs.form.genderMale') },
     { value: 'FEMALE', label: t('dogs.form.genderFemale') },
     { value: 'OTHER', label: t('dogs.form.genderOther') },
-  ];
+  ] as const;
+  const genderLabel =
+    genderOptions.find((option) => option.value === genderValue)?.label ??
+    t('dogs.form.genderSelect');
   const selectedYear = toPositiveInt(values.birthdayYear);
   const selectedMonth = toBoundedInt(values.birthdayMonth, MONTH_COUNT);
   const selectedDay = toBoundedInt(values.birthdayDay, DEFAULT_DAY_COUNT);
@@ -85,6 +96,27 @@ export function DogForm({ values, onChange }: DogFormProps) {
     set({ birthdayMonth: month, birthdayDay });
   }
 
+  function presentGenderSheet() {
+    const apply = (index: number) => {
+      const option = genderOptions[index];
+      if (option) set({ gender: option.value });
+    };
+
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: [...genderOptions.map((option) => option.label), t('common.action.cancel')],
+          cancelButtonIndex: genderOptions.length,
+        },
+        apply,
+      );
+      return;
+    }
+
+    const currentIndex = genderOptions.findIndex((option) => option.value === genderValue);
+    apply((currentIndex + 1) % genderOptions.length);
+  }
+
   return (
     <View style={styles.container}>
       <GroupedCard>
@@ -108,14 +140,22 @@ export function DogForm({ values, onChange }: DogFormProps) {
           <Text style={[styles.inlineLabel, { color: theme.onSurfaceVariant }]}>
             {t('dogs.form.gender')}
           </Text>
-          <View style={styles.genderControlWrap}>
-            <SegmentedControl
-              options={genderOptions}
-              value={genderValue}
-              onChange={(gender) => set({ gender })}
-              testID="dog-gender-segmented-control"
-            />
-          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('dogs.form.gender')}
+            onPress={presentGenderSheet}
+            style={styles.genderValueWrap}
+          >
+            <Text
+              style={[
+                styles.genderValue,
+                { color: genderValue ? theme.onSurface : theme.onSurfaceVariant },
+              ]}
+              numberOfLines={1}
+            >
+              {genderLabel}
+            </Text>
+          </Pressable>
         </View>
       </GroupedCard>
 
@@ -421,8 +461,14 @@ const styles = StyleSheet.create({
   chevron: {
     ...typography.body,
   },
-  genderControlWrap: {
+  genderValueWrap: {
     flex: 1,
+    minHeight: components.row.minHeight,
+    justifyContent: 'center',
+  },
+  genderValue: {
+    ...typography.body,
+    textAlign: 'left',
   },
   modalBackdrop: {
     flex: 1,

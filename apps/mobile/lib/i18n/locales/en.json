@@ -123,7 +123,7 @@
       "genderPlaceholder": "e.g. Male",
       "birthday": "Birthday",
       "birthdayPlaceholder": "Add birthday",
-      "birthdayUnknown": "Unknown",
+      "birthdayUnknown": "---",
       "birthdayPickerTitle": "Birthday",
       "birthdayYearOnly": "{{year}}",
       "birthdayYear": "Year",

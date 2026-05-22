@@ -91,6 +91,8 @@ describe('DogForm', () => {
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy();
     expect(screen.getByTestId('birthday-year-unknown')).toBeTruthy();
+    expect(screen.getAllByText('---')).toHaveLength(3);
+    expect(screen.queryByText('Unknown')).toBeNull();
   });
 
   it('stages birthday changes until Save is pressed', () => {

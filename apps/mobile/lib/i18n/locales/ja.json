@@ -123,7 +123,7 @@
       "genderPlaceholder": "例: オス",
       "birthday": "誕生日",
       "birthdayPlaceholder": "誕生日を追加",
-      "birthdayUnknown": "不明",
+      "birthdayUnknown": "---",
       "birthdayPickerTitle": "誕生日",
       "birthdayYearOnly": "{{year}}年",
       "birthdayYear": "年",

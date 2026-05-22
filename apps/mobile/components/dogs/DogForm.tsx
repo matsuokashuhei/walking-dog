@@ -225,18 +225,26 @@ export function DogForm({ values, onChange }: DogFormProps) {
                 accessibilityRole="button"
                 accessibilityLabel={t('common.action.cancel')}
                 onPress={cancelBirthdayPicker}
-                style={styles.modalIconButton}
+                style={[styles.modalIconButton, { backgroundColor: theme.surfaceContainer }]}
               >
-                <IconSymbol name="xmark" size={typography.headline.fontSize} color={theme.interactive} />
+                <IconSymbol
+                  name="xmark"
+                  size={typography.headline.fontSize}
+                  color={theme.onSurfaceVariant}
+                />
               </Pressable>
               <View accessibilityRole="header" style={styles.modalHeaderSpacer} />
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={t('common.action.save')}
                 onPress={saveBirthdayPicker}
-                style={styles.modalIconButton}
+                style={[styles.modalIconButton, { backgroundColor: theme.success }]}
               >
-                <IconSymbol name="checkmark" size={typography.headline.fontSize} color={theme.interactive} />
+                <IconSymbol
+                  name="checkmark"
+                  size={typography.headline.fontSize}
+                  color={theme.onInteractive}
+                />
               </Pressable>
             </View>
             {birthdayDraftDisplay.isPlaceholder ? null : (
@@ -514,6 +522,7 @@ const styles = StyleSheet.create({
   modalIconButton: {
     width: spacing.step44,
     height: spacing.step44,
+    borderRadius: radius.full,
     alignItems: 'center',
     justifyContent: 'center',
   },

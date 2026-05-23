@@ -20,6 +20,10 @@ interface WalkReadyViewProps {
   isStarting: boolean;
 }
 
+function sameIds(left: string[], right: string[]): boolean {
+  return left.length === right.length && left.every((id, index) => id === right[index]);
+}
+
 // 散歩開始前の画面です。犬の選択、統計、開始ボタンをマップ上の下部カードにまとめます。
 export function WalkReadyView({ onStart, isStarting }: WalkReadyViewProps) {
   const { t } = useTranslation();
@@ -31,16 +35,28 @@ export function WalkReadyView({ onStart, isStarting }: WalkReadyViewProps) {
   const setSelectedDogs = useWalkStore((s) => s.setSelectedDogs);
 
   const isSingleDog = dogs.length === 1;
+  const dogIds = useMemo(() => dogs.map((dog) => dog.id), [dogs]);
+  const validSelectedDogIds = useMemo(
+    () => selectedDogIds.filter((id) => dogIds.includes(id)),
+    [dogIds, selectedDogIds],
+  );
+  const selectedDogs = useMemo(
+    () => dogs.filter((dog) => validSelectedDogIds.includes(dog.id)),
+    [dogs, validSelectedDogIds],
+  );
 
-  // 犬が 1 匹だけのときは選択 UI を出さないため、開始できるよう選択状態を同期します。
+  // 認証切替や犬削除後に残った stale ID を落とし、単頭では開始できるよう自動選択します。
   useEffect(() => {
-    if (isSingleDog && selectedDogIds.length === 0) {
-      setSelectedDogs([dogs[0].id]);
+    const nextSelectedDogIds =
+      isSingleDog && validSelectedDogIds.length === 0 ? [dogs[0].id] : validSelectedDogIds;
+
+    if (!sameIds(selectedDogIds, nextSelectedDogIds)) {
+      setSelectedDogs(nextSelectedDogIds);
     }
-  }, [isSingleDog, dogs, selectedDogIds.length, setSelectedDogs]);
+  }, [dogs, isSingleDog, selectedDogIds, setSelectedDogs, validSelectedDogIds]);
 
   const allSelected =
-    dogs.length > 0 && dogs.every((d) => selectedDogIds.includes(d.id));
+    dogs.length > 0 && dogs.every((d) => validSelectedDogIds.includes(d.id));
 
   // 複数犬の選択をまとめて切り替え、全選択済みなら解除にします。
   const handleSelectAll = useCallback(() => {
@@ -51,11 +67,10 @@ export function WalkReadyView({ onStart, isStarting }: WalkReadyViewProps) {
     }
   }, [allSelected, dogs, setSelectedDogs]);
 
-  const canStart = selectedDogIds.length > 0 && !isStarting;
+  const canStart = selectedDogs.length > 0 && !isStarting;
   const selectAllLabel = allSelected
     ? t('walk.ready.deselectAll')
     : t('walk.ready.selectAll');
-  const selectedDogs = dogs.filter((dog) => selectedDogIds.includes(dog.id));
 
   return (
     <View style={styles.container}>
@@ -79,7 +94,7 @@ export function WalkReadyView({ onStart, isStarting }: WalkReadyViewProps) {
               <View style={styles.bodyColumn}>
                 <DogPickerCard
                   dogs={[dogs[0]]}
-                  selectedIds={selectedDogIds}
+                  selectedIds={validSelectedDogIds}
                   onToggle={() => undefined}
                   variant="single"
                 />
@@ -105,7 +120,7 @@ export function WalkReadyView({ onStart, isStarting }: WalkReadyViewProps) {
                 </View>
                 <DogPickerCard
                   dogs={dogs}
-                  selectedIds={selectedDogIds}
+                  selectedIds={validSelectedDogIds}
                   onToggle={selectDog}
                   variant="multi"
                 />

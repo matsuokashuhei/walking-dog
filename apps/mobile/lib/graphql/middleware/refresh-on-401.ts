@@ -1,4 +1,4 @@
-import { ClientError } from '../client-error';
+import { isUnauthorizedError } from '../errors';
 
 export type RefreshHandler = () => Promise<boolean>;
 
@@ -9,7 +9,7 @@ export function createRefreshMiddleware(refresh: RefreshHandler) {
     try {
       return await request();
     } catch (error) {
-      if (!(error instanceof ClientError) || error.response.status !== 401) {
+      if (!isUnauthorizedError(error)) {
         throw error;
       }
       if (!refreshPromise) {

@@ -33,9 +33,25 @@ input BirthdayInput {
 	day: Int
 }
 
+input ChangeEmailInput {
+	newEmail: String!
+}
+
+type ChangeEmailOutput {
+	success: Boolean!
+}
+
 input ChangePasswordInput {
 	oldPassword: String!
 	newPassword: String!
+}
+
+input ConfirmEmailChangeInput {
+	code: String!
+}
+
+type ConfirmEmailChangeOutput {
+	success: Boolean!
 }
 
 input ConfirmSignUpInput {
@@ -73,7 +89,23 @@ type Dog {
 	基準日は UTC の今日。
 	"""
 	age: Int
+	walkGoal: DogWalkGoal
 	walks(after: String, before: String, first: Int, last: Int): WalkConnection!
+}
+
+type DogWalkGoal {
+	id: UUID!
+	dogId: UUID!
+	walkAmount: WalkAmount!
+	effectiveFrom: NaiveDate!
+	effectiveTo: NaiveDate
+	createdAt: DateTime!
+	updatedAt: DateTime!
+}
+
+input EditGoalInput {
+	dogId: UUID!
+	walkAmount: WalkAmountInput!
 }
 
 input EndWalkInput {
@@ -101,11 +133,16 @@ type Mutation {
 	signUp(input: SignUpInput!): SignUpOutput!
 	confirmSignUp(input: ConfirmSignUpInput!): ConfirmSignUpOutput!
 	signIn(input: SignInInput!): SignInOutput!
+	refreshToken(input: RefreshTokenInput!): SignInOutput!
 	signOut: SignOutOutput!
+	changeEmail(input: ChangeEmailInput!): ChangeEmailOutput!
+	confirmEmailChange(input: ConfirmEmailChangeInput!): ConfirmEmailChangeOutput!
 	changePassword(input: ChangePasswordInput!): SignOutOutput!
 	addDog(input: AddDogInput!): Dog!
 	updateDog(input: UpdateDogInput!): Dog!
 	removeDog(input: RemoveDogInput!): Dog!
+	setGoal(input: SetGoalInput!): DogWalkGoal!
+	editGoal(input: EditGoalInput!): DogWalkGoal!
 	trackPoint(input: TrackPointInput!): TrackPointReceipt!
 	updateUser(input: UpdateUserInput!): User!
 	startWalk(input: StartWalkInput!): Walk!
@@ -113,6 +150,17 @@ type Mutation {
 	addEvent(input: AddEventInput!): WalkDogEvent!
 	takePhoto(input: TakePhotoInput!): WalkPhoto!
 }
+
+"""
+ISO 8601 calendar date without timezone.
+Format: %Y-%m-%d
+
+# Examples
+
+* `1994-11-13`
+* `2000-02-24`
+"""
+scalar NaiveDate
 
 """
 Information about pagination in a connection
@@ -137,13 +185,24 @@ type PageInfo {
 }
 
 type Query {
+	dog(id: UUID!): Dog!
 	dogs: [Dog!]!
 	user: User!
 	walk(id: UUID!): Walk!
 }
 
+input RefreshTokenInput {
+	refreshToken: String!
+}
+
 input RemoveDogInput {
 	id: UUID!
+}
+
+input SetGoalInput {
+	dogId: UUID!
+	walkAmount: WalkAmountInput!
+	effectiveFrom: NaiveDate!
 }
 
 input SignInInput {
@@ -262,6 +321,16 @@ type Walk {
 	dogs: [Dog!]!
 	photos: [WalkPhoto!]!
 	trackPoints: [TrackPoint!]!
+}
+
+type WalkAmount {
+	minutes: Int!
+	cycleDays: Int!
+}
+
+input WalkAmountInput {
+	minutes: Int!
+	cycleDays: Int!
 }
 
 type WalkConnection {

@@ -1,9 +1,17 @@
+import { GraphQLError } from 'graphql';
 import { ClientError } from '../client-error';
 import { createRefreshMiddleware } from './refresh-on-401';
 
 function makeClientError(status: number): ClientError {
   return new ClientError(
     { status, headers: new Headers(), errors: [], body: '' },
+    { query: '' },
+  );
+}
+
+function makeUnauthorizedGraphQLError(): ClientError {
+  return new ClientError(
+    { status: 200, headers: new Headers(), errors: [new GraphQLError('Unauthorized')], body: '' },
     { query: '' },
   );
 }
@@ -41,6 +49,20 @@ describe('createRefreshMiddleware', () => {
 
   it('refreshes and retries on 401', async () => {
     const error = makeClientError(401);
+    const request = jest
+      .fn()
+      .mockRejectedValueOnce(error)
+      .mockResolvedValueOnce('retry-ok');
+    const refresh = jest.fn().mockResolvedValue(true);
+    const wrap = createRefreshMiddleware(refresh);
+
+    await expect(wrap(request)).resolves.toBe('retry-ok');
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(request).toHaveBeenCalledTimes(2);
+  });
+
+  it('refreshes and retries on GraphQL Unauthorized errors returned with HTTP 200', async () => {
+    const error = makeUnauthorizedGraphQLError();
     const request = jest
       .fn()
       .mockRejectedValueOnce(error)

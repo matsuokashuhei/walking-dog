@@ -57,6 +57,8 @@ pub enum AuthError {
     ConfirmSignUpError(ConfirmSignUpError),
     #[error("Sign in error: {0}")]
     SignInError(InitiateAuthError),
+    #[error("Refresh token error: {0}")]
+    RefreshTokenError(InitiateAuthError),
     #[error("Sign out error: {0}")]
     SignOutError(GlobalSignOutError),
     #[error("Update user attributes error: {0}")]
@@ -65,6 +67,16 @@ pub enum AuthError {
     VerifyUserAttributeError(VerifyUserAttributeError),
     #[error("Change password error: {0}")]
     ChangePasswordError(ChangePasswordError),
+}
+
+fn refresh_token_error_status_code(error: &InitiateAuthError) -> i32 {
+    match error.code() {
+        Some(
+            "InternalErrorException" | "TooManyRequestsException" | "UnexpectedLambdaException",
+        )
+        | None => 503,
+        _ => 422,
+    }
 }
 
 impl ErrorExtensions for AuthError {
@@ -84,6 +96,11 @@ impl ErrorExtensions for AuthError {
                 error!("Sign in error: {:?}", sign_in_error);
                 e.set("code", 422);
                 e.set("message", sign_in_error.message());
+            }
+            AuthError::RefreshTokenError(refresh_token_error) => {
+                error!("Refresh token error: {:?}", refresh_token_error);
+                e.set("code", refresh_token_error_status_code(refresh_token_error));
+                e.set("message", refresh_token_error.message());
             }
             AuthError::SignOutError(sign_out_error) => {
                 error!("Sign out error: {:?}", sign_out_error);

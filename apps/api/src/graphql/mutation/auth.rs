@@ -1,11 +1,13 @@
 use anyhow::Result;
 use async_graphql::{Context, InputObject, Object, SimpleObject};
 use aws_sdk_cognitoidentityprovider::operation::initiate_auth::InitiateAuthOutput;
+use aws_sdk_cognitoidentityprovider::types::AttributeType;
 use axum_extra::headers::authorization;
 use sea_orm::{ActiveModelTrait, ActiveValue::Set, DatabaseConnection};
 
 use crate::entity::user;
-use crate::graphql::error::AuthError;
+use crate::graphql::error::AppError;
+use crate::graphql::{error::AuthError, guard::AuthGuard};
 
 #[derive(Default, Debug)]
 pub struct AuthMutation;
@@ -68,6 +70,7 @@ impl AuthMutation {
         Ok(output.into())
     }
 
+    #[graphql(guard = "AuthGuard")]
     async fn sign_out(&self, ctx: &Context<'_>) -> Result<SignOutOutput> {
         let cognitoidentityprovider_client = ctx
             .data::<aws_sdk_cognitoidentityprovider::Client>()
@@ -82,6 +85,58 @@ impl AuthMutation {
         Ok(SignOutOutput { success: true })
     }
 
+    #[graphql(guard = "AuthGuard")]
+    async fn change_email(
+        &self,
+        ctx: &Context<'_>,
+        input: ChangeEmailInput,
+    ) -> Result<ChangeEmailOutput> {
+        let cognitoidentityprovider_client = ctx
+            .data::<aws_sdk_cognitoidentityprovider::Client>()
+            .unwrap();
+        let authorization = ctx
+            .data::<authorization::Bearer>()
+            .map_err(|_| AppError::Unauthorized)?;
+        cognitoidentityprovider_client
+            .update_user_attributes()
+            .access_token(authorization.token())
+            .user_attributes(
+                AttributeType::builder()
+                    .name("email")
+                    .value(input.new_email)
+                    .build()
+                    .unwrap(),
+            )
+            .send()
+            .await
+            .map_err(|e| AuthError::UpdateUserAttributesError(e.into_service_error()))?;
+        Ok(ChangeEmailOutput { success: true })
+    }
+
+    #[graphql(guard = "AuthGuard")]
+    async fn confirm_email_change(
+        &self,
+        ctx: &Context<'_>,
+        input: ConfirmEmailChangeInput,
+    ) -> Result<ConfirmEmailChangeOutput> {
+        let cognitoidentityprovider_client = ctx
+            .data::<aws_sdk_cognitoidentityprovider::Client>()
+            .unwrap();
+        let authorization = ctx
+            .data::<authorization::Bearer>()
+            .map_err(|_| AppError::Unauthorized)?;
+        cognitoidentityprovider_client
+            .verify_user_attribute()
+            .access_token(authorization.token())
+            .attribute_name("email")
+            .code(input.code)
+            .send()
+            .await
+            .map_err(|e| AuthError::VerifyUserAttributeError(e.into_service_error()))?;
+        Ok(ConfirmEmailChangeOutput { success: true })
+    }
+
+    #[graphql(guard = "AuthGuard")]
     async fn change_password(
         &self,
         ctx: &Context<'_>,
@@ -90,7 +145,9 @@ impl AuthMutation {
         let cognitoidentityprovider_client = ctx
             .data::<aws_sdk_cognitoidentityprovider::Client>()
             .unwrap();
-        let authorization = ctx.data::<authorization::Bearer>().unwrap();
+        let authorization = ctx
+            .data::<authorization::Bearer>()
+            .map_err(|_| AppError::Unauthorized)?;
         cognitoidentityprovider_client
             .change_password()
             .previous_password(input.old_password)
@@ -140,6 +197,26 @@ pub struct SignInInput {
 pub struct SignInOutput {
     access_token: String,
     refresh_token: String,
+}
+
+#[derive(Clone, Debug, InputObject)]
+pub struct ChangeEmailInput {
+    new_email: String,
+}
+
+#[derive(SimpleObject)]
+pub struct ChangeEmailOutput {
+    success: bool,
+}
+
+#[derive(Clone, Debug, InputObject)]
+pub struct ConfirmEmailChangeInput {
+    code: String,
+}
+
+#[derive(SimpleObject)]
+pub struct ConfirmEmailChangeOutput {
+    success: bool,
 }
 
 #[derive(Clone, Debug, InputObject)]

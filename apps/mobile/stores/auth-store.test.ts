@@ -9,6 +9,16 @@ jest.mock('@/lib/auth/secure-storage');
 jest.mock('@/lib/graphql/client', () => ({
   setAuthToken: jest.fn(),
 }));
+jest.mock('@/lib/query-client', () => ({
+  queryClient: {
+    clear: jest.fn(),
+  },
+}));
+jest.mock('@/stores/walk-store', () => ({
+  useWalkStore: {
+    getState: jest.fn(),
+  },
+}));
 jest.mock('@/lib/auth/api', () => ({
   refreshToken: jest.fn(),
 }));
@@ -18,17 +28,24 @@ jest.mock('@/lib/auth/bootstrap', () => ({
 
 const { useAuthStore } = require('./auth-store') as typeof AuthStoreModule;
 const { setAuthToken } = require('@/lib/graphql/client') as typeof GraphQLClientModule;
+const { queryClient } = require('@/lib/query-client') as typeof import('@/lib/query-client');
+const { useWalkStore } = require('@/stores/walk-store') as typeof import('@/stores/walk-store');
 const authApi = require('@/lib/auth/api') as typeof AuthApiModule;
 const authBootstrap = require('@/lib/auth/bootstrap') as typeof AuthBootstrapModule;
 
 const mockSecureStorage = secureStorage as jest.Mocked<typeof secureStorage>;
 const mockSetAuthToken = setAuthToken as jest.Mock;
+const mockQueryClient = queryClient as unknown as { clear: jest.Mock };
+const mockWalkStore = useWalkStore as unknown as { getState: jest.Mock };
 const mockAuthApi = authApi as jest.Mocked<typeof authApi>;
 const mockBootstrap = authBootstrap as jest.Mocked<typeof authBootstrap>;
 
 describe('auth-store', () => {
+  const mockResetWalkStore = jest.fn();
+
   beforeEach(() => {
     jest.clearAllMocks();
+    mockWalkStore.getState.mockReturnValue({ reset: mockResetWalkStore });
     useAuthStore.setState({
       accessToken: null,
       isAuthenticated: false,
@@ -86,6 +103,8 @@ describe('auth-store', () => {
       accessToken: 'access-token',
       isAuthenticated: true,
     });
+    expect(mockQueryClient.clear).toHaveBeenCalledTimes(1);
+    expect(mockResetWalkStore).toHaveBeenCalledTimes(1);
   });
 
   it('clearAuth removes tokens and resets state', async () => {
@@ -98,6 +117,8 @@ describe('auth-store', () => {
       isAuthenticated: false,
       networkError: false,
     });
+    expect(mockQueryClient.clear).toHaveBeenCalledTimes(1);
+    expect(mockResetWalkStore).toHaveBeenCalledTimes(1);
   });
 
   describe('refreshAuth', () => {

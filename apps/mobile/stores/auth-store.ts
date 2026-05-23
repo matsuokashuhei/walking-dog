@@ -8,12 +8,15 @@ import { refreshToken } from '@/lib/auth/api';
 import { setAuthToken } from '@/lib/graphql/client';
 import { isNetworkError } from '@/lib/graphql/errors';
 import { bootstrapAuth } from '@/lib/auth/bootstrap';
+import { queryClient } from '@/lib/query-client';
+import { useWalkStore } from '@/stores/walk-store';
 
 interface AuthState {
   accessToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   networkError: boolean;
+  resetSessionState: () => void;
   initialize: () => Promise<void>;
   setAuth: (accessToken: string, refreshToken: string) => Promise<void>;
   clearAuth: () => Promise<void>;
@@ -25,6 +28,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isAuthenticated: false,
   isLoading: true,
   networkError: false,
+
+  resetSessionState: () => {
+    queryClient.clear();
+    useWalkStore.getState().reset();
+  },
 
   initialize: async () => {
     set({ isLoading: true, networkError: false });
@@ -45,12 +53,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   setAuth: async (accessToken, refreshToken) => {
+    get().resetSessionState();
     await setToken(accessToken, refreshToken);
     setAuthToken(accessToken);
     set({ accessToken, isAuthenticated: true });
   },
 
   clearAuth: async () => {
+    get().resetSessionState();
     await deleteToken();
     setAuthToken(null);
     set({ accessToken: null, isAuthenticated: false, networkError: false });

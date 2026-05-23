@@ -146,6 +146,19 @@ describe('WalkReadyView', () => {
     expect(btn.props.accessibilityState.disabled).toBe(true);
   });
 
+  it('drops selected dog ids that are not in the current user dog list', () => {
+    mockStore = buildStore(['dog-1', 'stale-dog']);
+    render(<WalkReadyView onStart={jest.fn()} isStarting={false} />);
+    expect(mockStore.setSelectedDogs).toHaveBeenCalledWith(['dog-1']);
+  });
+
+  it('disables START WALK when only stale dog ids are selected', () => {
+    mockStore = buildStore(['stale-dog']);
+    render(<WalkReadyView onStart={jest.fn()} isStarting={false} />);
+    const btn = screen.getByRole('button', { name: 'START WALK' });
+    expect(btn.props.accessibilityState.disabled).toBe(true);
+  });
+
   it('enables START WALK when at least one dog is selected and calls onStart', () => {
     mockStore = buildStore(['dog-1']);
     const onStart = jest.fn();

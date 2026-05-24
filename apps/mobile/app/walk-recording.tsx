@@ -5,6 +5,7 @@ import { useColors } from '@/hooks/use-colors';
 import { useWalkStore } from '@/stores/walk-store';
 import { useMe } from '@/hooks/use-me';
 import { useWalk } from '@/hooks/use-walks';
+import { useWalkLiveActivitySync } from '@/hooks/use-walk-live-activity-sync';
 import { WalkMap } from '@/components/walk/WalkMap';
 import { WalkMapShell } from '@/components/walk/WalkMapShell';
 import { WalkTopChip } from '@/components/walk/WalkTopChip';
@@ -54,6 +55,7 @@ export default function WalkRecordingScreen() {
     () => (me?.dogs ?? []).filter((d) => selectedDogIds.includes(d.id)),
     [me?.dogs, selectedDogIds],
   );
+  useWalkLiveActivitySync(selectedDogs);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>

@@ -62,6 +62,15 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         cameraPermission: 'Allow Walking Dog to use the camera to record walk events.',
       },
     ],
+    [
+      'expo-widgets',
+      {
+        bundleIdentifier: 'com.walkingdog.app.widgets',
+        groupIdentifier: 'group.com.walkingdog.app',
+        widgets: [],
+      },
+    ],
+    './plugins/with-stable-widget-build-phases',
     'expo-secure-store',
     'expo-sqlite',
     [

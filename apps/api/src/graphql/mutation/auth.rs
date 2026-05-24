@@ -1,5 +1,6 @@
 use anyhow::Result;
 use async_graphql::{Context, InputObject, Object, SimpleObject};
+use aws_sdk_cognitoidentityprovider::operation::get_tokens_from_refresh_token::GetTokensFromRefreshTokenOutput;
 use aws_sdk_cognitoidentityprovider::operation::initiate_auth::InitiateAuthOutput;
 use aws_sdk_cognitoidentityprovider::types::AttributeType;
 use axum_extra::headers::authorization;
@@ -68,6 +69,25 @@ impl AuthMutation {
             .await
             .map_err(|e| AuthError::SignInError(e.into_service_error()))?;
         Ok(output.into())
+    }
+
+    async fn refresh_token(
+        &self,
+        ctx: &Context<'_>,
+        input: RefreshTokenInput,
+    ) -> Result<RefreshTokenOutput> {
+        let cognitoidentityprovider_client = ctx
+            .data::<aws_sdk_cognitoidentityprovider::Client>()
+            .unwrap();
+        // let output = cognitoidentityprovi))
+        let output = cognitoidentityprovider_client
+            .get_tokens_from_refresh_token()
+            .client_id(std::env::var("AWS_COGNITO_CLIENT_ID").unwrap())
+            .refresh_token(input.refresh_token)
+            .send()
+            .await
+            .map_err(|e| AuthError::RefreshTokenError(e.into_service_error()))?;
+        Ok(RefreshTokenOutput::from(output))
     }
 
     #[graphql(guard = "AuthGuard")]
@@ -199,6 +219,51 @@ pub struct SignInOutput {
     refresh_token: String,
 }
 
+impl From<InitiateAuthOutput> for SignInOutput {
+    fn from(output: InitiateAuthOutput) -> Self {
+        SignInOutput {
+            access_token: output
+                .authentication_result
+                .as_ref()
+                .and_then(|result| result.access_token.clone())
+                .unwrap_or_default(),
+            refresh_token: output
+                .authentication_result
+                .as_ref()
+                .and_then(|result| result.refresh_token.clone())
+                .unwrap_or_default(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, InputObject)]
+pub struct RefreshTokenInput {
+    refresh_token: String,
+}
+
+#[derive(SimpleObject)]
+pub struct RefreshTokenOutput {
+    access_token: String,
+    refresh_token: String,
+}
+
+impl From<GetTokensFromRefreshTokenOutput> for RefreshTokenOutput {
+    fn from(output: GetTokensFromRefreshTokenOutput) -> Self {
+        RefreshTokenOutput {
+            access_token: output
+                .authentication_result
+                .as_ref()
+                .and_then(|result| result.access_token.clone())
+                .unwrap_or_default(),
+            refresh_token: output
+                .authentication_result
+                .as_ref()
+                .and_then(|result| result.refresh_token.clone())
+                .unwrap_or_default(),
+        }
+    }
+}
+
 #[derive(Clone, Debug, InputObject)]
 pub struct ChangeEmailInput {
     new_email: String,
@@ -225,12 +290,22 @@ pub struct ChangePasswordInput {
     new_password: String,
 }
 
-impl From<InitiateAuthOutput> for SignInOutput {
-    fn from(output: InitiateAuthOutput) -> Self {
-        let result = output.authentication_result.unwrap();
-        SignInOutput {
-            access_token: result.access_token.unwrap_or_default(),
-            refresh_token: result.refresh_token.unwrap_or_default(),
-        }
-    }
-}
+// impl SignInOutput {
+//     fn from_refresh_token_auth_output(output: InitiateAuthOutput, refresh_token: String) -> Self {
+//         SignInOutput::from_auth_output(output, Some(refresh_token))
+//     }
+
+//     fn from_auth_output(
+//         output: InitiateAuthOutput,
+//         fallback_refresh_token: Option<String>,
+//     ) -> Self {
+//         let result = output.authentication_result.unwrap();
+//         SignInOutput {
+//             access_token: result.access_token.unwrap_or_default(),
+//             refresh_token: result
+//                 .refresh_token
+//                 .or(fallback_refresh_token)
+//                 .unwrap_or_default(),
+//         }
+//     }
+// }

@@ -1,10 +1,10 @@
 import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query';
-import { ClientError } from '@/lib/graphql/client-error';
+import { isUnauthorizedError } from '@/lib/graphql/errors';
 
 let onUnauthorized: (() => void) | null = null;
 
 function isUnauthorized(error: unknown): boolean {
-  return error instanceof ClientError && error.response.status === 401;
+  return isUnauthorizedError(error);
 }
 
 export function setUnauthorizedHandler(handler: () => void): void {

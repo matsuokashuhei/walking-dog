@@ -1,6 +1,10 @@
 import { GraphQLError } from 'graphql';
 import { ClientError } from './client-error';
-import { isNetworkError, extractGraphQLErrorMessage } from './errors';
+import {
+  isNetworkError,
+  extractGraphQLErrorMessage,
+  isUnauthorizedError,
+} from './errors';
 
 function makeClientError(status: number): ClientError {
   return new ClientError(
@@ -16,6 +20,18 @@ function makeClientErrorWithMessage(message: string): ClientError {
   );
 }
 
+function makeClientErrorWithExtensionCode(code: string | number): ClientError {
+  return new ClientError(
+    {
+      status: 200,
+      headers: new Headers(),
+      errors: [new GraphQLError('Access denied', { extensions: { code } })],
+      body: '',
+    },
+    { query: '' },
+  );
+}
+
 describe('isNetworkError', () => {
   it('returns true for TypeError (DNS/connection failure)', () => {
     expect(isNetworkError(new TypeError('Failed to fetch'))).toBe(true);
@@ -27,6 +43,10 @@ describe('isNetworkError', () => {
 
   it('returns true for ClientError with 503 status', () => {
     expect(isNetworkError(makeClientError(503))).toBe(true);
+  });
+
+  it('returns true for GraphQL errors with 5xx extension code', () => {
+    expect(isNetworkError(makeClientErrorWithExtensionCode(503))).toBe(true);
   });
 
   it('returns false for ClientError with 401 status', () => {
@@ -68,5 +88,30 @@ describe('extractGraphQLErrorMessage', () => {
     expect(extractGraphQLErrorMessage('string')).toBeNull();
     expect(extractGraphQLErrorMessage(null)).toBeNull();
     expect(extractGraphQLErrorMessage(undefined)).toBeNull();
+  });
+});
+
+describe('isUnauthorizedError', () => {
+  it('returns true for ClientError with HTTP 401 status', () => {
+    expect(isUnauthorizedError(makeClientError(401))).toBe(true);
+  });
+
+  it('returns true for GraphQL Unauthorized errors in HTTP 200 responses', () => {
+    expect(isUnauthorizedError(makeClientErrorWithMessage('Unauthorized'))).toBe(true);
+  });
+
+  it('returns true for GraphQL errors with numeric 401 extension code', () => {
+    expect(isUnauthorizedError(makeClientErrorWithExtensionCode(401))).toBe(true);
+  });
+
+  it('returns true for GraphQL errors with string 401 extension code', () => {
+    expect(isUnauthorizedError(makeClientErrorWithExtensionCode('401'))).toBe(true);
+  });
+
+  it('returns false for unrelated client and network errors', () => {
+    expect(isUnauthorizedError(makeClientError(400))).toBe(false);
+    expect(isUnauthorizedError(makeClientError(500))).toBe(false);
+    expect(isUnauthorizedError(makeClientErrorWithMessage('Forbidden'))).toBe(false);
+    expect(isUnauthorizedError(new TypeError('Failed to fetch'))).toBe(false);
   });
 });

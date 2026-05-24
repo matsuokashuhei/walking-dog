@@ -1,6 +1,7 @@
 use async_graphql::{Error, ErrorExtensions};
 use aws_sdk_cognitoidentityprovider::operation::{
     change_password::ChangePasswordError, confirm_sign_up::ConfirmSignUpError,
+    get_tokens_from_refresh_token::GetTokensFromRefreshTokenError,
     global_sign_out::GlobalSignOutError, initiate_auth::InitiateAuthError, sign_up::SignUpError,
     update_user_attributes::UpdateUserAttributesError,
     verify_user_attribute::VerifyUserAttributeError,
@@ -57,6 +58,8 @@ pub enum AuthError {
     ConfirmSignUpError(ConfirmSignUpError),
     #[error("Sign in error: {0}")]
     SignInError(InitiateAuthError),
+    #[error("Refresh token error: {0}")]
+    RefreshTokenError(GetTokensFromRefreshTokenError),
     #[error("Sign out error: {0}")]
     SignOutError(GlobalSignOutError),
     #[error("Update user attributes error: {0}")]
@@ -84,6 +87,11 @@ impl ErrorExtensions for AuthError {
                 error!("Sign in error: {:?}", sign_in_error);
                 e.set("code", 422);
                 e.set("message", sign_in_error.message());
+            }
+            AuthError::RefreshTokenError(refresh_token_error) => {
+                error!("Refresh token error: {:?}", refresh_token_error);
+                e.set("code", 401);
+                e.set("message", refresh_token_error.message());
             }
             AuthError::SignOutError(sign_out_error) => {
                 error!("Sign out error: {:?}", sign_out_error);

@@ -255,7 +255,10 @@ export async function authenticatedMultipartRequest<T>(
 }
 
 export const graphqlClient = {
-  async request<T>(document: string, variables?: Variables): Promise<T> {
+  async request<T>(
+    document: string,
+    variables?: Variables,
+  ): Promise<T> {
     const op = parseOperation(document);
     const startedAt = Date.now();
     console.log(

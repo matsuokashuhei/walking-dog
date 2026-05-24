@@ -1,7 +1,7 @@
 import { GraphQLError } from 'graphql';
 import { graphqlClient } from '../graphql/client';
 import { ClientError } from '../graphql/client-error';
-import { confirmSignUp, signIn, signUp } from './api';
+import { confirmSignUp, refreshToken, signIn, signUp } from './api';
 
 jest.mock('../graphql/client', () => ({
   graphqlClient: {
@@ -75,5 +75,37 @@ describe('auth api', () => {
       kind: 'code-mismatch',
       reason: 'expired',
     });
+  });
+
+  it('refreshToken returns refreshed tokens on success', async () => {
+    mockRequest.mockResolvedValue({
+      refreshToken: { accessToken: 'new-access-token', refreshToken: 'old-refresh-token' },
+    });
+
+    await expect(refreshToken('old-refresh-token')).resolves.toEqual({
+      accessToken: 'new-access-token',
+      refreshToken: 'old-refresh-token',
+    });
+    expect(mockRequest).toHaveBeenCalledWith(
+      expect.any(String),
+      {
+        input: { refreshToken: 'old-refresh-token' },
+      },
+    );
+  });
+
+  it('refreshToken maps backend auth failures to invalid-credentials', async () => {
+    mockRequest.mockRejectedValue(makeClientError('NotAuthorizedException'));
+
+    await expect(refreshToken('expired-refresh-token')).rejects.toMatchObject({
+      kind: 'invalid-credentials',
+    });
+  });
+
+  it('refreshToken preserves network failures so auth refresh can retry them', async () => {
+    const networkError = new TypeError('Failed to fetch');
+    mockRequest.mockRejectedValue(networkError);
+
+    await expect(refreshToken('old-refresh-token')).rejects.toBe(networkError);
   });
 });

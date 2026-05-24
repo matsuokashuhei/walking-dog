@@ -24,3 +24,12 @@ export const SIGN_IN_MUTATION = gql`
     }
   }
 `;
+
+export const REFRESH_TOKEN_MUTATION = gql`
+  mutation RefreshToken($input: RefreshTokenInput!) {
+    refreshToken(input: $input) {
+      accessToken
+      refreshToken
+    }
+  }
+`;

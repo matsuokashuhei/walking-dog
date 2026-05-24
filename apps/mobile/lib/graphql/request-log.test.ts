@@ -94,4 +94,37 @@ describe('logReproducibleRequest', () => {
     expect(output).toContain(`'\\''`);
     expect(output).not.toContain(`"name":"O'Brien"`);
   });
+
+  it('redacts sensitive auth variables in the variable block and curl body', () => {
+    logReproducibleRequest({
+      endpoint,
+      document: 'mutation RefreshToken($input: RefreshTokenInput!) { refreshToken(input: $input) { accessToken } }',
+      variables: {
+        input: {
+          refreshToken: 'refresh-secret',
+          refresh_token: 'snake-refresh-secret',
+          accessToken: 'access-secret',
+          'access-token': 'kebab-access-secret',
+          password: 'password-secret',
+          oldPassword: 'old-password-secret',
+        },
+      },
+      operationKind: 'mutation',
+      operationName: 'RefreshToken',
+    });
+
+    const output = logSpy.mock.calls[0][0] as string;
+    expect(output).not.toContain('refresh-secret');
+    expect(output).not.toContain('snake-refresh-secret');
+    expect(output).not.toContain('access-secret');
+    expect(output).not.toContain('kebab-access-secret');
+    expect(output).not.toContain('password-secret');
+    expect(output).not.toContain('old-password-secret');
+    expect(output).toContain('"refreshToken": "[REDACTED]"');
+    expect(output).toContain('"refresh_token": "[REDACTED]"');
+    expect(output).toContain('"accessToken": "[REDACTED]"');
+    expect(output).toContain('"access-token": "[REDACTED]"');
+    expect(output).toContain('"password": "[REDACTED]"');
+    expect(output).toContain('"oldPassword": "[REDACTED]"');
+  });
 });

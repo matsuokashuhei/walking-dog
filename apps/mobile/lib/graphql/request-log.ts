@@ -12,13 +12,44 @@ type ReproducibleRequest = {
 // developer knows to add the header themselves when reproducing an authenticated request.
 const AUTH_HEADER_COMMENT = '# Authorization: Bearer $TOKEN  (add manually if auth is required)';
 const AUTH_CURL_COMMENT = '# add when auth is required: -H "Authorization: Bearer $TOKEN"';
+const REDACTED_VALUE = '[REDACTED]';
 
 /** Wrap a value in single quotes for a POSIX shell, escaping embedded single quotes as '\''. */
 function shellSingleQuote(value: string): string {
   return `'${value.replace(/'/g, "'\\''")}'`;
 }
 
-/** Build the exact JSON body that `graphqlClient.request` sends, so the curl reproduces it byte-for-byte. */
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isSensitiveVariableKey(key: string): boolean {
+  const normalizedKey = key.toLowerCase().replace(/[^a-z0-9]/g, '');
+  return (
+    normalizedKey.includes('password') ||
+    normalizedKey === 'accesstoken' ||
+    normalizedKey === 'refreshtoken'
+  );
+}
+
+function redactSensitiveVariables(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(redactSensitiveVariables);
+  }
+
+  if (isRecord(value)) {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, child]) => [
+        key,
+        isSensitiveVariableKey(key) ? REDACTED_VALUE : redactSensitiveVariables(child),
+      ]),
+    );
+  }
+
+  return value;
+}
+
+/** Build the JSON body shown in reproduction logs. Sensitive variables may be redacted. */
 function buildRequestBody(document: string, variables?: Variables): string {
   return JSON.stringify({
     query: document,
@@ -48,7 +79,7 @@ function indent(text: string, spaces: number): string {
  * request so a developer can reproduce it in a GraphQL client (GraphiQL / Insomnia / curl).
  *
  * Emits the endpoint, headers (Authorization intentionally omitted — only a placeholder
- * comment), the full query document, the full variables, and a ready-to-run curl command.
+ * comment), the query document, redacted variables, and a ready-to-run curl command.
  * Does nothing in production builds, since variables may contain PII (e.g. location track points).
  */
 export function logReproducibleRequest({
@@ -62,9 +93,12 @@ export function logReproducibleRequest({
     return;
   }
 
-  const body = buildRequestBody(document, variables);
+  const redactedVariables = variables
+    ? (redactSensitiveVariables(variables) as Variables)
+    : undefined;
+  const body = buildRequestBody(document, redactedVariables);
   const curl = buildCurl(endpoint, body);
-  const variablesText = variables ? JSON.stringify(variables, null, 2) : '(none)';
+  const variablesText = redactedVariables ? JSON.stringify(redactedVariables, null, 2) : '(none)';
 
   const block = [
     `[graphql] ⟲ reproduce ${operationKind} ${operationName}`,

@@ -7,9 +7,6 @@ import {
 import { logReproducibleRequest } from './request-log';
 
 export type Variables = Record<string, unknown>;
-export type RequestOptions = {
-  includeAuth?: boolean;
-};
 export type UploadFile = {
   uri: string;
   name: string;
@@ -261,7 +258,6 @@ export const graphqlClient = {
   async request<T>(
     document: string,
     variables?: Variables,
-    options: RequestOptions = {},
   ): Promise<T> {
     const op = parseOperation(document);
     const startedAt = Date.now();
@@ -277,10 +273,9 @@ export const graphqlClient = {
       operationName: op.name,
     });
 
-    const includeAuth = options.includeAuth ?? true;
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
-      ...(includeAuth && authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
     };
 
     let response: Response;

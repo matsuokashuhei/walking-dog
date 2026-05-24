@@ -91,7 +91,6 @@ describe('auth api', () => {
       {
         input: { refreshToken: 'old-refresh-token' },
       },
-      { includeAuth: false },
     );
   });
 

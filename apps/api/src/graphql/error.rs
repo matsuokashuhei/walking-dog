@@ -1,6 +1,7 @@
 use async_graphql::{Error, ErrorExtensions};
 use aws_sdk_cognitoidentityprovider::operation::{
     change_password::ChangePasswordError, confirm_sign_up::ConfirmSignUpError,
+    get_tokens_from_refresh_token::GetTokensFromRefreshTokenError,
     global_sign_out::GlobalSignOutError, initiate_auth::InitiateAuthError, sign_up::SignUpError,
     update_user_attributes::UpdateUserAttributesError,
     verify_user_attribute::VerifyUserAttributeError,
@@ -58,7 +59,7 @@ pub enum AuthError {
     #[error("Sign in error: {0}")]
     SignInError(InitiateAuthError),
     #[error("Refresh token error: {0}")]
-    RefreshTokenError(InitiateAuthError),
+    RefreshTokenError(GetTokensFromRefreshTokenError),
     #[error("Sign out error: {0}")]
     SignOutError(GlobalSignOutError),
     #[error("Update user attributes error: {0}")]
@@ -67,16 +68,6 @@ pub enum AuthError {
     VerifyUserAttributeError(VerifyUserAttributeError),
     #[error("Change password error: {0}")]
     ChangePasswordError(ChangePasswordError),
-}
-
-fn refresh_token_error_status_code(error: &InitiateAuthError) -> i32 {
-    match error.code() {
-        Some(
-            "InternalErrorException" | "TooManyRequestsException" | "UnexpectedLambdaException",
-        )
-        | None => 503,
-        _ => 422,
-    }
 }
 
 impl ErrorExtensions for AuthError {
@@ -99,7 +90,7 @@ impl ErrorExtensions for AuthError {
             }
             AuthError::RefreshTokenError(refresh_token_error) => {
                 error!("Refresh token error: {:?}", refresh_token_error);
-                e.set("code", refresh_token_error_status_code(refresh_token_error));
+                e.set("code", 401);
                 e.set("message", refresh_token_error.message());
             }
             AuthError::SignOutError(sign_out_error) => {

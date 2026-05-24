@@ -17,6 +17,11 @@ export interface SignInResult {
   refreshToken: string;
 }
 
+export interface RefreshTokenResult {
+  accessToken: string;
+  refreshToken: string;
+}
+
 interface SignUpResponse {
   signUp: SignUpResult;
 }
@@ -30,7 +35,7 @@ interface SignInResponse {
 }
 
 interface RefreshTokenResponse {
-  refreshToken: SignInResult;
+  refreshToken: RefreshTokenResult;
 }
 
 async function mapAuthRequestError<T>(request: () => Promise<T>): Promise<T> {
@@ -88,14 +93,13 @@ export async function signOut(_accessToken: string): Promise<boolean> {
   return true;
 }
 
-export async function refreshToken(refreshTokenValue: string): Promise<SignInResult> {
+export async function refreshToken(refreshTokenValue: string): Promise<RefreshTokenResult> {
   const data = await mapRefreshTokenRequestError(() =>
     graphqlClient.request<RefreshTokenResponse>(
       REFRESH_TOKEN_MUTATION,
       {
         input: { refreshToken: refreshTokenValue },
       },
-      { includeAuth: false },
     )
   );
   return data.refreshToken;

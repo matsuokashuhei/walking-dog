@@ -70,19 +70,6 @@ describe('graphql client auth header', () => {
     );
   });
 
-  it('omits the Authorization header when auth is disabled for a request', async () => {
-    setAuthToken('expired-access-token');
-
-    await graphqlClient.request(query, undefined, { includeAuth: false });
-
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.objectContaining({
-        headers: { 'Content-Type': 'application/json' },
-      }),
-    );
-  });
-
   it('sends variables with the GraphQL request body', async () => {
     await graphqlClient.request(query, { id: 'user-id' });
 

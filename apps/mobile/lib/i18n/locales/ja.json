@@ -247,10 +247,6 @@
       "photoUploadError": "写真のアップロードに失敗しました。もう一度お試しください。",
       "cameraPermissionError": "カメラへのアクセスを許可してください。設定から変更できます。"
     },
-    "liveActivity": {
-      "walking": "散歩中",
-      "walkingWithDogs": "{{count}}匹と散歩中"
-    },
     "date": {
       "today": "今日",
       "yesterday": "昨日"

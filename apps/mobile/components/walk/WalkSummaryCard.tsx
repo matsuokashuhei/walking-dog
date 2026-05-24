@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
@@ -29,6 +29,7 @@ export function WalkSummaryCard() {
   const events = useWalkStore((s) => s.events);
   const selectedDogIds = useWalkStore((s) => s.selectedDogIds);
   const reset = useWalkStore((s) => s.reset);
+  const [completedAtMs] = useState(() => Date.now());
 
   const { data: me } = useMe();
   // 終了時点で選択されていた犬だけを、プロフィール情報から引き直して表示します。
@@ -38,7 +39,7 @@ export function WalkSummaryCard() {
   );
 
   const elapsedSec = startedAt
-    ? Math.floor((Date.now() - startedAt.getTime()) / 1000)
+    ? Math.floor((completedAtMs - startedAt.getTime()) / 1000)
     : 0;
   const elapsedMin = Math.max(1, Math.round(elapsedSec / 60));
 

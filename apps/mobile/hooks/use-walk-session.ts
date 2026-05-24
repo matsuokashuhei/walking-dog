@@ -1,5 +1,4 @@
 import { useCallback } from 'react';
-import { endLiveActivity, startLiveActivity } from '@/lib/walk/live-activity';
 import {
   beginWalkTracking,
   flushPendingWalkPoints,
@@ -14,13 +13,12 @@ export function resetWalkSessionTrackingState() {
   resetWalkTrackingState();
 }
 
-// 散歩開始時に必要な犬 ID と Live Activity 表示名です。
+// 散歩開始時に必要な犬 ID です。
 export interface WalkSessionStartOptions {
   selectedDogIds: string[];
-  liveActivityDogName: string;
 }
 
-// 散歩の開始・終了、GPS トラッキング、Live Activity 更新を一括で管理します。
+// 散歩の開始・終了、GPS トラッキングを一括で管理します。
 export function useWalkSession() {
   const startWalkMutation = useStartWalk();
   const finishWalkMutation = useFinishWalk();
@@ -29,34 +27,16 @@ export function useWalkSession() {
   const finish = useWalkStore((s) => s.finish);
 
   const start = useCallback(
-    async ({ selectedDogIds, liveActivityDogName }: WalkSessionStartOptions): Promise<string> => {
+    async ({ selectedDogIds }: WalkSessionStartOptions): Promise<string> => {
       // 既存の GPS 監視を止めてから、新しい散歩と端末側の記録状態を開始します。
       stopWalkTracking();
 
       const walk = await startWalkMutation.mutateAsync(selectedDogIds);
       startRecording(walk.id);
 
-      const startedAt = useWalkStore.getState().startedAt ?? new Date();
-      const activityId = await startLiveActivity({
-        walkId: walk.id,
-        dogId: selectedDogIds[0],
-        dogName: liveActivityDogName,
-        startedAt,
-        distanceM: 0,
-      });
-      if (activityId) {
-        useWalkStore.getState().setLiveActivity({
-          activityId,
-          startedAt,
-          // 初回の GPS 距離更新はデバウンスせず、すぐ Live Activity へ反映します。
-          lastUpdateAt: 0,
-        });
-      }
-
       // GPS 点はストアへ即時反映し、永続化は tracking-manager 側のバッチ送信に任せます。
       // distance はサーバ側 (track_point → Haversine 累積) の計算結果を walk クエリの
-      // ポーリング (walk-recording.tsx) で取り込むため、Live Activity 更新もそちらに
-      // 統合してあります。
+      // ポーリング (walk-recording.tsx) で取り込みます。
       await beginWalkTracking({
         walkId: walk.id,
         addWalkPoints: addWalkPointsMutation.mutateAsync,
@@ -67,7 +47,7 @@ export function useWalkSession() {
 
       return walk.id;
     },
-    [startWalkMutation, startRecording],
+    [addWalkPointsMutation, startWalkMutation, startRecording],
   );
 
   const stop = useCallback(
@@ -83,12 +63,6 @@ export function useWalkSession() {
 
       await finishWalkMutation.mutateAsync({ walkId });
       finish();
-
-      const la = useWalkStore.getState().liveActivity;
-      if (la) {
-        useWalkStore.getState().setLiveActivity(null);
-        void endLiveActivity(la.activityId);
-      }
     },
     [addWalkPointsMutation, finishWalkMutation, finish],
   );

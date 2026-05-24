@@ -7,6 +7,8 @@ pub mod query;
 
 use std::{env, sync::Arc};
 
+use crate::config::ApiLogConfig;
+use crate::db;
 use crate::graphql::query::Query;
 use crate::queue::track_point::TrackPointEnqueuer;
 use anyhow::Result;
@@ -19,7 +21,7 @@ pub async fn build_schema()
         mutation::Mutation::default(),
         EmptySubscription,
     )
-    .data(build_database_connection().await)
+    .data(build_database_connection().await?)
     .data(build_cognitoidentityprovider_client().await)
     .data(build_dynamodb_client().await)
     .data(build_track_point_enqueuer().await?)
@@ -28,10 +30,9 @@ pub async fn build_schema()
     .finish())
 }
 
-async fn build_database_connection() -> sea_orm::DatabaseConnection {
-    sea_orm::Database::connect(std::env::var("DATABASE_URL").unwrap())
-        .await
-        .unwrap()
+async fn build_database_connection() -> anyhow::Result<sea_orm::DatabaseConnection> {
+    let log_config = ApiLogConfig::from_env();
+    db::connect_database_from_env(log_config.database_log_config()).await
 }
 
 async fn build_cognitoidentityprovider_client() -> aws_sdk_cognitoidentityprovider::Client {

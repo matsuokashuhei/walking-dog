@@ -20,7 +20,7 @@ async-graphql-axum = { version = "7.2.1" }
 async-trait = "0.1.89"
 tokio = { version = "1.52.3", features = ["macros", "rt-multi-thread", "sync", "time"] }
 tracing = { version = "0.1.44" }
-tracing-subscriber = { version = "0.3.23" }
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 aws-config = { version = "1.8.16", features = ["behavior-version-latest"] }
 aws-sdk-dynamodb = "1.111.0"
 aws-sdk-s3 = { version = "1.132.0", features = ["behavior-version-latest"] }

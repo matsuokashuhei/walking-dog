@@ -11,21 +11,21 @@ use axum::{
     routing::get,
 };
 use migration::{Migrator, MigratorTrait};
-use sea_orm::Database;
 use tokio::net::TcpListener;
 use tracing::info;
 use walking_dog::{
     auth,
+    config::{self, DatabaseLogConfig},
+    db,
     entity::user,
     graphql::{self, mutation, query::Query},
 };
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::INFO)
-        .init();
-    run_migrations().await?;
+    let log_config = config::ApiLogConfig::from_env();
+    config::init_tracing(&log_config)?;
+    run_migrations(log_config.database_log_config()).await?;
     let schema = graphql::build_schema().await?;
     let app = Router::new()
         .route("/graphql", get(graphql_playground).post(graphql_handler))
@@ -56,9 +56,8 @@ async fn graphql_playground() -> impl IntoResponse {
     Html(GraphiQLSource::build().finish())
 }
 
-async fn run_migrations() -> anyhow::Result<()> {
-    let database_url = std::env::var("DATABASE_URL")?;
-    let db = Database::connect(&database_url).await?;
+async fn run_migrations(database_log_config: DatabaseLogConfig) -> anyhow::Result<()> {
+    let db = db::connect_database_from_env(database_log_config).await?;
     info!("Running database migrations");
     Migrator::up(&db, None).await?;
     info!("Database migrations applied");

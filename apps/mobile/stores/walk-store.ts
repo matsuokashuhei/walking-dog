@@ -3,13 +3,6 @@ import type { WalkPoint, WalkEvent } from '@/types/graphql';
 
 type WalkPhase = 'ready' | 'recording' | 'finished';
 
-export interface LiveActivityState {
-  activityId: string;
-  startedAt: Date;
-  /** Epoch ms of the most recent successful native update. 0 means no update has happened yet. */
-  lastUpdateAt: number;
-}
-
 interface WalkState {
   phase: WalkPhase;
   walkId: string | null;
@@ -21,21 +14,13 @@ interface WalkState {
   events: WalkEvent[];
   trackingGeneration: number;
   trackingCleanup: (() => void) | null;
-  // Bumped to a fresh timestamp each time the Live Activity camera button (or
-  // any other source) requests the camera flow. WalkEventActions watches it
-  // and triggers handlePhoto. Using a timestamp instead of a boolean gives a
-  // distinct value per request so repeat taps fire even if the previous one
-  // wasn't acknowledged yet.
+  // Bumped to a fresh timestamp each time a quick action requests the camera
+  // flow. WalkEventActions watches it and triggers handlePhoto. Using a
+  // timestamp instead of a boolean gives a distinct value per request so repeat
+  // taps fire even if the previous one wasn't acknowledged yet.
   cameraRequestedAt: number | null;
   /** Recording bottom sheet collapsed to the compact pill variant. */
   isMinimized: boolean;
-  /**
-   * iOS Live Activity bookkeeping. `null` while no activity is alive (Android,
-   * unsupported iOS, or after `endLiveActivity`). When set, `activityId` is
-   * the native handle returned by the iOS module and `lastUpdateAt` gates the
-   * native-update debounce in the session hook.
-   */
-  liveActivity: LiveActivityState | null;
   selectDog: (dogId: string) => void;
   setSelectedDogs: (dogIds: string[]) => void;
   startRecording: (walkId: string) => void;
@@ -51,8 +36,6 @@ interface WalkState {
   attachTrackingCleanup: (generation: number, cleanup: () => void) => boolean;
   stopTrackingSession: () => void;
   resetTrackingSession: () => void;
-  setLiveActivity: (activity: LiveActivityState | null) => void;
-  bumpLiveActivityUpdateAt: (at: number) => void;
   finish: () => void;
   reset: () => void;
 }
@@ -74,7 +57,6 @@ export const useWalkStore = create<WalkState>((set, get) => ({
   trackingCleanup: null,
   cameraRequestedAt: null,
   isMinimized: false,
-  liveActivity: null,
 
   selectDog: (dogId) =>
     set((state) => ({
@@ -144,13 +126,6 @@ export const useWalkStore = create<WalkState>((set, get) => ({
     clearTrackingCleanup(cleanup);
   },
 
-  setLiveActivity: (activity) => set({ liveActivity: activity }),
-
-  bumpLiveActivityUpdateAt: (at) =>
-    set((state) =>
-      state.liveActivity ? { liveActivity: { ...state.liveActivity, lastUpdateAt: at } } : {},
-    ),
-
   finish: () => set({ phase: 'finished', cameraRequestedAt: null, isMinimized: false }),
 
   reset: () => {
@@ -168,7 +143,6 @@ export const useWalkStore = create<WalkState>((set, get) => ({
       trackingCleanup: null,
       cameraRequestedAt: null,
       isMinimized: false,
-      liveActivity: null,
     });
     clearTrackingCleanup(cleanup);
   },

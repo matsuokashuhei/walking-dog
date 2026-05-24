@@ -5,9 +5,7 @@ import {
 } from './use-walk-session';
 import * as walkMutations from './use-walk-mutations';
 import * as gpsTracker from '@/lib/walk/gps-tracker';
-import * as liveActivity from '@/lib/walk/live-activity';
 import { MAX_POINTS_PER_BATCH } from '@/lib/walk/tracking-manager';
-import type { LiveActivityState } from '@/stores/walk-store';
 import type { WalkPoint } from '@/types/graphql';
 
 jest.mock('./use-walk-mutations', () => ({
@@ -20,13 +18,6 @@ jest.mock('@/lib/walk/gps-tracker', () => ({
   startTracking: jest.fn(),
 }));
 
-jest.mock('@/lib/walk/live-activity', () => ({
-  startLiveActivity: jest.fn(),
-  endLiveActivity: jest.fn(),
-  updateLiveActivityDistance: jest.fn(),
-  UPDATE_DEBOUNCE_MS: 10_000,
-}));
-
 const mockStoreStartRecording = jest.fn();
 const mockStoreAddPoint = jest.fn();
 const mockStoreFinish = jest.fn();
@@ -37,7 +28,6 @@ let mockStoreStartedAt: Date | null = null;
 let mockStorePhase: 'ready' | 'recording' | 'finished' = 'ready';
 let mockStoreTrackingGeneration = 0;
 let mockStoreTrackingCleanup: (() => void) | null = null;
-let mockStoreLiveActivity: LiveActivityState | null = null;
 
 jest.mock('@/stores/walk-store', () => {
   const state = {
@@ -74,17 +64,6 @@ jest.mock('@/stores/walk-store', () => {
     },
     get trackingCleanup() {
       return mockStoreTrackingCleanup;
-    },
-    get liveActivity() {
-      return mockStoreLiveActivity;
-    },
-    setLiveActivity: (activity: LiveActivityState | null) => {
-      mockStoreLiveActivity = activity;
-    },
-    bumpLiveActivityUpdateAt: (at: number) => {
-      if (mockStoreLiveActivity) {
-        mockStoreLiveActivity = { ...mockStoreLiveActivity, lastUpdateAt: at };
-      }
     },
     activateTrackingSession: () => {
       mockStoreTrackingGeneration += 1;
@@ -143,7 +122,6 @@ beforeEach(() => {
   mockStorePhase = 'ready';
   mockStoreTrackingGeneration = 0;
   mockStoreTrackingCleanup = null;
-  mockStoreLiveActivity = null;
 
   (walkMutations.useStartWalk as jest.Mock).mockReturnValue({
     mutateAsync: mockStartWalkMutateAsync,
@@ -156,9 +134,6 @@ beforeEach(() => {
     mutateAsync: mockAddPointsMutateAsync,
   });
   (gpsTracker.startTracking as jest.Mock).mockResolvedValue(mockStopTracking);
-  (liveActivity.startLiveActivity as jest.Mock).mockResolvedValue('activity-1');
-  (liveActivity.endLiveActivity as jest.Mock).mockResolvedValue(undefined);
-  (liveActivity.updateLiveActivityDistance as jest.Mock).mockResolvedValue(undefined);
 });
 
 describe('useWalkSession.start', () => {
@@ -170,7 +145,6 @@ describe('useWalkSession.start', () => {
     await act(async () => {
       walkId = await result.current.start({
         selectedDogIds: ['dog-1'],
-        liveActivityDogName: 'Rex',
       });
     });
 
@@ -183,63 +157,14 @@ describe('useWalkSession.start', () => {
 
     const { result } = renderHook(() => useWalkSession());
     await act(async () => {
-      await result.current.start({ selectedDogIds: ['dog-1'], liveActivityDogName: 'Rex' });
+      await result.current.start({ selectedDogIds: ['dog-1'] });
     });
 
     expect(mockStoreStartRecording).toHaveBeenCalledWith('walk-1');
   });
 
-  it('starts live activity with walk id, dog id, dog name, and initial distance 0', async () => {
+  it('startTracking callback adds point to store', async () => {
     mockStartWalkMutateAsync.mockResolvedValue({ id: 'walk-1' });
-
-    const { result } = renderHook(() => useWalkSession());
-    await act(async () => {
-      await result.current.start({ selectedDogIds: ['dog-1'], liveActivityDogName: 'Rex' });
-    });
-
-    expect(liveActivity.startLiveActivity).toHaveBeenCalledWith(
-      expect.objectContaining({
-        walkId: 'walk-1',
-        dogId: 'dog-1',
-        dogName: 'Rex',
-        distanceM: 0,
-      }),
-    );
-  });
-
-  it('persists the started Live Activity id (and seeds lastUpdateAt to 0) into the walk store', async () => {
-    mockStartWalkMutateAsync.mockResolvedValue({ id: 'walk-1' });
-    (liveActivity.startLiveActivity as jest.Mock).mockResolvedValue('activity-xyz');
-
-    const { result } = renderHook(() => useWalkSession());
-    await act(async () => {
-      await result.current.start({ selectedDogIds: ['dog-1'], liveActivityDogName: 'Rex' });
-    });
-
-    expect(mockStoreLiveActivity).toEqual({
-      activityId: 'activity-xyz',
-      startedAt: mockStoreStartedAt,
-      lastUpdateAt: 0,
-    });
-  });
-
-  it('does not seed liveActivity in store when startLiveActivity returns null (unsupported / failed)', async () => {
-    mockStartWalkMutateAsync.mockResolvedValue({ id: 'walk-1' });
-    (liveActivity.startLiveActivity as jest.Mock).mockResolvedValue(null);
-
-    const { result } = renderHook(() => useWalkSession());
-    await act(async () => {
-      await result.current.start({ selectedDogIds: ['dog-1'], liveActivityDogName: 'Rex' });
-    });
-
-    expect(mockStoreLiveActivity).toBeNull();
-  });
-
-  it('startTracking callback adds point to store without updating Live Activity distance', async () => {
-    // distance はサーバ計算に統一したため、useWalkSession 内では Live Activity 更新を行わない。
-    // Live Activity の距離更新は walk-recording.tsx のポーリング effect で行う。
-    mockStartWalkMutateAsync.mockResolvedValue({ id: 'walk-1' });
-    (liveActivity.startLiveActivity as jest.Mock).mockResolvedValue('activity-1');
     let capturedOnPoint: ((point: WalkPoint) => void) | null = null;
     (gpsTracker.startTracking as jest.Mock).mockImplementation(
       async (cb: (p: WalkPoint) => void) => {
@@ -250,14 +175,13 @@ describe('useWalkSession.start', () => {
 
     const { result } = renderHook(() => useWalkSession());
     await act(async () => {
-      await result.current.start({ selectedDogIds: ['dog-1'], liveActivityDogName: 'Rex' });
+      await result.current.start({ selectedDogIds: ['dog-1'] });
     });
 
     const point: WalkPoint = { lat: 35.68, lng: 139.76, recordedAt: '2026-04-01T00:01:00Z' };
     capturedOnPoint!(point);
 
     expect(mockStoreAddPoint).toHaveBeenCalledWith(point);
-    expect(liveActivity.updateLiveActivityDistance).not.toHaveBeenCalled();
   });
 
   it('exposes isStarting from startWalk mutation', () => {
@@ -277,7 +201,7 @@ describe('useWalkSession.stop', () => {
 
     const { result } = renderHook(() => useWalkSession());
     await act(async () => {
-      await result.current.start({ selectedDogIds: ['dog-1'], liveActivityDogName: 'Rex' });
+      await result.current.start({ selectedDogIds: ['dog-1'] });
     });
     await act(async () => {
       await result.current.stop('walk-1');
@@ -293,7 +217,7 @@ describe('useWalkSession.stop', () => {
     const stopper = renderHook(() => useWalkSession());
 
     await act(async () => {
-      await starter.result.current.start({ selectedDogIds: ['dog-1'], liveActivityDogName: 'Rex' });
+      await starter.result.current.start({ selectedDogIds: ['dog-1'] });
     });
     await act(async () => {
       await stopper.result.current.stop('walk-1');
@@ -316,20 +240,17 @@ describe('useWalkSession.stop', () => {
     const stopper = renderHook(() => useWalkSession());
 
     await act(async () => {
-      await starter.result.current.start({ selectedDogIds: ['dog-1'], liveActivityDogName: 'Rex' });
+      await starter.result.current.start({ selectedDogIds: ['dog-1'] });
     });
     await act(async () => {
       await stopper.result.current.stop('walk-1');
     });
 
     mockStoreAddPoint.mockClear();
-    (liveActivity.updateLiveActivityDistance as jest.Mock).mockClear();
-
     const onPoint = requireCapturedOnPoint(capturedOnPoint);
     onPoint({ lat: 35.68, lng: 139.76, recordedAt: '2026-04-01T00:01:00Z' });
 
     expect(mockStoreAddPoint).not.toHaveBeenCalled();
-    expect(liveActivity.updateLiveActivityDistance).not.toHaveBeenCalled();
   });
 
   it('batches points by MAX_POINTS_PER_BATCH and calls addWalkPoints per batch', async () => {
@@ -342,7 +263,7 @@ describe('useWalkSession.stop', () => {
 
     const { result } = renderHook(() => useWalkSession());
     await act(async () => {
-      await result.current.start({ selectedDogIds: ['dog-1'], liveActivityDogName: 'Rex' });
+      await result.current.start({ selectedDogIds: ['dog-1'] });
     });
     await act(async () => {
       await result.current.stop('walk-1');
@@ -365,7 +286,7 @@ describe('useWalkSession.stop', () => {
 
     const { result } = renderHook(() => useWalkSession());
     await act(async () => {
-      await result.current.start({ selectedDogIds: ['dog-1'], liveActivityDogName: 'Rex' });
+      await result.current.start({ selectedDogIds: ['dog-1'] });
     });
     mockStoreFlushedPointCount = MAX_POINTS_PER_BATCH;
     await act(async () => {
@@ -377,14 +298,13 @@ describe('useWalkSession.stop', () => {
     expect(pendingBatch).toHaveLength(50);
   });
 
-  it('calls finishWalk with only walkId, ends live activity by id, and clears it from store', async () => {
+  it('calls finishWalk with only walkId and finishes the store', async () => {
     // distance はサーバ側で track_point から再計算して保存するため、クライアントから送らない。
     mockStartWalkMutateAsync.mockResolvedValue({ id: 'walk-1' });
-    (liveActivity.startLiveActivity as jest.Mock).mockResolvedValue('activity-7');
 
     const { result } = renderHook(() => useWalkSession());
     await act(async () => {
-      await result.current.start({ selectedDogIds: ['dog-1'], liveActivityDogName: 'Rex' });
+      await result.current.start({ selectedDogIds: ['dog-1'] });
     });
     await act(async () => {
       await result.current.stop('walk-1');
@@ -392,24 +312,6 @@ describe('useWalkSession.stop', () => {
 
     expect(mockFinishWalkMutateAsync).toHaveBeenCalledWith({ walkId: 'walk-1' });
     expect(mockStoreFinish).toHaveBeenCalledTimes(1);
-    expect(liveActivity.endLiveActivity).toHaveBeenCalledTimes(1);
-    expect(liveActivity.endLiveActivity).toHaveBeenCalledWith('activity-7');
-    expect(mockStoreLiveActivity).toBeNull();
-  });
-
-  it('does not call endLiveActivity when stop runs without an active live activity', async () => {
-    mockStartWalkMutateAsync.mockResolvedValue({ id: 'walk-1' });
-    (liveActivity.startLiveActivity as jest.Mock).mockResolvedValue(null);
-
-    const { result } = renderHook(() => useWalkSession());
-    await act(async () => {
-      await result.current.start({ selectedDogIds: ['dog-1'], liveActivityDogName: 'Rex' });
-    });
-    await act(async () => {
-      await result.current.stop('walk-1');
-    });
-
-    expect(liveActivity.endLiveActivity).not.toHaveBeenCalled();
   });
 
   it('does not call addWalkPoints when there are no points', async () => {
@@ -418,7 +320,7 @@ describe('useWalkSession.stop', () => {
 
     const { result } = renderHook(() => useWalkSession());
     await act(async () => {
-      await result.current.start({ selectedDogIds: ['dog-1'], liveActivityDogName: 'Rex' });
+      await result.current.start({ selectedDogIds: ['dog-1'] });
     });
     await act(async () => {
       await result.current.stop('walk-1');

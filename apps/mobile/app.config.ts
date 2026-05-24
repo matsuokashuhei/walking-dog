@@ -1,8 +1,5 @@
 // apps/mobile/app.config.ts
-import { ExpoConfig, ConfigContext } from 'expo/config';
-
-const APP_GROUP = 'group.com.walkingdog.app';
-const KEYCHAIN_SERVICE = 'com.walkingdog.shared';
+import type { ExpoConfig, ConfigContext } from 'expo/config';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
@@ -20,12 +17,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     infoPlist: {
       NSLocationWhenInUseUsageDescription:
         'Walking Dog uses your location to record walk routes.',
-      NSSupportsLiveActivities: true,
-      NSSupportsLiveActivitiesFrequentUpdates: true,
-    },
-    entitlements: {
-      'com.apple.security.application-groups': [APP_GROUP],
-      'keychain-access-groups': [`$(AppIdentifierPrefix)${APP_GROUP}`],
     },
   },
   android: {
@@ -81,14 +72,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         },
       },
     ],
-    '@bacons/apple-targets',
   ],
   experiments: {
     typedRoutes: true,
     reactCompiler: true,
-  },
-  extra: {
-    appGroup: APP_GROUP,
-    keychainService: KEYCHAIN_SERVICE,
   },
 });

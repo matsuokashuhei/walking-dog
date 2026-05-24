@@ -42,12 +42,7 @@ export function useWalkScreenViewModel(): WalkScreenViewModel {
     }
 
     try {
-      // Live Activity に表示する文言は、選択中の犬の数に合わせて切り替えます。
-      const liveActivityDogName =
-        selectedDogIds.length === 1
-          ? t('walk.liveActivity.walking')
-          : t('walk.liveActivity.walkingWithDogs', { count: selectedDogIds.length });
-      await walkSession.start({ selectedDogIds, liveActivityDogName });
+      await walkSession.start({ selectedDogIds });
     } catch (error) {
       console.error('[walk.start] failed', error);
       Alert.alert(t('common.error'), t('walk.error.startFailed'));

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useWalkElapsed } from '@/hooks/use-walk-elapsed';
@@ -19,6 +19,22 @@ interface WalkControlsProps {
   children?: ReactNode;
 }
 
+interface PauseState {
+  startedAtMs: number | null;
+  isPaused: boolean;
+  pausedAtMs: number | null;
+  totalPausedMs: number;
+}
+
+function initialPauseState(startedAtMs: number | null): PauseState {
+  return {
+    startedAtMs,
+    isPaused: false,
+    pausedAtMs: null,
+    totalPausedMs: 0,
+  };
+}
+
 // 記録中の下部パネルとして、犬の表示、メトリクス、イベント操作、停止操作をまとめます。
 export function WalkControls({ dogs, onStop, isStopping, children }: WalkControlsProps) {
   const { t } = useTranslation();
@@ -27,28 +43,32 @@ export function WalkControls({ dogs, onStop, isStopping, children }: WalkControl
   const totalDistanceM = useWalkStore((s) => s.totalDistanceM);
   const units = useSettingsStore((s) => s.units);
 
-  const [isPaused, setIsPaused] = useState(false);
-  const [totalPausedMs, setTotalPausedMs] = useState(0);
-  const pausedAtMsRef = useRef<number | null>(null);
+  const [pauseState, setPauseState] = useState(() => initialPauseState(startedAtMs));
+  const activePauseState =
+    pauseState.startedAtMs === startedAtMs ? pauseState : initialPauseState(startedAtMs);
+  const { isPaused, totalPausedMs } = activePauseState;
   const elapsedSec = useWalkElapsed({ startedAt, isPaused, totalPausedMs });
 
-  // 新しい散歩が始まったら、一時停止状態を前回セッションから持ち越さないよう初期化します。
-  useEffect(() => {
-    pausedAtMsRef.current = null;
-    setIsPaused(false);
-    setTotalPausedMs(0);
-  }, [startedAtMs]);
-
-  // 一時停止の開始時刻だけを ref に残し、再開時に累計停止時間へ加算します。
+  // 一時停止の開始時刻を state に残し、再開時に累計停止時間へ加算します。
   const togglePause = () => {
-    if (isPaused && pausedAtMsRef.current !== null) {
-      setTotalPausedMs((ms) => ms + (Date.now() - pausedAtMsRef.current!));
-      pausedAtMsRef.current = null;
-      setIsPaused(false);
-    } else {
-      pausedAtMsRef.current = Date.now();
-      setIsPaused(true);
-    }
+    const now = Date.now();
+    setPauseState((previous) => {
+      const current =
+        previous.startedAtMs === startedAtMs ? previous : initialPauseState(startedAtMs);
+      if (current.isPaused && current.pausedAtMs !== null) {
+        return {
+          ...current,
+          isPaused: false,
+          pausedAtMs: null,
+          totalPausedMs: current.totalPausedMs + (now - current.pausedAtMs),
+        };
+      }
+      return {
+        ...current,
+        isPaused: true,
+        pausedAtMs: now,
+      };
+    });
   };
 
   // 記録中パネルのメトリクスは、設定単位に合わせた表示文字列へ変換して渡します。

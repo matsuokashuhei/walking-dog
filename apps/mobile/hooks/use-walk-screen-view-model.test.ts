@@ -20,10 +20,6 @@ jest.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, options?: { count?: number }) => {
       switch (key) {
-        case 'walk.liveActivity.walking':
-          return 'Walking';
-        case 'walk.liveActivity.walkingWithDogs':
-          return `Walking with ${options?.count ?? 0} dogs`;
         case 'walk.permission.title':
           return 'Permission required';
         case 'walk.permission.message':
@@ -117,11 +113,10 @@ describe('useWalkScreenViewModel', () => {
 
     expect(mockWalkSessionStart).toHaveBeenCalledWith({
       selectedDogIds: ['dog-1'],
-      liveActivityDogName: 'Walking',
     });
   });
 
-  it('starts a multi-dog walk with the count-based Live Activity label', async () => {
+  it('starts a multi-dog walk after GPS permission is granted', async () => {
     mockSelectedDogIds = ['dog-1', 'dog-2'];
 
     const { result } = renderHook(() => useWalkScreenViewModel());
@@ -132,7 +127,6 @@ describe('useWalkScreenViewModel', () => {
 
     expect(mockWalkSessionStart).toHaveBeenCalledWith({
       selectedDogIds: ['dog-1', 'dog-2'],
-      liveActivityDogName: 'Walking with 2 dogs',
     });
   });
 

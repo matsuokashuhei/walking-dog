@@ -5,8 +5,9 @@ import {
 } from './use-walk-session';
 import * as walkMutations from './use-walk-mutations';
 import * as gpsTracker from '@/lib/walk/gps-tracker';
+import * as liveActivityController from '@/lib/walk/live-activity-controller';
 import { MAX_POINTS_PER_BATCH } from '@/lib/walk/tracking-manager';
-import type { WalkPoint } from '@/types/graphql';
+import type { Dog, WalkPoint } from '@/types/graphql';
 
 jest.mock('./use-walk-mutations', () => ({
   useStartWalk: jest.fn(),
@@ -16,6 +17,11 @@ jest.mock('./use-walk-mutations', () => ({
 
 jest.mock('@/lib/walk/gps-tracker', () => ({
   startTracking: jest.fn(),
+}));
+
+jest.mock('@/lib/walk/live-activity-controller', () => ({
+  startWalkLiveActivity: jest.fn(),
+  endWalkLiveActivity: jest.fn(),
 }));
 
 const mockStoreStartRecording = jest.fn();
@@ -102,6 +108,23 @@ const mockStartWalkMutateAsync = jest.fn();
 const mockFinishWalkMutateAsync = jest.fn();
 const mockAddPointsMutateAsync = jest.fn();
 const mockStopTracking = jest.fn();
+const startedAtIso = '2026-04-01T00:00:00Z';
+const dog: Dog = {
+  id: 'dog-1',
+  name: 'Mugi',
+  breed: null,
+  gender: 'OTHER',
+  createdAt: '2026-04-01T00:00:00Z',
+};
+const startedWalk = {
+  id: 'walk-1',
+  dogs: [dog],
+  status: 'ACTIVE' as const,
+  startedAt: startedAtIso,
+  endedAt: null,
+  distance: 0,
+  distanceM: 0,
+};
 
 function requireCapturedOnPoint(
   callback: ((point: WalkPoint) => void) | null,
@@ -118,7 +141,7 @@ beforeEach(() => {
   mockStorePoints = [];
   mockStoreFlushedPointCount = 0;
   mockStoreTotalDistanceM = 0;
-  mockStoreStartedAt = new Date('2026-04-01T00:00:00Z');
+  mockStoreStartedAt = new Date(startedAtIso);
   mockStorePhase = 'ready';
   mockStoreTrackingGeneration = 0;
   mockStoreTrackingCleanup = null;
@@ -138,7 +161,7 @@ beforeEach(() => {
 
 describe('useWalkSession.start', () => {
   it('calls startWalk mutation with dog ids and returns the walk id', async () => {
-    mockStartWalkMutateAsync.mockResolvedValue({ id: 'walk-1' });
+    mockStartWalkMutateAsync.mockResolvedValue(startedWalk);
 
     const { result } = renderHook(() => useWalkSession());
     let walkId: string | undefined;
@@ -153,7 +176,7 @@ describe('useWalkSession.start', () => {
   });
 
   it('calls startRecording on the walk store with the walk id', async () => {
-    mockStartWalkMutateAsync.mockResolvedValue({ id: 'walk-1' });
+    mockStartWalkMutateAsync.mockResolvedValue(startedWalk);
 
     const { result } = renderHook(() => useWalkSession());
     await act(async () => {
@@ -163,8 +186,34 @@ describe('useWalkSession.start', () => {
     expect(mockStoreStartRecording).toHaveBeenCalledWith('walk-1');
   });
 
+  it('starts the lock screen live activity with current walk data', async () => {
+    mockStartWalkMutateAsync.mockResolvedValue(startedWalk);
+
+    const { result } = renderHook(() => useWalkSession());
+    await act(async () => {
+      await result.current.start({ selectedDogIds: ['dog-1'] });
+    });
+
+    expect(liveActivityController.startWalkLiveActivity).toHaveBeenCalledWith({
+      walkId: 'walk-1',
+      startedAtMs: Date.parse(startedAtIso),
+      distanceLabel: '0 m',
+      dogs: [
+        {
+          id: 'dog-1',
+          name: 'Mugi',
+          peeCount: 0,
+          pooCount: 0,
+          peeTarget: 'walk:pee:dog-1',
+          pooTarget: 'walk:poo:dog-1',
+        },
+      ],
+      finishTarget: 'walk:finish',
+    });
+  });
+
   it('startTracking callback adds point to store', async () => {
-    mockStartWalkMutateAsync.mockResolvedValue({ id: 'walk-1' });
+    mockStartWalkMutateAsync.mockResolvedValue(startedWalk);
     let capturedOnPoint: ((point: WalkPoint) => void) | null = null;
     (gpsTracker.startTracking as jest.Mock).mockImplementation(
       async (cb: (p: WalkPoint) => void) => {
@@ -197,7 +246,7 @@ describe('useWalkSession.start', () => {
 
 describe('useWalkSession.stop', () => {
   it('calls the stopTracking function returned by startTracking', async () => {
-    mockStartWalkMutateAsync.mockResolvedValue({ id: 'walk-1' });
+    mockStartWalkMutateAsync.mockResolvedValue(startedWalk);
 
     const { result } = renderHook(() => useWalkSession());
     await act(async () => {
@@ -211,7 +260,7 @@ describe('useWalkSession.stop', () => {
   });
 
   it('stops the active GPS subscription even when stop is called from another hook instance', async () => {
-    mockStartWalkMutateAsync.mockResolvedValue({ id: 'walk-1' });
+    mockStartWalkMutateAsync.mockResolvedValue(startedWalk);
 
     const starter = renderHook(() => useWalkSession());
     const stopper = renderHook(() => useWalkSession());
@@ -227,7 +276,7 @@ describe('useWalkSession.stop', () => {
   });
 
   it('ignores late GPS callbacks after stop begins', async () => {
-    mockStartWalkMutateAsync.mockResolvedValue({ id: 'walk-1' });
+    mockStartWalkMutateAsync.mockResolvedValue(startedWalk);
     let capturedOnPoint: ((point: WalkPoint) => void) | null = null;
     (gpsTracker.startTracking as jest.Mock).mockImplementation(
       async (cb: (p: WalkPoint) => void) => {
@@ -254,7 +303,7 @@ describe('useWalkSession.stop', () => {
   });
 
   it('batches points by MAX_POINTS_PER_BATCH and calls addWalkPoints per batch', async () => {
-    mockStartWalkMutateAsync.mockResolvedValue({ id: 'walk-1' });
+    mockStartWalkMutateAsync.mockResolvedValue(startedWalk);
     mockStorePoints = Array.from({ length: MAX_POINTS_PER_BATCH + 50 }, (_, i) => ({
       lat: 35.68,
       lng: 139.76,
@@ -277,7 +326,7 @@ describe('useWalkSession.stop', () => {
   });
 
   it('only flushes points that have not already been sent when stop runs', async () => {
-    mockStartWalkMutateAsync.mockResolvedValue({ id: 'walk-1' });
+    mockStartWalkMutateAsync.mockResolvedValue(startedWalk);
     mockStorePoints = Array.from({ length: MAX_POINTS_PER_BATCH + 50 }, (_, i) => ({
       lat: 35.68,
       lng: 139.76,
@@ -300,7 +349,7 @@ describe('useWalkSession.stop', () => {
 
   it('calls finishWalk with only walkId and finishes the store', async () => {
     // distance はサーバ側で track_point から再計算して保存するため、クライアントから送らない。
-    mockStartWalkMutateAsync.mockResolvedValue({ id: 'walk-1' });
+    mockStartWalkMutateAsync.mockResolvedValue(startedWalk);
 
     const { result } = renderHook(() => useWalkSession());
     await act(async () => {
@@ -312,10 +361,36 @@ describe('useWalkSession.stop', () => {
 
     expect(mockFinishWalkMutateAsync).toHaveBeenCalledWith({ walkId: 'walk-1' });
     expect(mockStoreFinish).toHaveBeenCalledTimes(1);
+    expect(liveActivityController.endWalkLiveActivity).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not fail saved walk completion when ending the live activity fails', async () => {
+    mockStartWalkMutateAsync.mockResolvedValue(startedWalk);
+    (liveActivityController.endWalkLiveActivity as jest.Mock).mockRejectedValue(
+      new Error('Live Activity failed'),
+    );
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    const { result } = renderHook(() => useWalkSession());
+    await act(async () => {
+      await result.current.start({ selectedDogIds: ['dog-1'] });
+    });
+    await act(async () => {
+      await result.current.stop('walk-1');
+    });
+
+    expect(mockFinishWalkMutateAsync).toHaveBeenCalledWith({ walkId: 'walk-1' });
+    expect(mockStoreFinish).toHaveBeenCalledTimes(1);
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      '[walk.liveActivity.end] failed after walk was saved',
+      expect.any(Error),
+    );
+
+    consoleErrorSpy.mockRestore();
   });
 
   it('does not call addWalkPoints when there are no points', async () => {
-    mockStartWalkMutateAsync.mockResolvedValue({ id: 'walk-1' });
+    mockStartWalkMutateAsync.mockResolvedValue(startedWalk);
     mockStorePoints = [];
 
     const { result } = renderHook(() => useWalkSession());

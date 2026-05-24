@@ -13,4 +13,4 @@ tracing = "0.1.44"
 
 [dev-dependencies]
 aws-config = { version = "1.8.16", features = ["behavior-version-latest"] }
-nix = { version = "0.30", features = ["signal"] }
+nix = { version = "0.31", features = ["signal"] }

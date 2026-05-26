@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
 import '@/lib/i18n';
+import '@/lib/walk/background-location-task';
 import { useTranslation } from 'react-i18next';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';

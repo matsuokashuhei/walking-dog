@@ -23,6 +23,10 @@ function WalkActivityLayout(props: WalkActivityProps, _environment: LiveActivity
   const foreground = '#F7FFF9';
   const secondary = '#D7E6DB';
   const startDate = new Date(props.startedAtMs);
+  const elapsedTimerInterval = {
+    lower: startDate,
+    upper: new Date(props.startedAtMs + 7 * 24 * 60 * 60 * 1000),
+  };
   const firstDog = props.dogs[0];
 
   const banner = (
@@ -38,8 +42,8 @@ function WalkActivityLayout(props: WalkActivityProps, _environment: LiveActivity
             Walking
           </Text>
           <Text
-            date={startDate}
-            dateStyle="timer"
+            timerInterval={elapsedTimerInterval}
+            countsDown={false}
             modifiers={[font({ size: 28, weight: 'bold', design: 'rounded' }), monospacedDigit(), foregroundStyle(foreground)]}
           />
         </VStack>
@@ -96,7 +100,7 @@ function WalkActivityLayout(props: WalkActivityProps, _environment: LiveActivity
     banner,
     compactLeading: <Image systemName="figure.walk" color={accent} />,
     compactTrailing: (
-      <Text date={startDate} dateStyle="timer" modifiers={[monospacedDigit(), foregroundStyle(foreground)]} />
+      <Text timerInterval={elapsedTimerInterval} countsDown={false} modifiers={[monospacedDigit(), foregroundStyle(foreground)]} />
     ),
     minimal: <Image systemName="pawprint.fill" color={accent} />,
     expandedLeading: (
@@ -110,7 +114,7 @@ function WalkActivityLayout(props: WalkActivityProps, _environment: LiveActivity
         <Text modifiers={[font({ size: 18, weight: 'bold' }), monospacedDigit(), foregroundStyle(foreground)]}>
           {props.distanceLabel}
         </Text>
-        <Text date={startDate} dateStyle="timer" modifiers={[font({ size: 12 }), monospacedDigit(), foregroundStyle(secondary)]} />
+        <Text timerInterval={elapsedTimerInterval} countsDown={false} modifiers={[font({ size: 12 }), monospacedDigit(), foregroundStyle(secondary)]} />
       </VStack>
     ),
     expandedBottom: firstDog ? (

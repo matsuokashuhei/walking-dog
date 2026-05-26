@@ -1,8 +1,13 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react-native';
+import { router } from 'expo-router';
+import { useWalkStore } from '@/stores/walk-store';
 
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({ id: 'walk-1' }),
+  router: {
+    replace: jest.fn(),
+  },
 }));
 
 jest.mock('react-native-maps', () => {
@@ -31,6 +36,8 @@ jest.mock('@/hooks/use-walks', () => ({
 // eslint-disable-next-line import/first
 import WalkDetailScreen from '../../../app/walks/[id]';
 
+const mockReplace = router.replace as jest.Mock;
+
 const baseWalk = {
   id: 'walk-1',
   dogs: [{ id: 'dog-1', name: 'Buddy', breed: null, gender: null, birthday: null, photoUrl: null, createdAt: '2026-01-01' }],
@@ -45,6 +52,7 @@ const baseWalk = {
 describe('WalkDetailScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    useWalkStore.getState().reset();
   });
 
   it('displays both start and end time when endedAt is present', () => {
@@ -89,6 +97,22 @@ describe('WalkDetailScreen', () => {
     render(<WalkDetailScreen />);
 
     expect(screen.queryByTestId('walk-time')).toBeNull();
+  });
+
+  it('redirects stale detail links back to the active recording route', () => {
+    mockUseWalk.mockReturnValue({ data: baseWalk, isLoading: false });
+    useWalkStore.getState().startRecording('active-walk', {
+      startedAt: new Date('2026-04-04T09:00:00Z'),
+      dogs: baseWalk.dogs,
+      selectedDogIds: ['dog-1'],
+    });
+
+    render(<WalkDetailScreen />);
+
+    expect(mockReplace).toHaveBeenCalledWith({
+      pathname: '/walk-recording',
+      params: { walkId: 'active-walk' },
+    });
   });
 
   it('displays walk-time element in dark mode', () => {

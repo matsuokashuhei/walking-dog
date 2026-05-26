@@ -16,27 +16,56 @@ function getActivityFactory(): typeof import('./live-activity-widget').WalkingDo
   return activityFactory;
 }
 
-function getActiveActivity(): LiveActivity<WalkActivityProps> | null {
-  if (activeActivity) return activeActivity;
-  activeActivity = getActivityFactory().getInstances()[0] ?? null;
-  return activeActivity;
+function getKnownActivities(
+  factory: typeof import('./live-activity-widget').WalkingDogWalkActivity,
+): LiveActivity<WalkActivityProps>[] {
+  const nativeActivities = factory.getInstances();
+  if (!activeActivity) return nativeActivities;
+  return nativeActivities.includes(activeActivity)
+    ? nativeActivities
+    : [activeActivity, ...nativeActivities];
 }
 
-export function startWalkLiveActivity(props: WalkActivityProps): void {
-  activeActivity = getActivityFactory().start(props, `walking-dog://walks/${props.walkId}`);
+export function walkRecordingActivityUrl(walkId: string): string {
+  return `walking-dog://walk-recording?walkId=${encodeURIComponent(walkId)}`;
+}
+
+async function endExistingNativeActivities(
+  factory: typeof import('./live-activity-widget').WalkingDogWalkActivity,
+) {
+  const existingActivities = getKnownActivities(factory);
+  const results = await Promise.allSettled(
+    existingActivities.map((activity) => activity.end('immediate', undefined)),
+  );
+  for (const result of results) {
+    if (result.status === 'rejected') {
+      console.error('[walk.liveActivity.endExisting] failed', result.reason);
+    }
+  }
+  activeActivity = null;
+}
+
+export async function startWalkLiveActivity(props: WalkActivityProps): Promise<void> {
+  const factory = getActivityFactory();
+  await endExistingNativeActivities(factory);
+  activeActivity = factory.start(props, walkRecordingActivityUrl(props.walkId));
 }
 
 export async function updateWalkLiveActivity(props: WalkActivityProps): Promise<void> {
-  const activity = getActiveActivity();
-  if (!activity) return;
-  await activity.update(props);
+  const factory = getActivityFactory();
+  const activities = getKnownActivities(factory);
+  if (activities.length === 0) return;
+
+  await Promise.all(activities.map((activity) => activity.update(props)));
+  activeActivity = activities[0];
 }
 
 export async function endWalkLiveActivity(props?: WalkActivityProps): Promise<void> {
-  const activity = getActiveActivity();
-  if (!activity) return;
+  const factory = getActivityFactory();
+  const activities = getKnownActivities(factory);
+  if (activities.length === 0) return;
 
-  await activity.end('immediate', props, new Date());
+  await Promise.all(activities.map((activity) => activity.end('immediate', props)));
   activeActivity = null;
 }
 

@@ -48,6 +48,7 @@
     "expo-status-bar": "~56.0.4",
     "expo-symbols": "~56.0.5",
     "expo-system-ui": "~56.0.5",
+    "expo-task-manager": "~56.0.14",
     "expo-web-browser": "~56.0.5",
     "expo-widgets": "~56.0.14",
     "graffle": "8.0.0-next.223",

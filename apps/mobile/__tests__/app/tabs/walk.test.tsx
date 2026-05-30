@@ -98,7 +98,7 @@ describe('Walk tab route', () => {
   it('shows the NoDogsBody CTA when there are zero dogs', () => {
     mockDogs = [];
     render(<WalkScreen />);
-    expect(screen.getByRole('header', { name: 'Walk' })).toBeTruthy();
+    expect(screen.queryByRole('header', { name: 'Walk' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Add your first dog' })).toBeTruthy();
   });
 
@@ -112,5 +112,11 @@ describe('Walk tab route', () => {
     mockDogs = [buildDog({}), buildDog({ id: 'd2', name: 'Momo' })];
     render(<WalkScreen />);
     expect(screen.getByText('Walking with')).toBeTruthy();
+  });
+
+  it('does not show the Walk header while redirecting to the active walk screen', () => {
+    mockPhase = 'recording';
+    render(<WalkScreen />);
+    expect(screen.queryByRole('header', { name: 'Walk' })).toBeNull();
   });
 });

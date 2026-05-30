@@ -117,6 +117,7 @@ export interface RecordWalkEventInput {
   lat?: number;
   lng?: number;
   photoKey?: string;
+  clientRequestId?: string;
 }
 
 export interface Walk {
@@ -310,4 +311,3 @@ export type DeleteDogResponse = RemoveDogResponse;
 export type AddWalkPointsResponse = TrackPointResponse;
 export type FinishWalkResponse = EndWalkResponse;
 export type RecordWalkEventResponse = AddEventResponse;
-

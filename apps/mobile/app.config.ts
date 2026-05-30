@@ -14,6 +14,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     supportsTablet: false,
     bundleIdentifier: 'com.walkingdog.app',
     appleTeamId: process.env.APPLE_TEAM_ID ?? 'CY4LJR5KMM',
+    entitlements: {
+      'com.apple.security.application-groups': ['group.com.walkingdog.app'],
+    },
     infoPlist: {
       NSLocationWhenInUseUsageDescription:
         'Walking Dog uses your location to record walk routes.',
@@ -74,6 +77,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         widgets: [],
       },
     ],
+    '@bacons/apple-targets',
     './plugins/with-stable-widget-build-phases',
     'expo-secure-store',
     'expo-sqlite',

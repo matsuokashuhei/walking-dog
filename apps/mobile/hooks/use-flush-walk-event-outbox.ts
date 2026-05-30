@@ -27,6 +27,7 @@ export function useFlushWalkEventOutbox() {
           walkId: item.walkId,
           ...(item.dogId !== undefined ? { dogId: item.dogId } : {}),
           eventType: item.eventType,
+          ...(item.clientRequestId ? { clientRequestId: item.clientRequestId } : {}),
           occurredAt: item.occurredAt,
           ...(item.lat != null && item.lng != null
             ? { lat: item.lat, lng: item.lng }

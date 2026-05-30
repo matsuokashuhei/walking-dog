@@ -26,6 +26,13 @@ function getKnownActivities(
     : [activeActivity, ...nativeActivities];
 }
 
+function isMissingLiveActivityError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    error.message.includes("Can't find live activity with id:")
+  );
+}
+
 export function walkRecordingActivityUrl(walkId: string): string {
   return `walking-dog://walk-recording?walkId=${encodeURIComponent(walkId)}`;
 }
@@ -38,7 +45,7 @@ async function endExistingNativeActivities(
     existingActivities.map((activity) => activity.end('immediate', undefined)),
   );
   for (const result of results) {
-    if (result.status === 'rejected') {
+    if (result.status === 'rejected' && !isMissingLiveActivityError(result.reason)) {
       console.error('[walk.liveActivity.endExisting] failed', result.reason);
     }
   }
@@ -56,8 +63,15 @@ export async function updateWalkLiveActivity(props: WalkActivityProps): Promise<
   const activities = getKnownActivities(factory);
   if (activities.length === 0) return;
 
-  await Promise.all(activities.map((activity) => activity.update(props)));
-  activeActivity = activities[0];
+  const results = await Promise.allSettled(activities.map((activity) => activity.update(props)));
+  const firstSuccessfulActivity = activities.find((_, index) => results[index].status === 'fulfilled');
+  const unexpectedError = results.find(
+    (result) => result.status === 'rejected' && !isMissingLiveActivityError(result.reason),
+  );
+  if (unexpectedError?.status === 'rejected') {
+    throw unexpectedError.reason;
+  }
+  activeActivity = firstSuccessfulActivity ?? null;
 }
 
 export async function endWalkLiveActivity(props?: WalkActivityProps): Promise<void> {
@@ -65,8 +79,14 @@ export async function endWalkLiveActivity(props?: WalkActivityProps): Promise<vo
   const activities = getKnownActivities(factory);
   if (activities.length === 0) return;
 
-  await Promise.all(activities.map((activity) => activity.end('immediate', props)));
+  const results = await Promise.allSettled(activities.map((activity) => activity.end('immediate', props)));
+  const unexpectedError = results.find(
+    (result) => result.status === 'rejected' && !isMissingLiveActivityError(result.reason),
+  );
   activeActivity = null;
+  if (unexpectedError?.status === 'rejected') {
+    throw unexpectedError.reason;
+  }
 }
 
 export function resetWalkLiveActivityForTest(): void {

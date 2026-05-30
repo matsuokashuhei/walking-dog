@@ -228,6 +228,13 @@ describe('walk-store', () => {
       expect(useWalkStore.getState().events).toHaveLength(2);
     });
 
+    it('addEvent replaces an existing event with the same id', () => {
+      const updatedEvent: WalkEvent = { ...mockEvent, eventType: 'poo' };
+      useWalkStore.getState().addEvent(mockEvent);
+      useWalkStore.getState().addEvent(updatedEvent);
+      expect(useWalkStore.getState().events).toEqual([updatedEvent]);
+    });
+
     it('removeEvent removes event by id', () => {
       const event2: WalkEvent = { ...mockEvent, id: 'event-2', eventType: 'poo' };
       useWalkStore.getState().addEvent(mockEvent);

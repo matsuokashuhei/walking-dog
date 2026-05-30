@@ -86,6 +86,26 @@ describe('walk live activity controller', () => {
     expect(activity.update).toHaveBeenCalledWith({ ...props, distanceLabel: '1.23 km' });
   });
 
+  it('reconciles stale native live activity references when an update says the activity is missing', async () => {
+    const staleActivity = {
+      update: jest.fn().mockRejectedValue(
+        new Error(
+          "Calling the 'update' function has failed -> Caused by: Can't find live activity with id: missing-activity",
+        ),
+      ),
+      end: jest.fn(),
+    };
+    const currentActivity = { update: jest.fn(), end: jest.fn() };
+    (WalkingDogWalkActivity.start as jest.Mock).mockReturnValue(staleActivity);
+    (WalkingDogWalkActivity.getInstances as jest.Mock).mockReturnValue([currentActivity]);
+    startWalkLiveActivity(props);
+
+    await expect(updateWalkLiveActivity(props)).resolves.toBeUndefined();
+    await updateWalkLiveActivity({ ...props, distanceLabel: '1.23 km' });
+
+    expect(currentActivity.update).toHaveBeenCalledWith({ ...props, distanceLabel: '1.23 km' });
+  });
+
   it('uses an existing native instance when the process lost its local reference', async () => {
     const activity = { update: jest.fn(), end: jest.fn() };
     (WalkingDogWalkActivity.getInstances as jest.Mock).mockReturnValue([activity]);

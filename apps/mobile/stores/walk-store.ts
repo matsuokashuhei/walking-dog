@@ -184,7 +184,7 @@ export const useWalkStore = create<WalkState>((set, get) => ({
     },
 
   addEvent: (event) => {
-    set((state) => ({ events: [...state.events, event] }));
+    set((state) => ({ events: [...state.events.filter((e) => e.id !== event.id), event] }));
     persistRecordingState(get());
   },
 

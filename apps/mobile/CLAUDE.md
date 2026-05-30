@@ -40,6 +40,7 @@
 - `@bacons/apple-targets` を使う場合は `@expo/prebuild-config` を top-level devDependency として Expo SDK のバージョンに合わせて固定する。plugin が実行時に top-level require するため、Expo CLI 配下の nested dependency だけでは `expo prebuild` が失敗する。
 - Apple Watch の walk snapshot は Watch UI/complication 表示同期専用に保つ。iPhone JS state が無い状態から snapshot で active walk を復元しない。Watch command は iPhone 側の現在の active walk store と一致する場合だけ処理し、inactive/stale walk の command は ack して破棄する。
 - Live Activity と散歩記録をまたぐ修正では、ActivityKit 側だけを更新せず、前景 GPS・背景 GPS・永続化した active walk session・復帰時 navigation が同じ点列と `walkId` を参照する設計にする。Dynamic Island の tap は iOS がアプリ起動に予約しているため、tap URL は履歴詳細ではなく active recording route を指す。
+- Walk 開始・記録中などマップ主役の画面は、route 側で `ScreenHeader` / top-only `SafeAreaView` を挟まず、マップを全画面に敷いた上で `WalkMapShell` の overlay と NativeTabs/formSheet を重ねる。
 
 ## iOS Simulator 起動手順
 

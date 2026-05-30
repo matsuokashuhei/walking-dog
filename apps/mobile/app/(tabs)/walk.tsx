@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
@@ -14,13 +14,17 @@ export default function WalkScreen() {
   const vm = useWalkScreenViewModel();
 
   if (vm.phase === 'ready') {
-    // 開始前はマップ付きの準備画面に開始操作を委譲します。
+    // 開始前はヘッダーを挟まず、マップ全面の準備画面に開始操作を委譲します。
     return (
-      <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: theme.background }]}>
-        <ScreenHeader title={t('tabs.walk')} />
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
         <WalkReadyView onStart={vm.handleStart} isStarting={vm.isStarting} />
-      </SafeAreaView>
+      </View>
     );
+  }
+
+  if (vm.phase === 'recording') {
+    // 記録中は専用の全画面マップ route へ遷移するため、タブルート側にヘッダーを残しません。
+    return <View style={[styles.container, { backgroundColor: theme.background }]} />;
   }
 
   return (

@@ -1,15 +1,23 @@
 import * as Location from 'expo-location';
 import type { WalkPoint } from '@/types/graphql';
+import {
+  startWalkBackgroundLocationUpdates,
+  stopWalkBackgroundLocationUpdates,
+} from './background-location-task';
 
 export async function requestPermission(): Promise<boolean> {
-  const { status } = await Location.requestForegroundPermissionsAsync();
-  return status === 'granted';
+  const foreground = await Location.requestForegroundPermissionsAsync();
+  if (foreground.status !== 'granted') return false;
+
+  await Location.requestBackgroundPermissionsAsync();
+  return true;
 }
 
 export async function startTracking(
   onPosition: (point: WalkPoint) => void,
-): Promise<() => void> {
-  const subscription = await Location.watchPositionAsync(
+): Promise<() => Promise<void>> {
+  let subscription: Location.LocationSubscription;
+  subscription = await Location.watchPositionAsync(
     {
       accuracy: Location.Accuracy.High,
       timeInterval: 5000,
@@ -24,5 +32,18 @@ export async function startTracking(
     },
   );
 
-  return () => subscription.remove();
+  let backgroundTrackingStarted = false;
+  try {
+    await startWalkBackgroundLocationUpdates();
+    backgroundTrackingStarted = true;
+  } catch (error) {
+    console.warn('[walk.backgroundLocation.start] unavailable', error);
+  }
+
+  return async () => {
+    subscription.remove();
+    if (backgroundTrackingStarted) {
+      await stopWalkBackgroundLocationUpdates();
+    }
+  };
 }

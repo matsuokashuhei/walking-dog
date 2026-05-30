@@ -56,6 +56,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       {
         locationWhenInUsePermission:
           'Walking Dog uses your location to record walk routes.',
+        locationAlwaysAndWhenInUsePermission:
+          'Walking Dog uses your location in the background to keep recording active walks.',
+        isIosBackgroundLocationEnabled: true,
       },
     ],
     [
@@ -70,6 +73,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       {
         bundleIdentifier: 'com.walkingdog.app.widgets',
         groupIdentifier: 'group.com.walkingdog.app',
+        frequentUpdates: true,
         widgets: [],
       },
     ],

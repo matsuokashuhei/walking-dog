@@ -5,6 +5,7 @@ import {
 } from './use-walk-session';
 import * as walkMutations from './use-walk-mutations';
 import * as gpsTracker from '@/lib/walk/gps-tracker';
+import * as backgroundLocationTask from '@/lib/walk/background-location-task';
 import * as liveActivityController from '@/lib/walk/live-activity-controller';
 import { MAX_POINTS_PER_BATCH } from '@/lib/walk/tracking-manager';
 import type { Dog, WalkPoint } from '@/types/graphql';
@@ -17,6 +18,10 @@ jest.mock('./use-walk-mutations', () => ({
 
 jest.mock('@/lib/walk/gps-tracker', () => ({
   startTracking: jest.fn(),
+}));
+
+jest.mock('@/lib/walk/background-location-task', () => ({
+  stopWalkBackgroundLocationUpdates: jest.fn(),
 }));
 
 jest.mock('@/lib/walk/live-activity-controller', () => ({
@@ -157,6 +162,9 @@ beforeEach(() => {
     mutateAsync: mockAddPointsMutateAsync,
   });
   (gpsTracker.startTracking as jest.Mock).mockResolvedValue(mockStopTracking);
+  (backgroundLocationTask.stopWalkBackgroundLocationUpdates as jest.Mock).mockResolvedValue(
+    undefined,
+  );
 });
 
 describe('useWalkSession.start', () => {
@@ -183,7 +191,14 @@ describe('useWalkSession.start', () => {
       await result.current.start({ selectedDogIds: ['dog-1'] });
     });
 
-    expect(mockStoreStartRecording).toHaveBeenCalledWith('walk-1', [dog]);
+    expect(mockStoreStartRecording).toHaveBeenCalledWith('walk-1', {
+      startedAt: new Date(startedAtIso),
+      selectedDogIds: ['dog-1'],
+      dogs: [dog],
+      totalDistanceM: 0,
+      events: [],
+      points: [],
+    });
   });
 
   it('starts the lock screen live activity with current walk data', async () => {
@@ -273,6 +288,18 @@ describe('useWalkSession.stop', () => {
     });
 
     expect(mockStopTracking).toHaveBeenCalledTimes(1);
+  });
+
+  it('stops restored background location updates even without a foreground subscription', async () => {
+    mockStorePhase = 'recording';
+    (backgroundLocationTask.stopWalkBackgroundLocationUpdates as jest.Mock).mockClear();
+
+    const { result } = renderHook(() => useWalkSession());
+    await act(async () => {
+      await result.current.stop('walk-1');
+    });
+
+    expect(backgroundLocationTask.stopWalkBackgroundLocationUpdates).toHaveBeenCalledTimes(1);
   });
 
   it('ignores late GPS callbacks after stop begins', async () => {

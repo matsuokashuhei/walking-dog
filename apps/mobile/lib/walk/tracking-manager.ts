@@ -1,4 +1,5 @@
 import { startTracking } from '@/lib/walk/gps-tracker';
+import { stopWalkBackgroundLocationUpdates } from '@/lib/walk/background-location-task';
 import { useWalkStore } from '@/stores/walk-store';
 import type { WalkPoint, WalkPointInput } from '@/types/graphql';
 
@@ -56,9 +57,9 @@ export async function beginWalkTracking({
     void flushPendingWalkPoints({ walkId, addWalkPoints }).catch(logPeriodicFlushError);
   }, PERIODIC_FLUSH_INTERVAL_MS);
 
-  const cleanup = () => {
+  const cleanup = async () => {
     clearInterval(flushTimer);
-    stopTracking();
+    await stopTracking();
   };
 
   const attached = useWalkStore.getState().attachTrackingCleanup(trackingGeneration, cleanup);
@@ -69,12 +70,14 @@ export async function beginWalkTracking({
   return attached;
 }
 
-export function stopWalkTracking() {
-  useWalkStore.getState().stopTrackingSession();
+export async function stopWalkTracking() {
+  await useWalkStore.getState().stopTrackingSession();
+  await stopWalkBackgroundLocationUpdates();
 }
 
 export function resetWalkTrackingState() {
   useWalkStore.getState().resetTrackingSession();
+  void stopWalkBackgroundLocationUpdates();
 }
 
 async function flushPendingWalkPointsNow({

@@ -19,24 +19,44 @@ export default function WalkRecordingScreen() {
   const theme = useColors();
   const phase = useWalkStore((s) => s.phase);
   const selectedDogIds = useWalkStore((s) => s.selectedDogIds);
+  const storedDogs = useWalkStore((s) => s.dogs);
   const walkId = useWalkStore((s) => s.walkId);
   const setTotalDistanceM = useWalkStore((s) => s.setTotalDistanceM);
-  const params = useLocalSearchParams<{ action?: string }>();
+  const hydrateRecordingSession = useWalkStore((s) => s.hydrateRecordingSession);
+  const params = useLocalSearchParams<{ action?: string; walkId?: string }>();
 
   const { data: me } = useMe();
 
   // サーバ側 (track_point → Haversine 累積) で計算した distance を定期取得し、
   // ストアの totalDistanceM へ反映します。
   const isRecording = phase === 'recording';
-  const { data: walkSnapshot } = useWalk(walkId ?? '', {
+  const routeWalkId = typeof params.walkId === 'string' ? params.walkId : undefined;
+  const effectiveWalkId = walkId ?? routeWalkId ?? '';
+  const { data: walkSnapshot } = useWalk(effectiveWalkId, {
     refetchIntervalMs: isRecording ? WALK_DISTANCE_POLL_INTERVAL_MS : undefined,
   });
 
   useEffect(() => {
-    const distance = walkSnapshot?.distance;
+    const distance = walkSnapshot?.distanceM ?? walkSnapshot?.distance;
     if (typeof distance !== 'number') return;
     setTotalDistanceM(distance);
-  }, [walkSnapshot?.distance, setTotalDistanceM]);
+  }, [walkSnapshot?.distance, walkSnapshot?.distanceM, setTotalDistanceM]);
+
+  useEffect(() => {
+    if (!routeWalkId || !walkSnapshot || walkSnapshot.status !== 'ACTIVE') return;
+    if (phase === 'recording' && walkId === walkSnapshot.id) return;
+
+    hydrateRecordingSession({
+      walkId: walkSnapshot.id,
+      startedAt: walkSnapshot.startedAt,
+      selectedDogIds: walkSnapshot.dogs.map((dog) => dog.id),
+      dogs: walkSnapshot.dogs,
+      points: walkSnapshot.points ?? [],
+      flushedPointCount: walkSnapshot.points?.length ?? 0,
+      totalDistanceM: walkSnapshot.distanceM ?? walkSnapshot.distance ?? 0,
+      events: walkSnapshot.events ?? [],
+    });
+  }, [hydrateRecordingSession, phase, routeWalkId, walkId, walkSnapshot]);
 
   const hasPushedRef = useRef(false);
   useEffect(() => {
@@ -52,8 +72,11 @@ export default function WalkRecordingScreen() {
 
   // 選択済み犬 ID から表示用の犬情報を引き直し、上部チップの単一情報源にします。
   const selectedDogs = useMemo<Dog[]>(
-    () => (me?.dogs ?? []).filter((d) => selectedDogIds.includes(d.id)),
-    [me?.dogs, selectedDogIds],
+    () => {
+      const dogs = (me?.dogs ?? []).filter((d) => selectedDogIds.includes(d.id));
+      return dogs.length > 0 ? dogs : storedDogs;
+    },
+    [me?.dogs, selectedDogIds, storedDogs],
   );
   useWalkLiveActivitySync(selectedDogs);
 

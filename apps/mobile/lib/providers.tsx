@@ -1,5 +1,6 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { PropsWithChildren } from 'react';
+import { useActiveWalkSessionHydration } from '@/hooks/use-active-walk-session-hydration';
 import { useWatchWalkCommandProcessor } from '@/hooks/use-watch-walk-command-processor';
 import { useWatchWalkSnapshotSync } from '@/hooks/use-watch-walk-snapshot-sync';
 import { useWalkFinishedNavigation } from '@/hooks/use-walk-finished-navigation';
@@ -12,6 +13,7 @@ setUnauthorizedHandler(() => {
 });
 
 function WalkLiveActivityBridge({ children }: PropsWithChildren) {
+  useActiveWalkSessionHydration();
   useWalkLiveActivityInteractions();
   useWalkFinishedNavigation();
   useWatchWalkCommandProcessor();

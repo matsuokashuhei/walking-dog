@@ -16,10 +16,14 @@ function getActivityFactory(): typeof import('./live-activity-widget').WalkingDo
   return activityFactory;
 }
 
-function getActiveActivity(): LiveActivity<WalkActivityProps> | null {
-  if (activeActivity) return activeActivity;
-  activeActivity = getActivityFactory().getInstances()[0] ?? null;
-  return activeActivity;
+function getKnownActivities(
+  factory: typeof import('./live-activity-widget').WalkingDogWalkActivity,
+): LiveActivity<WalkActivityProps>[] {
+  const nativeActivities = factory.getInstances();
+  if (!activeActivity) return nativeActivities;
+  return nativeActivities.includes(activeActivity)
+    ? nativeActivities
+    : [activeActivity, ...nativeActivities];
 }
 
 function isMissingLiveActivityError(error: unknown): boolean {
@@ -29,38 +33,59 @@ function isMissingLiveActivityError(error: unknown): boolean {
   );
 }
 
-export function startWalkLiveActivity(props: WalkActivityProps): void {
-  activeActivity = getActivityFactory().start(props, `walking-dog://walks/${props.walkId}`);
+export function walkRecordingActivityUrl(walkId: string): string {
+  return `walking-dog://walk-recording?walkId=${encodeURIComponent(walkId)}`;
+}
+
+async function endExistingNativeActivities(
+  factory: typeof import('./live-activity-widget').WalkingDogWalkActivity,
+) {
+  const existingActivities = getKnownActivities(factory);
+  const results = await Promise.allSettled(
+    existingActivities.map((activity) => activity.end('immediate', undefined)),
+  );
+  for (const result of results) {
+    if (result.status === 'rejected' && !isMissingLiveActivityError(result.reason)) {
+      console.error('[walk.liveActivity.endExisting] failed', result.reason);
+    }
+  }
+  activeActivity = null;
+}
+
+export async function startWalkLiveActivity(props: WalkActivityProps): Promise<void> {
+  const factory = getActivityFactory();
+  await endExistingNativeActivities(factory);
+  activeActivity = factory.start(props, walkRecordingActivityUrl(props.walkId));
 }
 
 export async function updateWalkLiveActivity(props: WalkActivityProps): Promise<void> {
-  const activity = getActiveActivity();
-  if (!activity) return;
+  const factory = getActivityFactory();
+  const activities = getKnownActivities(factory);
+  if (activities.length === 0) return;
 
-  try {
-    await activity.update(props);
-  } catch (error) {
-    if (isMissingLiveActivityError(error)) {
-      activeActivity = null;
-      return;
-    }
-
-    throw error;
+  const results = await Promise.allSettled(activities.map((activity) => activity.update(props)));
+  const firstSuccessfulActivity = activities.find((_, index) => results[index].status === 'fulfilled');
+  const unexpectedError = results.find(
+    (result) => result.status === 'rejected' && !isMissingLiveActivityError(result.reason),
+  );
+  if (unexpectedError?.status === 'rejected') {
+    throw unexpectedError.reason;
   }
+  activeActivity = firstSuccessfulActivity ?? null;
 }
 
 export async function endWalkLiveActivity(props?: WalkActivityProps): Promise<void> {
-  const activity = getActiveActivity();
-  if (!activity) return;
+  const factory = getActivityFactory();
+  const activities = getKnownActivities(factory);
+  if (activities.length === 0) return;
 
-  try {
-    await activity.end('immediate', props);
-  } catch (error) {
-    if (!isMissingLiveActivityError(error)) {
-      throw error;
-    }
-  } finally {
-    activeActivity = null;
+  const results = await Promise.allSettled(activities.map((activity) => activity.end('immediate', props)));
+  const unexpectedError = results.find(
+    (result) => result.status === 'rejected' && !isMissingLiveActivityError(result.reason),
+  );
+  activeActivity = null;
+  if (unexpectedError?.status === 'rejected') {
+    throw unexpectedError.reason;
   }
 }
 

@@ -39,13 +39,20 @@ export function useWalkSession() {
   const start = useCallback(
     async ({ selectedDogIds }: WalkSessionStartOptions): Promise<string> => {
       // 既存の GPS 監視を止めてから、新しい散歩と端末側の記録状態を開始します。
-      stopWalkTracking();
+      await stopWalkTracking();
 
       const walk = await startWalkMutation.mutateAsync(selectedDogIds);
-      startRecording(walk.id, walk.dogs);
-      const startedAt = useWalkStore.getState().startedAt ?? new Date(walk.startedAt);
+      const startedAt = new Date(walk.startedAt);
+      startRecording(walk.id, {
+        startedAt,
+        selectedDogIds,
+        dogs: walk.dogs,
+        points: walk.points ?? [],
+        totalDistanceM: walk.distanceM ?? walk.distance ?? 0,
+        events: walk.events ?? [],
+      });
 
-      startWalkLiveActivity(
+      await startWalkLiveActivity(
         buildWalkActivityProps({
           walkId: walk.id,
           startedAt,
@@ -55,9 +62,8 @@ export function useWalkSession() {
         }),
       );
 
-      // GPS 点はストアへ即時反映し、永続化は tracking-manager 側のバッチ送信に任せます。
-      // distance はサーバ側 (track_point → Haversine 累積) の計算結果を walk クエリの
-      // ポーリング (walk-recording.tsx) で取り込みます。
+      // GPS 点はストアへ即時反映し、永続化とローカル距離更新も同じ点列から行います。
+      // サーバ側の再計算値は walk-recording.tsx のポーリングで上書きされます。
       await beginWalkTracking({
         walkId: walk.id,
         addWalkPoints: addWalkPointsMutation.mutateAsync,
@@ -75,7 +81,7 @@ export function useWalkSession() {
     async (walkId: string) => {
       // 未送信の GPS 点を送ってから、サーバー上の散歩を終了状態にします。
       // distance はサーバ側で track_point から算出して保存されるため、ここでは送りません。
-      stopWalkTracking();
+      await stopWalkTracking();
 
       await flushPendingWalkPoints({
         walkId,

@@ -1,45 +1,87 @@
+import * as Location from 'expo-location';
+import {
+  startWalkBackgroundLocationUpdates,
+  stopWalkBackgroundLocationUpdates,
+} from './background-location-task';
 import { requestPermission, startTracking } from './gps-tracker';
 
 jest.mock('expo-location', () => ({
+  Accuracy: { High: 'high' },
   requestForegroundPermissionsAsync: jest.fn(),
+  requestBackgroundPermissionsAsync: jest.fn(),
   watchPositionAsync: jest.fn(),
-  Accuracy: { High: 4 },
 }));
 
-import * as Location from 'expo-location';
+jest.mock('./background-location-task', () => ({
+  startWalkBackgroundLocationUpdates: jest.fn(),
+  stopWalkBackgroundLocationUpdates: jest.fn(),
+}));
 
-describe('requestPermission', () => {
-  it('returns true when permission granted', async () => {
-    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
-      status: 'granted',
-    });
-    const result = await requestPermission();
-    expect(result).toBe(true);
+describe('gps-tracker', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
   });
 
-  it('returns false when permission denied', async () => {
-    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
-      status: 'denied',
-    });
-    const result = await requestPermission();
-    expect(result).toBe(false);
+  it('requests foreground and background location permissions for walks', async () => {
+    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({ status: 'granted' });
+    (Location.requestBackgroundPermissionsAsync as jest.Mock).mockResolvedValue({ status: 'granted' });
+
+    await expect(requestPermission()).resolves.toBe(true);
+
+    expect(Location.requestForegroundPermissionsAsync).toHaveBeenCalledTimes(1);
+    expect(Location.requestBackgroundPermissionsAsync).toHaveBeenCalledTimes(1);
   });
-});
 
-describe('startTracking', () => {
-  it('calls watchPositionAsync and returns cleanup function', async () => {
-    const mockRemove = jest.fn();
-    (Location.watchPositionAsync as jest.Mock).mockResolvedValue({ remove: mockRemove });
+  it('allows foreground walk tracking when background permission is unavailable', async () => {
+    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({ status: 'granted' });
+    (Location.requestBackgroundPermissionsAsync as jest.Mock).mockResolvedValue({ status: 'denied' });
 
-    const onPosition = jest.fn();
-    const stop = await startTracking(onPosition);
+    await expect(requestPermission()).resolves.toBe(true);
+  });
+
+  it('starts foreground watch and background task, then unregisters both on stop', async () => {
+    const remove = jest.fn();
+    (Location.watchPositionAsync as jest.Mock).mockResolvedValue({ remove });
+    (startWalkBackgroundLocationUpdates as jest.Mock).mockResolvedValue(undefined);
+    (stopWalkBackgroundLocationUpdates as jest.Mock).mockResolvedValue(undefined);
+
+    const stop = await startTracking(jest.fn());
 
     expect(Location.watchPositionAsync).toHaveBeenCalledWith(
-      expect.objectContaining({ accuracy: Location.Accuracy.High }),
+      {
+        accuracy: Location.Accuracy.High,
+        timeInterval: 5000,
+        distanceInterval: 5,
+      },
       expect.any(Function),
     );
+    expect(startWalkBackgroundLocationUpdates).toHaveBeenCalledTimes(1);
 
-    stop();
-    expect(mockRemove).toHaveBeenCalled();
+    await stop();
+
+    expect(remove).toHaveBeenCalledTimes(1);
+    expect(stopWalkBackgroundLocationUpdates).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps foreground tracking active when the background task cannot start', async () => {
+    const remove = jest.fn();
+    const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    (Location.watchPositionAsync as jest.Mock).mockResolvedValue({ remove });
+    (startWalkBackgroundLocationUpdates as jest.Mock).mockRejectedValue(new Error('Always denied'));
+
+    const stop = await startTracking(jest.fn());
+
+    expect(Location.watchPositionAsync).toHaveBeenCalledTimes(1);
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      '[walk.backgroundLocation.start] unavailable',
+      expect.any(Error),
+    );
+
+    await stop();
+
+    expect(remove).toHaveBeenCalledTimes(1);
+    expect(stopWalkBackgroundLocationUpdates).not.toHaveBeenCalled();
+
+    consoleWarnSpy.mockRestore();
   });
 });

@@ -20,8 +20,8 @@ function isDiscardableWatchCommandError(error: unknown): boolean {
 export function useWatchWalkCommandProcessor() {
   const phase = useWalkStore((s) => s.phase);
   const walkId = useWalkStore((s) => s.walkId);
-  const activeDogs = useWalkStore((s) => s.activeDogs);
-  const dogIds = useMemo(() => activeDogs.map((dog) => dog.id), [activeDogs]);
+  const dogs = useWalkStore((s) => s.dogs);
+  const dogIds = useMemo(() => dogs.map((dog) => dog.id), [dogs]);
   const commitEvent = useCommitWalkEvent();
   const walkSession = useWalkSession();
   const { recordEvent } = useWalkEventRecorder({

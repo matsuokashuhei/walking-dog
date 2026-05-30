@@ -1,7 +1,8 @@
+import { useEffect } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import MapView, { Polyline, Marker } from 'react-native-maps';
 import { Image } from 'expo-image';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { GroupedCard } from '@/components/ui/GroupedCard';
 import { useColors } from '@/hooks/use-colors';
@@ -10,14 +11,26 @@ import { useWalk } from '@/hooks/use-walks';
 import { useWalkDetailViewModel } from '@/hooks/use-walk-detail-view-model';
 import { WalkEventTimeline } from '@/components/walk/WalkEventTimeline';
 import { MAP_EVENT_EMOJIS } from '@/lib/walk/events';
+import { useWalkStore } from '@/stores/walk-store';
 
 // 散歩詳細画面は保存済み散歩のルート、メトリクス、担当者、イベント履歴を表示します。
 export default function WalkDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const phase = useWalkStore((s) => s.phase);
+  const activeWalkId = useWalkStore((s) => s.walkId);
   const { t } = useTranslation();
   const theme = useColors();
   const { data: walk, isLoading } = useWalk(id ?? '');
   const vm = useWalkDetailViewModel(walk);
+
+  useEffect(() => {
+    if (phase !== 'recording' || !activeWalkId) return;
+
+    router.replace({
+      pathname: '/walk-recording',
+      params: { walkId: activeWalkId },
+    });
+  }, [activeWalkId, phase]);
 
   if (isLoading || !walk || !vm) {
     // 詳細データまたは表示用モデルが揃うまでは、地図を描画せずローディングに留めます。

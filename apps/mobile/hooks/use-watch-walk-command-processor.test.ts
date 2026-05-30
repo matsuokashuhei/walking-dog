@@ -41,7 +41,7 @@ describe('useWatchWalkCommandProcessor', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     useWalkStore.getState().reset();
-    useWalkStore.getState().startRecording('walk-1', [dog]);
+    useWalkStore.getState().startRecording('walk-1', { dogs: [dog] });
     mockRecordEvent.mockResolvedValue({
       id: 'event-1',
       walkId: 'walk-1',

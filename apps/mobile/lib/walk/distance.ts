@@ -12,3 +12,10 @@ export function haversineDistance(
     Math.cos(toRad(p1.lat)) * Math.cos(toRad(p2.lat)) * Math.sin(dLng / 2) ** 2;
   return EARTH_RADIUS_M * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
+
+export function totalHaversineDistance(points: { lat: number; lng: number }[]): number {
+  return points.reduce((total, point, index) => {
+    if (index === 0) return total;
+    return total + haversineDistance(points[index - 1], point);
+  }, 0);
+}

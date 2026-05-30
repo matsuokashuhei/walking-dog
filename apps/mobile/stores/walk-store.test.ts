@@ -1,7 +1,25 @@
 import { useWalkStore } from './walk-store';
-import type { WalkPoint, WalkEvent } from '@/types/graphql';
+import type { Dog, WalkPoint, WalkEvent } from '@/types/graphql';
+import {
+  clearActiveWalkSession,
+  persistActiveWalkSession,
+} from '@/lib/walk/active-walk-session';
+
+jest.mock('@/lib/walk/active-walk-session', () => ({
+  clearActiveWalkSession: jest.fn(() => Promise.resolve()),
+  persistActiveWalkSession: jest.fn(() => Promise.resolve()),
+}));
+
+const dog: Dog = {
+  id: 'dog-1',
+  name: 'Mugi',
+  breed: null,
+  gender: 'OTHER',
+  createdAt: '2026-04-01T00:00:00Z',
+};
 
 beforeEach(() => {
+  jest.clearAllMocks();
   useWalkStore.getState().reset();
 });
 
@@ -68,15 +86,28 @@ describe('walk-store', () => {
 
   it('startRecording transitions to recording phase', () => {
     useWalkStore.getState().markFlushedPointCount(99);
-    useWalkStore.getState().startRecording('walk-123');
+    useWalkStore.getState().startRecording('walk-123', {
+      startedAt: new Date('2026-04-01T00:00:00Z'),
+      dogs: [dog],
+      selectedDogIds: ['dog-1'],
+    });
     const state = useWalkStore.getState();
     expect(state.phase).toBe('recording');
     expect(state.walkId).toBe('walk-123');
-    expect(state.startedAt).toBeInstanceOf(Date);
+    expect(state.startedAt).toEqual(new Date('2026-04-01T00:00:00Z'));
     expect(state.flushedPointCount).toBe(0);
+    expect(state.dogs).toEqual([dog]);
+    expect(persistActiveWalkSession).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        walkId: 'walk-123',
+        startedAt: '2026-04-01T00:00:00.000Z',
+        selectedDogIds: ['dog-1'],
+        dogs: [dog],
+      }),
+    );
   });
 
-  it('addPoint accumulates points without computing distance locally', () => {
+  it('addPoint accumulates points, computes distance locally, and persists active state', () => {
     useWalkStore.getState().startRecording('walk-123');
     const p1: WalkPoint = { lat: 35.6812, lng: 139.7671, recordedAt: '2026-03-23T10:00:00Z' };
     const p2: WalkPoint = { lat: 35.6813, lng: 139.7672, recordedAt: '2026-03-23T10:00:05Z' };
@@ -84,8 +115,13 @@ describe('walk-store', () => {
     useWalkStore.getState().addPoint(p2);
     const state = useWalkStore.getState();
     expect(state.points).toHaveLength(2);
-    // distance はサーバ側計算のみ。setTotalDistanceM で外から書き込むまでは 0。
-    expect(state.totalDistanceM).toBe(0);
+    expect(state.totalDistanceM).toBeGreaterThan(0);
+    expect(persistActiveWalkSession).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        points: [p1, p2],
+        totalDistanceM: state.totalDistanceM,
+      }),
+    );
   });
 
   it('setTotalDistanceM overwrites totalDistanceM with the server-calculated value', () => {
@@ -119,6 +155,7 @@ describe('walk-store', () => {
     useWalkStore.getState().startRecording('walk-123');
     useWalkStore.getState().finish();
     expect(useWalkStore.getState().phase).toBe('finished');
+    expect(clearActiveWalkSession).toHaveBeenCalled();
   });
 
   it('reset returns to ready phase', () => {
@@ -131,6 +168,35 @@ describe('walk-store', () => {
     expect(state.points).toEqual([]);
     expect(state.flushedPointCount).toBe(0);
     expect(state.selectedDogIds).toEqual([]);
+    expect(clearActiveWalkSession).toHaveBeenCalled();
+  });
+
+  it('hydrates a persisted active walk as recording', () => {
+    const point: WalkPoint = {
+      lat: 35.6812,
+      lng: 139.7671,
+      recordedAt: '2026-04-01T00:00:05Z',
+    };
+
+    useWalkStore.getState().hydrateRecordingSession({
+      walkId: 'walk-123',
+      startedAt: '2026-04-01T00:00:00.000Z',
+      selectedDogIds: ['dog-1'],
+      dogs: [dog],
+      points: [point],
+      flushedPointCount: 0,
+      totalDistanceM: 12,
+      events: [],
+    });
+
+    const state = useWalkStore.getState();
+    expect(state.phase).toBe('recording');
+    expect(state.walkId).toBe('walk-123');
+    expect(state.startedAt).toEqual(new Date('2026-04-01T00:00:00.000Z'));
+    expect(state.selectedDogIds).toEqual(['dog-1']);
+    expect(state.dogs).toEqual([dog]);
+    expect(state.points).toEqual([point]);
+    expect(state.totalDistanceM).toBe(12);
   });
 
   describe('walk events', () => {

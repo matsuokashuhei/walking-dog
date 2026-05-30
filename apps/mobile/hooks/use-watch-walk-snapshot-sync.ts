@@ -7,7 +7,7 @@ export function useWatchWalkSnapshotSync() {
   const phase = useWalkStore((s) => s.phase);
   const walkId = useWalkStore((s) => s.walkId);
   const startedAt = useWalkStore((s) => s.startedAt);
-  const activeDogs = useWalkStore((s) => s.activeDogs);
+  const dogs = useWalkStore((s) => s.dogs);
   const distanceM = useWalkStore((s) => s.totalDistanceM);
   const points = useWalkStore((s) => s.points);
   const events = useWalkStore((s) => s.events);
@@ -29,7 +29,7 @@ export function useWatchWalkSnapshotSync() {
         phase,
         walkId,
         startedAt,
-        dogs: activeDogs,
+        dogs,
         events,
         distanceM,
         latestPoint,
@@ -37,5 +37,5 @@ export function useWatchWalkSnapshotSync() {
     ).catch((error) => {
       console.error('[watch.snapshot] failed to publish walk snapshot', error);
     });
-  }, [activeDogs, distanceM, events, latestPoint, phase, startedAt, walkId]);
+  }, [distanceM, dogs, events, latestPoint, phase, startedAt, walkId]);
 }

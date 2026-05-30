@@ -61,12 +61,12 @@ enum WatchEventType: String, Codable, Identifiable {
     }
   }
 
-  var symbolName: String {
+  var emoji: String {
     switch self {
     case .pee:
-      return "drop.fill"
+      return "💧"
     case .poo:
-      return "pawprint.fill"
+      return "💩"
     }
   }
 }

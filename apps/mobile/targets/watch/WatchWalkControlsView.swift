@@ -43,7 +43,11 @@ struct WatchWalkControlsView: View {
         Button {
           handleEventTap(.pee)
         } label: {
-          Label("Pee", systemImage: "drop.fill")
+          Label {
+            Text("Pee")
+          } icon: {
+            Text(WatchEventType.pee.emoji)
+          }
             .frame(maxWidth: .infinity)
         }
         .disabled(!store.canRecordEvent)
@@ -51,7 +55,11 @@ struct WatchWalkControlsView: View {
         Button {
           handleEventTap(.poo)
         } label: {
-          Label("Poop", systemImage: "pawprint.fill")
+          Label {
+            Text("Poop")
+          } icon: {
+            Text(WatchEventType.poo.emoji)
+          }
             .frame(maxWidth: .infinity)
         }
         .disabled(!store.canRecordEvent)
@@ -151,7 +159,7 @@ private struct WatchDogPickerView: View {
         dismiss()
       } label: {
         HStack {
-          Image(systemName: eventType.symbolName)
+          Text(eventType.emoji)
           VStack(alignment: .leading) {
             Text(dog.name)
             Text("Pee \(dog.peeCount) / Poop \(dog.pooCount)")

@@ -17,6 +17,8 @@ import { WALK_ACTIVITY_NAME, type WalkActivityProps } from './live-activity';
 function WalkActivityLayout(props: WalkActivityProps, _environment: LiveActivityEnvironment) {
   'widget';
 
+  const peeEmoji = '💧';
+  const pooEmoji = '💩';
   const accent = '#4F8A63';
   const destructive = '#C94D3F';
   const background = '#1F2A24';
@@ -72,14 +74,12 @@ function WalkActivityLayout(props: WalkActivityProps, _environment: LiveActivity
             </Text>
             <Spacer minLength={2} />
             <Button
-              label={`Pee ${dog.peeCount}`}
-              systemImage="drop.fill"
+              label={`${peeEmoji} Pee ${dog.peeCount}`}
               target={dog.peeTarget}
               modifiers={[buttonStyle('bordered'), controlSize('small'), tint(accent)]}
             />
             <Button
-              label={`Poop ${dog.pooCount}`}
-              systemImage="circle.fill"
+              label={`${pooEmoji} Poop ${dog.pooCount}`}
               target={dog.pooTarget}
               modifiers={[buttonStyle('bordered'), controlSize('small'), tint('#8A6F4F')]}
             />
@@ -131,14 +131,12 @@ function WalkActivityLayout(props: WalkActivityProps, _environment: LiveActivity
           </Text>
           <Spacer minLength={2} />
           <Button
-            label={`Pee ${firstDog.peeCount}`}
-            systemImage="drop.fill"
+            label={`${peeEmoji} Pee ${firstDog.peeCount}`}
             target={firstDog.peeTarget}
             modifiers={[buttonStyle('bordered'), controlSize('small'), tint(accent)]}
           />
           <Button
-            label={`Poop ${firstDog.pooCount}`}
-            systemImage="circle.fill"
+            label={`${pooEmoji} Poop ${firstDog.pooCount}`}
             target={firstDog.pooTarget}
             modifiers={[buttonStyle('bordered'), controlSize('small'), tint('#8A6F4F')]}
           />

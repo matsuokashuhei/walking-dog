@@ -58,7 +58,7 @@ describe('WalkEventTimeline', () => {
 
   it('renders pee event with emoji and translated label', () => {
     render(<WalkEventTimeline events={[peeEvent]} />);
-    expect(screen.getByText('🚽')).toBeTruthy();
+    expect(screen.getByText('💧')).toBeTruthy();
     // i18n en locale returns 'Pee' for walk.event.pee
     expect(screen.getByText('Pee')).toBeTruthy();
   });
@@ -80,7 +80,7 @@ describe('WalkEventTimeline', () => {
 
   it('renders all three event types when provided', () => {
     render(<WalkEventTimeline events={[peeEvent, pooEvent, photoEvent]} />);
-    expect(screen.getByText('🚽')).toBeTruthy();
+    expect(screen.getByText('💧')).toBeTruthy();
     expect(screen.getByText('💩')).toBeTruthy();
     expect(screen.getByText('📷')).toBeTruthy();
   });

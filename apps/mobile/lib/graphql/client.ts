@@ -1,4 +1,5 @@
 import { GraphQLError } from 'graphql';
+import { File as ExpoFile } from 'expo-file-system';
 import { ClientError, type GraphQLResponse } from './client-error';
 import {
   createRefreshMiddleware,
@@ -21,6 +22,9 @@ type GraphQLResult = {
 type MultipartOperations = {
   query: string;
   variables?: Variables;
+};
+type MultipartUploadPart = UploadFile & {
+  bytes: () => Promise<Uint8Array>;
 };
 
 const endpoint = `${process.env.EXPO_PUBLIC_API_URL}/graphql`;
@@ -147,10 +151,23 @@ function createMultipartBody(
   body.append('map', JSON.stringify(map));
 
   Object.values(fileMap).forEach((file, index) => {
-    body.append(String(index), file as unknown as Blob);
+    body.append(String(index), createMultipartUploadPart(file) as unknown as Blob);
   });
 
   return body;
+}
+
+function createMultipartUploadPart(file: UploadFile): MultipartUploadPart {
+  const source = new ExpoFile(file.uri) as unknown as {
+    bytes: () => Promise<Uint8Array>;
+  };
+
+  return {
+    uri: file.uri,
+    name: file.name,
+    type: file.type,
+    bytes: () => source.bytes(),
+  };
 }
 
 function createClientErrorFromBody(

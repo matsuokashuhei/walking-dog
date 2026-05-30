@@ -274,7 +274,32 @@
     "notifications": "Notifications",
     "notificationsValue": "On",
     "viewProfile": "View profile",
-    "emailPlaceholder": "mio@walk.app",
+    "profile": {
+      "title": "Profile",
+      "back": "‹ Me",
+      "edit": "Edit",
+      "loadError": "Failed to load profile",
+      "unknownName": "Unknown owner",
+      "walkingSince": "Walking since {{date}}",
+      "stats": {
+        "walks": "Walks",
+        "distance": "km",
+        "totalTime": "Total time",
+        "dogs": "Dogs"
+      },
+      "week": {
+        "title": "This week",
+        "total": "{{distance}} total"
+      }
+    },
+    "profileEdit": {
+      "title": "Edit profile",
+      "name": "Name",
+      "changePhoto": "Change photo",
+      "photoPermissionDenied": "Photo access denied",
+      "photoPermissionMessage": "Allow photo access to update your profile picture.",
+      "saveError": "Failed to save profile. Please try again."
+    },
     "terms": "Terms of Service",
     "privacy": "Privacy Policy",
     "about": "About",

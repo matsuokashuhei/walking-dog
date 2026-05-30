@@ -150,6 +150,11 @@ export interface User {
   avatarUrl?: string | null;
 }
 
+export interface UpdateUserInput {
+  name?: string;
+  avatar?: string;
+}
+
 export interface CreateDogInput {
   name: string;
   breed?: string;
@@ -256,6 +261,30 @@ export interface ApiWalk {
 
 export interface UserResponse {
   user: ApiUser;
+}
+
+export interface ApiOwnerProfileWalk {
+  id: string;
+  startedAt: string;
+  endedAt: string | null;
+  distance: number | null;
+}
+
+export interface ApiOwnerProfileWalkConnection {
+  totalCount: number;
+  totalDistance: number;
+  totalDuration: number;
+  nodes: ApiOwnerProfileWalk[];
+}
+
+export interface OwnerProfileResponse {
+  user: ApiUser & {
+    walks: ApiOwnerProfileWalkConnection;
+  };
+}
+
+export interface UpdateUserResponse {
+  updateUser: ApiUser;
 }
 
 export interface WalkResponse {

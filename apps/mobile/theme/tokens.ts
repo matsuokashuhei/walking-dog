@@ -259,6 +259,19 @@ export const components = {
     strokeWidth: 1.8,
     viewBox: 26,
   },
+  ownerAvatar: {
+    cardSize: 60,
+    profileSize: 88,
+    editorSize: 100,
+    cameraBadgeSize: 32,
+    cameraBadgeBorderWidth: 3,
+  },
+  ownerProfileChart: {
+    height: 100,
+    maxBarHeight: 80,
+    minBarHeight: 4,
+    gap: 6,
+  },
   progressRing: {
     strokeWidth: 10,
     lineCap: 'round' as const,

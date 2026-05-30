@@ -1,47 +1,45 @@
-import { StyleSheet, Text, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
-import { radius, spacing, typography } from '@/theme/tokens';
+import { spacing, typography } from '@/theme/tokens';
 import { GroupedCard } from '@/components/ui/GroupedCard';
+import { OwnerAvatar } from './OwnerAvatar';
 
 interface ProfileCardProps {
   displayName: string | null;
+  avatarUrl: string | null;
+  onPress: () => void;
 }
 
-export function ProfileCard({ displayName }: ProfileCardProps) {
+export function ProfileCard({ displayName, avatarUrl, onPress }: ProfileCardProps) {
   const { t } = useTranslation();
   const theme = useColors();
-  const initial = displayName?.trim()?.[0]?.toUpperCase() ?? '?';
-  const email = t('settings.emailPlaceholder');
 
   return (
-    <GroupedCard padding="md" elevated={false} style={styles.card}>
-      <View style={styles.row}>
-        <LinearGradient
-          colors={[theme.success, theme.interactive]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.avatar}
-        >
-          <Text style={[styles.avatarInitial, { color: theme.onInteractive }]}>{initial}</Text>
-        </LinearGradient>
-        <View style={styles.textBlock}>
-          <Text style={[styles.name, { color: theme.onSurface }]} numberOfLines={1}>
-            {displayName ?? '-'}
-          </Text>
-          <Text
-            style={[styles.email, { color: theme.onSurfaceVariant }]}
-            numberOfLines={1}
-          >
-            {email}
-          </Text>
-          <Text style={[styles.link, { color: theme.interactive }]}>
-            {t('settings.viewProfile')}
-          </Text>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={t('settings.viewProfile')}
+      onPress={onPress}
+    >
+      <GroupedCard padding="md" elevated={false} style={styles.card}>
+        <View style={styles.row}>
+          <OwnerAvatar
+            displayName={displayName}
+            avatarUrl={avatarUrl}
+            size="card"
+            testID="settings-profile-card-avatar"
+          />
+          <View style={styles.textBlock}>
+            <Text style={[styles.name, { color: theme.onSurface }]} numberOfLines={1}>
+              {displayName ?? '-'}
+            </Text>
+            <Text style={[styles.link, { color: theme.interactive }]}>
+              {t('settings.viewProfile')}
+            </Text>
+          </View>
         </View>
-      </View>
-    </GroupedCard>
+      </GroupedCard>
+    </Pressable>
   );
 }
 
@@ -54,26 +52,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.step14,
   },
-  avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: radius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarInitial: {
-    ...typography.title2,
-  },
   textBlock: {
     flex: 1,
     minWidth: 0,
   },
   name: {
     ...typography.headline,
-  },
-  email: {
-    ...typography.footnote,
-    marginTop: spacing.xs / 2,
   },
   link: {
     ...typography.caption,

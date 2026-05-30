@@ -1,5 +1,6 @@
 import { ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
 import { spacing } from '@/theme/tokens';
@@ -15,6 +16,7 @@ import { SignOutRow } from '@/components/settings/SignOutRow';
 // 設定タブはプロフィール、表示設定、法務リンク、サインアウト導線をまとめます。
 export default function SettingsScreen() {
   const { t } = useTranslation();
+  const router = useRouter();
   const theme = useColors();
   const vm = useSettingsScreenViewModel();
 
@@ -28,7 +30,11 @@ export default function SettingsScreen() {
     <SafeAreaView edges={['top']} style={[styles.safeArea, { backgroundColor: theme.background }]}>
       <ScreenHeader title={t('settings.title')} testID="settings-header" />
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-        <ProfileCard displayName={vm.me.name ?? vm.me.displayName ?? null} />
+        <ProfileCard
+          displayName={vm.me.name ?? vm.me.displayName ?? null}
+          avatarUrl={vm.me.avatar ?? vm.me.avatarUrl ?? null}
+          onPress={() => router.push('/settings/profile')}
+        />
         <PreferencesSection />
         <LegalSection />
         <SignOutRow />

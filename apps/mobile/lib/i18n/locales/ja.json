@@ -274,7 +274,32 @@
     "notifications": "通知",
     "notificationsValue": "オン",
     "viewProfile": "プロフィールを見る",
-    "emailPlaceholder": "mio@walk.app",
+    "profile": {
+      "title": "プロフィール",
+      "back": "‹ マイページ",
+      "edit": "編集",
+      "loadError": "プロフィールの読み込みに失敗しました",
+      "unknownName": "名前未設定",
+      "walkingSince": "{{date}}から散歩中",
+      "stats": {
+        "walks": "散歩",
+        "distance": "km",
+        "totalTime": "合計時間",
+        "dogs": "愛犬"
+      },
+      "week": {
+        "title": "今週",
+        "total": "合計 {{distance}}"
+      }
+    },
+    "profileEdit": {
+      "title": "プロフィールを編集",
+      "name": "名前",
+      "changePhoto": "写真を変更",
+      "photoPermissionDenied": "写真へのアクセスが拒否されました",
+      "photoPermissionMessage": "プロフィール写真を更新するには写真へのアクセスを許可してください。",
+      "saveError": "プロフィールの保存に失敗しました。もう一度お試しください。"
+    },
     "terms": "利用規約",
     "privacy": "プライバシーポリシー",
     "about": "このアプリについて",

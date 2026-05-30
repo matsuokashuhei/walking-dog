@@ -1,6 +1,20 @@
 import type * as ClientModule from './client';
 import { ClientError } from './client-error';
 
+jest.mock('expo-file-system', () => ({
+  File: class TestFile {
+    uri: string;
+
+    constructor(uri: string) {
+      this.uri = uri;
+    }
+
+    async bytes() {
+      return new Uint8Array([1, 2, 3]);
+    }
+  },
+}));
+
 const mutation = 'mutation UpdateDog($input: UpdateDogInput!) { updateDog(input: $input) { id } }';
 const successfulResponse = { data: { updateDog: { id: 'dog-1' } } };
 const uploadFile = {
@@ -105,7 +119,28 @@ describe('authenticatedMultipartRequest', () => {
     expect(getFormDataPart(body, 'map')).toBe(
       JSON.stringify({ '0': ['variables.input.avatar'] }),
     );
-    expect(getFormDataPart(body, '0')).toEqual(uploadFile);
+    expect(getFormDataPart(body, '0')).toMatchObject(uploadFile);
+  });
+
+  it('appends a bytes-backed file part that Expo native fetch can serialize', async () => {
+    await authenticatedMultipartRequest(
+      mutation,
+      {
+        input: {
+          id: 'dog-1',
+          avatar: uploadFile,
+        },
+      },
+      { 'variables.input.avatar': uploadFile },
+    );
+
+    const filePart = getFormDataPart(getFetchOptions().body, '0') as
+      | { bytes?: () => Promise<Uint8Array> }
+      | undefined;
+
+    expect(filePart).toMatchObject(uploadFile);
+    expect(typeof filePart?.bytes).toBe('function');
+    await expect(filePart?.bytes?.()).resolves.toEqual(new Uint8Array([1, 2, 3]));
   });
 
   it('does not set Content-Type manually and keeps Authorization when authenticated', async () => {

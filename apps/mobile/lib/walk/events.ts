@@ -4,21 +4,16 @@ type CountedWalkEventType = Extract<WalkEventType, 'pee' | 'poo' | 'photo'>;
 
 export const EVENT_ORDER: readonly CountedWalkEventType[] = ['pee', 'poo'] as const;
 
-export const MAP_EVENT_EMOJIS: Record<WalkEventType, string> = {
-  pee: '🚽',
-  poo: '💩',
-  sniff: '🐽',
-  greet: '🐾',
-  photo: '📷',
-};
-
-export const UI_EVENT_EMOJIS: Record<WalkEventType, string> = {
+export const WALK_EVENT_EMOJIS: Record<WalkEventType, string> = {
   pee: '💧',
   poo: '💩',
   sniff: '🐽',
   greet: '🐾',
   photo: '📷',
 };
+
+export const MAP_EVENT_EMOJIS = WALK_EVENT_EMOJIS;
+export const UI_EVENT_EMOJIS = WALK_EVENT_EMOJIS;
 
 export interface CountableEvent {
   eventType: WalkEventType;

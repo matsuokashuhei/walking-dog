@@ -14,8 +14,8 @@ describe('EVENT_ORDER', () => {
 });
 
 describe('MAP_EVENT_EMOJIS (map markers)', () => {
-  it('uses the toilet emoji for pee on map pins', () => {
-    expect(MAP_EVENT_EMOJIS.pee).toBe('🚽');
+  it('uses the droplet emoji for pee on map pins', () => {
+    expect(MAP_EVENT_EMOJIS.pee).toBe('💧');
   });
 
   it('maps poo to poop emoji', () => {

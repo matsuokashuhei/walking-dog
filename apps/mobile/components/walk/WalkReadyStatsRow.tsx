@@ -29,7 +29,10 @@ export function WalkReadyStatsRow() {
     },
     {
       label: t('walk.ready.stats.goal'),
-      value: t('walk.ready.stats.goalPercent', { value: pack.progressPct }),
+      value: t('walk.ready.stats.goalMinutes', {
+        done: pack.todayMinutes,
+        goal: pack.goalMinutes,
+      }),
     },
   ];
 

@@ -46,6 +46,7 @@ function toUpdateDogRequestInput(
   breed: string | undefined;
   gender: 'MALE' | 'FEMALE' | 'OTHER' | undefined;
   birthday: UpdateDogInput['birthday'];
+  dailyGoalMinutes: number | undefined;
 } {
   return {
     id,
@@ -53,6 +54,7 @@ function toUpdateDogRequestInput(
     breed: input.breed,
     gender: input.gender ? toApiGender(input.gender) : undefined,
     birthday: input.birthday,
+    dailyGoalMinutes: input.dailyGoalMinutes,
   };
 }
 

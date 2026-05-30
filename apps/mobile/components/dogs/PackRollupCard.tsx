@@ -6,15 +6,15 @@ import { GroupedCard } from '@/components/ui/GroupedCard';
 import { RingProgress } from '@/components/ui/RingProgress';
 
 interface PackRollupCardProps {
-  todayKm: number;
-  goalKm: number;
+  todayMinutes: number;
+  goalMinutes: number;
   progressPct: number;
   onPress?: () => void;
 }
 
 export function PackRollupCard({
-  todayKm,
-  goalKm,
+  todayMinutes,
+  goalMinutes,
   progressPct,
   onPress,
 }: PackRollupCardProps) {
@@ -22,8 +22,8 @@ export function PackRollupCard({
   const theme = useColors();
 
   const subtitle = t('dogs.list.acrossPack', {
-    km: todayKm.toFixed(2),
-    goal: goalKm.toFixed(1),
+    minutes: todayMinutes,
+    goal: goalMinutes,
   });
 
   const content = (

@@ -66,10 +66,11 @@ let mockWalks: Walk[] = [
 ];
 let mockPack = {
   todayKm: 1,
-  goalKm: 5,
+  todayMinutes: 20,
+  goalMinutes: 30,
   progressPct: 20,
   perDog: {
-    'dog-1': { streakDays: 5 },
+    'dog-1': { todayKm: 1, todayMinutes: 20, dailyGoalMinutes: 30, totalWalks: 1, streakDays: 5 },
   },
 };
 let mockMe = { id: 'user-1' };
@@ -187,10 +188,11 @@ describe('useDogDetailViewModel', () => {
     ];
     mockPack = {
       todayKm: 1,
-      goalKm: 5,
+      todayMinutes: 20,
+      goalMinutes: 30,
       progressPct: 20,
       perDog: {
-        'dog-1': { streakDays: 5 },
+        'dog-1': { todayKm: 1, todayMinutes: 20, dailyGoalMinutes: 30, totalWalks: 1, streakDays: 5 },
       },
     };
     mockMe = { id: 'user-1' };

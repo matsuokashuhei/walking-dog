@@ -134,7 +134,7 @@ type Mutation {
 	signUp(input: SignUpInput!): SignUpOutput!
 	confirmSignUp(input: ConfirmSignUpInput!): ConfirmSignUpOutput!
 	signIn(input: SignInInput!): SignInOutput!
-	refreshToken(input: RefreshTokenInput!): SignInOutput!
+	refreshToken(input: RefreshTokenInput!): RefreshTokenOutput!
 	signOut: SignOutOutput!
 	changeEmail(input: ChangeEmailInput!): ChangeEmailOutput!
 	confirmEmailChange(input: ConfirmEmailChangeInput!): ConfirmEmailChangeOutput!
@@ -193,6 +193,11 @@ type Query {
 }
 
 input RefreshTokenInput {
+	refreshToken: String!
+}
+
+type RefreshTokenOutput {
+	accessToken: String!
 	refreshToken: String!
 }
 
@@ -279,6 +284,7 @@ input UpdateDogInput {
 	gender: Gender
 	avatar: Upload
 	birthday: BirthdayInput
+	dailyGoalMinutes: Int
 }
 
 input UpdateUserInput {
@@ -412,3 +418,4 @@ schema {
 	query: Query
 	mutation: Mutation
 }
+

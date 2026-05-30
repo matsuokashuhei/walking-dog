@@ -34,6 +34,21 @@ export interface WalkStats {
   totalDurationSec: number;
 }
 
+export interface WalkAmount {
+  minutes: number;
+  cycleDays: number;
+}
+
+export interface DogWalkGoal {
+  id: string;
+  dogId: string;
+  walkAmount: WalkAmount;
+  effectiveFrom: string;
+  effectiveTo: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface LatestWalk {
   endedAt: string | null;
 }
@@ -50,6 +65,7 @@ export interface Dog {
   photoUrl?: string | null;
   role?: 'owner' | 'member';
   latestWalk?: LatestWalk | null;
+  walkGoal?: DogWalkGoal | null;
 }
 
 interface Walker {
@@ -170,6 +186,7 @@ export interface UpdateDogInput {
   birthday?: BirthdayInput | null;
   avatar?: string;
   photoUrl?: string;
+  dailyGoalMinutes?: number;
 }
 
 export interface BirthdayInput {
@@ -191,6 +208,7 @@ export interface ApiDog {
   gender: Gender;
   avatar: string | null;
   birthday: Birthday | null;
+  walkGoal?: DogWalkGoal | null;
   createdAt: string;
   updatedAt: string;
 }

@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import {
   ActionSheetIOS,
+  type GestureResponderEvent,
+  type LayoutChangeEvent,
   Modal,
   Platform,
   Pressable,
@@ -13,8 +15,14 @@ import { useTranslation } from 'react-i18next';
 import { GroupedCard } from '@/components/ui/GroupedCard';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { TextInput } from '@/components/ui/TextInput';
+import {
+  DAILY_GOAL_STEP_MINUTES,
+  DEFAULT_DAILY_GOAL_MINUTES,
+  MAX_DAILY_GOAL_MINUTES,
+  MIN_DAILY_GOAL_MINUTES,
+} from '@/constants/walk';
 import { useColors } from '@/hooks/use-colors';
-import { components, radius, spacing, typography } from '@/theme/tokens';
+import { components, elevation, radius, spacing, typography } from '@/theme/tokens';
 import type { Birthday, BirthdayInput } from '@/types/graphql';
 
 export interface DogFormValues {
@@ -26,11 +34,13 @@ export interface DogFormValues {
   birthdayYear: string;
   birthdayMonth: string;
   birthdayDay: string;
+  dailyGoalMinutes?: number;
 }
 
 interface DogFormProps {
   values: DogFormValues;
   onChange: (values: DogFormValues) => void;
+  showDailyGoal?: boolean;
 }
 
 const BIRTHDAY_YEAR_START = 1990;
@@ -44,7 +54,7 @@ type DogGenderValue = (typeof DOG_GENDER_VALUES)[number];
 // 02b. Dog edit の inset-grouped 形式: 1 枚のカードに行を積み上げ、hairline で区切る。
 // 純粋な controlled component — values と onChange のみ受け取る。Submit / loading は呼び出し元の
 // 画面（Cancel/Save header）が担う。
-export function DogForm({ values, onChange }: DogFormProps) {
+export function DogForm({ values, onChange, showDailyGoal = true }: DogFormProps) {
   const { t, i18n } = useTranslation();
   const theme = useColors();
   const [birthdayPickerVisible, setBirthdayPickerVisible] = useState(false);
@@ -212,6 +222,12 @@ export function DogForm({ values, onChange }: DogFormProps) {
           )}
         </Pressable>
       </GroupedCard>
+      {showDailyGoal ? (
+        <DailyGoalSection
+          minutes={values.dailyGoalMinutes ?? DEFAULT_DAILY_GOAL_MINUTES}
+          onChange={(dailyGoalMinutes) => set({ dailyGoalMinutes })}
+        />
+      ) : null}
       <Modal
         animationType="fade"
         transparent
@@ -288,6 +304,108 @@ export function DogForm({ values, onChange }: DogFormProps) {
           </View>
         </View>
       </Modal>
+    </View>
+  );
+}
+
+interface DailyGoalSectionProps {
+  minutes: number;
+  onChange: (minutes: number) => void;
+}
+
+function DailyGoalSection({ minutes, onChange }: DailyGoalSectionProps) {
+  const { t } = useTranslation();
+  const theme = useColors();
+  const [trackWidth, setTrackWidth] = useState(0);
+  const clampedMinutes = clampDailyGoalMinutes(minutes);
+  const progress =
+    (clampedMinutes - MIN_DAILY_GOAL_MINUTES) /
+    (MAX_DAILY_GOAL_MINUTES - MIN_DAILY_GOAL_MINUTES);
+
+  function setFromMinutes(nextMinutes: number) {
+    onChange(clampDailyGoalMinutes(nextMinutes));
+  }
+
+  function setFromPress(event: GestureResponderEvent) {
+    if (trackWidth <= 0) return;
+    const x = Math.max(0, Math.min(trackWidth, event.nativeEvent.locationX));
+    const ratio = x / trackWidth;
+    const raw =
+      MIN_DAILY_GOAL_MINUTES +
+      ratio * (MAX_DAILY_GOAL_MINUTES - MIN_DAILY_GOAL_MINUTES);
+    setFromMinutes(raw);
+  }
+
+  function handleTrackLayout(event: LayoutChangeEvent) {
+    setTrackWidth(event.nativeEvent.layout.width);
+  }
+
+  return (
+    <View style={styles.dailyGoalWrap}>
+      <Text style={[styles.sectionLabel, { color: theme.onSurfaceVariant }]}>
+        {t('dogs.form.dailyGoal')}
+      </Text>
+      <GroupedCard style={styles.dailyGoalCard}>
+        <View style={styles.dailyGoalHeader}>
+          <Text style={[styles.dailyGoalTitle, { color: theme.onSurface }]}>
+            {t('dogs.form.dailyGoalTime')}
+          </Text>
+          <Text style={[styles.dailyGoalValue, { color: theme.onSurface }]}>
+            {t('dogs.form.dailyGoalMinutes', { count: clampedMinutes })}
+          </Text>
+        </View>
+        <Pressable
+          accessibilityRole="adjustable"
+          accessibilityLabel={t('dogs.form.dailyGoalAccessibility')}
+          accessibilityValue={{
+            min: MIN_DAILY_GOAL_MINUTES,
+            max: MAX_DAILY_GOAL_MINUTES,
+            now: clampedMinutes,
+            text: t('dogs.form.dailyGoalMinutes', { count: clampedMinutes }),
+          }}
+          accessibilityActions={[
+            { name: 'increment', label: t('dogs.form.dailyGoalIncrease') },
+            { name: 'decrement', label: t('dogs.form.dailyGoalDecrease') },
+          ]}
+          onAccessibilityAction={(event) => {
+            if (event.nativeEvent.actionName === 'increment') {
+              setFromMinutes(clampedMinutes + DAILY_GOAL_STEP_MINUTES);
+            } else if (event.nativeEvent.actionName === 'decrement') {
+              setFromMinutes(clampedMinutes - DAILY_GOAL_STEP_MINUTES);
+            }
+          }}
+          onPress={setFromPress}
+          onLayout={handleTrackLayout}
+          style={styles.goalTrackTouch}
+        >
+          <View style={[styles.goalTrack, { backgroundColor: theme.surfaceContainer }]}>
+            <View
+              style={[
+                styles.goalTrackFill,
+                { backgroundColor: theme.interactive, width: `${progress * 100}%` },
+              ]}
+            />
+            <View
+              style={[
+                styles.goalThumb,
+                {
+                  backgroundColor: theme.surface,
+                  borderColor: theme.border,
+                  left: `${progress * 100}%`,
+                },
+              ]}
+            />
+          </View>
+        </Pressable>
+        <View style={styles.goalLimits}>
+          <Text style={[styles.goalLimitText, { color: theme.textDisabled }]}>
+            {t('dogs.form.dailyGoalMinutes', { count: MIN_DAILY_GOAL_MINUTES })}
+          </Text>
+          <Text style={[styles.goalLimitText, { color: theme.textDisabled }]}>
+            {t('dogs.form.dailyGoalMinutes', { count: MAX_DAILY_GOAL_MINUTES })}
+          </Text>
+        </View>
+      </GroupedCard>
     </View>
   );
 }
@@ -387,6 +505,16 @@ export function isDogFormValid(values: DogFormValues): boolean {
   return values.name.trim().length > 0 && values.gender.trim().length > 0;
 }
 
+export function clampDailyGoalMinutes(minutes: number): number {
+  const finiteMinutes = Number.isFinite(minutes) ? minutes : DEFAULT_DAILY_GOAL_MINUTES;
+  const rounded =
+    Math.round(finiteMinutes / DAILY_GOAL_STEP_MINUTES) * DAILY_GOAL_STEP_MINUTES;
+  return Math.min(
+    MAX_DAILY_GOAL_MINUTES,
+    Math.max(MIN_DAILY_GOAL_MINUTES, rounded),
+  );
+}
+
 // フォームの 3 つの文字列を API 入力（任意の年・月・日）へ変換する。
 // 妥当な値が一つも無ければ null を返す（編集画面では誕生日のクリア、新規画面では未設定として扱われる）。
 // 月/日は妥当な範囲のものだけ採用する。
@@ -475,6 +603,63 @@ function normalizeGenderValue(gender: string): DogGenderValue | '' {
 
 const styles = StyleSheet.create({
   container: { width: '100%' },
+  dailyGoalWrap: {
+    marginTop: spacing.lg,
+  },
+  sectionLabel: {
+    ...typography.metricLabel,
+    fontWeight: typography.headline.fontWeight,
+    paddingHorizontal: spacing.xs,
+    marginBottom: spacing.step10,
+  },
+  dailyGoalCard: {
+    paddingVertical: spacing.step14,
+    paddingHorizontal: spacing.md,
+  },
+  dailyGoalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.step12,
+  },
+  dailyGoalTitle: {
+    ...typography.subheadline,
+  },
+  dailyGoalValue: {
+    ...typography.headline,
+    fontVariant: ['tabular-nums'],
+  },
+  goalTrackTouch: {
+    height: spacing.step44,
+    justifyContent: 'center',
+  },
+  goalTrack: {
+    height: spacing.step6,
+    borderRadius: radius.full,
+    overflow: 'visible',
+  },
+  goalTrackFill: {
+    height: '100%',
+    borderRadius: radius.full,
+  },
+  goalThumb: {
+    ...elevation.low,
+    position: 'absolute',
+    top: -(spacing.lg - spacing.step6) / 2,
+    width: spacing.lg,
+    height: spacing.lg,
+    marginLeft: -spacing.step12,
+    borderRadius: radius.full,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  goalLimits: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: spacing.xs,
+  },
+  goalLimitText: {
+    ...typography.caption,
+  },
   inlineRow: {
     flexDirection: 'row',
     alignItems: 'center',

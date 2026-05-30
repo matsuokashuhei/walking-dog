@@ -68,7 +68,7 @@ export default function NewDogScreen() {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        <DogForm values={values} onChange={setValues} />
+        <DogForm values={values} onChange={setValues} showDailyGoal={false} />
       </ScrollView>
     </SafeAreaView>
   );

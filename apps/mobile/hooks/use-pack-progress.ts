@@ -1,11 +1,14 @@
 import { useMemo } from 'react';
-import { DEFAULT_DAILY_GOAL_KM } from '@/constants/walk';
+import { DEFAULT_DAILY_GOAL_MINUTES } from '@/constants/walk';
+import { useMe } from './use-me';
 import { useMyWalks } from './use-walks';
-import type { Walk } from '@/types/graphql';
+import type { Dog, Walk } from '@/types/graphql';
 
-// 犬ごとの今日の距離、総散歩数、継続日数を表します。
+// 犬ごとの今日の距離・時間、総散歩数、継続日数を表します。
 interface DogProgress {
   todayKm: number;
+  todayMinutes: number;
+  dailyGoalMinutes: number;
   totalWalks: number;
   streakDays: number;
 }
@@ -13,7 +16,8 @@ interface DogProgress {
 // パック全体と犬ごとの散歩進捗を、ホームや犬一覧で使う形にまとめた値です。
 export interface PackProgress {
   todayKm: number;
-  goalKm: number;
+  todayMinutes: number;
+  goalMinutes: number;
   progressPct: number;
   packStreakDays: number;
   perDog: Record<string, DogProgress>;
@@ -60,26 +64,37 @@ function computeStreak(dayKeys: Set<string>, now: Date): number {
 // 散歩履歴から、パック全体と犬ごとの今日の進捗・連続日数を集計します。
 export function aggregatePackProgress(
   walks: Walk[],
-  goalKm: number = DEFAULT_DAILY_GOAL_KM,
+  dogs: Dog[] = [],
   now: Date = new Date(),
 ): Omit<PackProgress, 'isLoading'> {
   const todayKey = localDayKey(now);
 
   let packTodayM = 0;
+  let packTodayMinutes = 0;
   const packDays = new Set<string>();
   const dogDays = new Map<string, Set<string>>();
   const dogTodayM = new Map<string, number>();
+  const dogTodayMinutes = new Map<string, number>();
   const dogTotalWalks = new Map<string, number>();
+  const dogGoalMinutes = new Map<string, number>();
 
-  // 散歩単位の距離をパック全体へ、参加犬ごとには個別進捗へ積み上げます。
+  for (const dog of dogs) {
+    dogGoalMinutes.set(dog.id, getDailyGoalMinutes(dog));
+  }
+  const currentDogIds = new Set(dogGoalMinutes.keys());
+  const hasCurrentDogs = currentDogIds.size > 0;
+
+  // 散歩単位の距離をパック全体へ、参加中の犬ごとには個別進捗へ積み上げます。
   for (const walk of walks) {
     const dayKey = toLocalDayKey(walk.startedAt);
     const distanceM = walk.distanceM ?? 0;
-    if (dayKey === todayKey) packTodayM += distanceM;
-    if (dayKey) packDays.add(dayKey);
+    const durationMinutes = durationSecToMinutes(walk.durationSec ?? null);
+    let includesCurrentDog = false;
 
     for (const dog of walk.dogs ?? []) {
       if (!dog?.id) continue;
+      if (hasCurrentDogs && !currentDogIds.has(dog.id)) continue;
+      includesCurrentDog = true;
       let set = dogDays.get(dog.id);
       if (!set) {
         set = new Set();
@@ -90,32 +105,73 @@ export function aggregatePackProgress(
       dogTotalWalks.set(dog.id, (dogTotalWalks.get(dog.id) ?? 0) + 1);
       if (dayKey === todayKey) {
         dogTodayM.set(dog.id, (dogTodayM.get(dog.id) ?? 0) + distanceM);
+        dogTodayMinutes.set(
+          dog.id,
+          (dogTodayMinutes.get(dog.id) ?? 0) + durationMinutes,
+        );
+        packTodayMinutes += durationMinutes;
       }
+    }
+
+    if (includesCurrentDog) {
+      if (dayKey === todayKey) packTodayM += distanceM;
+      if (dayKey) packDays.add(dayKey);
     }
   }
 
   const perDog: Record<string, DogProgress> = {};
-  for (const [dogId, days] of dogDays.entries()) {
+  const dogIds = new Set([...dogGoalMinutes.keys(), ...dogDays.keys()]);
+  for (const dogId of dogIds) {
+    const days = dogDays.get(dogId) ?? new Set<string>();
     perDog[dogId] = {
       todayKm: (dogTodayM.get(dogId) ?? 0) / 1000,
+      todayMinutes: dogTodayMinutes.get(dogId) ?? 0,
+      dailyGoalMinutes: dogGoalMinutes.get(dogId) ?? DEFAULT_DAILY_GOAL_MINUTES,
       totalWalks: dogTotalWalks.get(dogId) ?? 0,
       streakDays: computeStreak(days, now),
     };
   }
 
   const todayKm = packTodayM / 1000;
+  const goalMinutes = Array.from(dogIds).reduce(
+    (total, dogId) => total + (dogGoalMinutes.get(dogId) ?? DEFAULT_DAILY_GOAL_MINUTES),
+    0,
+  );
   const progressPct =
-    goalKm > 0 ? Math.min(100, Math.round((todayKm / goalKm) * 100)) : 0;
+    goalMinutes > 0 ? Math.min(100, Math.round((packTodayMinutes / goalMinutes) * 100)) : 0;
   const packStreakDays = computeStreak(packDays, now);
 
-  return { todayKm, goalKm, progressPct, packStreakDays, perDog };
+  return {
+    todayKm,
+    todayMinutes: packTodayMinutes,
+    goalMinutes,
+    progressPct,
+    packStreakDays,
+    perDog,
+  };
 }
 
 // 最新の散歩履歴をもとに、パック進捗をメモ化して返します。
-export function usePackProgress(goalKm: number = DEFAULT_DAILY_GOAL_KM): PackProgress {
+export function usePackProgress(): PackProgress {
   const { data, isLoading } = useMyWalks(100);
+  const { data: me, isLoading: isMeLoading } = useMe();
   return useMemo(() => {
     const walks = data ?? [];
-    return { ...aggregatePackProgress(walks, goalKm), isLoading };
-  }, [data, goalKm, isLoading]);
+    return {
+      ...aggregatePackProgress(walks, me?.dogs ?? []),
+      isLoading: isLoading || isMeLoading,
+    };
+  }, [data, isLoading, isMeLoading, me?.dogs]);
+}
+
+function getDailyGoalMinutes(dog: Dog): number {
+  const minutes = dog.walkGoal?.walkAmount.minutes;
+  return typeof minutes === 'number' && Number.isInteger(minutes) && minutes > 0
+    ? minutes
+    : DEFAULT_DAILY_GOAL_MINUTES;
+}
+
+function durationSecToMinutes(durationSec: number | null): number {
+  if (durationSec == null || durationSec <= 0) return 0;
+  return Math.round(durationSec / 60);
 }

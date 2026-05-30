@@ -20,6 +20,7 @@ function makeValues(overrides: Partial<DogFormValues> = {}): DogFormValues {
     birthdayYear: '',
     birthdayMonth: '',
     birthdayDay: '',
+    dailyGoalMinutes: 30,
     ...overrides,
   };
 }
@@ -44,6 +45,39 @@ describe('DogForm', () => {
     expect(screen.getByText('Gender')).toBeTruthy();
     expect(screen.getByText('Select gender')).toBeTruthy();
     expect(screen.queryByTestId('dog-gender-segmented-control')).toBeNull();
+  });
+
+  it('renders the daily goal section with the default time goal', () => {
+    setup();
+    expect(screen.getByText('DAILY GOAL')).toBeTruthy();
+    expect(screen.getByText('Time')).toBeTruthy();
+    expect(screen.getByText('30 min')).toBeTruthy();
+    expect(screen.getByText('10 min')).toBeTruthy();
+    expect(screen.getByText('120 min')).toBeTruthy();
+  });
+
+  it('increments and decrements the daily goal in 5 minute steps', () => {
+    const { onChange, rerender } = setup(makeValues({ dailyGoalMinutes: 30 }));
+    const slider = screen.getByRole('adjustable', { name: 'Daily goal' });
+
+    fireEvent(slider, 'accessibilityAction', {
+      nativeEvent: { actionName: 'increment' },
+    });
+
+    expect(onChange).toHaveBeenCalledWith(makeValues({ dailyGoalMinutes: 35 }));
+
+    rerender(
+      <DogForm
+        values={makeValues({ dailyGoalMinutes: 10 })}
+        onChange={onChange}
+      />,
+    );
+
+    fireEvent(screen.getByRole('adjustable', { name: 'Daily goal' }), 'accessibilityAction', {
+      nativeEvent: { actionName: 'decrement' },
+    });
+
+    expect(onChange).toHaveBeenLastCalledWith(makeValues({ dailyGoalMinutes: 10 }));
   });
 
   it('renders birthday in the profile group without an empty-state value', () => {

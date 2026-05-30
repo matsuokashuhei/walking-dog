@@ -22,6 +22,13 @@ function getActiveActivity(): LiveActivity<WalkActivityProps> | null {
   return activeActivity;
 }
 
+function isMissingLiveActivityError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    error.message.includes("Can't find live activity with id:")
+  );
+}
+
 export function startWalkLiveActivity(props: WalkActivityProps): void {
   activeActivity = getActivityFactory().start(props, `walking-dog://walks/${props.walkId}`);
 }
@@ -29,15 +36,32 @@ export function startWalkLiveActivity(props: WalkActivityProps): void {
 export async function updateWalkLiveActivity(props: WalkActivityProps): Promise<void> {
   const activity = getActiveActivity();
   if (!activity) return;
-  await activity.update(props);
+
+  try {
+    await activity.update(props);
+  } catch (error) {
+    if (isMissingLiveActivityError(error)) {
+      activeActivity = null;
+      return;
+    }
+
+    throw error;
+  }
 }
 
 export async function endWalkLiveActivity(props?: WalkActivityProps): Promise<void> {
   const activity = getActiveActivity();
   if (!activity) return;
 
-  await activity.end('immediate', props, new Date());
-  activeActivity = null;
+  try {
+    await activity.end('immediate', props);
+  } catch (error) {
+    if (!isMissingLiveActivityError(error)) {
+      throw error;
+    }
+  } finally {
+    activeActivity = null;
+  }
 }
 
 export function resetWalkLiveActivityForTest(): void {

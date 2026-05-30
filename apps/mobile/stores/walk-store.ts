@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { WalkPoint, WalkEvent } from '@/types/graphql';
+import type { Dog, WalkPoint, WalkEvent } from '@/types/graphql';
 
 type WalkPhase = 'ready' | 'recording' | 'finished';
 
@@ -7,6 +7,7 @@ interface WalkState {
   phase: WalkPhase;
   walkId: string | null;
   selectedDogIds: string[];
+  activeDogs: Dog[];
   points: WalkPoint[];
   flushedPointCount: number;
   totalDistanceM: number;
@@ -23,7 +24,7 @@ interface WalkState {
   isMinimized: boolean;
   selectDog: (dogId: string) => void;
   setSelectedDogs: (dogIds: string[]) => void;
-  startRecording: (walkId: string) => void;
+  startRecording: (walkId: string, dogs?: Dog[]) => void;
   addPoint: (point: WalkPoint) => void;
   setTotalDistanceM: (distanceM: number) => void;
   markFlushedPointCount: (count: number) => void;
@@ -48,6 +49,7 @@ export const useWalkStore = create<WalkState>((set, get) => ({
   phase: 'ready',
   walkId: null,
   selectedDogIds: [],
+  activeDogs: [],
   points: [],
   flushedPointCount: 0,
   totalDistanceM: 0,
@@ -67,8 +69,8 @@ export const useWalkStore = create<WalkState>((set, get) => ({
 
   setSelectedDogs: (dogIds) => set({ selectedDogIds: dogIds }),
 
-  startRecording: (walkId) =>
-    set({ phase: 'recording', walkId, startedAt: new Date(), flushedPointCount: 0 }),
+  startRecording: (walkId, dogs = []) =>
+    set({ phase: 'recording', walkId, activeDogs: dogs, startedAt: new Date(), flushedPointCount: 0 }),
 
   // Distance はサーバ計算が真実の源。ローカルでは GPS 点を保持するだけにし、
   // totalDistanceM は walk クエリのポーリング結果を setTotalDistanceM で反映する。
@@ -85,7 +87,7 @@ export const useWalkStore = create<WalkState>((set, get) => ({
     })),
 
   addEvent: (event) =>
-    set((state) => ({ events: [...state.events, event] })),
+    set((state) => ({ events: [...state.events.filter((e) => e.id !== event.id), event] })),
 
   removeEvent: (eventId) =>
     set((state) => ({ events: state.events.filter((e) => e.id !== eventId) })),
@@ -134,6 +136,7 @@ export const useWalkStore = create<WalkState>((set, get) => ({
       phase: 'ready',
       walkId: null,
       selectedDogIds: [],
+      activeDogs: [],
       points: [],
       flushedPointCount: 0,
       totalDistanceM: 0,

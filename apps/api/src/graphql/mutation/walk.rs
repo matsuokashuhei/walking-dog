@@ -80,6 +80,10 @@ impl WalkMutation {
             return Err(AppError::NotFound.into());
         };
 
+        if walk.ended_at.is_some() {
+            return Ok(Walk::from(walk));
+        }
+
         let points = walk.points(dynamo_client).await?;
         let distance_m = crate::util::distance::cumulative_distance_meters(&points);
 
@@ -163,7 +167,12 @@ mod tests {
         assert!(result.is_err());
         let log = db.into_transaction_log();
         assert_eq!(log.len(), 1);
-        assert!(log[0].statements().last().is_some_and(|statement| statement.sql == "ROLLBACK"));
+        assert!(
+            log[0]
+                .statements()
+                .last()
+                .is_some_and(|statement| statement.sql == "ROLLBACK")
+        );
     }
 
     #[tokio::test]
@@ -183,6 +192,11 @@ mod tests {
         assert_eq!(walk.id, walk_id);
         let log = db.into_transaction_log();
         assert_eq!(log.len(), 1);
-        assert!(log[0].statements().last().is_some_and(|statement| statement.sql == "COMMIT"));
+        assert!(
+            log[0]
+                .statements()
+                .last()
+                .is_some_and(|statement| statement.sql == "COMMIT")
+        );
     }
 }

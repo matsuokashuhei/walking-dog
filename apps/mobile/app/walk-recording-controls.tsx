@@ -61,7 +61,6 @@ export default function WalkRecordingControlsScreen() {
     setIsStopping(true);
     try {
       await walkSession.stop(walkId);
-      router.dismissTo('/(tabs)/walk');
     } catch {
       Alert.alert(t('common.error'), t('walk.error.finishFailed'));
     } finally {

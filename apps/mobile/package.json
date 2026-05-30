@@ -7,8 +7,10 @@
     "metro:kill": "sh ./scripts/kill-metro.sh",
     "ios:clean": "npx expo prebuild --platform ios --clean",
     "ios:sim:local": "EXPO_PUBLIC_API_URL=http://localhost:3000 expo run:ios --device 'iPhone 17 Pro'",
+    "ios:sim:clean:local": "npm run metro:kill && npm run ios:clean && npm run ios:sim:local",
     "ios:sim:dev": "EXPO_PUBLIC_API_URL=https://walkingdogdev.dpdns.org expo run:ios",
     "ios:sim:prod": "EXPO_PUBLIC_API_URL=https://walkingdogdev.dpdns.org expo run:ios --configuration Release",
+    "watch:sim": "node ./scripts/run-watch-sim.mjs",
     "ios:dev:local": "EXPO_PUBLIC_API_URL=http://localhost:3000 expo run:ios --device",
     "ios:dev:dev": "EXPO_PUBLIC_API_URL=https://walkingdogdev.dpdns.org expo run:ios --device --configuration Release",
     "ios:dev:prod": "EXPO_PUBLIC_API_URL=https://walkingdogdev.dpdns.org expo run:ios --device --configuration Release",
@@ -68,6 +70,8 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@bacons/apple-targets": "4.0.7",
+    "@expo/prebuild-config": "56.0.12",
     "@react-native/jest-preset": "0.85.3",
     "@testing-library/react-native": "^13.3.3",
     "@types/jest": "29.5.14",

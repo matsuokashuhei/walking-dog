@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Alert } from 'react-native';
-import { router } from 'expo-router';
 import { addUserInteractionListener } from 'expo-widgets';
 import { useTranslation } from 'react-i18next';
 import { useCommitWalkEvent } from '@/hooks/use-commit-walk-event';
@@ -51,7 +50,6 @@ export function useWalkLiveActivityInteractions() {
     isFinishingRef.current = true;
     try {
       await walkSession.stop(walkId);
-      router.dismissTo('/(tabs)/walk');
     } catch (error) {
       console.error('[walk.liveActivity.finish] failed', error);
       Alert.alert(t('common.error'), t('walk.error.finishFailed'));

@@ -13,6 +13,7 @@ input AddEventInput {
 	occurredAt: DateTime!
 	latitude: Latitude!
 	longitude: Longitude!
+	clientRequestId: UUID
 }
 
 """
@@ -411,4 +412,3 @@ schema {
 	query: Query
 	mutation: Mutation
 }
-

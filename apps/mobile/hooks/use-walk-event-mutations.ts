@@ -28,6 +28,7 @@ export function useRecordWalkEvent(): UseMutationResult<WalkEvent, Error, Record
             occurredAt: input.occurredAt,
             latitude: input.lat,
             longitude: input.lng,
+            ...(input.clientRequestId ? { clientRequestId: input.clientRequestId } : {}),
           },
         },
       );

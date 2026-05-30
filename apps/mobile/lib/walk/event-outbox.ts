@@ -20,6 +20,7 @@ export interface PendingWalkEvent {
   walkId: string;
   dogId?: string;
   eventType: 'pee' | 'poo';
+  clientRequestId?: string;
   occurredAt: string;
   lat?: number;
   lng?: number;

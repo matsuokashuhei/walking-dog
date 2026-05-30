@@ -18,6 +18,7 @@ pub struct Model {
     pub latitude: f64,
     #[sea_orm(column_type = "Double")]
     pub longitude: f64,
+    pub client_request_id: Option<Uuid>,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
     #[sea_orm(

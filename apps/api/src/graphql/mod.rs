@@ -11,19 +11,32 @@ use crate::graphql::query::Query;
 use crate::queue::track_point::TrackPointEnqueuer;
 use anyhow::Result;
 use async_graphql::{EmptySubscription, extensions::Tracing};
+use tracing::info;
 
 pub async fn build_schema()
 -> anyhow::Result<async_graphql::Schema<Query, mutation::Mutation, EmptySubscription>> {
+    info!("Building GraphQL schema");
+    let database_connection = build_database_connection().await;
+    info!("Database client ready");
+    let cognito_client = build_cognitoidentityprovider_client().await;
+    info!("Cognito client ready");
+    let dynamodb_client = build_dynamodb_client().await;
+    info!("DynamoDB client ready");
+    let track_point_enqueuer = build_track_point_enqueuer().await?;
+    info!("Track point enqueuer ready");
+    let s3_client = build_s3_client().await;
+    info!("S3 client ready");
+
     Ok(async_graphql::Schema::build(
         Query::default(),
         mutation::Mutation::default(),
         EmptySubscription,
     )
-    .data(build_database_connection().await)
-    .data(build_cognitoidentityprovider_client().await)
-    .data(build_dynamodb_client().await)
-    .data(build_track_point_enqueuer().await?)
-    .data(build_s3_client().await)
+    .data(database_connection)
+    .data(cognito_client)
+    .data(dynamodb_client)
+    .data(track_point_enqueuer)
+    .data(s3_client)
     .extension(Tracing)
     .finish())
 }

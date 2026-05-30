@@ -18,7 +18,15 @@ interface RecordPhotoArgs {
 }
 
 interface UseWalkEventRecorderResult {
-  recordEvent: (eventType: WalkActivityEventType, dogId?: string) => Promise<WalkEvent | null>;
+  recordEvent: (
+    eventType: WalkActivityEventType,
+    dogId?: string,
+    options?: {
+      latestPoint?: { lat: number; lng: number };
+      occurredAt?: string;
+      clientRequestId?: string;
+    },
+  ) => Promise<WalkEvent | null>;
   recordPhoto: (args: RecordPhotoArgs) => Promise<WalkEvent | null>;
   isPending: boolean;
 }
@@ -60,10 +68,19 @@ export function useWalkEventRecorder({
 
   // 通常イベントは失敗時に outbox へ積み、オンライン復帰後に再送できるようにします。
   const recordEvent = useCallback(
-    async (eventType: WalkActivityEventType, dogId?: string) => {
+    async (
+      eventType: WalkActivityEventType,
+      dogId?: string,
+      options?: {
+        latestPoint?: { lat: number; lng: number };
+        occurredAt?: string;
+        clientRequestId?: string;
+      },
+    ) => {
       if (!walkId) return null;
 
-      const occurredAt = new Date().toISOString();
+      const occurredAt = options?.occurredAt ?? new Date().toISOString();
+      const eventPoint = options?.latestPoint ?? latestPoint;
       const result = await runWithAlert<WalkEvent>(
         () =>
           recordWalkEvent.mutateAsync({
@@ -71,7 +88,8 @@ export function useWalkEventRecorder({
             dogId,
             eventType,
             occurredAt,
-            ...(latestPoint ? { lat: latestPoint.lat, lng: latestPoint.lng } : {}),
+            ...(eventPoint ? { lat: eventPoint.lat, lng: eventPoint.lng } : {}),
+            ...(options?.clientRequestId ? { clientRequestId: options.clientRequestId } : {}),
           }),
         'walk.event.recordError',
         { action: 'recordWalkEvent', dogId, eventType, source },
@@ -84,8 +102,9 @@ export function useWalkEventRecorder({
             walkId,
             ...(dogId !== undefined ? { dogId } : {}),
             eventType,
+            ...(options?.clientRequestId ? { clientRequestId: options.clientRequestId } : {}),
             occurredAt,
-            ...(latestPoint ? { lat: latestPoint.lat, lng: latestPoint.lng } : {}),
+            ...(eventPoint ? { lat: eventPoint.lat, lng: eventPoint.lng } : {}),
           }).catch(() => {
             /* アラート表示済みのため、保存失敗はここでは握りつぶします。 */
           });

@@ -42,7 +42,7 @@ export function useWalkSession() {
       stopWalkTracking();
 
       const walk = await startWalkMutation.mutateAsync(selectedDogIds);
-      startRecording(walk.id);
+      startRecording(walk.id, walk.dogs);
       const startedAt = useWalkStore.getState().startedAt ?? new Date(walk.startedAt);
 
       startWalkLiveActivity(

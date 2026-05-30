@@ -183,7 +183,7 @@ describe('useWalkSession.start', () => {
       await result.current.start({ selectedDogIds: ['dog-1'] });
     });
 
-    expect(mockStoreStartRecording).toHaveBeenCalledWith('walk-1');
+    expect(mockStoreStartRecording).toHaveBeenCalledWith('walk-1', [dog]);
   });
 
   it('starts the lock screen live activity with current walk data', async () => {

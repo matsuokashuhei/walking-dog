@@ -6,15 +6,8 @@ import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
 import { spacing, radius, typography } from '@/theme/tokens';
 import { formatClockTime } from '@/lib/walk/format';
-import type { WalkEvent, WalkEventType } from '@/types/graphql';
-
-const EVENT_CONFIG: Record<WalkEventType, { emoji: string }> = {
-  pee: { emoji: '🚽' },
-  poo: { emoji: '💩' },
-  sniff: { emoji: '🐽' },
-  greet: { emoji: '🐾' },
-  photo: { emoji: '📷' },
-};
+import { WALK_EVENT_EMOJIS } from '@/lib/walk/events';
+import type { WalkEvent } from '@/types/graphql';
 
 interface WalkEventTimelineProps {
   events: WalkEvent[];
@@ -34,14 +27,14 @@ export function WalkEventTimeline({ events }: WalkEventTimelineProps) {
     <View style={styles.container}>
       {events.map((event) => {
         // イベント種別から表示アイコンと翻訳ラベルを決め、発生時刻と一緒に表示します。
-        const config = EVENT_CONFIG[event.eventType];
+        const emoji = WALK_EVENT_EMOJIS[event.eventType];
         const label = t(`walk.event.${event.eventType}`);
         const time = formatClockTime(event.occurredAt);
 
         return (
           <View key={event.id} style={[styles.row, { borderBottomColor: theme.border + '33' }]}>
             <Text style={styles.time}>{time}</Text>
-            <Text style={styles.emoji}>{config.emoji}</Text>
+            <Text style={styles.emoji}>{emoji}</Text>
             <Text style={[styles.label, { color: theme.onSurface }]}>{label}</Text>
             {/* 写真イベントだけサムネイルを押せるようにし、通常イベントは文字表示に留めます。 */}
             {event.eventType === 'photo' && event.photoUrl ? (

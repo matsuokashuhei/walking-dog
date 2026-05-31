@@ -121,7 +121,7 @@ describe('EditDogScreen', () => {
           breed: 'Golden Retriever',
           gender: 'MALE',
           birthday: null,
-          dailyGoalMinutes: 45,
+          walkGoal: { minutes: 45, cycleDays: 1 },
         },
       });
     });
@@ -138,7 +138,29 @@ describe('EditDogScreen', () => {
       expect(mockUpdateDog).toHaveBeenCalledWith({
         id: 'dog-1',
         input: expect.objectContaining({
-          dailyGoalMinutes: 30,
+          walkGoal: { minutes: 30, cycleDays: 1 },
+        }),
+      });
+    });
+  });
+
+  it('saves an existing weekly goal as minutes plus cycle days', async () => {
+    mockDog = {
+      ...mockDogBase,
+      walkGoal: {
+        ...mockDogBase.walkGoal,
+        walkAmount: { minutes: 210, cycleDays: 7 },
+      },
+    };
+    render(<EditDogScreen />);
+
+    fireEvent.press(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(mockUpdateDog).toHaveBeenCalledWith({
+        id: 'dog-1',
+        input: expect.objectContaining({
+          walkGoal: { minutes: 210, cycleDays: 7 },
         }),
       });
     });
@@ -207,7 +229,7 @@ describe('EditDogScreen', () => {
           breed: 'Golden Retriever',
           gender: 'MALE',
           birthday: null,
-          dailyGoalMinutes: 45,
+          walkGoal: { minutes: 45, cycleDays: 1 },
           avatarFile: {
             uri: 'file:///buddy.png',
             name: 'buddy.png',

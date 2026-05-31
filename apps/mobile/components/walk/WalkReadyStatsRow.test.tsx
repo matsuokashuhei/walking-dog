@@ -5,7 +5,8 @@ jest.mock('@/hooks/use-color-scheme', () => ({ useColorScheme: () => 'light' }))
 jest.mock('@/hooks/use-pack-progress', () => ({
   usePackProgress: () => ({
     todayKm: 3.52,
-    todayMinutes: 45,
+    todayMinutes: 15,
+    goalProgressMinutes: 45,
     goalMinutes: 90,
     progressPct: 50,
     packStreakDays: 12,

@@ -50,7 +50,7 @@ impl DogWalkGoalMutation {
 }
 
 #[derive(Clone, Debug, InputObject)]
-struct WalkAmountInput {
+pub(crate) struct WalkAmountInput {
     minutes: i32,
     cycle_days: i32,
 }

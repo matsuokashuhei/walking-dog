@@ -4,6 +4,7 @@ use sea_orm::DatabaseConnection;
 use tracing::error;
 use uuid::Uuid;
 
+use super::dog_walk_goal::WalkAmountInput;
 use crate::graphql::{
     error::AppError,
     guard::AuthGuard,
@@ -65,11 +66,13 @@ impl DogMutation {
             avatar,
             birthday,
             daily_goal_minutes,
+            walk_goal,
         } = input;
         let avatar = match avatar {
             Some(file) => Some(upload_dog_avatar(ctx, file).await?),
             None => None,
         };
+        let (daily_goal_minutes, walk_goal) = update_goal_values(daily_goal_minutes, walk_goal)?;
         let updated_dog = dog_service::update_dog(
             db,
             user.id,
@@ -80,7 +83,8 @@ impl DogMutation {
                 gender: gender.map(gender_to_type),
                 avatar,
                 birthday: birthday_update(birthday),
-                daily_goal_minutes: daily_goal_minutes_value(daily_goal_minutes)?,
+                daily_goal_minutes,
+                walk_goal,
             },
             chrono::Utc::now().date_naive(),
         )
@@ -140,6 +144,9 @@ struct UpdateDogInput {
     // Omitted leaves the current goal unchanged. Explicit null is rejected so
     // clients cannot accidentally erase an edit-screen goal.
     daily_goal_minutes: MaybeUndefined<i32>,
+    // Omitted leaves the current goal unchanged. Explicit null is rejected.
+    // Prefer this over dailyGoalMinutes so the goal cycle can be edited.
+    walk_goal: MaybeUndefined<WalkAmountInput>,
 }
 
 #[derive(Debug, Clone, InputObject)]
@@ -163,13 +170,26 @@ fn birthday_update(birthday: MaybeUndefined<BirthdayInput>) -> FieldUpdate<Optio
     }
 }
 
-fn daily_goal_minutes_value(daily_goal_minutes: MaybeUndefined<i32>) -> Result<Option<i32>> {
-    match daily_goal_minutes {
-        MaybeUndefined::Undefined => Ok(None),
-        MaybeUndefined::Null => {
+fn update_goal_values(
+    daily_goal_minutes: MaybeUndefined<i32>,
+    walk_goal: MaybeUndefined<WalkAmountInput>,
+) -> Result<(Option<i32>, Option<crate::entity::walk_amount::Model>)> {
+    match (daily_goal_minutes, walk_goal) {
+        (MaybeUndefined::Undefined, MaybeUndefined::Undefined) => Ok((None, None)),
+        (MaybeUndefined::Null, _) => {
             Err(AppError::UnprocessableEntity("dailyGoalMinutes cannot be null".into()).into())
         }
-        MaybeUndefined::Value(minutes) => Ok(Some(minutes)),
+        (_, MaybeUndefined::Null) => {
+            Err(AppError::UnprocessableEntity("walkGoal cannot be null".into()).into())
+        }
+        (MaybeUndefined::Value(_), MaybeUndefined::Value(_)) => Err(AppError::UnprocessableEntity(
+            "walkGoal and dailyGoalMinutes cannot both be provided".into(),
+        )
+        .into()),
+        (MaybeUndefined::Value(minutes), MaybeUndefined::Undefined) => Ok((Some(minutes), None)),
+        (MaybeUndefined::Undefined, MaybeUndefined::Value(walk_goal)) => {
+            Ok((None, Some(walk_goal.into())))
+        }
     }
 }
 

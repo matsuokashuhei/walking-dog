@@ -11,6 +11,7 @@ import {
   type DogFormValues,
 } from '@/components/dogs/DogForm';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { DAILY_GOAL_CYCLE_DAYS, DEFAULT_DAILY_GOAL_MINUTES } from '@/constants/walk';
 import { useColors } from '@/hooks/use-colors';
 import { spacing } from '@/theme/tokens';
 
@@ -28,6 +29,8 @@ export default function NewDogScreen() {
     birthdayYear: '',
     birthdayMonth: '',
     birthdayDay: '',
+    goalMinutes: DEFAULT_DAILY_GOAL_MINUTES,
+    goalCycleDays: DAILY_GOAL_CYCLE_DAYS,
   });
   const [submitting, setSubmitting] = useState(false);
 

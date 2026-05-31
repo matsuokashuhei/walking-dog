@@ -7,7 +7,7 @@ use sea_orm::{
 use uuid::Uuid;
 
 use crate::{
-    entity::{birthday, dog, sea_orm_active_enums::GenderType, user_dog},
+    entity::{birthday, dog, sea_orm_active_enums::GenderType, user_dog, walk_amount},
     service::{
         dog_walk_goal,
         error::{ServiceError, ServiceResult, map_transaction_error},
@@ -38,6 +38,7 @@ pub struct UpdateDogCommand {
     pub avatar: Option<String>,
     pub birthday: FieldUpdate<Option<birthday::Model>>,
     pub daily_goal_minutes: Option<i32>,
+    pub walk_goal: Option<walk_amount::Model>,
 }
 
 pub async fn add_dog(
@@ -76,7 +77,9 @@ pub async fn update_dog(
             ensure_owned(txn, user_id, command.id).await?;
 
             let updated_dog = command.clone().into_active_model().update(txn).await?;
-            if let Some(minutes) = command.daily_goal_minutes {
+            if let Some(walk_goal) = command.walk_goal {
+                dog_walk_goal::upsert_goal(txn, command.id, walk_goal, today).await?;
+            } else if let Some(minutes) = command.daily_goal_minutes {
                 dog_walk_goal::upsert_daily_goal(txn, command.id, minutes, today).await?;
             }
 

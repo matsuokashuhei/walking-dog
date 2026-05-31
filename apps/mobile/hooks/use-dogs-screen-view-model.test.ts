@@ -26,13 +26,16 @@ let mockIsLoading = false;
 let mockPack = {
   todayKm: 1.42,
   todayMinutes: 24,
+  goalProgressMinutes: 24,
   goalMinutes: 30,
   progressPct: 80,
   perDog: {
     'dog-1': {
       todayKm: 1.42,
       todayMinutes: 24,
-      dailyGoalMinutes: 30,
+      goalProgressMinutes: 24,
+      goalMinutes: 30,
+      goalCycleDays: 1,
       totalWalks: 10,
       streakDays: 3,
     },
@@ -75,13 +78,16 @@ describe('useDogsScreenViewModel', () => {
     mockPack = {
       todayKm: 1.42,
       todayMinutes: 24,
+      goalProgressMinutes: 24,
       goalMinutes: 30,
       progressPct: 80,
       perDog: {
         'dog-1': {
           todayKm: 1.42,
           todayMinutes: 24,
-          dailyGoalMinutes: 30,
+          goalProgressMinutes: 24,
+          goalMinutes: 30,
+          goalCycleDays: 1,
           totalWalks: 10,
           streakDays: 3,
         },

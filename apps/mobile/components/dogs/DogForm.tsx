@@ -1,8 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
   ActionSheetIOS,
-  type GestureResponderEvent,
-  type LayoutChangeEvent,
   Modal,
   Platform,
   Pressable,
@@ -12,17 +10,24 @@ import {
   View,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Host, Slider as SwiftUISlider } from '@expo/ui/swift-ui';
 import { GroupedCard } from '@/components/ui/GroupedCard';
+import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { TextInput } from '@/components/ui/TextInput';
 import {
+  DAILY_GOAL_CYCLE_DAYS,
   DAILY_GOAL_STEP_MINUTES,
   DEFAULT_DAILY_GOAL_MINUTES,
+  type GoalCycleDays,
   MAX_DAILY_GOAL_MINUTES,
+  MAX_WEEKLY_GOAL_MINUTES,
   MIN_DAILY_GOAL_MINUTES,
+  MIN_WEEKLY_GOAL_MINUTES,
+  WEEKLY_GOAL_CYCLE_DAYS,
 } from '@/constants/walk';
 import { useColors } from '@/hooks/use-colors';
-import { components, elevation, radius, spacing, typography } from '@/theme/tokens';
+import { components, radius, spacing, typography } from '@/theme/tokens';
 import type { Birthday, BirthdayInput } from '@/types/graphql';
 
 export interface DogFormValues {
@@ -34,7 +39,8 @@ export interface DogFormValues {
   birthdayYear: string;
   birthdayMonth: string;
   birthdayDay: string;
-  dailyGoalMinutes?: number;
+  goalMinutes: number;
+  goalCycleDays: GoalCycleDays;
 }
 
 interface DogFormProps {
@@ -223,9 +229,10 @@ export function DogForm({ values, onChange, showDailyGoal = true }: DogFormProps
         </Pressable>
       </GroupedCard>
       {showDailyGoal ? (
-        <DailyGoalSection
-          minutes={values.dailyGoalMinutes ?? DEFAULT_DAILY_GOAL_MINUTES}
-          onChange={(dailyGoalMinutes) => set({ dailyGoalMinutes })}
+        <GoalSection
+          minutes={values.goalMinutes}
+          cycleDays={values.goalCycleDays}
+          onChange={(goalMinutes, goalCycleDays) => set({ goalMinutes, goalCycleDays })}
         />
       ) : null}
       <Modal
@@ -308,101 +315,79 @@ export function DogForm({ values, onChange, showDailyGoal = true }: DogFormProps
   );
 }
 
-interface DailyGoalSectionProps {
+interface GoalSectionProps {
   minutes: number;
-  onChange: (minutes: number) => void;
+  cycleDays: GoalCycleDays;
+  onChange: (minutes: number, cycleDays: GoalCycleDays) => void;
 }
 
-function DailyGoalSection({ minutes, onChange }: DailyGoalSectionProps) {
+function GoalSection({ minutes, cycleDays, onChange }: GoalSectionProps) {
   const { t } = useTranslation();
   const theme = useColors();
-  const [trackWidth, setTrackWidth] = useState(0);
-  const clampedMinutes = clampDailyGoalMinutes(minutes);
-  const progress =
-    (clampedMinutes - MIN_DAILY_GOAL_MINUTES) /
-    (MAX_DAILY_GOAL_MINUTES - MIN_DAILY_GOAL_MINUTES);
+  const clampedMinutes = clampGoalMinutes(minutes, cycleDays);
+  const minMinutes = getGoalMinMinutes(cycleDays);
+  const maxMinutes = getGoalMaxMinutes(cycleDays);
+  const cycleOptions = [
+    { label: t('dogs.form.goalCycleDaily'), value: String(DAILY_GOAL_CYCLE_DAYS) },
+    { label: t('dogs.form.goalCycleWeekly'), value: String(WEEKLY_GOAL_CYCLE_DAYS) },
+  ];
 
   function setFromMinutes(nextMinutes: number) {
-    onChange(clampDailyGoalMinutes(nextMinutes));
+    onChange(clampGoalMinutes(nextMinutes, cycleDays), cycleDays);
   }
 
-  function setFromPress(event: GestureResponderEvent) {
-    if (trackWidth <= 0) return;
-    const x = Math.max(0, Math.min(trackWidth, event.nativeEvent.locationX));
-    const ratio = x / trackWidth;
-    const raw =
-      MIN_DAILY_GOAL_MINUTES +
-      ratio * (MAX_DAILY_GOAL_MINUTES - MIN_DAILY_GOAL_MINUTES);
-    setFromMinutes(raw);
-  }
-
-  function handleTrackLayout(event: LayoutChangeEvent) {
-    setTrackWidth(event.nativeEvent.layout.width);
+  function setCycle(nextCycleValue: string) {
+    const nextCycle =
+      nextCycleValue === String(WEEKLY_GOAL_CYCLE_DAYS)
+        ? WEEKLY_GOAL_CYCLE_DAYS
+        : DAILY_GOAL_CYCLE_DAYS;
+    onChange(convertGoalMinutesForCycle(clampedMinutes, cycleDays, nextCycle), nextCycle);
   }
 
   return (
     <View style={styles.dailyGoalWrap}>
       <Text style={[styles.sectionLabel, { color: theme.onSurfaceVariant }]}>
-        {t('dogs.form.dailyGoal')}
+        {t('dogs.form.goal')}
       </Text>
       <GroupedCard style={styles.dailyGoalCard}>
-        <View style={styles.dailyGoalHeader}>
+        <View style={styles.goalCycleRow}>
           <Text style={[styles.dailyGoalTitle, { color: theme.onSurface }]}>
-            {t('dogs.form.dailyGoalTime')}
+            {t('dogs.form.goalCycle')}
           </Text>
-          <Text style={[styles.dailyGoalValue, { color: theme.onSurface }]}>
-            {t('dogs.form.dailyGoalMinutes', { count: clampedMinutes })}
-          </Text>
-        </View>
-        <Pressable
-          accessibilityRole="adjustable"
-          accessibilityLabel={t('dogs.form.dailyGoalAccessibility')}
-          accessibilityValue={{
-            min: MIN_DAILY_GOAL_MINUTES,
-            max: MAX_DAILY_GOAL_MINUTES,
-            now: clampedMinutes,
-            text: t('dogs.form.dailyGoalMinutes', { count: clampedMinutes }),
-          }}
-          accessibilityActions={[
-            { name: 'increment', label: t('dogs.form.dailyGoalIncrease') },
-            { name: 'decrement', label: t('dogs.form.dailyGoalDecrease') },
-          ]}
-          onAccessibilityAction={(event) => {
-            if (event.nativeEvent.actionName === 'increment') {
-              setFromMinutes(clampedMinutes + DAILY_GOAL_STEP_MINUTES);
-            } else if (event.nativeEvent.actionName === 'decrement') {
-              setFromMinutes(clampedMinutes - DAILY_GOAL_STEP_MINUTES);
-            }
-          }}
-          onPress={setFromPress}
-          onLayout={handleTrackLayout}
-          style={styles.goalTrackTouch}
-        >
-          <View style={[styles.goalTrack, { backgroundColor: theme.surfaceContainer }]}>
-            <View
-              style={[
-                styles.goalTrackFill,
-                { backgroundColor: theme.interactive, width: `${progress * 100}%` },
-              ]}
-            />
-            <View
-              style={[
-                styles.goalThumb,
-                {
-                  backgroundColor: theme.surface,
-                  borderColor: theme.border,
-                  left: `${progress * 100}%`,
-                },
-              ]}
+          <View style={styles.goalCycleControl}>
+            <SegmentedControl
+              options={cycleOptions}
+              value={String(cycleDays)}
+              onChange={setCycle}
+              testID="dog-goal-cycle-segmented-control"
             />
           </View>
-        </Pressable>
+        </View>
+        <View style={[styles.goalSeparator, { backgroundColor: theme.border }]} />
+        <View style={styles.dailyGoalHeader}>
+          <Text style={[styles.dailyGoalTitle, { color: theme.onSurface }]}>
+            {t('dogs.form.goalTime')}
+          </Text>
+          <Text style={[styles.dailyGoalValue, { color: theme.onSurface }]}>
+            {t('dogs.form.goalMinutes', { count: clampedMinutes })}
+          </Text>
+        </View>
+        <Host style={styles.goalSliderHost}>
+          <SwiftUISlider
+            value={clampedMinutes}
+            min={minMinutes}
+            max={maxMinutes}
+            step={DAILY_GOAL_STEP_MINUTES}
+            onValueChange={setFromMinutes}
+            testID="dog-goal-slider"
+          />
+        </Host>
         <View style={styles.goalLimits}>
           <Text style={[styles.goalLimitText, { color: theme.textDisabled }]}>
-            {t('dogs.form.dailyGoalMinutes', { count: MIN_DAILY_GOAL_MINUTES })}
+            {t('dogs.form.goalMinutes', { count: minMinutes })}
           </Text>
           <Text style={[styles.goalLimitText, { color: theme.textDisabled }]}>
-            {t('dogs.form.dailyGoalMinutes', { count: MAX_DAILY_GOAL_MINUTES })}
+            {t('dogs.form.goalMinutes', { count: maxMinutes })}
           </Text>
         </View>
       </GroupedCard>
@@ -506,13 +491,46 @@ export function isDogFormValid(values: DogFormValues): boolean {
 }
 
 export function clampDailyGoalMinutes(minutes: number): number {
+  return clampGoalMinutes(minutes, DAILY_GOAL_CYCLE_DAYS);
+}
+
+export function clampGoalMinutes(minutes: number, cycleDays: GoalCycleDays): number {
   const finiteMinutes = Number.isFinite(minutes) ? minutes : DEFAULT_DAILY_GOAL_MINUTES;
   const rounded =
     Math.round(finiteMinutes / DAILY_GOAL_STEP_MINUTES) * DAILY_GOAL_STEP_MINUTES;
   return Math.min(
-    MAX_DAILY_GOAL_MINUTES,
-    Math.max(MIN_DAILY_GOAL_MINUTES, rounded),
+    getGoalMaxMinutes(cycleDays),
+    Math.max(getGoalMinMinutes(cycleDays), rounded),
   );
+}
+
+export function normalizeGoalCycleDays(cycleDays: number | null | undefined): GoalCycleDays {
+  return cycleDays === WEEKLY_GOAL_CYCLE_DAYS ? WEEKLY_GOAL_CYCLE_DAYS : DAILY_GOAL_CYCLE_DAYS;
+}
+
+function convertGoalMinutesForCycle(
+  minutes: number,
+  currentCycle: GoalCycleDays,
+  nextCycle: GoalCycleDays,
+): number {
+  if (currentCycle === nextCycle) return clampGoalMinutes(minutes, nextCycle);
+  const nextMinutes =
+    nextCycle === WEEKLY_GOAL_CYCLE_DAYS
+      ? minutes * WEEKLY_GOAL_CYCLE_DAYS
+      : minutes / WEEKLY_GOAL_CYCLE_DAYS;
+  return clampGoalMinutes(nextMinutes, nextCycle);
+}
+
+function getGoalMinMinutes(cycleDays: GoalCycleDays): number {
+  return cycleDays === WEEKLY_GOAL_CYCLE_DAYS
+    ? MIN_WEEKLY_GOAL_MINUTES
+    : MIN_DAILY_GOAL_MINUTES;
+}
+
+function getGoalMaxMinutes(cycleDays: GoalCycleDays): number {
+  return cycleDays === WEEKLY_GOAL_CYCLE_DAYS
+    ? MAX_WEEKLY_GOAL_MINUTES
+    : MAX_DAILY_GOAL_MINUTES;
 }
 
 // フォームの 3 つの文字列を API 入力（任意の年・月・日）へ変換する。
@@ -622,6 +640,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: spacing.step12,
   },
+  goalCycleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.step12,
+    marginBottom: spacing.step12,
+  },
+  goalCycleControl: {
+    flex: 1,
+  },
+  goalSeparator: {
+    height: StyleSheet.hairlineWidth,
+    marginBottom: spacing.step12,
+  },
   dailyGoalTitle: {
     ...typography.subheadline,
   },
@@ -629,28 +660,9 @@ const styles = StyleSheet.create({
     ...typography.headline,
     fontVariant: ['tabular-nums'],
   },
-  goalTrackTouch: {
+  goalSliderHost: {
     height: spacing.step44,
-    justifyContent: 'center',
-  },
-  goalTrack: {
-    height: spacing.step6,
-    borderRadius: radius.full,
-    overflow: 'visible',
-  },
-  goalTrackFill: {
-    height: '100%',
-    borderRadius: radius.full,
-  },
-  goalThumb: {
-    ...elevation.low,
-    position: 'absolute',
-    top: -(spacing.lg - spacing.step6) / 2,
-    width: spacing.lg,
-    height: spacing.lg,
-    marginLeft: -spacing.step12,
-    borderRadius: radius.full,
-    borderWidth: StyleSheet.hairlineWidth,
+    width: '100%',
   },
   goalLimits: {
     flexDirection: 'row',

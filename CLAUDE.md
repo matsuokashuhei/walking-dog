@@ -23,7 +23,7 @@
 
 ## Domain Notes
 
-- Daily walk goals are time-based, not distance-based. Store and edit them through `dog_walk_goal.walk_amount.minutes` with `cycle_days = 1`; keep distance metrics as separate stats.
+- Walk goals are time-based, not distance-based. Store and edit them through `dog_walk_goal.walk_amount.minutes` plus `cycle_days` (`1` for DAILY, `7` for WEEKLY); keep distance metrics as separate stats.
 
 ## Development Rules
 

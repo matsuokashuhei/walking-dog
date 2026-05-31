@@ -187,6 +187,7 @@ export interface UpdateDogInput {
   avatar?: string;
   photoUrl?: string;
   dailyGoalMinutes?: number;
+  walkGoal?: WalkAmount;
 }
 
 export interface BirthdayInput {

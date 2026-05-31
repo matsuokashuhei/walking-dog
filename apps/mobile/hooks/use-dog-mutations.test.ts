@@ -80,7 +80,7 @@ describe('useUpdateDog', () => {
           breed: 'Golden Retriever',
           gender: 'male',
           birthday: null,
-          dailyGoalMinutes: 45,
+          walkGoal: { minutes: 45, cycleDays: 1 },
         },
       });
     });
@@ -93,7 +93,7 @@ describe('useUpdateDog', () => {
         breed: 'Golden Retriever',
         gender: 'MALE',
         birthday: null,
-        dailyGoalMinutes: 45,
+        walkGoal: { minutes: 45, cycleDays: 1 },
       },
     });
     expect(mockAuthenticatedMultipartRequest).not.toHaveBeenCalled();
@@ -118,7 +118,7 @@ describe('useUpdateDog', () => {
           breed: 'Golden Retriever',
           gender: 'female',
           birthday: null,
-          dailyGoalMinutes: 60,
+          walkGoal: { minutes: 420, cycleDays: 7 },
           avatarFile,
         },
       });
@@ -134,7 +134,7 @@ describe('useUpdateDog', () => {
           breed: 'Golden Retriever',
           gender: 'FEMALE',
           birthday: null,
-          dailyGoalMinutes: 60,
+          walkGoal: { minutes: 420, cycleDays: 7 },
           avatar: null,
         },
       },

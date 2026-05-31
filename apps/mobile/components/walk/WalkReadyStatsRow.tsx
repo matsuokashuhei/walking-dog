@@ -30,7 +30,7 @@ export function WalkReadyStatsRow() {
     {
       label: t('walk.ready.stats.goal'),
       value: t('walk.ready.stats.goalMinutes', {
-        done: pack.todayMinutes,
+        done: pack.goalProgressMinutes,
         goal: pack.goalMinutes,
       }),
     },

@@ -1,5 +1,10 @@
 import { useMemo } from 'react';
-import { DEFAULT_DAILY_GOAL_MINUTES } from '@/constants/walk';
+import {
+  DAILY_GOAL_CYCLE_DAYS,
+  DEFAULT_DAILY_GOAL_MINUTES,
+  type GoalCycleDays,
+  WEEKLY_GOAL_CYCLE_DAYS,
+} from '@/constants/walk';
 import { useMe } from './use-me';
 import { useMyWalks } from './use-walks';
 import type { Dog, Walk } from '@/types/graphql';
@@ -8,7 +13,9 @@ import type { Dog, Walk } from '@/types/graphql';
 interface DogProgress {
   todayKm: number;
   todayMinutes: number;
-  dailyGoalMinutes: number;
+  goalProgressMinutes: number;
+  goalMinutes: number;
+  goalCycleDays: GoalCycleDays;
   totalWalks: number;
   streakDays: number;
 }
@@ -17,6 +24,7 @@ interface DogProgress {
 export interface PackProgress {
   todayKm: number;
   todayMinutes: number;
+  goalProgressMinutes: number;
   goalMinutes: number;
   progressPct: number;
   packStreakDays: number;
@@ -75,13 +83,14 @@ export function aggregatePackProgress(
   const dogDays = new Map<string, Set<string>>();
   const dogTodayM = new Map<string, number>();
   const dogTodayMinutes = new Map<string, number>();
+  const dogGoalProgressMinutes = new Map<string, number>();
   const dogTotalWalks = new Map<string, number>();
-  const dogGoalMinutes = new Map<string, number>();
+  const dogGoals = new Map<string, { minutes: number; cycleDays: GoalCycleDays }>();
 
   for (const dog of dogs) {
-    dogGoalMinutes.set(dog.id, getDailyGoalMinutes(dog));
+    dogGoals.set(dog.id, getGoal(dog));
   }
-  const currentDogIds = new Set(dogGoalMinutes.keys());
+  const currentDogIds = new Set(dogGoals.keys());
   const hasCurrentDogs = currentDogIds.size > 0;
 
   // 散歩単位の距離をパック全体へ、参加中の犬ごとには個別進捗へ積み上げます。
@@ -111,6 +120,13 @@ export function aggregatePackProgress(
         );
         packTodayMinutes += durationMinutes;
       }
+      const goal = dogGoals.get(dog.id) ?? defaultGoal();
+      if (isInGoalWindow(dayKey, goal.cycleDays, now)) {
+        dogGoalProgressMinutes.set(
+          dog.id,
+          (dogGoalProgressMinutes.get(dog.id) ?? 0) + durationMinutes,
+        );
+      }
     }
 
     if (includesCurrentDog) {
@@ -120,30 +136,38 @@ export function aggregatePackProgress(
   }
 
   const perDog: Record<string, DogProgress> = {};
-  const dogIds = new Set([...dogGoalMinutes.keys(), ...dogDays.keys()]);
+  const dogIds = new Set([...dogGoals.keys(), ...dogDays.keys()]);
   for (const dogId of dogIds) {
     const days = dogDays.get(dogId) ?? new Set<string>();
+    const goal = dogGoals.get(dogId) ?? defaultGoal();
     perDog[dogId] = {
       todayKm: (dogTodayM.get(dogId) ?? 0) / 1000,
       todayMinutes: dogTodayMinutes.get(dogId) ?? 0,
-      dailyGoalMinutes: dogGoalMinutes.get(dogId) ?? DEFAULT_DAILY_GOAL_MINUTES,
+      goalProgressMinutes: dogGoalProgressMinutes.get(dogId) ?? 0,
+      goalMinutes: goal.minutes,
+      goalCycleDays: goal.cycleDays,
       totalWalks: dogTotalWalks.get(dogId) ?? 0,
       streakDays: computeStreak(days, now),
     };
   }
 
   const todayKm = packTodayM / 1000;
+  const goalProgressMinutes = Array.from(dogIds).reduce(
+    (total, dogId) => total + (dogGoalProgressMinutes.get(dogId) ?? 0),
+    0,
+  );
   const goalMinutes = Array.from(dogIds).reduce(
-    (total, dogId) => total + (dogGoalMinutes.get(dogId) ?? DEFAULT_DAILY_GOAL_MINUTES),
+    (total, dogId) => total + (dogGoals.get(dogId)?.minutes ?? DEFAULT_DAILY_GOAL_MINUTES),
     0,
   );
   const progressPct =
-    goalMinutes > 0 ? Math.min(100, Math.round((packTodayMinutes / goalMinutes) * 100)) : 0;
+    goalMinutes > 0 ? Math.min(100, Math.round((goalProgressMinutes / goalMinutes) * 100)) : 0;
   const packStreakDays = computeStreak(packDays, now);
 
   return {
     todayKm,
     todayMinutes: packTodayMinutes,
+    goalProgressMinutes,
     goalMinutes,
     progressPct,
     packStreakDays,
@@ -164,11 +188,45 @@ export function usePackProgress(): PackProgress {
   }, [data, isLoading, isMeLoading, me?.dogs]);
 }
 
-function getDailyGoalMinutes(dog: Dog): number {
+function getGoal(dog: Dog): { minutes: number; cycleDays: GoalCycleDays } {
   const minutes = dog.walkGoal?.walkAmount.minutes;
-  return typeof minutes === 'number' && Number.isInteger(minutes) && minutes > 0
-    ? minutes
-    : DEFAULT_DAILY_GOAL_MINUTES;
+  const cycleDays = dog.walkGoal?.walkAmount.cycleDays;
+  if (
+    typeof minutes === 'number' &&
+    Number.isInteger(minutes) &&
+    minutes > 0 &&
+    (cycleDays === DAILY_GOAL_CYCLE_DAYS || cycleDays === WEEKLY_GOAL_CYCLE_DAYS)
+  ) {
+    return { minutes, cycleDays };
+  }
+  return defaultGoal();
+}
+
+function defaultGoal(): { minutes: number; cycleDays: GoalCycleDays } {
+  return {
+    minutes: DEFAULT_DAILY_GOAL_MINUTES,
+    cycleDays: DAILY_GOAL_CYCLE_DAYS,
+  };
+}
+
+function isInGoalWindow(
+  dayKey: string,
+  cycleDays: GoalCycleDays,
+  now: Date,
+): boolean {
+  if (!dayKey) return false;
+  const todayKey = localDayKey(now);
+  const startKey =
+    cycleDays === WEEKLY_GOAL_CYCLE_DAYS
+      ? localDayKey(startOfMondayWeek(now))
+      : todayKey;
+  return dayKey >= startKey && dayKey <= todayKey;
+}
+
+function startOfMondayWeek(date: Date): Date {
+  const day = date.getDay();
+  const daysSinceMonday = (day + 6) % 7;
+  return shiftDay(date, -daysSinceMonday);
 }
 
 function durationSecToMinutes(durationSec: number | null): number {

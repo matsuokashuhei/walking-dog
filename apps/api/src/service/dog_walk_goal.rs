@@ -15,18 +15,21 @@ use crate::{
 pub const MIN_DAILY_GOAL_MINUTES: i32 = 10;
 pub const MAX_DAILY_GOAL_MINUTES: i32 = 120;
 pub const DAILY_GOAL_CYCLE_DAYS: i32 = 1;
+pub const WEEKLY_GOAL_CYCLE_DAYS: i32 = 7;
+pub const MIN_WEEKLY_GOAL_MINUTES: i32 = MIN_DAILY_GOAL_MINUTES * WEEKLY_GOAL_CYCLE_DAYS;
+pub const MAX_WEEKLY_GOAL_MINUTES: i32 = MAX_DAILY_GOAL_MINUTES * WEEKLY_GOAL_CYCLE_DAYS;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum DailyGoalUpsertPlan {
+pub enum GoalUpsertPlan {
     Insert {
-        minutes: i32,
+        walk_amount: walk_amount::Model,
     },
     UpdateCurrent {
-        minutes: i32,
+        walk_amount: walk_amount::Model,
     },
     ReplaceCurrent {
         close_existing_to: chrono::NaiveDate,
-        minutes: i32,
+        walk_amount: walk_amount::Model,
     },
     Noop,
 }
@@ -40,47 +43,61 @@ pub fn validate_daily_goal_minutes(minutes: i32) -> ServiceResult<i32> {
     Ok(minutes)
 }
 
+pub fn validate_goal_walk_amount(input: &walk_amount::Model) -> ServiceResult<walk_amount::Model> {
+    match input.cycle_days {
+        DAILY_GOAL_CYCLE_DAYS => {
+            if !(MIN_DAILY_GOAL_MINUTES..=MAX_DAILY_GOAL_MINUTES).contains(&input.minutes) {
+                return Err(ServiceError::UnprocessableEntity(
+                    "walkGoal.minutes must be between 10 and 120 for DAILY".into(),
+                ));
+            }
+        }
+        WEEKLY_GOAL_CYCLE_DAYS => {
+            if !(MIN_WEEKLY_GOAL_MINUTES..=MAX_WEEKLY_GOAL_MINUTES).contains(&input.minutes) {
+                return Err(ServiceError::UnprocessableEntity(
+                    "walkGoal.minutes must be between 70 and 840 for WEEKLY".into(),
+                ));
+            }
+        }
+        _ => {
+            return Err(ServiceError::UnprocessableEntity(
+                "walkGoal.cycleDays must be 1 or 7".into(),
+            ));
+        }
+    }
+    Ok(input.clone())
+}
+
 pub fn validate_walk_amount(input: &walk_amount::Model) -> ServiceResult<()> {
-    if input.minutes <= 0 {
-        return Err(ServiceError::UnprocessableEntity(
-            "walkAmount.minutes must be > 0".into(),
-        ));
-    }
-    if input.cycle_days < 1 {
-        return Err(ServiceError::UnprocessableEntity(
-            "walkAmount.cycleDays must be >= 1".into(),
-        ));
-    }
+    validate_goal_walk_amount(input)?;
     Ok(())
 }
 
-pub fn plan_daily_goal_upsert(
+pub fn plan_goal_upsert(
     current: Option<&dog_walk_goal::Model>,
-    minutes: i32,
+    walk_amount: walk_amount::Model,
     today: chrono::NaiveDate,
-) -> ServiceResult<DailyGoalUpsertPlan> {
-    validate_daily_goal_minutes(minutes)?;
+) -> ServiceResult<GoalUpsertPlan> {
+    let walk_amount = validate_goal_walk_amount(&walk_amount)?;
 
     let Some(current) = current else {
-        return Ok(DailyGoalUpsertPlan::Insert { minutes });
+        return Ok(GoalUpsertPlan::Insert { walk_amount });
     };
 
-    if current.walk_amount.minutes == minutes
-        && current.walk_amount.cycle_days == DAILY_GOAL_CYCLE_DAYS
-    {
-        return Ok(DailyGoalUpsertPlan::Noop);
+    if current.walk_amount == walk_amount {
+        return Ok(GoalUpsertPlan::Noop);
     }
 
     if current.effective_from == today {
-        return Ok(DailyGoalUpsertPlan::UpdateCurrent { minutes });
+        return Ok(GoalUpsertPlan::UpdateCurrent { walk_amount });
     }
 
     if current.effective_from < today {
-        return Ok(DailyGoalUpsertPlan::ReplaceCurrent {
+        return Ok(GoalUpsertPlan::ReplaceCurrent {
             close_existing_to: today.pred_opt().ok_or_else(|| {
                 ServiceError::UnprocessableEntity("today cannot be the minimum date".into())
             })?,
-            minutes,
+            walk_amount,
         });
     }
 
@@ -89,10 +106,10 @@ pub fn plan_daily_goal_upsert(
     ))
 }
 
-pub async fn upsert_daily_goal<C>(
+pub async fn upsert_goal<C>(
     db: &C,
     dog_id: Uuid,
-    minutes: i32,
+    walk_amount: walk_amount::Model,
     today: chrono::NaiveDate,
 ) -> ServiceResult<()>
 where
@@ -104,27 +121,24 @@ where
         .one(db)
         .await?;
 
-    let plan = plan_daily_goal_upsert(current.as_ref(), minutes, today)?;
+    let plan = plan_goal_upsert(current.as_ref(), walk_amount, today)?;
     match plan {
-        DailyGoalUpsertPlan::Noop => {}
-        DailyGoalUpsertPlan::Insert { minutes } => {
-            insert_daily_goal(db, dog_id, minutes, today).await?;
+        GoalUpsertPlan::Noop => {}
+        GoalUpsertPlan::Insert { walk_amount } => {
+            insert_goal(db, dog_id, walk_amount, today).await?;
         }
-        DailyGoalUpsertPlan::UpdateCurrent { minutes } => {
+        GoalUpsertPlan::UpdateCurrent { walk_amount } => {
             let Some(current) = current else {
                 return Err(ServiceError::NotFound);
             };
             let mut active: dog_walk_goal::ActiveModel = current.into();
-            active.walk_amount = Set(walk_amount::Model {
-                minutes,
-                cycle_days: DAILY_GOAL_CYCLE_DAYS,
-            });
+            active.walk_amount = Set(walk_amount);
             active.updated_at = Set(chrono::Utc::now().into());
             active.update(db).await?;
         }
-        DailyGoalUpsertPlan::ReplaceCurrent {
+        GoalUpsertPlan::ReplaceCurrent {
             close_existing_to,
-            minutes,
+            walk_amount,
         } => {
             let Some(current) = current else {
                 return Err(ServiceError::NotFound);
@@ -133,11 +147,32 @@ where
             active.effective_to = Set(Some(close_existing_to));
             active.updated_at = Set(chrono::Utc::now().into());
             active.update(db).await?;
-            insert_daily_goal(db, dog_id, minutes, today).await?;
+            insert_goal(db, dog_id, walk_amount, today).await?;
         }
     }
 
     Ok(())
+}
+
+pub async fn upsert_daily_goal<C>(
+    db: &C,
+    dog_id: Uuid,
+    minutes: i32,
+    today: chrono::NaiveDate,
+) -> ServiceResult<()>
+where
+    C: ConnectionTrait,
+{
+    upsert_goal(
+        db,
+        dog_id,
+        walk_amount::Model {
+            minutes,
+            cycle_days: DAILY_GOAL_CYCLE_DAYS,
+        },
+        today,
+    )
+    .await
 }
 
 pub async fn set_goal_for_user(
@@ -238,10 +273,10 @@ where
     active.update(db).await.map_err(ServiceError::from)
 }
 
-async fn insert_daily_goal<C>(
+async fn insert_goal<C>(
     db: &C,
     dog_id: Uuid,
-    minutes: i32,
+    walk_amount: walk_amount::Model,
     effective_from: chrono::NaiveDate,
 ) -> ServiceResult<dog_walk_goal::Model>
 where
@@ -249,10 +284,7 @@ where
 {
     dog_walk_goal::ActiveModel {
         dog_id: Set(dog_id),
-        walk_amount: Set(walk_amount::Model {
-            minutes,
-            cycle_days: DAILY_GOAL_CYCLE_DAYS,
-        }),
+        walk_amount: Set(walk_amount),
         effective_from: Set(effective_from),
         effective_to: Set(None),
         ..Default::default()

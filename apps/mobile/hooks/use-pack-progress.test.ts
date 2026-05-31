@@ -31,7 +31,7 @@ function makeWalk(
   };
 }
 
-function makeDog(id: string, dailyGoalMinutes: number | null = 30): Dog {
+function makeDog(id: string, goalMinutes: number | null = 30, cycleDays: 1 | 7 = 1): Dog {
   return {
     id,
     name: `dog-${id}`,
@@ -41,12 +41,12 @@ function makeDog(id: string, dailyGoalMinutes: number | null = 30): Dog {
     photoUrl: null,
     createdAt: '2026-01-01T00:00:00Z',
     walkGoal:
-      dailyGoalMinutes === null
+      goalMinutes === null
         ? null
         : {
             id: `goal-${id}`,
             dogId: id,
-            walkAmount: { minutes: dailyGoalMinutes, cycleDays: 1 },
+            walkAmount: { minutes: goalMinutes, cycleDays },
             effectiveFrom: '2026-01-01',
             effectiveTo: null,
             createdAt: '2026-01-01T00:00:00Z',
@@ -63,6 +63,7 @@ describe('aggregatePackProgress', () => {
     expect(result).toEqual({
       todayKm: 0,
       todayMinutes: 0,
+      goalProgressMinutes: 0,
       goalMinutes: 30,
       progressPct: 0,
       packStreakDays: 0,
@@ -70,7 +71,9 @@ describe('aggregatePackProgress', () => {
         coco: {
           todayKm: 0,
           todayMinutes: 0,
-          dailyGoalMinutes: 30,
+          goalProgressMinutes: 0,
+          goalMinutes: 30,
+          goalCycleDays: 1,
           totalWalks: 0,
           streakDays: 0,
         },
@@ -111,6 +114,7 @@ describe('aggregatePackProgress', () => {
     ];
     const result = aggregatePackProgress(walks, [makeDog('coco', 60), makeDog('momo', 30)], now);
     expect(result.todayMinutes).toBe(45);
+    expect(result.goalProgressMinutes).toBe(45);
     expect(result.goalMinutes).toBe(90);
     expect(result.progressPct).toBe(50);
     expect(result.perDog.coco.todayMinutes).toBe(30);
@@ -141,6 +145,7 @@ describe('aggregatePackProgress', () => {
     expect(result.perDog.coco.todayKm).toBeCloseTo(1, 5);
     expect(result.perDog.momo.todayKm).toBeCloseTo(1, 5);
     expect(result.todayMinutes).toBe(50);
+    expect(result.goalProgressMinutes).toBe(50);
     expect(result.perDog.coco.todayMinutes).toBe(25);
     expect(result.perDog.momo.todayMinutes).toBe(25);
   });
@@ -155,6 +160,7 @@ describe('aggregatePackProgress', () => {
 
     expect(result.todayKm).toBeCloseTo(1, 5);
     expect(result.todayMinutes).toBe(25);
+    expect(result.goalProgressMinutes).toBe(25);
     expect(result.goalMinutes).toBe(50);
     expect(result.perDog['old-dog']).toBeUndefined();
   });
@@ -189,6 +195,44 @@ describe('aggregatePackProgress', () => {
       makeWalk('w1', ['coco'], new Date(2026, 3, 19, 8).toISOString(), 20_000, 120 * 60),
     ];
     expect(aggregatePackProgress(walks, [makeDog('coco', 30)], now).progressPct).toBe(100);
+  });
+
+  it('computes weekly goal progress from Monday through today', () => {
+    const walks: Walk[] = [
+      makeWalk('monday', ['coco'], new Date(2026, 3, 13, 8).toISOString(), 1000, 30 * 60),
+      makeWalk('today', ['coco'], new Date(2026, 3, 19, 8).toISOString(), 1000, 40 * 60),
+      makeWalk('previous-sunday', ['coco'], new Date(2026, 3, 12, 8).toISOString(), 1000, 60 * 60),
+    ];
+
+    const result = aggregatePackProgress(walks, [makeDog('coco', 210, 7)], now);
+
+    expect(result.todayMinutes).toBe(40);
+    expect(result.goalProgressMinutes).toBe(70);
+    expect(result.goalMinutes).toBe(210);
+    expect(result.progressPct).toBe(33);
+    expect(result.perDog.coco.todayMinutes).toBe(40);
+    expect(result.perDog.coco.goalProgressMinutes).toBe(70);
+    expect(result.perDog.coco.goalMinutes).toBe(210);
+  });
+
+  it('combines daily and weekly dog goals in pack progress', () => {
+    const walks: Walk[] = [
+      makeWalk('weekly-start', ['coco'], new Date(2026, 3, 14, 8).toISOString(), 1000, 60 * 60),
+      makeWalk('today-group', ['coco', 'momo'], new Date(2026, 3, 19, 8).toISOString(), 1000, 30 * 60),
+    ];
+
+    const result = aggregatePackProgress(
+      walks,
+      [makeDog('coco', 210, 7), makeDog('momo', 30, 1)],
+      now,
+    );
+
+    expect(result.todayMinutes).toBe(60);
+    expect(result.goalProgressMinutes).toBe(120);
+    expect(result.goalMinutes).toBe(240);
+    expect(result.progressPct).toBe(50);
+    expect(result.perDog.coco.goalProgressMinutes).toBe(90);
+    expect(result.perDog.momo.goalProgressMinutes).toBe(30);
   });
 
   it('handles null distanceM as zero', () => {

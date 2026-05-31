@@ -26,6 +26,7 @@ jest.mock('@/hooks/use-pack-progress', () => ({
   usePackProgress: () => ({
     todayKm: 0,
     todayMinutes: 0,
+    goalProgressMinutes: 0,
     goalMinutes: 60,
     progressPct: 0,
     perDog: {},

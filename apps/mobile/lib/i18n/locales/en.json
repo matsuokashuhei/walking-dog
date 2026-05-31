@@ -79,8 +79,8 @@
       "empty": "No dogs registered yet",
       "addDog": "Add Dog",
       "addCta": "+ Add",
-      "todayGoal": "Today's walking goal",
-      "acrossPack": "{{km}} / {{goal}} km across your pack",
+      "todayGoal": "Goal progress",
+      "acrossPack": "{{minutes}} / {{goal}} min across your pack",
       "streak": "🔥 {{days}}d",
       "todayStats": "{{km}} km today · {{count}} walks"
     },
@@ -132,6 +132,21 @@
       "birthdayMonthPlaceholder": "e.g. 6",
       "birthdayDay": "Day",
       "birthdayDayPlaceholder": "e.g. 15",
+      "dailyGoal": "DAILY GOAL",
+      "goal": "GOAL",
+      "goalCycle": "Cycle",
+      "goalCycleDaily": "DAILY",
+      "goalCycleWeekly": "WEEKLY",
+      "dailyGoalTime": "Time",
+      "goalTime": "Time",
+      "dailyGoalMinutes": "{{count}} min",
+      "goalMinutes": "{{count}} min",
+      "dailyGoalAccessibility": "Daily goal",
+      "goalTimeAccessibility": "Goal time",
+      "dailyGoalIncrease": "Increase daily goal",
+      "goalIncrease": "Increase goal",
+      "dailyGoalDecrease": "Decrease daily goal",
+      "goalDecrease": "Decrease goal",
       "changePhoto": "Change photo",
       "photoPermissionDenied": "Photo access denied",
       "photoPermissionMessage": "Please allow photo library access in Settings."
@@ -164,7 +179,8 @@
         "goal": "Goal",
         "kmShort": "{{value}} km",
         "streakDays": "{{count}}d",
-        "goalPercent": "{{value}}%"
+        "goalPercent": "{{value}}%",
+        "goalMinutes": "{{done}}/{{goal}} min"
       },
       "lastWalk": {
         "never": "Ready for the first walk",

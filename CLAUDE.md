@@ -21,6 +21,10 @@
 - **エラーを隠す回避策を提案しない** — バグ修正では必ず根本原因を特定して直す。エラーを握りつぶすコード（optional化、try/catch追加、fallback値）を「修正」として提案してはならない。
 - **差分の小ささより全体最適を優先する** — コードは常にシステム全体の整合性、単純さ、拡張性が最も高くなる形で設計すること。既存コードの変更を最小にすることや、変更を局所に閉じ込めること自体を目的にしてはならない。必要なら変更範囲が広がっても、その場しのぎではなく、より一貫した理想の設計を選ぶこと。
 
+## Domain Notes
+
+- Walk goals are time-based, not distance-based. Store and edit them through `dog_walk_goal.walk_amount.minutes` plus `cycle_days` (`1` for DAILY, `7` for WEEKLY); keep distance metrics as separate stats.
+
 ## Development Rules
 
 各サービスの詳細な開発ルールはそれぞれの CLAUDE.md を参照：
@@ -47,6 +51,10 @@ walking-dog/
 # Development Workflow
 
 This project uses the obra/superpowers plugin. Always check for relevant skills before taking any action.
+
+## Project-scoped Skills
+
+- UI の設計・実装・リファクタリングで Expo / React Native / `@expo/ui` / `@expo/ui/swift-ui` を扱う場合は、最初に `.codex/skills/expo-ui-docs-first/SKILL.md` を読むこと。repo-local skill の自動検出が効かないセッションでも、このファイルを明示的に参照してから計画・実装する。
 
 ## 開発フェーズとスキル
 

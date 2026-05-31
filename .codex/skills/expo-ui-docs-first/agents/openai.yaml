@@ -1,0 +1,4 @@
+interface:
+  display_name: "Expo UI Docs First"
+  short_description: "Read Expo UI docs before UI work"
+  default_prompt: "Use $expo-ui-docs-first to plan an Expo UI implementation from the official docs before editing code."

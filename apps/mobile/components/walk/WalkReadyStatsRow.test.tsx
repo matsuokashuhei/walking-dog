@@ -5,8 +5,10 @@ jest.mock('@/hooks/use-color-scheme', () => ({ useColorScheme: () => 'light' }))
 jest.mock('@/hooks/use-pack-progress', () => ({
   usePackProgress: () => ({
     todayKm: 3.52,
-    goalKm: 5,
-    progressPct: 70,
+    todayMinutes: 15,
+    goalProgressMinutes: 45,
+    goalMinutes: 90,
+    progressPct: 50,
     packStreakDays: 12,
     perDog: {},
     isLoading: false,
@@ -21,6 +23,6 @@ describe('WalkReadyStatsRow', () => {
     expect(screen.getByText('Streak')).toBeTruthy();
     expect(screen.getByText(/12d/)).toBeTruthy();
     expect(screen.getByText('Goal')).toBeTruthy();
-    expect(screen.getByText('70%')).toBeTruthy();
+    expect(screen.getByText('45/90 min')).toBeTruthy();
   });
 });

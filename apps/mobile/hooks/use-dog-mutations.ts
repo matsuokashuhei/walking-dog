@@ -46,14 +46,29 @@ function toUpdateDogRequestInput(
   breed: string | undefined;
   gender: 'MALE' | 'FEMALE' | 'OTHER' | undefined;
   birthday: UpdateDogInput['birthday'];
+  dailyGoalMinutes?: number;
+  walkGoal?: UpdateDogInput['walkGoal'];
 } {
-  return {
+  const requestInput: {
+    id: string;
+    name: string | undefined;
+    breed: string | undefined;
+    gender: 'MALE' | 'FEMALE' | 'OTHER' | undefined;
+    birthday: UpdateDogInput['birthday'];
+    dailyGoalMinutes?: number;
+    walkGoal?: UpdateDogInput['walkGoal'];
+  } = {
     id,
     name: input.name,
     breed: input.breed,
     gender: input.gender ? toApiGender(input.gender) : undefined,
     birthday: input.birthday,
   };
+  if (input.walkGoal !== undefined) requestInput.walkGoal = input.walkGoal;
+  if (input.dailyGoalMinutes !== undefined) {
+    requestInput.dailyGoalMinutes = input.dailyGoalMinutes;
+  }
+  return requestInput;
 }
 
 // 犬の作成後、ユーザー関連キャッシュを更新して一覧へ反映します。

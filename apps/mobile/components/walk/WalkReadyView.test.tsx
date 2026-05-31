@@ -35,7 +35,9 @@ jest.mock('@/components/walk/WalkMapShell', () => {
 jest.mock('@/hooks/use-pack-progress', () => ({
   usePackProgress: () => ({
     todayKm: 0,
-    goalKm: 5,
+    todayMinutes: 0,
+    goalProgressMinutes: 0,
+    goalMinutes: 30,
     progressPct: 0,
     packStreakDays: 0,
     perDog: {},

@@ -7,28 +7,28 @@ jest.mock('@/hooks/use-color-scheme', () => ({
 
 describe('PackRollupCard', () => {
   it('renders the walking goal summary and progress label', () => {
-    render(<PackRollupCard todayKm={1.42} goalKm={5} progressPct={28} />);
+    render(<PackRollupCard progressMinutes={45} goalMinutes={90} progressPct={50} />);
 
-    expect(screen.getByText("Today's walking goal")).toBeTruthy();
-    expect(screen.getByText('1.42 / 5.0 km across your pack')).toBeTruthy();
-    expect(screen.getByText('28%')).toBeTruthy();
+    expect(screen.getByText('Goal progress')).toBeTruthy();
+    expect(screen.getByText('45 / 90 min across your pack')).toBeTruthy();
+    expect(screen.getByText('50%')).toBeTruthy();
   });
 
   it('becomes pressable when onPress is provided', () => {
     const onPress = jest.fn();
 
     render(
-      <PackRollupCard todayKm={1.42} goalKm={5} progressPct={28} onPress={onPress} />,
+      <PackRollupCard progressMinutes={45} goalMinutes={90} progressPct={50} onPress={onPress} />,
     );
 
-    fireEvent.press(screen.getByRole('button', { name: "Today's walking goal" }));
+    fireEvent.press(screen.getByRole('button', { name: 'Goal progress' }));
 
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
   it('does not render a button wrapper when onPress is omitted', () => {
-    render(<PackRollupCard todayKm={1.42} goalKm={5} progressPct={28} />);
+    render(<PackRollupCard progressMinutes={45} goalMinutes={90} progressPct={50} />);
 
-    expect(screen.queryByRole('button', { name: "Today's walking goal" })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Goal progress' })).toBeNull();
   });
 });

@@ -1,21 +1,18 @@
 use anyhow::Result;
 use async_graphql::{Context, InputObject, MaybeUndefined, Object, Upload};
-use sea_orm::{
-    ActiveModelTrait,
-    ActiveValue::{NotSet, Set},
-    ColumnTrait, Condition, DatabaseConnection, EntityTrait, ModelTrait, QueryFilter,
-    TransactionTrait,
-};
+use sea_orm::DatabaseConnection;
 use tracing::error;
 use uuid::Uuid;
 
+use super::dog_walk_goal::WalkAmountInput;
 use crate::graphql::{
     error::AppError,
     guard::AuthGuard,
     object::dog::{Dog, Gender},
 };
 use crate::{
-    entity::{birthday::Model, dog, sea_orm_active_enums::GenderType, user, user_dog},
+    entity::{birthday::Model, sea_orm_active_enums::GenderType, user},
+    service::dog::{self as dog_service, AddDogCommand, FieldUpdate, UpdateDogCommand},
     util::storage::{StorageError, upload_avatar},
 };
 
@@ -28,40 +25,31 @@ impl DogMutation {
     async fn add_dog(&self, ctx: &Context<'_>, input: AddDogInput) -> Result<Dog> {
         let user = ctx.data::<user::Model>().unwrap();
         let db = ctx.data::<DatabaseConnection>().unwrap();
-        let txn = db.begin().await?;
-        let mut active_model = input.into_active_model();
-        if let Some(file) = input.avatar {
-            // if let Ok(file) = upload_avatar(ctx, file).await {
-            //     active_model.avatar = Set(Some(file));
-            // }
-            let key = upload_avatar(ctx, file).await.map_err(|e| {
-                if let Some(storage_error) = e.downcast_ref::<StorageError>() {
-                    error!("Failed to upload avatar: {:?}", storage_error);
-                    match storage_error {
-                        StorageError::ContentTooLarge(_) => AppError::ContentTooLarge,
-                        StorageError::InternalError(message) => AppError::InternalServerError(
-                            format!("Failed to upload avatar: {}", message),
-                        ),
-                    }
-                } else {
-                    AppError::InternalServerError(format!("Failed to upload avatar: {}", e))
-                }
-            })?;
-            active_model.avatar = Set(Some(key));
-        }
-        let dog = active_model.insert(db).await?;
-        let active_model = user_dog::ActiveModel {
-            user_id: Set(user.id),
-            dog_id: Set(dog.id),
-            ..Default::default()
+
+        let AddDogInput {
+            name,
+            breed,
+            gender,
+            avatar,
+            birthday,
+        } = input;
+        let avatar = match avatar {
+            Some(file) => Some(upload_dog_avatar(ctx, file).await?),
+            None => None,
         };
-        active_model
-            .insert(db)
-            .await
-            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
-        txn.commit()
-            .await
-            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+        let dog = dog_service::add_dog(
+            db,
+            user.id,
+            AddDogCommand {
+                name,
+                breed,
+                gender: gender_to_type(gender),
+                avatar,
+                birthday: birthday.map(Into::into),
+            },
+        )
+        .await
+        .map_err(AppError::from)?;
         Ok(Dog::from(dog))
     }
 
@@ -69,20 +57,39 @@ impl DogMutation {
     async fn update_dog(&self, ctx: &Context<'_>, input: UpdateDogInput) -> Result<Dog> {
         let db = ctx.data::<DatabaseConnection>().unwrap();
         let user = ctx.data::<user::Model>().unwrap();
-        let Ok(Some(_)) = dog::Entity::find_by_id(input.id)
-            .has_related(user_dog::Entity, user_dog::Column::UserId.eq(user.id))
-            .one(db)
-            .await
-        else {
-            return Err(AppError::NotFound.into());
+
+        let UpdateDogInput {
+            id,
+            name,
+            breed,
+            gender,
+            avatar,
+            birthday,
+            daily_goal_minutes,
+            walk_goal,
+        } = input;
+        let avatar = match avatar {
+            Some(file) => Some(upload_dog_avatar(ctx, file).await?),
+            None => None,
         };
-        let mut active_model = input.into_active_model();
-        if let Some(file) = input.avatar
-            && let Ok(file) = upload_avatar(ctx, file).await
-        {
-            active_model.avatar = Set(Some(file));
-        }
-        let updated_dog = active_model.update(db).await?;
+        let (daily_goal_minutes, walk_goal) = update_goal_values(daily_goal_minutes, walk_goal)?;
+        let updated_dog = dog_service::update_dog(
+            db,
+            user.id,
+            UpdateDogCommand {
+                id,
+                name,
+                breed,
+                gender: gender.map(gender_to_type),
+                avatar,
+                birthday: birthday_update(birthday),
+                daily_goal_minutes,
+                walk_goal,
+            },
+            chrono::Utc::now().date_naive(),
+        )
+        .await
+        .map_err(AppError::from)?;
         Ok(Dog::from(updated_dog))
     }
 
@@ -90,25 +97,9 @@ impl DogMutation {
     async fn remove_dog(&self, ctx: &Context<'_>, input: RemoveDogInput) -> Result<Dog> {
         let db = ctx.data::<DatabaseConnection>().unwrap();
         let user = ctx.data::<user::Model>().unwrap();
-        let Ok(Some(dog)) = dog::Entity::find_by_id(input.id)
-            .has_related(user_dog::Entity, user_dog::Column::UserId.eq(user.id))
-            .one(db)
+        let dog = dog_service::remove_dog(db, user.id, input.id)
             .await
-        else {
-            return Err(AppError::NotFound.into());
-        };
-        let Ok(Some(user_dog)) = user_dog::Entity::find()
-            .filter(
-                Condition::all()
-                    .add(user_dog::Column::UserId.eq(user.id))
-                    .add(user_dog::Column::DogId.eq(dog.id)),
-            )
-            .one(db)
-            .await
-        else {
-            return Err(AppError::NotFound.into());
-        };
-        user_dog.delete(db).await?;
+            .map_err(AppError::from)?;
         Ok(Dog::from(dog))
     }
 }
@@ -140,23 +131,6 @@ struct AddDogInput {
     birthday: Option<BirthdayInput>,
 }
 
-impl AddDogInput {
-    #[allow(clippy::wrong_self_convention)]
-    fn into_active_model(&self) -> dog::ActiveModel {
-        dog::ActiveModel {
-            name: Set(self.name.clone()),
-            breed: Set(self.breed.clone()),
-            gender: Set(match self.gender {
-                Gender::Male => GenderType::Male,
-                Gender::Female => GenderType::Female,
-                Gender::Other => GenderType::Other,
-            }),
-            birthday: Set(self.birthday.clone().map(Into::into)),
-            ..Default::default()
-        }
-    }
-}
-
 #[derive(Debug, Clone, InputObject)]
 struct UpdateDogInput {
     id: Uuid,
@@ -167,33 +141,71 @@ struct UpdateDogInput {
     // `MaybeUndefined` so we can tell "field omitted" (leave as-is) from
     // "field explicitly null" (clear the stored birthday) — `Option` can't.
     birthday: MaybeUndefined<BirthdayInput>,
-}
-
-impl UpdateDogInput {
-    #[allow(clippy::wrong_self_convention)]
-    fn into_active_model(&self) -> dog::ActiveModel {
-        dog::ActiveModel {
-            id: Set(self.id),
-            name: self.name.clone().map_or(NotSet, Set),
-            breed: self.breed.clone().map_or(NotSet, |breed| Set(breed.into())),
-            gender: self.gender.map_or(NotSet, |gender| {
-                Set(match gender {
-                    Gender::Male => GenderType::Male,
-                    Gender::Female => GenderType::Female,
-                    Gender::Other => GenderType::Other,
-                })
-            }),
-            birthday: match &self.birthday {
-                MaybeUndefined::Undefined => NotSet,
-                MaybeUndefined::Null => Set(None),
-                MaybeUndefined::Value(birthday) => Set(Some(birthday.clone().into())),
-            },
-            ..Default::default()
-        }
-    }
+    // Omitted leaves the current goal unchanged. Explicit null is rejected so
+    // clients cannot accidentally erase an edit-screen goal.
+    daily_goal_minutes: MaybeUndefined<i32>,
+    // Omitted leaves the current goal unchanged. Explicit null is rejected.
+    // Prefer this over dailyGoalMinutes so the goal cycle can be edited.
+    walk_goal: MaybeUndefined<WalkAmountInput>,
 }
 
 #[derive(Debug, Clone, InputObject)]
 struct RemoveDogInput {
     id: Uuid,
+}
+
+fn gender_to_type(gender: Gender) -> GenderType {
+    match gender {
+        Gender::Male => GenderType::Male,
+        Gender::Female => GenderType::Female,
+        Gender::Other => GenderType::Other,
+    }
+}
+
+fn birthday_update(birthday: MaybeUndefined<BirthdayInput>) -> FieldUpdate<Option<Model>> {
+    match birthday {
+        MaybeUndefined::Undefined => FieldUpdate::Unchanged,
+        MaybeUndefined::Null => FieldUpdate::Set(None),
+        MaybeUndefined::Value(birthday) => FieldUpdate::Set(Some(birthday.into())),
+    }
+}
+
+fn update_goal_values(
+    daily_goal_minutes: MaybeUndefined<i32>,
+    walk_goal: MaybeUndefined<WalkAmountInput>,
+) -> Result<(Option<i32>, Option<crate::entity::walk_amount::Model>)> {
+    match (daily_goal_minutes, walk_goal) {
+        (MaybeUndefined::Undefined, MaybeUndefined::Undefined) => Ok((None, None)),
+        (MaybeUndefined::Null, _) => {
+            Err(AppError::UnprocessableEntity("dailyGoalMinutes cannot be null".into()).into())
+        }
+        (_, MaybeUndefined::Null) => {
+            Err(AppError::UnprocessableEntity("walkGoal cannot be null".into()).into())
+        }
+        (MaybeUndefined::Value(_), MaybeUndefined::Value(_)) => Err(AppError::UnprocessableEntity(
+            "walkGoal and dailyGoalMinutes cannot both be provided".into(),
+        )
+        .into()),
+        (MaybeUndefined::Value(minutes), MaybeUndefined::Undefined) => Ok((Some(minutes), None)),
+        (MaybeUndefined::Undefined, MaybeUndefined::Value(walk_goal)) => {
+            Ok((None, Some(walk_goal.into())))
+        }
+    }
+}
+
+async fn upload_dog_avatar(ctx: &Context<'_>, file: Upload) -> Result<String> {
+    upload_avatar(ctx, file).await.map_err(|e| {
+        if let Some(storage_error) = e.downcast_ref::<StorageError>() {
+            error!("Failed to upload avatar: {:?}", storage_error);
+            match storage_error {
+                StorageError::ContentTooLarge(_) => AppError::ContentTooLarge.into(),
+                StorageError::InternalError(message) => {
+                    AppError::InternalServerError(format!("Failed to upload avatar: {}", message))
+                        .into()
+                }
+            }
+        } else {
+            AppError::InternalServerError(format!("Failed to upload avatar: {}", e)).into()
+        }
+    })
 }

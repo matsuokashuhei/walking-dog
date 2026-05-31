@@ -61,6 +61,7 @@ export function mapApiDog(dog: ApiDog): Dog {
     ...dog,
     photoUrl: dog.avatar,
     birthday: dog.birthday ?? null,
+    walkGoal: dog.walkGoal ?? null,
     role: 'owner',
     latestWalk: null,
   };

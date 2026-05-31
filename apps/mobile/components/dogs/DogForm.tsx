@@ -10,9 +10,22 @@ import {
   View,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Host, Slider as SwiftUISlider } from '@expo/ui/swift-ui';
 import { GroupedCard } from '@/components/ui/GroupedCard';
+import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { TextInput } from '@/components/ui/TextInput';
+import {
+  DAILY_GOAL_CYCLE_DAYS,
+  DAILY_GOAL_STEP_MINUTES,
+  DEFAULT_DAILY_GOAL_MINUTES,
+  type GoalCycleDays,
+  MAX_DAILY_GOAL_MINUTES,
+  MAX_WEEKLY_GOAL_MINUTES,
+  MIN_DAILY_GOAL_MINUTES,
+  MIN_WEEKLY_GOAL_MINUTES,
+  WEEKLY_GOAL_CYCLE_DAYS,
+} from '@/constants/walk';
 import { useColors } from '@/hooks/use-colors';
 import { components, radius, spacing, typography } from '@/theme/tokens';
 import type { Birthday, BirthdayInput } from '@/types/graphql';
@@ -26,11 +39,14 @@ export interface DogFormValues {
   birthdayYear: string;
   birthdayMonth: string;
   birthdayDay: string;
+  goalMinutes: number;
+  goalCycleDays: GoalCycleDays;
 }
 
 interface DogFormProps {
   values: DogFormValues;
   onChange: (values: DogFormValues) => void;
+  showDailyGoal?: boolean;
 }
 
 const BIRTHDAY_YEAR_START = 1990;
@@ -44,7 +60,7 @@ type DogGenderValue = (typeof DOG_GENDER_VALUES)[number];
 // 02b. Dog edit の inset-grouped 形式: 1 枚のカードに行を積み上げ、hairline で区切る。
 // 純粋な controlled component — values と onChange のみ受け取る。Submit / loading は呼び出し元の
 // 画面（Cancel/Save header）が担う。
-export function DogForm({ values, onChange }: DogFormProps) {
+export function DogForm({ values, onChange, showDailyGoal = true }: DogFormProps) {
   const { t, i18n } = useTranslation();
   const theme = useColors();
   const [birthdayPickerVisible, setBirthdayPickerVisible] = useState(false);
@@ -212,6 +228,13 @@ export function DogForm({ values, onChange }: DogFormProps) {
           )}
         </Pressable>
       </GroupedCard>
+      {showDailyGoal ? (
+        <GoalSection
+          minutes={values.goalMinutes}
+          cycleDays={values.goalCycleDays}
+          onChange={(goalMinutes, goalCycleDays) => set({ goalMinutes, goalCycleDays })}
+        />
+      ) : null}
       <Modal
         animationType="fade"
         transparent
@@ -288,6 +311,86 @@ export function DogForm({ values, onChange }: DogFormProps) {
           </View>
         </View>
       </Modal>
+    </View>
+  );
+}
+
+interface GoalSectionProps {
+  minutes: number;
+  cycleDays: GoalCycleDays;
+  onChange: (minutes: number, cycleDays: GoalCycleDays) => void;
+}
+
+function GoalSection({ minutes, cycleDays, onChange }: GoalSectionProps) {
+  const { t } = useTranslation();
+  const theme = useColors();
+  const clampedMinutes = clampGoalMinutes(minutes, cycleDays);
+  const minMinutes = getGoalMinMinutes(cycleDays);
+  const maxMinutes = getGoalMaxMinutes(cycleDays);
+  const cycleOptions = [
+    { label: t('dogs.form.goalCycleDaily'), value: String(DAILY_GOAL_CYCLE_DAYS) },
+    { label: t('dogs.form.goalCycleWeekly'), value: String(WEEKLY_GOAL_CYCLE_DAYS) },
+  ];
+
+  function setFromMinutes(nextMinutes: number) {
+    onChange(clampGoalMinutes(nextMinutes, cycleDays), cycleDays);
+  }
+
+  function setCycle(nextCycleValue: string) {
+    const nextCycle =
+      nextCycleValue === String(WEEKLY_GOAL_CYCLE_DAYS)
+        ? WEEKLY_GOAL_CYCLE_DAYS
+        : DAILY_GOAL_CYCLE_DAYS;
+    onChange(convertGoalMinutesForCycle(clampedMinutes, cycleDays, nextCycle), nextCycle);
+  }
+
+  return (
+    <View style={styles.dailyGoalWrap}>
+      <Text style={[styles.sectionLabel, { color: theme.onSurfaceVariant }]}>
+        {t('dogs.form.goal')}
+      </Text>
+      <GroupedCard style={styles.dailyGoalCard}>
+        <View style={styles.goalCycleRow}>
+          <Text style={[styles.dailyGoalTitle, { color: theme.onSurface }]}>
+            {t('dogs.form.goalCycle')}
+          </Text>
+          <View style={styles.goalCycleControl}>
+            <SegmentedControl
+              options={cycleOptions}
+              value={String(cycleDays)}
+              onChange={setCycle}
+              testID="dog-goal-cycle-segmented-control"
+            />
+          </View>
+        </View>
+        <View style={[styles.goalSeparator, { backgroundColor: theme.border }]} />
+        <View style={styles.dailyGoalHeader}>
+          <Text style={[styles.dailyGoalTitle, { color: theme.onSurface }]}>
+            {t('dogs.form.goalTime')}
+          </Text>
+          <Text style={[styles.dailyGoalValue, { color: theme.onSurface }]}>
+            {t('dogs.form.goalMinutes', { count: clampedMinutes })}
+          </Text>
+        </View>
+        <Host style={styles.goalSliderHost}>
+          <SwiftUISlider
+            value={clampedMinutes}
+            min={minMinutes}
+            max={maxMinutes}
+            step={DAILY_GOAL_STEP_MINUTES}
+            onValueChange={setFromMinutes}
+            testID="dog-goal-slider"
+          />
+        </Host>
+        <View style={styles.goalLimits}>
+          <Text style={[styles.goalLimitText, { color: theme.textDisabled }]}>
+            {t('dogs.form.goalMinutes', { count: minMinutes })}
+          </Text>
+          <Text style={[styles.goalLimitText, { color: theme.textDisabled }]}>
+            {t('dogs.form.goalMinutes', { count: maxMinutes })}
+          </Text>
+        </View>
+      </GroupedCard>
     </View>
   );
 }
@@ -387,6 +490,49 @@ export function isDogFormValid(values: DogFormValues): boolean {
   return values.name.trim().length > 0 && values.gender.trim().length > 0;
 }
 
+export function clampDailyGoalMinutes(minutes: number): number {
+  return clampGoalMinutes(minutes, DAILY_GOAL_CYCLE_DAYS);
+}
+
+export function clampGoalMinutes(minutes: number, cycleDays: GoalCycleDays): number {
+  const finiteMinutes = Number.isFinite(minutes) ? minutes : DEFAULT_DAILY_GOAL_MINUTES;
+  const rounded =
+    Math.round(finiteMinutes / DAILY_GOAL_STEP_MINUTES) * DAILY_GOAL_STEP_MINUTES;
+  return Math.min(
+    getGoalMaxMinutes(cycleDays),
+    Math.max(getGoalMinMinutes(cycleDays), rounded),
+  );
+}
+
+export function normalizeGoalCycleDays(cycleDays: number | null | undefined): GoalCycleDays {
+  return cycleDays === WEEKLY_GOAL_CYCLE_DAYS ? WEEKLY_GOAL_CYCLE_DAYS : DAILY_GOAL_CYCLE_DAYS;
+}
+
+function convertGoalMinutesForCycle(
+  minutes: number,
+  currentCycle: GoalCycleDays,
+  nextCycle: GoalCycleDays,
+): number {
+  if (currentCycle === nextCycle) return clampGoalMinutes(minutes, nextCycle);
+  const nextMinutes =
+    nextCycle === WEEKLY_GOAL_CYCLE_DAYS
+      ? minutes * WEEKLY_GOAL_CYCLE_DAYS
+      : minutes / WEEKLY_GOAL_CYCLE_DAYS;
+  return clampGoalMinutes(nextMinutes, nextCycle);
+}
+
+function getGoalMinMinutes(cycleDays: GoalCycleDays): number {
+  return cycleDays === WEEKLY_GOAL_CYCLE_DAYS
+    ? MIN_WEEKLY_GOAL_MINUTES
+    : MIN_DAILY_GOAL_MINUTES;
+}
+
+function getGoalMaxMinutes(cycleDays: GoalCycleDays): number {
+  return cycleDays === WEEKLY_GOAL_CYCLE_DAYS
+    ? MAX_WEEKLY_GOAL_MINUTES
+    : MAX_DAILY_GOAL_MINUTES;
+}
+
 // フォームの 3 つの文字列を API 入力（任意の年・月・日）へ変換する。
 // 妥当な値が一つも無ければ null を返す（編集画面では誕生日のクリア、新規画面では未設定として扱われる）。
 // 月/日は妥当な範囲のものだけ採用する。
@@ -475,6 +621,57 @@ function normalizeGenderValue(gender: string): DogGenderValue | '' {
 
 const styles = StyleSheet.create({
   container: { width: '100%' },
+  dailyGoalWrap: {
+    marginTop: spacing.lg,
+  },
+  sectionLabel: {
+    ...typography.metricLabel,
+    fontWeight: typography.headline.fontWeight,
+    paddingHorizontal: spacing.xs,
+    marginBottom: spacing.step10,
+  },
+  dailyGoalCard: {
+    paddingVertical: spacing.step14,
+    paddingHorizontal: spacing.md,
+  },
+  dailyGoalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.step12,
+  },
+  goalCycleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.step12,
+    marginBottom: spacing.step12,
+  },
+  goalCycleControl: {
+    flex: 1,
+  },
+  goalSeparator: {
+    height: StyleSheet.hairlineWidth,
+    marginBottom: spacing.step12,
+  },
+  dailyGoalTitle: {
+    ...typography.subheadline,
+  },
+  dailyGoalValue: {
+    ...typography.headline,
+    fontVariant: ['tabular-nums'],
+  },
+  goalSliderHost: {
+    height: spacing.step44,
+    width: '100%',
+  },
+  goalLimits: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: spacing.xs,
+  },
+  goalLimitText: {
+    ...typography.caption,
+  },
   inlineRow: {
     flexDirection: 'row',
     alignItems: 'center',

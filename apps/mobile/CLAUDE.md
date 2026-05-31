@@ -38,11 +38,14 @@
 - Expo Router 配下で画面内 inline header を描画するルート群は、各 leaf route ではなく親 `_layout.tsx` の `Stack` に `screenOptions={{ headerShown: false }}` を設定し、ネイティブヘッダーの出し漏れを防ぐ。
 - `expo-widgets` / `@expo/ui` の Live Activity UI は native module を module load 時に読むため、通常の hook / store / controller からは静的 import しない。テスト可能な純粋ロジックと controller を分け、controller 側では widget UI module を遅延 require して Jest が `ExpoWidgets` native module を要求しない構造にする。
 - `expo-widgets` で Widget extension を追加した後に Xcode の dependency cycle が出た場合は、生成済み `ios/` だけを手で直さず config plugin で再生成後も安定する修正にする。App extension の embed は `[CP] Embed Pods Frameworks` の後、Dev Launcher の Info.plist 変更 script は不要な `Info.plist` input dependency を持たせない。
-- `@bacons/apple-targets` を使う場合は `@expo/prebuild-config` を top-level devDependency として Expo SDK のバージョンに合わせて固定する。plugin が実行時に top-level require するため、Expo CLI 配下の nested dependency だけでは `expo prebuild` が失敗する。
+- `@bacons/apple-targets` を使う場合は `@expo/prebuild-config` を top-level devDependency として Expo SDK のバージョンに合わせて固定する。plugin が実行時に top-level require するため、Expo CLI 配下の nested dependency だけでは `expo prebuild` が失敗する。`Failed to resolve plugin for module "@bacons/apple-targets"` が出たら、まず `npm ls @bacons/apple-targets @expo/prebuild-config --depth=0` で top-level install を確認し、欠けていれば `npm ci` で lockfile どおり再インストールする。
+- Watch target を含む実機 `expo run:ios --device` は、全 target に `DEVELOPMENT_TEAM` が入っていると Expo CLI が `-allowProvisioningUpdates` を省略する。初回 profile 作成が必要なため、物理デバイス向け npm script は `scripts/expo-run-ios-with-provisioning.cjs` 経由で Expo CLI を起動し、`xcodebuild` spawn 時だけ provisioning flags を足す。
+- `npm run ios:dev:dev` が成功しても Expo の install 経路は iPhone app のインストール確認だけで終わることがある。Watch 実機に入らない場合は `npm run watch:dev` を使う。この script は online の Apple Watch UDID を `xcrun xctrace list devices` から検出し、`WalkingDogWatch` scheme を watchOS destination 向けに build してから `xcrun devicectl device install app` で直接インストールする。確認は `xcrun devicectl device info apps --device "<watch id>" --bundle-id com.walkingdog.app.watch` で行う。
 - Apple Watch の walk snapshot は Watch UI/complication 表示同期専用に保つ。iPhone JS state が無い状態から snapshot で active walk を復元しない。Watch command は iPhone 側の現在の active walk store と一致する場合だけ処理し、inactive/stale walk の command は ack して破棄する。
 - Live Activity と散歩記録をまたぐ修正では、ActivityKit 側だけを更新せず、前景 GPS・背景 GPS・永続化した active walk session・復帰時 navigation が同じ点列と `walkId` を参照する設計にする。Dynamic Island の tap は iOS がアプリ起動に予約しているため、tap URL は履歴詳細ではなく active recording route を指す。
 - Walk 開始・記録中などマップ主役の画面は、route 側で `ScreenHeader` / top-only `SafeAreaView` を挟まず、マップを全画面に敷いた上で `WalkMapShell` の overlay と NativeTabs/formSheet を重ねる。
-- Walk 開始前の preview マップも現在地表示・追従を有効にする。東京駅などの固定座標は GPS 現在地取得前に地図を描画するための初期領域に限定し、ready 画面の主表示として扱わない。
+- Walk 開始前の preview マップは foreground の現在地 region へ寄せる。東京駅などの固定座標は GPS 現在地取得前に地図を描画するための初期領域に限定し、ready 画面の主表示として扱わない。
+- 記録中マップの現在地表示は `useWalkStore().points` の最新点を単一の source of truth にする。犬プロフィール画像などの表示情報は route 側で選択犬を解決して `WalkMap` に渡し、`showsUserLocation` など別系統の現在地表示と併用しない。
 - Pee/poop の表示アイコンは全サーフェスで統一する。React Native 側は `lib/walk/events.ts` の `WALK_EVENT_EMOJIS` を単一ソースにし、pee は `💧`、poop/poo は `💩` を使う。Live Activity と Watch SwiftUI でも同じ emoji を表示し、SF Symbols の `drop.fill` などに分岐させない。`expo-widgets` の Live Activity layout は関数を文字列化して Widget 側 JSContext で再評価するため、layout 関数内では imported constant を参照せず、関数内 local literal と回帰テストで値を固定する。
 
 ## iOS Simulator 起動手順
@@ -52,6 +55,8 @@
 1. `npm run metro:kill`
 2. `npm run ios:clean`
 3. `npm run ios:sim:local`
+
+XcodeBuildMCP で同名の Simulator が複数ある環境を操作するときは、`simulatorName` ではなく `simulatorId` を指定する。名前解決だけだと停止中の別 OS ランタイムを選ぶことがある。
 
 ## Available Commands
 /plan, /code-review, /tdd, /build-fix, /perf, /upgrade, /debug, /deploy,

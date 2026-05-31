@@ -1,6 +1,8 @@
 import { render, screen } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 import { WalkMap } from './WalkMap';
-import type { WalkEvent, WalkPoint } from '@/types/graphql';
+import { spacing } from '@/theme/tokens';
+import type { Dog, WalkEvent, WalkPoint } from '@/types/graphql';
 
 jest.mock('@/hooks/use-color-scheme', () => ({
   useColorScheme: () => 'light',
@@ -12,16 +14,34 @@ jest.mock('react-native-maps', () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { View } = require('react-native');
 
-  const MockMapView = ({ children, testID }: { children?: React.ReactNode; testID?: string }) =>
-    React.createElement(View, { testID: testID ?? 'MapView' }, children);
+  const MockMapView = React.forwardRef(
+    (
+      {
+        children,
+        testID,
+        ...props
+      }: {
+        children?: React.ReactNode;
+        testID?: string;
+      },
+      ref: React.Ref<{ animateToRegion: jest.Mock }>,
+    ) => {
+      React.useImperativeHandle(ref, () => ({ animateToRegion: jest.fn() }));
+      return React.createElement(View, { testID: testID ?? 'MapView', ...props }, children);
+    },
+  );
+  MockMapView.displayName = 'MapView';
 
   const MockMarker = ({
     testID,
     accessibilityLabel,
+    children,
+    ...props
   }: {
     testID?: string;
     accessibilityLabel?: string;
-  }) => React.createElement(View, { testID, accessibilityLabel });
+    children?: React.ReactNode;
+  }) => React.createElement(View, { testID, accessibilityLabel, ...props }, children);
 
   const MockPolyline = () => React.createElement(View, null);
 
@@ -32,6 +52,10 @@ jest.mock('react-native-maps', () => {
     Polyline: MockPolyline,
   };
 });
+
+jest.mock('expo-image', () => ({
+  Image: 'Image',
+}));
 
 let mockStorePoints: WalkPoint[] = [];
 let mockStoreEvents: WalkEvent[] = [];
@@ -67,6 +91,48 @@ const photoEventNoGps: WalkEvent = {
   photoUrl: 'https://cdn.example.com/walks/walk-123/photo.jpg',
 };
 
+const firstPoint: WalkPoint = {
+  lat: 35.6812,
+  lng: 139.7671,
+  recordedAt: '2026-04-12T10:00:00Z',
+};
+
+const secondPoint: WalkPoint = {
+  lat: 35.682,
+  lng: 139.768,
+  recordedAt: '2026-04-12T10:01:00Z',
+};
+
+const coco: Dog = {
+  id: 'dog-1',
+  name: 'Coco',
+  breed: 'Toy Poodle',
+  gender: null,
+  birthday: null,
+  photoUrl: 'https://cdn.example.com/dogs/coco.jpg',
+  createdAt: '2026-01-01',
+};
+
+const momo: Dog = {
+  id: 'dog-2',
+  name: 'Momo',
+  breed: 'Shiba Inu',
+  gender: null,
+  birthday: null,
+  photoUrl: 'https://cdn.example.com/dogs/momo.jpg',
+  createdAt: '2026-01-02',
+};
+
+const pochi: Dog = {
+  id: 'dog-3',
+  name: 'Pochi',
+  breed: null,
+  gender: null,
+  birthday: null,
+  photoUrl: 'https://cdn.example.com/dogs/pochi.jpg',
+  createdAt: '2026-01-03',
+};
+
 beforeEach(() => {
   mockStorePoints = [];
   mockStoreEvents = [];
@@ -98,5 +164,90 @@ describe('WalkMap', () => {
     render(<WalkMap />);
     expect(screen.getByTestId('event-marker-event-1')).toBeTruthy();
     expect(screen.getByTestId('event-marker-event-3')).toBeTruthy();
+  });
+
+  it('renders the latest recorded point as a dog avatar current-location marker', () => {
+    mockStorePoints = [firstPoint];
+    render(<WalkMap dogs={[coco]} />);
+
+    const marker = screen.getByTestId('current-location-marker');
+    expect(marker.props.coordinate).toEqual({
+      latitude: firstPoint.lat,
+      longitude: firstPoint.lng,
+    });
+    expect(marker.props.anchor).toEqual({ x: 0.5, y: 0.5 });
+    expect(screen.getByTestId('current-location-avatar-dog-1').props.source).toBe(
+      coco.photoUrl,
+    );
+  });
+
+  it('renders only the first two dog avatars for a group walk current location', () => {
+    mockStorePoints = [firstPoint];
+    render(<WalkMap dogs={[coco, momo, pochi]} />);
+
+    expect(screen.getByTestId('current-location-avatar-dog-1').props.source).toBe(
+      coco.photoUrl,
+    );
+    expect(screen.getByTestId('current-location-avatar-dog-2').props.source).toBe(
+      momo.photoUrl,
+    );
+    expect(screen.queryByTestId('current-location-avatar-dog-3')).toBeNull();
+  });
+
+  it('renders the map current-location avatar at half the original marker scale', () => {
+    mockStorePoints = [firstPoint];
+    render(<WalkMap dogs={[coco]} />);
+
+    const avatarStyle = StyleSheet.flatten(
+      screen.getByTestId('current-location-avatar-dog-1').props.style,
+    );
+
+    expect(avatarStyle).toEqual(
+      expect.objectContaining({
+        width: spacing.step44 / 2,
+        height: spacing.step44 / 2,
+        borderWidth: spacing.xs / 4,
+      }),
+    );
+  });
+
+  it('uses the existing app icon fallback for dogs without a profile image', () => {
+    mockStorePoints = [firstPoint];
+    render(<WalkMap dogs={[{ ...coco, photoUrl: null }]} />);
+
+    expect(screen.getByTestId('current-location-avatar-dog-1').props.source).toEqual(
+      require('@/assets/images/icon.png'),
+    );
+  });
+
+  it('does not enable the native user-location dot when rendering a dog marker', () => {
+    mockStorePoints = [firstPoint];
+    render(<WalkMap dogs={[coco]} />);
+
+    expect(screen.getByTestId('MapView').props.showsUserLocation).toBe(false);
+  });
+
+  it('does not render a current-location marker before the first GPS point', () => {
+    render(<WalkMap dogs={[coco]} />);
+
+    expect(screen.queryByTestId('current-location-marker')).toBeNull();
+  });
+
+  it('does not render a current-location marker when no dogs are available', () => {
+    mockStorePoints = [firstPoint];
+    render(<WalkMap dogs={[]} />);
+
+    expect(screen.queryByTestId('current-location-marker')).toBeNull();
+  });
+
+  it('keeps following the latest recorded point after replacing native user following', () => {
+    mockStorePoints = [firstPoint, secondPoint];
+    render(<WalkMap dogs={[coco]} />);
+
+    expect(screen.getByTestId('current-location-marker').props.coordinate).toEqual({
+      latitude: secondPoint.lat,
+      longitude: secondPoint.lng,
+    });
+    expect(screen.getByTestId('MapView').props.followsUserLocation).toBe(false);
   });
 });

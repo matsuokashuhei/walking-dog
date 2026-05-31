@@ -69,9 +69,9 @@ describe('DogsScreen', () => {
     expect(screen.getByTestId('dogs-header-right-action-slot')).toBeTruthy();
   });
 
-  it('renders Today walking goal rollup title', () => {
+  it('renders goal progress rollup title', () => {
     render(<DogsScreen />);
-    expect(screen.getByText("Today's walking goal")).toBeTruthy();
+    expect(screen.getByText('Goal progress')).toBeTruthy();
   });
 
   it('renders header + Add CTA', () => {

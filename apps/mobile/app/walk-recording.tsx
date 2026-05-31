@@ -82,7 +82,10 @@ export default function WalkRecordingScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <WalkMapShell map={<WalkMap mode="recording" />} top={<WalkTopChip dogs={selectedDogs} />} />
+      <WalkMapShell
+        map={<WalkMap mode="recording" dogs={selectedDogs} />}
+        top={<WalkTopChip dogs={selectedDogs} />}
+      />
     </View>
   );
 }

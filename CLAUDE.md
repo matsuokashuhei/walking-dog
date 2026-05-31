@@ -48,6 +48,10 @@ walking-dog/
 
 This project uses the obra/superpowers plugin. Always check for relevant skills before taking any action.
 
+## Project-scoped Skills
+
+- UI の設計・実装・リファクタリングで Expo / React Native / `@expo/ui` / `@expo/ui/swift-ui` を扱う場合は、最初に `.codex/skills/expo-ui-docs-first/SKILL.md` を読むこと。repo-local skill の自動検出が効かないセッションでも、このファイルを明示的に参照してから計画・実装する。
+
 ## 開発フェーズとスキル
 
 各フェーズで以下の superpowers スキルを使うこと：

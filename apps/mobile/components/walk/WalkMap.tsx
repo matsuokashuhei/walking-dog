@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import * as Location from 'expo-location';
 import { Image } from 'expo-image';
-import MapView, { Polyline, Marker } from 'react-native-maps';
+import { StyleSheet, Text, View } from 'react-native';
+import MapView, { Marker, Polyline, type Region } from 'react-native-maps';
 import { useColors } from '@/hooks/use-colors';
 import { useWalkStore } from '@/stores/walk-store';
 import { MAP_EVENT_EMOJIS } from '@/lib/walk/events';
@@ -26,7 +27,65 @@ const CURRENT_LOCATION_AVATAR_OVERLAP =
   -(spacing.step10 + spacing.xs / 2) * CURRENT_LOCATION_MARKER_SCALE;
 const CURRENT_LOCATION_BORDER_WIDTH = (spacing.xs / 2) * CURRENT_LOCATION_MARKER_SCALE;
 const FOLLOW_REGION_DELTA = 0.005;
+const WALK_MAP_FALLBACK_DELTA = 0.01;
 const FOLLOW_ANIMATION_MS = 500;
+
+function coordinateToRegion(coordinate: MapCoordinate, delta: number): Region {
+  return {
+    latitude: coordinate.latitude,
+    longitude: coordinate.longitude,
+    latitudeDelta: delta,
+    longitudeDelta: delta,
+  };
+}
+
+function usePreviewCurrentLocationRegion(enabled: boolean): Region | undefined {
+  const [region, setRegion] = useState<Region>();
+
+  useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
+    let isActive = true;
+
+    async function resolveCurrentLocationRegion() {
+      const foreground = await Location.getForegroundPermissionsAsync();
+      const permission =
+        foreground.status === 'granted'
+          ? foreground
+          : await Location.requestForegroundPermissionsAsync();
+
+      if (permission.status !== 'granted') return;
+
+      const currentLocation = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      if (!isActive) return;
+
+      setRegion(
+        coordinateToRegion(
+          {
+            latitude: currentLocation.coords.latitude,
+            longitude: currentLocation.coords.longitude,
+          },
+          FOLLOW_REGION_DELTA,
+        ),
+      );
+    }
+
+    void resolveCurrentLocationRegion().catch((error) => {
+      console.error('[walk.map.currentLocation] failed', error);
+    });
+
+    return () => {
+      isActive = false;
+    };
+  }, [enabled]);
+
+  return region;
+}
 
 // 散歩マップは GPS 軌跡と記録イベントを store から読み、地図表示の単一の情報源にします。
 export function WalkMap({ mode = 'recording', dogs = [] }: WalkMapProps) {
@@ -35,12 +94,16 @@ export function WalkMap({ mode = 'recording', dogs = [] }: WalkMapProps) {
   const points = useWalkStore((s) => s.points);
   const events = useWalkStore((s) => s.events);
   const isRecording = mode === 'recording';
+  const currentLocationRegion = usePreviewCurrentLocationRegion(mode === 'preview');
 
-  // 地図ライブラリ用の座標形式へ変換し、最後の地点を現在地表示の基準にします。
+  // 地図ライブラリ用の座標形式へ変換し、記録中は最後の地点を現在地表示の基準にします。
   const coordinates = points.map((p) => ({ latitude: p.lat, longitude: p.lng }));
   const lastPoint = coordinates[coordinates.length - 1];
   const lastLatitude = lastPoint?.latitude;
   const lastLongitude = lastPoint?.longitude;
+  const initialRegion = lastPoint
+    ? coordinateToRegion(lastPoint, FOLLOW_REGION_DELTA)
+    : coordinateToRegion(TOKYO_STATION_COORDINATE, WALK_MAP_FALLBACK_DELTA);
 
   useEffect(() => {
     if (!isRecording || lastLatitude == null || lastLongitude == null) return;
@@ -57,30 +120,18 @@ export function WalkMap({ mode = 'recording', dogs = [] }: WalkMapProps) {
   }, [isRecording, lastLatitude, lastLongitude]);
 
   const showCurrentLocationMarker = isRecording && lastPoint && dogs.length > 0;
+  const usesNativeUserLocation = mode === 'preview';
 
   return (
     <View style={styles.container}>
       <MapView
         ref={mapRef}
         style={styles.map}
-        showsUserLocation={false}
-        followsUserLocation={false}
-        // 位置情報がまだないプレビューでは東京駅を初期表示にして、空の地図を避けます。
-        initialRegion={
-          lastPoint
-            ? {
-                latitude: lastPoint.latitude,
-                longitude: lastPoint.longitude,
-                latitudeDelta: FOLLOW_REGION_DELTA,
-                longitudeDelta: FOLLOW_REGION_DELTA,
-              }
-            : {
-                latitude: TOKYO_STATION_COORDINATE.latitude,
-                longitude: TOKYO_STATION_COORDINATE.longitude,
-                latitudeDelta: 0.01,
-                longitudeDelta: 0.01,
-              }
-        }
+        showsUserLocation={usesNativeUserLocation}
+        followsUserLocation={usesNativeUserLocation}
+        region={mode === 'preview' ? currentLocationRegion : undefined}
+        // GPS の現在地取得前にも地図自体を描画できるよう、記録点がなければ東京駅を初期領域にします。
+        initialRegion={currentLocationRegion ?? initialRegion}
       >
         {isRecording && coordinates.length >= 2 ? (
           <Polyline

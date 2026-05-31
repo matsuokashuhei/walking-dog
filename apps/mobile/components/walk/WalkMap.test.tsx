@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react-native';
+import * as Location from 'expo-location';
+import { render, screen, waitFor } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 import { WalkMap } from './WalkMap';
 import { spacing } from '@/theme/tokens';
@@ -6,6 +7,13 @@ import type { Dog, WalkEvent, WalkPoint } from '@/types/graphql';
 
 jest.mock('@/hooks/use-color-scheme', () => ({
   useColorScheme: () => 'light',
+}));
+
+jest.mock('expo-location', () => ({
+  Accuracy: { Balanced: 'balanced' },
+  getCurrentPositionAsync: jest.fn(),
+  getForegroundPermissionsAsync: jest.fn(),
+  requestForegroundPermissionsAsync: jest.fn(),
 }));
 
 jest.mock('react-native-maps', () => {
@@ -23,6 +31,9 @@ jest.mock('react-native-maps', () => {
       }: {
         children?: React.ReactNode;
         testID?: string;
+        region?: unknown;
+        showsUserLocation?: boolean;
+        followsUserLocation?: boolean;
       },
       ref: React.Ref<{ animateToRegion: jest.Mock }>,
     ) => {
@@ -136,12 +147,67 @@ const pochi: Dog = {
 beforeEach(() => {
   mockStorePoints = [];
   mockStoreEvents = [];
+  jest.clearAllMocks();
+  (Location.getForegroundPermissionsAsync as jest.Mock).mockResolvedValue({ status: 'granted' });
+  (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({ status: 'granted' });
+  (Location.getCurrentPositionAsync as jest.Mock).mockResolvedValue({
+    coords: { latitude: 35.6895, longitude: 139.6917 },
+    timestamp: new Date('2026-04-12T10:00:00Z').getTime(),
+  });
 });
 
 describe('WalkMap', () => {
   it('renders without any recorded events', () => {
     render(<WalkMap />);
     expect(screen.getByTestId('MapView')).toBeTruthy();
+  });
+
+  it('shows and follows the user location in preview mode', async () => {
+    render(<WalkMap mode="preview" />);
+    const map = screen.getByTestId('MapView');
+    expect(map.props.showsUserLocation).toBe(true);
+    expect(map.props.followsUserLocation).toBe(true);
+    await waitFor(() => {
+      expect(screen.getByTestId('MapView').props.region).toBeDefined();
+    });
+  });
+
+  it('centers the preview map on the current location when foreground permission is granted', async () => {
+    render(<WalkMap mode="preview" />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('MapView').props.region).toEqual({
+        latitude: 35.6895,
+        longitude: 139.6917,
+        latitudeDelta: 0.005,
+        longitudeDelta: 0.005,
+      });
+    });
+
+    expect(Location.getForegroundPermissionsAsync).toHaveBeenCalledTimes(1);
+    expect(Location.requestForegroundPermissionsAsync).not.toHaveBeenCalled();
+    expect(Location.getCurrentPositionAsync).toHaveBeenCalledWith({
+      accuracy: Location.Accuracy.Balanced,
+    });
+  });
+
+  it('requests foreground permission before centering the preview map when needed', async () => {
+    (Location.getForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
+      status: 'undetermined',
+    });
+
+    render(<WalkMap mode="preview" />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('MapView').props.region).toEqual({
+        latitude: 35.6895,
+        longitude: 139.6917,
+        latitudeDelta: 0.005,
+        longitudeDelta: 0.005,
+      });
+    });
+
+    expect(Location.requestForegroundPermissionsAsync).toHaveBeenCalledTimes(1);
   });
 
   it('renders event markers for store events with lat/lng', () => {

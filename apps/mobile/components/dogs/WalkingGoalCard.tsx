@@ -5,26 +5,23 @@ import { spacing, typography } from '@/theme/tokens';
 import { GroupedCard } from '@/components/ui/GroupedCard';
 import { RingProgress } from '@/components/ui/RingProgress';
 
-interface PackRollupCardProps {
+interface WalkingGoalCardProps {
   todayKm: number;
   goalKm: number;
   progressPct: number;
+  subtitle: string;
   onPress?: () => void;
 }
 
-export function PackRollupCard({
+export function WalkingGoalCard({
   todayKm,
   goalKm,
   progressPct,
+  subtitle,
   onPress,
-}: PackRollupCardProps) {
+}: WalkingGoalCardProps) {
   const { t } = useTranslation();
   const theme = useColors();
-
-  const subtitle = t('dogs.list.acrossPack', {
-    km: todayKm.toFixed(2),
-    goal: goalKm.toFixed(1),
-  });
 
   const content = (
     <>
@@ -60,6 +57,7 @@ export function PackRollupCard({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t('dogs.list.todayGoal')}
+          accessibilityValue={{ min: 0, max: goalKm, now: todayKm }}
           onPress={onPress}
           style={styles.row}
         >

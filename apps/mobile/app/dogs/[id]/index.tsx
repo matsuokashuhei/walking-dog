@@ -6,6 +6,7 @@ import { useDogDetailViewModel } from '@/hooks/use-dog-detail-view-model';
 import { DogHero } from '@/components/dogs/DogHero';
 import { DogStatsCard } from '@/components/dogs/DogStatsCard';
 import { DogWalksList } from '@/components/dogs/DogWalksList';
+import { WalkingGoalCard } from '@/components/dogs/WalkingGoalCard';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -74,6 +75,19 @@ export default function DogDetailScreen() {
             <DogStatsCard stats={vm.dog.walkStats} streakDays={vm.streakDays} />
           </View>
         ) : null}
+
+        <View testID="dog-detail-walking-goal-section" style={styles.walkingGoalSection}>
+          <WalkingGoalCard
+            todayKm={vm.walkingGoal.todayKm}
+            goalKm={vm.walkingGoal.goalKm}
+            progressPct={vm.walkingGoal.progressPct}
+            subtitle={t('dogs.detail.walkingGoalSubtitle', {
+              km: vm.walkingGoal.todayKm.toFixed(2),
+              goal: vm.walkingGoal.goalKm.toFixed(1),
+              name: vm.dog.name,
+            })}
+          />
+        </View>
 
         <View testID="dog-detail-walks-section" style={styles.walksSection}>
           <DogWalksList
@@ -173,6 +187,10 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs / 2,
   },
   statsSection: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.lg,
+  },
+  walkingGoalSection: {
     paddingHorizontal: spacing.md,
     paddingTop: spacing.lg,
   },

@@ -58,13 +58,11 @@ impl Entity {
             .select_only()
             .column_as(Expr::col(walk::Column::Id).count(), "total_count")
             .column_as(
-                Expr::col(walk::Column::Distance).sum().cast_as("bigint"),
+                Expr::cust("COALESCE(SUM(distance), 0)::bigint"),
                 "total_distance",
             )
             .column_as(
-                Expr::cust("EXTRACT(EPOCH FROM (ended_at - started_at))")
-                    .sum()
-                    .cast_as("bigint"),
+                Expr::cust("COALESCE(SUM(EXTRACT(EPOCH FROM (ended_at - started_at))), 0)::bigint"),
                 "total_duration",
             )
             .into_tuple()
@@ -72,5 +70,49 @@ impl Entity {
             .await?
             .unwrap_or_default();
         Ok((total_count, total_distance, total_duration))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeMap;
+
+    use sea_orm::{ColumnTrait, DatabaseBackend, EntityTrait, MockDatabase, QueryFilter, Value};
+    use uuid::Uuid;
+
+    use super::*;
+
+    fn aggregate_row(
+        total_count: i64,
+        total_distance: i64,
+        total_duration: i64,
+    ) -> BTreeMap<&'static str, Value> {
+        BTreeMap::from([
+            ("total_count", total_count.into()),
+            ("total_distance", total_distance.into()),
+            ("total_duration", total_duration.into()),
+        ])
+    }
+
+    #[tokio::test]
+    async fn aggregate_coalesces_nullable_sums_to_zero() {
+        let user_id = Uuid::parse_str("019e0dc4-066b-7a22-b755-969ee6beb5e9").unwrap();
+        let db = MockDatabase::new(DatabaseBackend::Postgres)
+            .append_query_results([[aggregate_row(0, 0, 0)]])
+            .into_connection();
+        let query = Entity::find().filter(Column::UserId.eq(user_id));
+
+        let aggregate = Entity::aggregate(&db, query).await.unwrap();
+
+        assert_eq!(aggregate, (0, 0, 0));
+        let log = db.into_transaction_log();
+        let sql = log
+            .iter()
+            .flat_map(|entry| entry.statements())
+            .map(|statement| statement.sql.as_str())
+            .collect::<Vec<_>>()
+            .join("\n");
+        assert!(sql.contains("COALESCE(SUM(distance), 0)::bigint"));
+        assert!(sql.contains("COALESCE(SUM(EXTRACT(EPOCH FROM (ended_at - started_at))), 0)::bigint"));
     }
 }

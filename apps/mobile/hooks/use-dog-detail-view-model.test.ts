@@ -64,12 +64,17 @@ let mockWalks: Walk[] = [
     events: [],
   },
 ];
-let mockPack = {
+let mockPack: {
+  todayKm: number;
+  goalKm: number;
+  progressPct: number;
+  perDog: Record<string, { todayKm: number; totalWalks: number; streakDays: number }>;
+} = {
   todayKm: 1,
   goalKm: 5,
   progressPct: 20,
   perDog: {
-    'dog-1': { streakDays: 5 },
+    'dog-1': { todayKm: 1.42, totalWalks: 10, streakDays: 5 },
   },
 };
 let mockMe = { id: 'user-1' };
@@ -190,7 +195,7 @@ describe('useDogDetailViewModel', () => {
       goalKm: 5,
       progressPct: 20,
       perDog: {
-        'dog-1': { streakDays: 5 },
+        'dog-1': { todayKm: 1.42, totalWalks: 10, streakDays: 5 },
       },
     };
     mockMe = { id: 'user-1' };
@@ -217,6 +222,33 @@ describe('useDogDetailViewModel', () => {
     expect(vm.streakDays).toBe(5);
     expect(vm.dogWalks.map((walk) => walk.id)).toEqual(['walk-1']);
     expect(vm.isOwner).toBe(true);
+  });
+
+  it('exposes dog-specific walking goal progress', () => {
+    const { result } = renderHook(() => useDogDetailViewModel());
+
+    expect(expectReadyViewModel(result.current).walkingGoal).toEqual({
+      todayKm: 1.42,
+      goalKm: 5,
+      progressPct: 28,
+    });
+  });
+
+  it('falls back to zero dog-specific walking goal progress when the dog has no walks', () => {
+    mockPack = {
+      todayKm: 3,
+      goalKm: 5,
+      progressPct: 60,
+      perDog: {},
+    };
+
+    const { result } = renderHook(() => useDogDetailViewModel());
+
+    expect(expectReadyViewModel(result.current).walkingGoal).toEqual({
+      todayKm: 0,
+      goalKm: 5,
+      progressPct: 0,
+    });
   });
 
   it('has no walks error when the walks query succeeds', () => {

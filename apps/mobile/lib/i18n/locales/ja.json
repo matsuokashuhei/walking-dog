@@ -98,6 +98,7 @@
       "walks": "散歩",
       "walksError": "散歩を読み込めませんでした。",
       "seeAll": "すべて見る",
+      "walkingGoalSubtitle": "{{name}}: {{km}} / {{goal}} km",
       "streakLabel": "連続",
       "streakDays": "{{days}}日",
       "back": "愛犬"

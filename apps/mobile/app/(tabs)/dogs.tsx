@@ -1,9 +1,9 @@
 import { FlatList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Redirect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useDogsScreenViewModel } from '@/hooks/use-dogs-screen-view-model';
 import { DogListItem } from '@/components/dogs/DogListItem';
-import { PackRollupCard } from '@/components/dogs/PackRollupCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -19,17 +19,13 @@ export default function DogsScreen() {
 
   if (vm.isLoading) return <LoadingScreen />;
 
-  // 一覧の先頭には pack の集計カードとセクション見出しをまとめて表示します。
+  if (vm.dogs.length === 1) {
+    return <Redirect href={`/dogs/${vm.dogs[0].id}`} />;
+  }
+
+  // 一覧の先頭には pack のセクション見出しを表示します。
   const ListHeader = (
     <View style={styles.headerContainer}>
-      <View style={styles.rollupWrap}>
-        <PackRollupCard
-          todayKm={vm.pack.todayKm}
-          goalKm={vm.pack.goalKm}
-          progressPct={vm.pack.progressPct}
-        />
-      </View>
-
       <SectionHeader
         label={t('dogs.list.sectionLabel')}
         style={styles.sectionHeader}
@@ -80,9 +76,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
     paddingBottom: spacing.md,
-  },
-  rollupWrap: {
-    marginBottom: spacing.xl,
   },
   sectionHeader: {
     paddingHorizontal: spacing.xs - spacing.xs,

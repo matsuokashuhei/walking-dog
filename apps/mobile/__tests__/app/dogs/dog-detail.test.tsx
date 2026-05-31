@@ -44,6 +44,12 @@ const mockDog: DogWithStats = {
 
 let mockMeData: { id: string } | undefined = { id: 'user-1' };
 let mockDogData: DogWithStats = mockDog;
+let mockPack = {
+  perDog: {
+    'dog-1': { todayKm: 1.42, totalWalks: 10, streakDays: 3 },
+  },
+  goalKm: 5,
+};
 
 jest.mock('@/hooks/use-dog', () => ({
   useDog: () => ({ data: mockDogData, isLoading: false }),
@@ -58,7 +64,7 @@ jest.mock('@/hooks/use-me', () => ({
 }));
 
 jest.mock('@/hooks/use-pack-progress', () => ({
-  usePackProgress: () => ({ perDog: {} }),
+  usePackProgress: () => mockPack,
 }));
 
 jest.mock('@/hooks/use-walks', () => ({
@@ -79,11 +85,40 @@ function renderWithProviders(ui: React.ReactElement) {
   );
 }
 
+function getNodeTestID(node: object): string | null {
+  if (!('props' in node) || !node.props || typeof node.props !== 'object') return null;
+  if (!('testID' in node.props) || typeof node.props.testID !== 'string') return null;
+  return node.props.testID;
+}
+
+function getNodeChildren(node: object): unknown[] {
+  if (!('children' in node) || !Array.isArray(node.children)) return [];
+  return node.children;
+}
+
+function collectTestIds(node: unknown): string[] {
+  if (!node || typeof node === 'string' || typeof node === 'number') return [];
+  if (Array.isArray(node)) return node.flatMap(collectTestIds);
+  if (typeof node !== 'object') return [];
+
+  const testID = getNodeTestID(node);
+  return [
+    ...(testID ? [testID] : []),
+    ...getNodeChildren(node).flatMap(collectTestIds),
+  ];
+}
+
 describe('DogDetailScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockMeData = { id: 'user-1' };
     mockDogData = mockDog;
+    mockPack = {
+      perDog: {
+        'dog-1': { todayKm: 1.42, totalWalks: 10, streakDays: 3 },
+      },
+      goalKm: 5,
+    };
     mockCanGoBack = true;
   });
 
@@ -161,6 +196,29 @@ describe('DogDetailScreen', () => {
     const style = StyleSheet.flatten(walksSection.props.style);
 
     expect(style.paddingHorizontal).toBe(spacing.md);
+  });
+
+  it('renders the dog-specific walking goal before walks', () => {
+    const rendered = renderWithProviders(<DogDetailScreen />);
+
+    expect(screen.getByText("Today's walking goal")).toBeTruthy();
+    expect(screen.getByText('1.42 / 5.0 km for Buddy')).toBeTruthy();
+    expect(screen.getByText('28%')).toBeTruthy();
+
+    const goalSection = screen.getByTestId('dog-detail-walking-goal-section');
+    const walksSection = screen.getByTestId('dog-detail-walks-section');
+    const sections = collectTestIds(rendered.toJSON()).filter(
+      (testID) =>
+        testID === 'dog-detail-walking-goal-section' ||
+        testID === 'dog-detail-walks-section',
+    );
+
+    expect(goalSection).toBeTruthy();
+    expect(walksSection).toBeTruthy();
+    expect(sections).toEqual([
+      'dog-detail-walking-goal-section',
+      'dog-detail-walks-section',
+    ]);
   });
 
   it('hides delete button when dog has no role', () => {

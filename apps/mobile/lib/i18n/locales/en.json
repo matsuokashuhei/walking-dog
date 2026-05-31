@@ -98,6 +98,7 @@
       "walks": "Walks",
       "walksError": "Couldn't load walks.",
       "seeAll": "See all",
+      "walkingGoalSubtitle": "{{km}} / {{goal}} km for {{name}}",
       "streakLabel": "Streak",
       "streakDays": "{{days}}d",
       "back": "Dogs"

@@ -41,6 +41,11 @@ interface DogDetailReadyViewModel {
   dog: DogWithStats;
   meta: string;
   streakDays: number;
+  walkingGoal: {
+    todayKm: number;
+    goalKm: number;
+    progressPct: number;
+  };
   dogWalks: Walk[];
   // 散歩履歴の取得に失敗したときだけ非 null。空配列と「失敗」を画面側で区別するために持ちます。
   walksError: Error | null;
@@ -109,11 +114,20 @@ export function useDogDetailViewModel(): DogDetailViewModel {
     return { status: 'loading' };
   }
 
+  const dogTodayKm = pack.perDog[dog.id]?.todayKm ?? 0;
+  const walkingGoalProgressPct =
+    pack.goalKm > 0 ? Math.min(100, Math.round((dogTodayKm / pack.goalKm) * 100)) : 0;
+
   return {
     status: 'ready',
     dog,
     meta: buildMeta(dog),
     streakDays: pack.perDog[dog.id]?.streakDays ?? 0,
+    walkingGoal: {
+      todayKm: dogTodayKm,
+      goalKm: pack.goalKm,
+      progressPct: walkingGoalProgressPct,
+    },
     dogWalks,
     walksError,
     retryWalks,

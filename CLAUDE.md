@@ -27,6 +27,12 @@
 - API: `apps/api/CLAUDE.md`
 - Mobile: `apps/mobile/CLAUDE.md`
 
+## Product Behavior Notes
+
+- Mobile の Dogs タブは、Dog が1頭だけなら一覧ではなくその Dog 詳細へ遷移する。Dog が0頭なら空状態、2頭以上なら一覧を表示する。
+- `Today's walking goal` は Dogs 一覧ではなく Dog 詳細の Walks セクション直前に置き、Pack 合計ではなくその Dog 個別の今日距離で表示する。
+- API の散歩集計で `SUM` を使う場合、散歩0件や全値 `NULL` のケースを SQL 側で `COALESCE(..., 0)` し、GraphQL の non-null 数値 field へ `NULL` decode エラーを漏らさない。
+
 ## Directory Structure
 
 ```

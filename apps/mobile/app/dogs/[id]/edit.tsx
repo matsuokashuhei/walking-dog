@@ -9,13 +9,16 @@ import { useMutationWithAlert } from '@/hooks/use-mutation-with-alert';
 import {
   DogForm,
   birthdayValuesToInput,
+  clampGoalMinutes,
   dogBirthdayToFormValues,
   isDogFormValid,
+  normalizeGoalCycleDays,
   type DogFormValues,
 } from '@/components/dogs/DogForm';
 import { DogAvatarEditor } from '@/components/dogs/DogAvatarEditor';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { DAILY_GOAL_CYCLE_DAYS, DEFAULT_DAILY_GOAL_MINUTES } from '@/constants/walk';
 import { useColors } from '@/hooks/use-colors';
 import { components, spacing } from '@/theme/tokens';
 import type { UploadFile } from '@/lib/graphql/client';
@@ -38,6 +41,13 @@ export default function EditDogScreen() {
         breed: dog.breed ?? '',
         gender: dog.gender ?? '',
         ...dogBirthdayToFormValues(dog.birthday),
+        goalMinutes: clampGoalMinutes(
+          dog.walkGoal?.walkAmount.minutes ?? DEFAULT_DAILY_GOAL_MINUTES,
+          normalizeGoalCycleDays(dog.walkGoal?.walkAmount.cycleDays),
+        ),
+        goalCycleDays: normalizeGoalCycleDays(
+          dog.walkGoal?.walkAmount.cycleDays ?? DAILY_GOAL_CYCLE_DAYS,
+        ),
       }}
       currentAvatar={dog.avatar ?? dog.photoUrl ?? null}
     />
@@ -77,6 +87,10 @@ function EditDogContent({ id, dogName, initialValues, currentAvatar }: EditDogCo
           breed: values.breed.trim() || undefined,
           gender: values.gender.trim() || undefined,
           birthday: birthdayValuesToInput(values),
+          walkGoal: {
+            minutes: clampGoalMinutes(values.goalMinutes, values.goalCycleDays),
+            cycleDays: values.goalCycleDays,
+          },
           ...(avatarFile ? { avatarFile } : {}),
         },
       });

@@ -33,6 +33,15 @@ const apiDog = {
   gender: 'MALE' as const,
   avatar: 'https://example.com/avatar.jpg',
   birthday: null,
+  walkGoal: {
+    id: 'goal-1',
+    dogId: 'dog-1',
+    walkAmount: { minutes: 45, cycleDays: 1 },
+    effectiveFrom: '2026-01-01',
+    effectiveTo: null,
+    createdAt: '2026-01-01T00:00:00Z',
+    updatedAt: '2026-01-01T00:00:00Z',
+  },
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: '2026-01-02T00:00:00Z',
 };
@@ -71,6 +80,7 @@ describe('useUpdateDog', () => {
           breed: 'Golden Retriever',
           gender: 'male',
           birthday: null,
+          walkGoal: { minutes: 45, cycleDays: 1 },
         },
       });
     });
@@ -83,6 +93,7 @@ describe('useUpdateDog', () => {
         breed: 'Golden Retriever',
         gender: 'MALE',
         birthday: null,
+        walkGoal: { minutes: 45, cycleDays: 1 },
       },
     });
     expect(mockAuthenticatedMultipartRequest).not.toHaveBeenCalled();
@@ -107,6 +118,7 @@ describe('useUpdateDog', () => {
           breed: 'Golden Retriever',
           gender: 'female',
           birthday: null,
+          walkGoal: { minutes: 420, cycleDays: 7 },
           avatarFile,
         },
       });
@@ -122,6 +134,7 @@ describe('useUpdateDog', () => {
           breed: 'Golden Retriever',
           gender: 'FEMALE',
           birthday: null,
+          walkGoal: { minutes: 420, cycleDays: 7 },
           avatar: null,
         },
       },

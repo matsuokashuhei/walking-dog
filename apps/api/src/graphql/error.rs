@@ -9,7 +9,7 @@ use aws_sdk_cognitoidentityprovider::operation::{
 use aws_sdk_s3::error::ProvideErrorMetadata;
 use tracing::error;
 
-use crate::entity::track_point::TrackPointError;
+use crate::{entity::track_point::TrackPointError, service::error::ServiceError};
 
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {
@@ -23,6 +23,16 @@ pub enum AppError {
     UnprocessableEntity(String),
     #[error("Internal server error: {0}")]
     InternalServerError(String),
+}
+
+impl From<ServiceError> for AppError {
+    fn from(error: ServiceError) -> Self {
+        match error {
+            ServiceError::NotFound => AppError::NotFound,
+            ServiceError::UnprocessableEntity(message) => AppError::UnprocessableEntity(message),
+            ServiceError::Internal(message) => AppError::InternalServerError(message),
+        }
+    }
 }
 
 impl ErrorExtensions for AppError {

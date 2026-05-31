@@ -24,8 +24,8 @@ export default function DogsScreen() {
     <View style={styles.headerContainer}>
       <View style={styles.rollupWrap}>
         <PackRollupCard
-          todayKm={vm.pack.todayKm}
-          goalKm={vm.pack.goalKm}
+          progressMinutes={vm.pack.goalProgressMinutes}
+          goalMinutes={vm.pack.goalMinutes}
           progressPct={vm.pack.progressPct}
         />
       </View>

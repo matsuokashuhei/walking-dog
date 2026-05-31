@@ -79,8 +79,8 @@
       "empty": "まだ犬が登録されていません",
       "addDog": "犬を追加",
       "addCta": "＋ 追加",
-      "todayGoal": "今日の散歩目標",
-      "acrossPack": "{{km}} / {{goal}} km（みんなの合計）",
+      "todayGoal": "目標の進捗",
+      "acrossPack": "{{minutes}} / {{goal}}分（みんなの合計）",
       "streak": "🔥 {{days}}日",
       "todayStats": "今日 {{km}} km · {{count}}回"
     },
@@ -132,6 +132,21 @@
       "birthdayMonthPlaceholder": "例: 6",
       "birthdayDay": "日",
       "birthdayDayPlaceholder": "例: 15",
+      "dailyGoal": "DAILY GOAL",
+      "goal": "GOAL",
+      "goalCycle": "周期",
+      "goalCycleDaily": "DAILY",
+      "goalCycleWeekly": "WEEKLY",
+      "dailyGoalTime": "時間",
+      "goalTime": "時間",
+      "dailyGoalMinutes": "{{count}}分",
+      "goalMinutes": "{{count}}分",
+      "dailyGoalAccessibility": "毎日の目標",
+      "goalTimeAccessibility": "目標時間",
+      "dailyGoalIncrease": "毎日の目標を増やす",
+      "goalIncrease": "目標を増やす",
+      "dailyGoalDecrease": "毎日の目標を減らす",
+      "goalDecrease": "目標を減らす",
       "changePhoto": "写真を変更",
       "photoPermissionDenied": "写真へのアクセスが拒否されました",
       "photoPermissionMessage": "設定で写真ライブラリへのアクセスを許可してください。"
@@ -164,7 +179,8 @@
         "goal": "目標",
         "kmShort": "{{value}} km",
         "streakDays": "{{count}}日",
-        "goalPercent": "{{value}}%"
+        "goalPercent": "{{value}}%",
+        "goalMinutes": "{{done}}/{{goal}}分"
       },
       "lastWalk": {
         "never": "はじめての散歩",

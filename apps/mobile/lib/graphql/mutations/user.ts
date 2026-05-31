@@ -15,6 +15,15 @@ export const UPDATE_USER_MUTATION = gql`
         gender
         avatar
         birthday { year month day }
+        walkGoal {
+          id
+          dogId
+          walkAmount { minutes cycleDays }
+          effectiveFrom
+          effectiveTo
+          createdAt
+          updatedAt
+        }
         createdAt
         updatedAt
       }

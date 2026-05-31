@@ -8,6 +8,15 @@ const DOG_FIELDS = gql`
     gender
     avatar
     birthday { year month day }
+    walkGoal {
+      id
+      dogId
+      walkAmount { minutes cycleDays }
+      effectiveFrom
+      effectiveTo
+      createdAt
+      updatedAt
+    }
     createdAt
     updatedAt
   }

@@ -45,10 +45,10 @@ impl MigrationTrait for Migration {
                             .extra("DEFAULT now()"),
                     )
                     .check(
-                        Expr::col(Alias::new("effective_to")).is_null().or(
-                            Expr::col(Alias::new("effective_to"))
-                                .gte(Expr::col(Alias::new("effective_from"))),
-                        ),
+                        Expr::col(Alias::new("effective_to"))
+                            .is_null()
+                            .or(Expr::col(Alias::new("effective_to"))
+                                .gte(Expr::col(Alias::new("effective_from")))),
                     )
                     .foreign_key(
                         ForeignKey::create()

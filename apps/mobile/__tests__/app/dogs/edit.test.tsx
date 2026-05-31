@@ -37,7 +37,7 @@ const mockLaunchImageLibraryAsync =
     typeof ImagePicker.launchImageLibraryAsync
   >;
 
-const mockDog = {
+const mockDogBase = {
   id: 'dog-1',
   name: 'Buddy',
   breed: 'Golden Retriever',
@@ -46,8 +46,19 @@ const mockDog = {
   birthday: null,
   photoUrl: 'https://example.com/buddy.jpg',
   createdAt: '2026-01-01',
+  walkGoal: {
+    id: 'goal-1',
+    dogId: 'dog-1',
+    walkAmount: { minutes: 45, cycleDays: 1 },
+    effectiveFrom: '2026-01-01',
+    effectiveTo: null,
+    createdAt: '2026-01-01',
+    updatedAt: '2026-01-01',
+  },
   walkStats: null,
 } satisfies DogWithStats;
+
+let mockDog: DogWithStats = mockDogBase;
 
 jest.mock('@/hooks/use-dog', () => ({
   useDog: () => ({ data: mockDog, isLoading: false }),
@@ -65,6 +76,7 @@ jest.mock('@/hooks/use-mutation-with-alert', () => ({
 describe('EditDogScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockDog = mockDogBase;
     mockUpdateDog.mockResolvedValue(mockDog);
     mockDeleteDog.mockResolvedValue(mockDog);
     jest.spyOn(Alert, 'alert').mockImplementation(jest.fn());
@@ -109,10 +121,49 @@ describe('EditDogScreen', () => {
           breed: 'Golden Retriever',
           gender: 'MALE',
           birthday: null,
+          walkGoal: { minutes: 45, cycleDays: 1 },
         },
       });
     });
     expect(mockBack).toHaveBeenCalledTimes(1);
+  });
+
+  it('saves the default daily goal when the dog has no current goal', async () => {
+    mockDog = { ...mockDogBase, walkGoal: null };
+    render(<EditDogScreen />);
+
+    fireEvent.press(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(mockUpdateDog).toHaveBeenCalledWith({
+        id: 'dog-1',
+        input: expect.objectContaining({
+          walkGoal: { minutes: 30, cycleDays: 1 },
+        }),
+      });
+    });
+  });
+
+  it('saves an existing weekly goal as minutes plus cycle days', async () => {
+    mockDog = {
+      ...mockDogBase,
+      walkGoal: {
+        ...mockDogBase.walkGoal,
+        walkAmount: { minutes: 210, cycleDays: 7 },
+      },
+    };
+    render(<EditDogScreen />);
+
+    fireEvent.press(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(mockUpdateDog).toHaveBeenCalledWith({
+        id: 'dog-1',
+        input: expect.objectContaining({
+          walkGoal: { minutes: 210, cycleDays: 7 },
+        }),
+      });
+    });
   });
 
   it('renders a remove dog button for the current dog', () => {
@@ -178,6 +229,7 @@ describe('EditDogScreen', () => {
           breed: 'Golden Retriever',
           gender: 'MALE',
           birthday: null,
+          walkGoal: { minutes: 45, cycleDays: 1 },
           avatarFile: {
             uri: 'file:///buddy.png',
             name: 'buddy.png',

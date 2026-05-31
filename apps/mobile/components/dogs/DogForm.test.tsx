@@ -12,6 +12,28 @@ jest.mock('@/components/ui/icon-symbol', () => ({
   IconSymbol: () => null,
 }));
 
+jest.mock('@expo/ui/swift-ui', () => {
+  const React = require('react');
+  const { View } = jest.requireActual('react-native');
+  return {
+    Host: ({ children, ...props }: { children: React.ReactNode }) => (
+      <View {...props}>{children}</View>
+    ),
+    Slider: ({
+      onValueChange,
+      ...props
+    }: {
+      onValueChange?: (value: number) => void;
+    }) => (
+      <View
+        {...props}
+        accessibilityRole="adjustable"
+        onValueChange={onValueChange}
+      />
+    ),
+  };
+});
+
 function makeValues(overrides: Partial<DogFormValues> = {}): DogFormValues {
   return {
     name: '',
@@ -20,6 +42,8 @@ function makeValues(overrides: Partial<DogFormValues> = {}): DogFormValues {
     birthdayYear: '',
     birthdayMonth: '',
     birthdayDay: '',
+    goalMinutes: 30,
+    goalCycleDays: 1,
     ...overrides,
   };
 }
@@ -44,6 +68,85 @@ describe('DogForm', () => {
     expect(screen.getByText('Gender')).toBeTruthy();
     expect(screen.getByText('Select gender')).toBeTruthy();
     expect(screen.queryByTestId('dog-gender-segmented-control')).toBeNull();
+  });
+
+  it('renders the goal section with the default daily time goal', () => {
+    setup();
+    expect(screen.getByText('GOAL')).toBeTruthy();
+    expect(screen.getByText('Cycle')).toBeTruthy();
+    expect(screen.getByText('DAILY')).toBeTruthy();
+    expect(screen.getByText('WEEKLY')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'DAILY' }).props.accessibilityState?.selected).toBe(
+      true,
+    );
+    expect(screen.getByRole('button', { name: 'WEEKLY' }).props.accessibilityState?.selected).toBe(
+      false,
+    );
+    expect(screen.getByText('Time')).toBeTruthy();
+    expect(screen.getByText('30 min')).toBeTruthy();
+    expect(screen.getByText('10 min')).toBeTruthy();
+    expect(screen.getByText('120 min')).toBeTruthy();
+  });
+
+  it('renders a weekly goal with weekly limits', () => {
+    setup(makeValues({ goalMinutes: 210, goalCycleDays: 7 }));
+    expect(screen.getByRole('button', { name: 'WEEKLY' }).props.accessibilityState?.selected).toBe(
+      true,
+    );
+    expect(screen.getByText('210 min')).toBeTruthy();
+    expect(screen.getByText('70 min')).toBeTruthy();
+    expect(screen.getByText('840 min')).toBeTruthy();
+  });
+
+  it('converts the goal amount when switching between daily and weekly cycles', () => {
+    const { onChange, rerender } = setup(makeValues({ goalMinutes: 30, goalCycleDays: 1 }));
+
+    fireEvent.press(screen.getByRole('button', { name: 'WEEKLY' }));
+
+    expect(onChange).toHaveBeenCalledWith(makeValues({ goalMinutes: 210, goalCycleDays: 7 }));
+
+    rerender(
+      <DogForm
+        values={makeValues({ goalMinutes: 210, goalCycleDays: 7 })}
+        onChange={onChange}
+      />,
+    );
+
+    fireEvent.press(screen.getByRole('button', { name: 'DAILY' }));
+
+    expect(onChange).toHaveBeenLastCalledWith(makeValues({ goalMinutes: 30, goalCycleDays: 1 }));
+  });
+
+  it('applies native slider value changes for each cycle', () => {
+    const { onChange, rerender } = setup(makeValues({ goalMinutes: 30, goalCycleDays: 1 }));
+    const slider = screen.getByTestId('dog-goal-slider');
+
+    fireEvent(slider, 'valueChange', 35);
+
+    expect(onChange).toHaveBeenCalledWith(makeValues({ goalMinutes: 35, goalCycleDays: 1 }));
+
+    rerender(
+      <DogForm
+        values={makeValues({ goalMinutes: 70, goalCycleDays: 7 })}
+        onChange={onChange}
+      />,
+    );
+
+    fireEvent(screen.getByTestId('dog-goal-slider'), 'valueChange', 65);
+
+    expect(onChange).toHaveBeenLastCalledWith(makeValues({ goalMinutes: 70, goalCycleDays: 7 }));
+  });
+
+  it('updates the goal from the native slider value change', () => {
+    const { onChange } = setup(makeValues({ goalMinutes: 30, goalCycleDays: 1 }));
+    const slider = screen.getByTestId('dog-goal-slider');
+
+    expect(slider.props.min).toBe(10);
+    expect(slider.props.max).toBe(120);
+    expect(slider.props.step).toBe(5);
+    fireEvent(slider, 'valueChange', 120);
+
+    expect(onChange).toHaveBeenCalledWith(makeValues({ goalMinutes: 120, goalCycleDays: 1 }));
   });
 
   it('renders birthday in the profile group without an empty-state value', () => {

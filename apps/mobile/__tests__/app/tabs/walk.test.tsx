@@ -5,12 +5,34 @@ import type { Dog } from '@/types/graphql';
 
 jest.mock('@/hooks/use-color-scheme', () => ({ useColorScheme: () => 'light' }));
 jest.mock('expo-router', () => ({
+  router: { setParams: jest.fn() },
   useRouter: () => ({ push: jest.fn() }),
   useLocalSearchParams: () => ({}),
 }));
 jest.mock('expo-image', () => ({ Image: 'Image' }));
 
-jest.mock('@/components/walk/WalkMap', () => ({ WalkMap: () => null }));
+let mockWalkMapMounts = 0;
+let mockWalkMapUnmounts = 0;
+const mockWalkMapProps: Array<Record<string, unknown>> = [];
+
+jest.mock('@/components/walk/WalkMap', () => {
+  const React = jest.requireActual('react');
+  const { View } = jest.requireActual('react-native');
+
+  return {
+    WalkMap: (props: Record<string, unknown>) => {
+      mockWalkMapProps.push(props);
+      React.useEffect(() => {
+        mockWalkMapMounts += 1;
+        return () => {
+          mockWalkMapUnmounts += 1;
+        };
+      }, []);
+
+      return <View testID="walk-map" />;
+    },
+  };
+});
 jest.mock('@/components/walk/WalkMapShell', () => {
   const { View } = jest.requireActual('react-native');
   return {
@@ -32,10 +54,37 @@ jest.mock('@/components/walk/WalkMapShell', () => {
   };
 });
 jest.mock('@/components/walk/WalkSummaryCard', () => ({ WalkSummaryCard: () => null }));
+jest.mock('@/components/walk/WalkControls', () => {
+  const { Text, View } = jest.requireActual('react-native');
+  return {
+    WalkControls: ({ children }: { children?: ReactNode }) => (
+      <View>
+        <Text>Recording controls</Text>
+        {children}
+      </View>
+    ),
+  };
+});
+jest.mock('@/components/walk/WalkEventActions', () => {
+  const { Text } = jest.requireActual('react-native');
+  return {
+    WalkEventActions: () => <Text>Event actions</Text>,
+  };
+});
+jest.mock('@/hooks/use-walk-session', () => ({
+  useWalkSession: () => ({ stop: jest.fn() }),
+}));
+jest.mock('@/hooks/use-active-walk-snapshot-sync', () => ({
+  useActiveWalkSnapshotSync: jest.fn(),
+}));
+jest.mock('@/hooks/use-walk-live-activity-sync', () => ({
+  useWalkLiveActivitySync: jest.fn(),
+}));
 
 type Phase = 'ready' | 'recording' | 'finished';
 let mockDogs: Dog[] = [];
 let mockPhase: Phase = 'ready';
+let mockSelectedDogIds: string[] = [];
 
 jest.mock('@/hooks/use-me', () => ({
   useMe: () => ({ data: { dogs: mockDogs }, isLoading: false }),
@@ -57,17 +106,23 @@ jest.mock('@/hooks/use-pack-progress', () => ({
 type StoreState = {
   selectedDogIds: string[];
   phase: Phase;
+  dogs: Dog[];
+  walkId: string | null;
   selectDog: (id: string) => void;
   setSelectedDogs: (ids: string[]) => void;
+  requestCamera: () => void;
 };
 
 jest.mock('@/stores/walk-store', () => ({
   useWalkStore: (selector: (s: StoreState) => unknown) =>
     selector({
-      selectedDogIds: [],
+      selectedDogIds: mockSelectedDogIds,
       phase: mockPhase,
+      dogs: mockDogs,
+      walkId: mockPhase === 'recording' ? 'walk-1' : null,
       selectDog: jest.fn(),
       setSelectedDogs: jest.fn(),
+      requestCamera: jest.fn(),
     }),
 }));
 
@@ -95,6 +150,10 @@ describe('Walk tab route', () => {
   beforeEach(() => {
     mockDogs = [];
     mockPhase = 'ready';
+    mockSelectedDogIds = [];
+    mockWalkMapMounts = 0;
+    mockWalkMapUnmounts = 0;
+    mockWalkMapProps.length = 0;
   });
 
   it('shows the NoDogsBody CTA when there are zero dogs', () => {
@@ -116,9 +175,33 @@ describe('Walk tab route', () => {
     expect(screen.getByText('Walking with')).toBeTruthy();
   });
 
-  it('does not show the Walk header while redirecting to the active walk screen', () => {
+  it('renders recording controls in the Walk tab instead of an empty redirect placeholder', () => {
     mockPhase = 'recording';
+    mockDogs = [buildDog({})];
+    mockSelectedDogIds = ['d1'];
+
     render(<WalkScreen />);
+
     expect(screen.queryByRole('header', { name: 'Walk' })).toBeNull();
+    expect(screen.getByText('Recording controls')).toBeTruthy();
+    expect(screen.getByText('Event actions')).toBeTruthy();
+  });
+
+  it('keeps the same map mounted when the phase changes from ready to recording', () => {
+    mockDogs = [buildDog({})];
+    mockSelectedDogIds = ['d1'];
+    const { rerender } = render(<WalkScreen />);
+
+    expect(screen.getByTestId('walk-map')).toBeTruthy();
+    expect(mockWalkMapMounts).toBe(1);
+    expect(mockWalkMapProps.at(-1)).toEqual(expect.objectContaining({ mode: 'preview' }));
+
+    mockPhase = 'recording';
+    rerender(<WalkScreen />);
+
+    expect(screen.getByText('Recording controls')).toBeTruthy();
+    expect(mockWalkMapMounts).toBe(1);
+    expect(mockWalkMapUnmounts).toBe(0);
+    expect(mockWalkMapProps.at(-1)).toEqual(expect.objectContaining({ mode: 'recording' }));
   });
 });

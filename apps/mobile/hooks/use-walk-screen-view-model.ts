@@ -1,6 +1,5 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
 import { Alert } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useWalkPermissions } from '@/hooks/use-walk-permissions';
 import { useWalkSession } from '@/hooks/use-walk-session';
@@ -16,22 +15,11 @@ export interface WalkScreenViewModel {
 // Walk 画面で必要な状態取得、画面遷移、散歩開始処理をまとめるフックです。
 export function useWalkScreenViewModel(): WalkScreenViewModel {
   const { t } = useTranslation();
-  const router = useRouter();
   const phase = useWalkStore((state) => state.phase) as WalkScreenViewModel['phase'];
   const selectedDogIds = useWalkStore((state) => state.selectedDogIds);
-  const { action } = useLocalSearchParams<{ action?: string }>();
 
   const walkSession = useWalkSession();
   const permissions = useWalkPermissions();
-
-  // 散歩記録中になったら、必要なアクションを引き継いで記録画面へ移動します。
-  useEffect(() => {
-    if (phase !== 'recording') return;
-    router.push({
-      pathname: '/walk-recording',
-      params: action === 'camera' ? { action: 'camera' } : undefined,
-    });
-  }, [action, phase, router]);
 
   // 散歩開始時は GPS 権限を確認してから散歩セッションを開始します。
   const handleStart = useCallback(async () => {

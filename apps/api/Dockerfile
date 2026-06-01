@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM public.ecr.aws/docker/library/rust:1.95 AS base
+FROM public.ecr.aws/docker/library/rust:1.96 AS base
 
 FROM base AS dev
 RUN <<EOT

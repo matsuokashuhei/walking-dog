@@ -56,6 +56,10 @@ This project uses the obra/superpowers plugin. Always check for relevant skills 
 
 - UI の設計・実装・リファクタリングで Expo / React Native / `@expo/ui` / `@expo/ui/swift-ui` を扱う場合は、最初に `.codex/skills/expo-ui-docs-first/SKILL.md` を読むこと。repo-local skill の自動検出が効かないセッションでも、このファイルを明示的に参照してから計画・実装する。
 
+## Local Docker Verification
+
+- 複数 worktree で `apps/compose.yml` を使うと、compose project 名 `apps` が衝突して `docker compose exec` が別 worktree の volume を見ていることがある。現在の worktree の API コードを検証するときは、必要に応じて `docker run --rm -v "$PWD":/walking-dog -v apps_cargo_cache:/usr/local/cargo -w /walking-dog/apps/api apps-api cargo test` のように明示的に current worktree を bind mount する。
+
 ## 開発フェーズとスキル
 
 各フェーズで以下の superpowers スキルを使うこと：

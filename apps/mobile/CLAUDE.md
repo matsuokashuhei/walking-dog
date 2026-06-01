@@ -47,6 +47,7 @@
 - Walk 開始前の preview マップは foreground の現在地 region へ寄せる。東京駅などの固定座標は GPS 現在地取得前に地図を描画するための初期領域に限定し、ready 画面の主表示として扱わない。
 - 記録中マップの現在地表示は `useWalkStore().points` の最新点を単一の source of truth にする。犬プロフィール画像などの表示情報は route 側で選択犬を解決して `WalkMap` に渡し、`showsUserLocation` など別系統の現在地表示と併用しない。
 - Pee/poop の表示アイコンは全サーフェスで統一する。React Native 側は `lib/walk/events.ts` の `WALK_EVENT_EMOJIS` を単一ソースにし、pee は `💧`、poop/poo は `💩` を使う。Live Activity と Watch SwiftUI でも同じ emoji を表示し、SF Symbols の `drop.fill` などに分岐させない。`expo-widgets` の Live Activity layout は関数を文字列化して Widget 側 JSContext で再評価するため、layout 関数内では imported constant を参照せず、関数内 local literal と回帰テストで値を固定する。
+- Dog 詳細画面は閲覧と編集導線に集中させ、Delete ボタンや削除確認などの破壊的操作を置かない。犬の削除操作は編集画面の remove フローに集約する。
 
 ## iOS Simulator 起動手順
 

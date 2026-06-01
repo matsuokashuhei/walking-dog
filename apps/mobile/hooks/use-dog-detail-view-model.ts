@@ -1,9 +1,7 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useDog } from '@/hooks/use-dog';
 import { useDogDetailAuthorization } from '@/hooks/use-dog-detail-authorization';
-import { useDeleteDog } from '@/hooks/use-dog-mutations';
-import { useMutationWithAlert } from '@/hooks/use-mutation-with-alert';
 import { usePackProgress } from '@/hooks/use-pack-progress';
 import { useMyWalks } from '@/hooks/use-walks';
 import type { Dog, DogWithStats, Walk } from '@/types/graphql';
@@ -46,11 +44,7 @@ interface DogDetailReadyViewModel {
   walksError: Error | null;
   retryWalks: () => void;
   isOwner: boolean;
-  showDeleteConfirm: boolean;
   handleOpenWalk: (walkId: string) => void;
-  openDeleteConfirm: () => void;
-  closeDeleteConfirm: () => void;
-  handleDelete: () => Promise<void>;
 }
 
 export type DogDetailViewModel = DogDetailLoadingViewModel | DogDetailReadyViewModel;
@@ -65,10 +59,7 @@ export function useDogDetailViewModel(): DogDetailViewModel {
   const { data: walks = [], error: walksErrorRaw, refetch: refetchWalks } = useMyWalks(100);
   const walksError = walksErrorRaw ?? null;
   const pack = usePackProgress();
-  const { mutateAsync: deleteDog } = useDeleteDog();
-  const runWithAlert = useMutationWithAlert();
   const { isOwner } = useDogDetailAuthorization(dog ?? undefined);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // 全散歩履歴から、現在表示している犬が参加した散歩だけを抽出します。
   const dogWalks = useMemo(
@@ -87,23 +78,6 @@ export function useDogDetailViewModel(): DogDetailViewModel {
     void refetchWalks?.();
   }, [refetchWalks]);
 
-  const openDeleteConfirm = useCallback(() => {
-    setShowDeleteConfirm(true);
-  }, []);
-
-  const closeDeleteConfirm = useCallback(() => {
-    setShowDeleteConfirm(false);
-  }, []);
-
-  // 削除は共通のアラート処理を通し、成功時だけ犬一覧へ戻します。
-  const handleDelete = useCallback(async () => {
-    if (!dogId) return;
-    const ok = await runWithAlert(() => deleteDog(dogId), 'dogs.detail.deleteError');
-    if (ok) {
-      router.replace('/(tabs)/dogs');
-    }
-  }, [deleteDog, dogId, router, runWithAlert]);
-
   // 詳細表示に必要なデータが揃うまで、画面側へ loading として返します。
   if (isLoading || !dog) {
     return { status: 'loading' };
@@ -118,10 +92,6 @@ export function useDogDetailViewModel(): DogDetailViewModel {
     walksError,
     retryWalks,
     isOwner,
-    showDeleteConfirm,
     handleOpenWalk,
-    openDeleteConfirm,
-    closeDeleteConfirm,
-    handleDelete,
   };
 }

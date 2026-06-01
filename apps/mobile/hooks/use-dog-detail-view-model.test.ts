@@ -3,9 +3,6 @@ import { useDogDetailViewModel } from './use-dog-detail-view-model';
 import type { DogWithStats, Walk } from '@/types/graphql';
 
 const mockPush = jest.fn();
-const mockReplace = jest.fn();
-const mockDeleteDog = jest.fn();
-const mockRunWithAlert = jest.fn();
 const mockRefetchWalks = jest.fn();
 let mockWalksError: Error | null = null;
 
@@ -74,12 +71,11 @@ let mockPack = {
     'dog-1': { todayKm: 1, todayMinutes: 20, goalProgressMinutes: 20, goalMinutes: 30, goalCycleDays: 1, totalWalks: 1, streakDays: 5 },
   },
 };
-let mockMe = { id: 'user-1' };
 let mockIsOwner = true;
 
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({ id: 'dog-1' }),
-  useRouter: () => ({ push: mockPush, replace: mockReplace }),
+  useRouter: () => ({ push: mockPush }),
 }));
 
 jest.mock('@/hooks/use-dog', () => ({
@@ -92,18 +88,6 @@ jest.mock('@/hooks/use-walks', () => ({
 
 jest.mock('@/hooks/use-pack-progress', () => ({
   usePackProgress: () => mockPack,
-}));
-
-jest.mock('@/hooks/use-dog-mutations', () => ({
-  useDeleteDog: () => ({ mutateAsync: mockDeleteDog }),
-}));
-
-jest.mock('@/hooks/use-me', () => ({
-  useMe: () => ({ data: mockMe }),
-}));
-
-jest.mock('@/hooks/use-mutation-with-alert', () => ({
-  useMutationWithAlert: () => mockRunWithAlert,
 }));
 
 jest.mock('@/hooks/use-dog-detail-authorization', () => ({
@@ -197,11 +181,8 @@ describe('useDogDetailViewModel', () => {
         'dog-1': { todayKm: 1, todayMinutes: 20, goalProgressMinutes: 20, goalMinutes: 30, goalCycleDays: 1, totalWalks: 1, streakDays: 5 },
       },
     };
-    mockMe = { id: 'user-1' };
     mockIsOwner = true;
     mockWalksError = null;
-    mockDeleteDog.mockResolvedValue(true);
-    mockRunWithAlert.mockImplementation(async (fn: () => Promise<unknown>) => fn());
   });
 
   it('returns loading until the dog query resolves', () => {
@@ -256,44 +237,4 @@ describe('useDogDetailViewModel', () => {
     expect(mockPush).toHaveBeenCalledTimes(1);
   });
 
-  it('toggles delete confirmation visibility inside the view model', () => {
-    const { result } = renderHook(() => useDogDetailViewModel());
-    const vm = expectReadyViewModel(result.current);
-
-    act(() => {
-      vm.openDeleteConfirm();
-    });
-    expect(expectReadyViewModel(result.current).showDeleteConfirm).toBe(true);
-
-    act(() => {
-      vm.closeDeleteConfirm();
-    });
-    expect(expectReadyViewModel(result.current).showDeleteConfirm).toBe(false);
-  });
-
-  it('deletes the dog through the alert helper and returns to the dogs tab on success', async () => {
-    const { result } = renderHook(() => useDogDetailViewModel());
-    const vm = expectReadyViewModel(result.current);
-
-    await act(async () => {
-      await vm.handleDelete();
-    });
-
-    expect(mockRunWithAlert).toHaveBeenCalledWith(expect.any(Function), 'dogs.detail.deleteError');
-    expect(mockDeleteDog).toHaveBeenCalledWith('dog-1');
-    expect(mockReplace).toHaveBeenCalledWith('/(tabs)/dogs');
-  });
-
-  it('does not navigate away when delete returns null', async () => {
-    mockRunWithAlert.mockResolvedValue(null);
-
-    const { result } = renderHook(() => useDogDetailViewModel());
-    const vm = expectReadyViewModel(result.current);
-
-    await act(async () => {
-      await vm.handleDelete();
-    });
-
-    expect(mockReplace).not.toHaveBeenCalled();
-  });
 });

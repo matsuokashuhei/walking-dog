@@ -42,19 +42,10 @@ const mockDog: DogWithStats = {
   walkStats: null,
 };
 
-let mockMeData: { id: string } | undefined = { id: 'user-1' };
 let mockDogData: DogWithStats = mockDog;
 
 jest.mock('@/hooks/use-dog', () => ({
   useDog: () => ({ data: mockDogData, isLoading: false }),
-}));
-
-jest.mock('@/hooks/use-dog-mutations', () => ({
-  useDeleteDog: () => ({ mutateAsync: jest.fn() }),
-}));
-
-jest.mock('@/hooks/use-me', () => ({
-  useMe: () => ({ data: mockMeData }),
 }));
 
 jest.mock('@/hooks/use-pack-progress', () => ({
@@ -82,21 +73,8 @@ function renderWithProviders(ui: React.ReactElement) {
 describe('DogDetailScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockMeData = { id: 'user-1' };
     mockDogData = mockDog;
     mockCanGoBack = true;
-  });
-
-  it('shows delete button for owner', () => {
-    mockMeData = { id: 'user-1' }; // owner
-    renderWithProviders(<DogDetailScreen />);
-    expect(screen.getByText('Delete')).toBeTruthy();
-  });
-
-  it('hides delete button for non-owner member', () => {
-    mockDogData = { ...mockDog, role: 'member' };
-    renderWithProviders(<DogDetailScreen />);
-    expect(screen.queryByText('Delete')).toBeNull();
   });
 
   it('renders the large title screen header with dog title and back action', () => {
@@ -163,9 +141,4 @@ describe('DogDetailScreen', () => {
     expect(style.paddingHorizontal).toBe(spacing.md);
   });
 
-  it('hides delete button when dog has no role', () => {
-    mockDogData = { ...mockDog, role: undefined };
-    renderWithProviders(<DogDetailScreen />);
-    expect(screen.queryByText('Delete')).toBeNull();
-  });
 });

@@ -73,11 +73,11 @@
   },
   "devDependencies": {
     "@bacons/apple-targets": "4.0.7",
-    "@expo/prebuild-config": "56.0.12",
+    "@expo/prebuild-config": "56.0.14",
     "@react-native/jest-preset": "0.85.3",
     "@testing-library/react-native": "^13.3.3",
     "@types/jest": "29.5.14",
-    "@types/node": "25.5.0",
+    "@types/node": "25.9.1",
     "@types/react": "~19.2.0",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~56.0.4",

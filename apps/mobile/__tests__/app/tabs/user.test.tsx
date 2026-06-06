@@ -1,13 +1,12 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import ProfileScreen from '../../../app/settings/profile';
+import UserScreen from '../../../app/(tabs)/user';
 
 const mockPush = jest.fn();
-const mockBack = jest.fn();
 const mockRetry = jest.fn();
-let mockViewModel: unknown;
+let mockUserViewModel: unknown;
 
 jest.mock('expo-router', () => ({
-  useRouter: () => ({ push: mockPush, back: mockBack }),
+  useRouter: () => ({ push: mockPush }),
 }));
 
 jest.mock('@/hooks/use-color-scheme', () => ({
@@ -23,9 +22,27 @@ jest.mock('expo-image', () => ({
   Image: 'Image',
 }));
 
+jest.mock('expo-constants', () => ({
+  default: {
+    expoConfig: { version: '1.0.0', extra: {} },
+  },
+}));
+
+jest.mock('@/hooks/use-user-screen-view-model', () => ({
+  useUserScreenViewModel: () => mockUserViewModel,
+}));
+
+jest.mock('@/hooks/use-settings-screen-view-model', () => ({
+  useSettingsScreenViewModel: () => ({
+    status: 'ready',
+    handleRetry: mockRetry,
+    me: { name: 'Test User', displayName: 'Test User', avatar: null, avatarUrl: null },
+  }),
+}));
+
 jest.mock('@/components/ui/LoadingScreen', () => {
   const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
-  return { LoadingScreen: () => <Text>Loading user profile</Text> };
+  return { LoadingScreen: () => <Text>Loading Me</Text> };
 });
 
 jest.mock('@/components/ui/ErrorScreen', () => {
@@ -37,14 +54,10 @@ jest.mock('@/components/ui/ErrorScreen', () => {
   };
 });
 
-jest.mock('@/hooks/use-user-profile-view-model', () => ({
-  useUserProfileViewModel: () => mockViewModel,
-}));
-
-describe('ProfileScreen', () => {
+describe('UserScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockViewModel = {
+    mockUserViewModel = {
       status: 'ready',
       handleRetry: mockRetry,
       displayName: 'Mio Tanaka',
@@ -73,27 +86,13 @@ describe('ProfileScreen', () => {
     };
   });
 
-  it('renders the loading state while the profile query is pending', () => {
-    mockViewModel = { status: 'loading', handleRetry: mockRetry };
+  it('renders the user screen as the Me tab and links to settings', () => {
+    render(<UserScreen />);
 
-    render(<ProfileScreen />);
-
-    expect(screen.getByText('Loading user profile')).toBeTruthy();
-  });
-
-  it('renders the error state and retry handler when profile data fails to load', () => {
-    mockViewModel = { status: 'error', handleRetry: mockRetry };
-
-    render(<ProfileScreen />);
-    fireEvent.press(screen.getByText('Failed to load profile'));
-
-    expect(mockRetry).toHaveBeenCalledTimes(1);
-  });
-
-  it('renders user profile data and opens edit profile', () => {
-    render(<ProfileScreen />);
-
-    expect(screen.getByRole('header', { name: 'Profile' })).toBeTruthy();
+    expect(screen.getByRole('header', { name: 'Me' })).toBeTruthy();
+    expect(screen.getByTestId('settings-header-large-title-row')).toBeTruthy();
+    expect(screen.getByTestId('settings-header-left-action-slot')).toBeTruthy();
+    expect(screen.getByTestId('settings-header-right-action-slot')).toBeTruthy();
     expect(screen.getByText('Mio Tanaka')).toBeTruthy();
     expect(screen.getByText('Walking since March 2024')).toBeTruthy();
     expect(screen.getByText('412.8')).toBeTruthy();
@@ -101,7 +100,9 @@ describe('ProfileScreen', () => {
     expect(screen.getByText('9.5 km total')).toBeTruthy();
 
     fireEvent.press(screen.getByRole('button', { name: 'Edit' }));
+    expect(mockPush).toHaveBeenCalledWith('/user/edit');
 
-    expect(mockPush).toHaveBeenCalledWith('/settings/profile/edit');
+    fireEvent.press(screen.getByRole('button', { name: 'Settings' }));
+    expect(mockPush).toHaveBeenCalledWith('/settings');
   });
 });

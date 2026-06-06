@@ -35,7 +35,7 @@
 | 画面 | 実装場所 | 左ボタン | 右ボタン | タイトル表示 | design 仕様との差分 |
 |---|---|---|---|---|---|
 | **Dogs (My Dog) 一覧** | [apps/mobile/app/(tabs)/dogs.tsx:22](apps/mobile/app/(tabs)/dogs.tsx) | — | `+ Add`（タイトル**と同じ行**） | FlatList の `ListHeaderComponent` 内に `largeTitle` | **+ Add が上段ではなく largeTitle と同行**。design 仕様（上段 right）と構造が違う。共通コンポーネント未使用 |
-| **Me (Settings) タブ** | [apps/mobile/app/(tabs)/settings.tsx:26](apps/mobile/app/(tabs)/settings.tsx) | — | — | ScrollView 直下に `largeTitle` | **上段の枠そのものが存在しない**。Dogs と比較するとタイトル行の高さ・上余白が違って見える |
+| **Me (ユーザー) タブ** | [apps/mobile/app/(tabs)/user.tsx:26](apps/mobile/app/(tabs)/user.tsx) | — | `Edit` | `ScreenHeader` の `largeTitle` | ユーザー情報を主表示し、設定は下部リンクから開く |
 | **Walk タブ** | [apps/mobile/app/(tabs)/walk.tsx](apps/mobile/app/(tabs)/walk.tsx) | — | — | （タイトル文字列なし） | **タイトル無し**。design.html では `<NavBar title="Walk" />` 想定 |
 | **New Dog (Add Dog)** | [apps/mobile/app/dogs/new.tsx:54](apps/mobile/app/dogs/new.tsx) | `Cancel`（自前 Pressable） | `Save`（自前 Pressable） | `headline 17/600` 中央 | 仕様一致だが**自前 navBar の重複実装** |
 | **Edit Dog** | [apps/mobile/app/dogs/[id]/edit.tsx:78](apps/mobile/app/dogs/[id]/edit.tsx) | `Cancel` | `Save` | `headline 17/600` 中央 | new.tsx と**完全に同じコードが二重定義** |
@@ -51,9 +51,9 @@
    - 影響: 上段の高さが Me と揃わず、タイトル行ベースラインがズレる
 
 2. **Me に上段（ボタン枠）が無い**
-   - 現状: 直接 largeTitle がトップに来る
+   - 当時の状態: 直接 largeTitle がトップに来る
    - 正解: 右/左ともボタン無しでも、上段 44px の空枠を確保 → Dogs と同じ縦位置で largeTitle が描画される
-   - これが「My Dog 画面と Me 画面で揃っていない」感の根本原因
+   - 現在は `ScreenHeader` に統一済みで、右上にプロフィール編集導線を持つ
 
 3. **共通プリミティブが無い**
    - design.html の `NavBar` に相当するコンポーネントが React Native 側に未存在
@@ -92,7 +92,7 @@ interface ScreenHeaderProps {
 | 画面 | 使い方 |
 |---|---|
 | Dogs | `<ScreenHeader title={t('dogs.list.title')} rightAction={{ label: t('dogs.list.addCta'), onPress: addDog }} />` |
-| Me | `<ScreenHeader title={t('settings.title')} />` |
+| Me | `<ScreenHeader title={t('settings.title')} rightAction={{ label: t('user.edit'), onPress: editUser }} />` |
 | Walk | `<ScreenHeader title={t('tabs.walk')} />` |
 | New Dog | `<ScreenHeader variant="modal" title={t('dogs.new.title')} leftAction={{ label: t('dogs.action.cancel'), onPress: back }} rightAction={{ label: t('dogs.action.save'), onPress: save, strong: true, disabled: !canSave }} />` |
 | Edit Dog | 同上（title だけ `dogs.edit.title`） |
@@ -109,7 +109,7 @@ interface ScreenHeaderProps {
 - **新規**: `apps/mobile/components/ui/ScreenHeader.tsx`（+ テスト）
 - **更新**: 
   - [apps/mobile/app/(tabs)/dogs.tsx](apps/mobile/app/(tabs)/dogs.tsx) — `titleRow` を ScreenHeader に置き換え
-  - [apps/mobile/app/(tabs)/settings.tsx](apps/mobile/app/(tabs)/settings.tsx) — `heroTitle` を ScreenHeader に置き換え
+  - [apps/mobile/app/(tabs)/user.tsx](apps/mobile/app/(tabs)/user.tsx) — `heroTitle` を ScreenHeader に置き換え
   - [apps/mobile/app/(tabs)/walk.tsx](apps/mobile/app/(tabs)/walk.tsx) — ScreenHeader を追加
   - [apps/mobile/app/dogs/new.tsx](apps/mobile/app/dogs/new.tsx) — 自前 navBar 削除、ScreenHeader 採用
   - [apps/mobile/app/dogs/[id]/edit.tsx](apps/mobile/app/dogs/[id]/edit.tsx) — 同上

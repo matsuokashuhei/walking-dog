@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import * as ImagePicker from 'expo-image-picker';
-import ProfileEditScreen from '../../../app/settings/profile/edit';
+import UserEditScreen from '../../../app/user/edit';
 
 const mockBack = jest.fn();
 const mockUpdateUser = jest.fn();
@@ -62,7 +62,7 @@ const mockLaunchImageLibraryAsync =
     typeof ImagePicker.launchImageLibraryAsync
   >;
 
-describe('ProfileEditScreen', () => {
+describe('UserEditScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUpdateUser.mockResolvedValue({
@@ -86,8 +86,8 @@ describe('ProfileEditScreen', () => {
     });
   });
 
-  it('saves the edited user name and returns to the profile screen', async () => {
-    render(<ProfileEditScreen />);
+  it('saves the edited user name and returns to the user screen', async () => {
+    render(<UserEditScreen />);
 
     fireEvent.changeText(screen.getByLabelText('Name'), 'Mio Updated');
     fireEvent.press(screen.getByRole('button', { name: 'Save' }));
@@ -115,7 +115,7 @@ describe('ProfileEditScreen', () => {
         },
       ],
     });
-    render(<ProfileEditScreen />);
+    render(<UserEditScreen />);
 
     fireEvent.press(screen.getByRole('button', { name: 'Change photo' }));
     await waitFor(() => {

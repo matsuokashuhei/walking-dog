@@ -22,6 +22,7 @@ const MAPPING = {
   ruler: 'straighten',
   'bell.fill': 'notifications',
   'moon.fill': 'dark-mode',
+  'gearshape.fill': 'settings',
   'doc.text': 'description',
   'lock.fill': 'lock',
   'info.circle': 'info',

@@ -275,14 +275,14 @@ export const components = {
     pillPaddingRight: 14,
     pillGap: 12,
   },
-  profileAvatar: {
+  userAvatar: {
     cardSize: 60,
-    profileSize: 88,
+    displaySize: 88,
     editorSize: 100,
     cameraBadgeSize: 32,
     cameraBadgeBorderWidth: 3,
   },
-  profileWalkChart: {
+  userWalkChart: {
     height: 100,
     maxBarHeight: 80,
     minBarHeight: 4,

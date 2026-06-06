@@ -3,16 +3,16 @@ import { useTranslation } from 'react-i18next';
 import { formatDistance, formatDistanceParts, formatDuration } from '@/lib/walk/format';
 import { useUserProfile, type UserProfileData } from './use-user-profile';
 
-type UserProfileStatus = 'loading' | 'error' | 'ready';
+type UserStatus = 'loading' | 'error' | 'ready';
 type Translate = (key: string, values?: Record<string, unknown>) => string;
 
-export interface UserProfileMetricViewModel {
+export interface UserMetricViewModel {
   key: 'walks' | 'distance' | 'totalTime' | 'dogs';
   value: string;
   label: string;
 }
 
-export interface UserProfileWeekDayViewModel {
+export interface UserWeekDayViewModel {
   key: string;
   label: string;
   distanceKm: number;
@@ -21,35 +21,35 @@ export interface UserProfileWeekDayViewModel {
   isToday: boolean;
 }
 
-export interface UserProfileWeekViewModel {
+export interface UserWeekViewModel {
   title: string;
   totalLabel: string;
-  days: UserProfileWeekDayViewModel[];
+  days: UserWeekDayViewModel[];
 }
 
-interface UserProfileBaseViewModel {
-  status: UserProfileStatus;
+interface UserBaseViewModel {
+  status: UserStatus;
   handleRetry: () => void;
 }
 
-export interface UserProfileReadyViewModel extends UserProfileBaseViewModel {
+export interface UserReadyViewModel extends UserBaseViewModel {
   status: 'ready';
   displayName: string;
   avatarUrl: string | null;
   initial: string;
   walkingSince: string;
-  metrics: UserProfileMetricViewModel[];
-  week: UserProfileWeekViewModel;
+  metrics: UserMetricViewModel[];
+  week: UserWeekViewModel;
 }
 
-export type UserProfileViewModel =
-  | (UserProfileBaseViewModel & { status: 'loading' })
-  | (UserProfileBaseViewModel & { status: 'error' })
-  | UserProfileReadyViewModel;
+export type UserViewModel =
+  | (UserBaseViewModel & { status: 'loading' })
+  | (UserBaseViewModel & { status: 'error' })
+  | UserReadyViewModel;
 
 export type { UserProfileData } from './use-user-profile';
 
-export function useUserProfileViewModel(): UserProfileViewModel {
+export function useUserScreenViewModel(): UserViewModel {
   const { t, i18n } = useTranslation();
   const { data, isLoading, error, refetch } = useUserProfile();
 
@@ -63,18 +63,18 @@ export function useUserProfileViewModel(): UserProfileViewModel {
   return {
     status: 'ready',
     handleRetry,
-    ...buildUserProfileViewModel(data, t, new Date(), i18n.language),
+    ...buildUserScreenViewModel(data, t, new Date(), i18n.language),
   };
 }
 
-export function buildUserProfileViewModel(
+export function buildUserScreenViewModel(
   data: UserProfileData,
   t: Translate,
   now: Date = new Date(),
   locale?: string,
-): Omit<UserProfileReadyViewModel, 'status' | 'handleRetry'> {
+): Omit<UserReadyViewModel, 'status' | 'handleRetry'> {
   const rawDisplayName = data.user.name ?? data.user.displayName ?? null;
-  const displayName = rawDisplayName?.trim() || t('settings.profile.unknownName');
+  const displayName = rawDisplayName?.trim() || t('user.unknownName');
   const initial = rawDisplayName?.trim()?.charAt(0)?.toUpperCase() ?? '?';
   const distanceParts = formatDistanceParts(data.totalDistanceM, 'km', 1);
 
@@ -82,29 +82,29 @@ export function buildUserProfileViewModel(
     displayName,
     avatarUrl: data.user.avatar ?? data.user.avatarUrl ?? null,
     initial,
-    walkingSince: t('settings.profile.walkingSince', {
+    walkingSince: t('user.walkingSince', {
       date: formatMonthYear(data.user.createdAt, locale),
     }),
     metrics: [
       {
         key: 'walks',
         value: String(data.totalWalks),
-        label: t('settings.profile.stats.walks'),
+        label: t('user.stats.walks'),
       },
       {
         key: 'distance',
         value: distanceParts.value,
-        label: distanceParts.unit || t('settings.profile.stats.distance'),
+        label: distanceParts.unit || t('user.stats.distance'),
       },
       {
         key: 'totalTime',
         value: formatDuration(data.totalDurationSec, locale),
-        label: t('settings.profile.stats.totalTime'),
+        label: t('user.stats.totalTime'),
       },
       {
         key: 'dogs',
         value: String(data.user.dogs.length),
-        label: t('settings.profile.stats.dogs'),
+        label: t('user.stats.dogs'),
       },
     ],
     week: buildWeekViewModel(data.recentWalks, t, now, locale),
@@ -116,7 +116,7 @@ function buildWeekViewModel(
   t: Translate,
   now: Date,
   locale?: string,
-): UserProfileWeekViewModel {
+): UserWeekViewModel {
   const weekStart = startOfWeekMonday(now);
   const metersByDay = new Map<string, number>();
   for (let i = 0; i < 7; i += 1) {
@@ -148,8 +148,8 @@ function buildWeekViewModel(
   });
 
   return {
-    title: t('settings.profile.week.title'),
-    totalLabel: t('settings.profile.week.total', {
+    title: t('user.week.title'),
+    totalLabel: t('user.week.total', {
       distance: formatDistance(totalM, 'km', 1),
     }),
     days,

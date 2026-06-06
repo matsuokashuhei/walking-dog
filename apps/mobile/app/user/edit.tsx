@@ -8,7 +8,7 @@ import { TextInput } from '@/components/ui/TextInput';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { ErrorScreen } from '@/components/ui/ErrorScreen';
-import { ProfileAvatarEditor } from '@/components/settings/ProfileAvatarEditor';
+import { UserAvatarEditor } from '@/components/user/UserAvatarEditor';
 import { useMe } from '@/hooks/use-me';
 import { useUpdateUser } from '@/hooks/use-user-mutations';
 import { useMutationWithAlert } from '@/hooks/use-mutation-with-alert';
@@ -17,7 +17,7 @@ import { spacing } from '@/theme/tokens';
 import type { UploadFile } from '@/lib/graphql/client';
 import type { User } from '@/types/graphql';
 
-export default function ProfileEditScreen() {
+export default function UserEditScreen() {
   const { t } = useTranslation();
   const { data: me, isLoading, error, refetch } = useMe();
 
@@ -25,7 +25,7 @@ export default function ProfileEditScreen() {
   if (error || !me) {
     return (
       <ErrorScreen
-        message={t('settings.profile.loadError')}
+        message={t('user.loadError')}
         onRetry={() => {
           void refetch();
         }}
@@ -33,10 +33,10 @@ export default function ProfileEditScreen() {
     );
   }
 
-  return <ProfileEditContent me={me} />;
+  return <UserEditContent me={me} />;
 }
 
-function ProfileEditContent({ me }: { me: User }) {
+function UserEditContent({ me }: { me: User }) {
   const { t } = useTranslation();
   const router = useRouter();
   const theme = useColors();
@@ -61,7 +61,7 @@ function ProfileEditContent({ me }: { me: User }) {
               ...(avatarFile ? { avatarFile } : {}),
             },
           }),
-        'settings.profileEdit.saveError',
+        'userEdit.saveError',
       );
       if (updated) router.back();
     } finally {
@@ -73,7 +73,7 @@ function ProfileEditContent({ me }: { me: User }) {
     <SafeAreaView edges={['top']} style={[styles.safeArea, { backgroundColor: theme.background }]}>
       <ScreenHeader
         variant="inline"
-        title={t('settings.profileEdit.title')}
+        title={t('userEdit.title')}
         leftAction={{ label: t('common.action.cancel'), onPress: () => router.back() }}
         rightAction={{
           label: t('common.action.save'),
@@ -86,14 +86,14 @@ function ProfileEditContent({ me }: { me: User }) {
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
       >
-        <ProfileAvatarEditor
+        <UserAvatarEditor
           value={initialAvatar}
           displayName={name}
           onChange={setAvatarFile}
         />
         <GroupedCard elevated={false}>
           <TextInput
-            label={t('settings.profileEdit.name')}
+            label={t('userEdit.name')}
             labelPosition="inline"
             value={name}
             onChangeText={setName}

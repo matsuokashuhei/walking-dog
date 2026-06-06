@@ -109,8 +109,8 @@ export interface ScreenHeaderAction {
   rightAction={{ label: t('dogs.list.addCta'), onPress: vm.handleAddDog }}
 />
 
-// (tabs)/settings.tsx — Me
-<ScreenHeader title={t('settings.title')} />
+// (tabs)/user.tsx — Me / User
+<ScreenHeader title={t('settings.title')} rightAction={{ label: t('user.edit'), onPress: editUser }} />
 
 // (tabs)/walk.tsx — Walk
 <ScreenHeader title={t('tabs.walk')} />

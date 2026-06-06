@@ -12,7 +12,7 @@ const TabTrigger = NativeTabs.Trigger as typeof NativeTabs.Trigger & {
   Label: FC<{ children?: string }>;
 };
 
-// タブレイアウトは犬一覧・散歩・設定の主要導線を NativeTabs で提供します。
+// タブレイアウトは犬一覧・散歩・ユーザーの主要導線を NativeTabs で提供します。
 export default function TabLayout() {
   const { t } = useTranslation();
   const theme = useColors();
@@ -33,7 +33,7 @@ export default function TabLayout() {
         />
         <TabTrigger.Label>{t('tabs.walk')}</TabTrigger.Label>
       </TabTrigger>
-      <TabTrigger name="settings">
+      <TabTrigger name="user">
         <TabTrigger.Icon
           sf="person.crop.circle"
           md="account_circle"

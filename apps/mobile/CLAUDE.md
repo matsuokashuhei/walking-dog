@@ -52,6 +52,7 @@
 - 散歩 GPS は foreground と background の位置情報権限を別々の capability として扱う。foreground が許可済みでも background が未許可なら `Location.startLocationUpdatesAsync` を呼ばず、foreground tracking のみで記録する。
 - Pee/poop の表示アイコンは全サーフェスで統一する。React Native 側は `lib/walk/events.ts` の `WALK_EVENT_EMOJIS` を単一ソースにし、pee は `💧`、poop/poo は `💩` を使う。Live Activity と Watch SwiftUI でも同じ emoji を表示し、SF Symbols の `drop.fill` などに分岐させない。`expo-widgets` の Live Activity layout は関数を文字列化して Widget 側 JSContext で再評価するため、layout 関数内では imported constant を参照せず、関数内 local literal と回帰テストで値を固定する。
 - Dog 詳細画面は閲覧と編集導線に集中させ、Delete ボタンや削除確認などの破壊的操作を置かない。犬の削除操作は編集画面の remove フローに集約する。
+- Dog 詳細画面の goal progress は犬単体の時間目標進捗として、summary stats と Walk 一覧の間に置く。散歩履歴取得エラー時は誤った 0 進捗を出さず、Walk 一覧側のエラー表示に集約する。
 
 ## iOS Simulator 起動手順
 

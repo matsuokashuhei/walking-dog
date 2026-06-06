@@ -1,45 +1,50 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useTranslation } from 'react-i18next';
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import { useColors } from '@/hooks/use-colors';
 import { spacing, typography } from '@/theme/tokens';
 import { GroupedCard } from '@/components/ui/GroupedCard';
 import { RingProgress } from '@/components/ui/RingProgress';
 
-interface PackRollupCardProps {
-  progressMinutes: number;
-  goalMinutes: number;
+interface GoalProgressCardProps {
+  title: string;
+  subtitle: string;
   progressPct: number;
   onPress?: () => void;
+  style?: StyleProp<ViewStyle>;
+  testID?: string;
 }
 
-export function PackRollupCard({
-  progressMinutes,
-  goalMinutes,
+export function GoalProgressCard({
+  title,
+  subtitle,
   progressPct,
   onPress,
-}: PackRollupCardProps) {
-  const { t } = useTranslation();
+  style,
+  testID,
+}: GoalProgressCardProps) {
   const theme = useColors();
-
-  const subtitle = t('dogs.list.acrossPack', {
-    minutes: progressMinutes,
-    goal: goalMinutes,
-  });
 
   const content = (
     <>
       <RingProgress
-        size={44}
-        strokeWidth={4}
+        size={spacing.step44}
+        strokeWidth={spacing.xs}
         progress={progressPct}
         color={theme.success}
         trackColor={theme.surfaceContainer}
         label={`${progressPct}%`}
-        labelFontSize={11}
+        labelFontSize={typography.metricLabel.fontSize}
+        accessibilityLabel={title}
       />
       <View style={styles.info}>
         <Text style={[styles.title, { color: theme.onSurface }]}>
-          {t('dogs.list.todayGoal')}
+          {title}
         </Text>
         <Text
           style={[styles.subtitle, { color: theme.onSurfaceVariant }]}
@@ -55,11 +60,11 @@ export function PackRollupCard({
   );
 
   return (
-    <GroupedCard elevated>
+    <GroupedCard elevated style={style} testID={testID}>
       {onPress ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={t('dogs.list.todayGoal')}
+          accessibilityLabel={title}
           onPress={onPress}
           style={styles.row}
         >

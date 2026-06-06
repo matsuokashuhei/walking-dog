@@ -69,9 +69,9 @@ describe('DogsScreen', () => {
     expect(screen.getByTestId('dogs-header-right-action-slot')).toBeTruthy();
   });
 
-  it('renders goal progress rollup title', () => {
+  it('does not render the goal progress rollup in the pack list header', () => {
     render(<DogsScreen />);
-    expect(screen.getByText('Goal progress')).toBeTruthy();
+    expect(screen.queryByText('Goal progress')).toBeNull();
   });
 
   it('renders header + Add CTA', () => {

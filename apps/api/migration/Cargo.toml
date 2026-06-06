@@ -15,7 +15,7 @@ aws-config = { version = "1.8.17", features = ["behavior-version-latest"] }
 aws-sdk-dynamodb = "1.113.0"
 
 [dependencies.sea-orm-migration]
-version = "~2.0.0-rc"
+version = "~2.0.0-rc.40"
 features = [
     "runtime-tokio-native-tls",
     "sqlx-postgres",

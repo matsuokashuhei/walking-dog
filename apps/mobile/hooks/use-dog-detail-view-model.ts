@@ -1,7 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useDog } from '@/hooks/use-dog';
-import { useDogDetailAuthorization } from '@/hooks/use-dog-detail-authorization';
 import { usePackProgress } from '@/hooks/use-pack-progress';
 import { useMyWalks } from '@/hooks/use-walks';
 import type { Dog, DogWithStats, Walk } from '@/types/graphql';
@@ -43,13 +42,12 @@ interface DogDetailReadyViewModel {
   // 散歩履歴の取得に失敗したときだけ非 null。空配列と「失敗」を画面側で区別するために持ちます。
   walksError: Error | null;
   retryWalks: () => void;
-  isOwner: boolean;
   handleOpenWalk: (walkId: string) => void;
 }
 
 export type DogDetailViewModel = DogDetailLoadingViewModel | DogDetailReadyViewModel;
 
-// URL パラメータを起点に犬詳細、散歩履歴、権限、操作ハンドラを集約します。
+// URL パラメータを起点に犬詳細、散歩履歴、操作ハンドラを集約します。
 export function useDogDetailViewModel(): DogDetailViewModel {
   const { id: rawId } = useLocalSearchParams<{ id: string }>();
   const dogId = Array.isArray(rawId) ? rawId[0] : rawId;
@@ -59,7 +57,6 @@ export function useDogDetailViewModel(): DogDetailViewModel {
   const { data: walks = [], error: walksErrorRaw, refetch: refetchWalks } = useMyWalks(100);
   const walksError = walksErrorRaw ?? null;
   const pack = usePackProgress();
-  const { isOwner } = useDogDetailAuthorization(dog ?? undefined);
 
   // 全散歩履歴から、現在表示している犬が参加した散歩だけを抽出します。
   const dogWalks = useMemo(
@@ -91,7 +88,6 @@ export function useDogDetailViewModel(): DogDetailViewModel {
     dogWalks,
     walksError,
     retryWalks,
-    isOwner,
     handleOpenWalk,
   };
 }

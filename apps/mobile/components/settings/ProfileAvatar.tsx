@@ -4,22 +4,22 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useColors } from '@/hooks/use-colors';
 import { components, typography } from '@/theme/tokens';
 
-type OwnerAvatarSize = 'card' | 'profile' | 'editor';
+type ProfileAvatarSize = 'card' | 'profile' | 'editor';
 type AvatarStyle = { width: number; height: number; borderRadius: number };
 
-interface OwnerAvatarProps {
+interface ProfileAvatarProps {
   displayName: string | null;
   avatarUrl: string | null;
-  size: OwnerAvatarSize;
+  size: ProfileAvatarSize;
   testID?: string;
 }
 
-export function OwnerAvatar({
+export function ProfileAvatar({
   displayName,
   avatarUrl,
   size,
   testID,
-}: OwnerAvatarProps) {
+}: ProfileAvatarProps) {
   const theme = useColors();
   const initial = displayName?.trim()?.charAt(0)?.toUpperCase() ?? '?';
   const avatarStyle = AVATAR_STYLE_BY_KIND[size];
@@ -68,19 +68,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cardAvatar: {
-    width: components.ownerAvatar.cardSize,
-    height: components.ownerAvatar.cardSize,
-    borderRadius: components.ownerAvatar.cardSize / 2,
+    width: components.profileAvatar.cardSize,
+    height: components.profileAvatar.cardSize,
+    borderRadius: components.profileAvatar.cardSize / 2,
   },
   profileAvatar: {
-    width: components.ownerAvatar.profileSize,
-    height: components.ownerAvatar.profileSize,
-    borderRadius: components.ownerAvatar.profileSize / 2,
+    width: components.profileAvatar.profileSize,
+    height: components.profileAvatar.profileSize,
+    borderRadius: components.profileAvatar.profileSize / 2,
   },
   editorAvatar: {
-    width: components.ownerAvatar.editorSize,
-    height: components.ownerAvatar.editorSize,
-    borderRadius: components.ownerAvatar.editorSize / 2,
+    width: components.profileAvatar.editorSize,
+    height: components.profileAvatar.editorSize,
+    borderRadius: components.profileAvatar.editorSize / 2,
   },
   cardInitial: {
     ...typography.title2,
@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
   },
 });
 
-const AVATAR_STYLE_BY_KIND: Record<OwnerAvatarSize, AvatarStyle> = {
+const AVATAR_STYLE_BY_KIND: Record<ProfileAvatarSize, AvatarStyle> = {
   card: styles.cardAvatar,
   profile: styles.profileAvatar,
   editor: styles.editorAvatar,

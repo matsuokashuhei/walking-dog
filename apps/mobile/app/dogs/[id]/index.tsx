@@ -27,7 +27,7 @@ const NAME_OVERLAP = 50;
 // Pins the absolute overlay to both screen edges.
 const SCREEN_EDGE = 0;
 
-// 犬詳細画面はヒーロー表示、散歩統計、メンバー/友達導線をまとめます。
+// 犬詳細画面はヒーロー表示、散歩統計、散歩履歴、編集導線をまとめます。
 export default function DogDetailScreen() {
   const { t } = useTranslation();
   const router = useRouter();
@@ -108,22 +108,20 @@ export default function DogDetailScreen() {
             <Text style={styles.headerText}>{t('dogs.detail.back')}</Text>
           </Pressable>
 
-          {vm.isOwner ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t('dogs.detail.edit')}
-              hitSlop={spacing.step12}
-              onPress={() =>
-                router.push({
-                  pathname: '/dogs/[id]/edit',
-                  params: { id: vm.dog.id },
-                })
-              }
-              style={styles.headerRight}
-            >
-              <Text style={styles.headerText}>{t('dogs.detail.edit')}</Text>
-            </Pressable>
-          ) : null}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('dogs.detail.edit')}
+            hitSlop={spacing.step12}
+            onPress={() =>
+              router.push({
+                pathname: '/dogs/[id]/edit',
+                params: { id: vm.dog.id },
+              })
+            }
+            style={styles.headerRight}
+          >
+            <Text style={styles.headerText}>{t('dogs.detail.edit')}</Text>
+          </Pressable>
         </View>
       </View>
     </View>

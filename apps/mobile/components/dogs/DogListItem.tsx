@@ -20,7 +20,6 @@ interface DogListItemProps {
 export function DogListItem({ dog, onPress, progress }: DogListItemProps) {
   const { t } = useTranslation();
   const theme = useColors();
-  const isShared = dog.role === 'member';
   const showStreak = progress !== undefined && progress.streakDays > 0;
   const metaLine = progress
     ? t('dogs.list.todayStats', {
@@ -55,13 +54,6 @@ export function DogListItem({ dog, onPress, progress }: DogListItemProps) {
             >
               <Text style={[styles.streakText, { color: theme.warning }]}>
                 {t('dogs.list.streak', { days: progress!.streakDays })}
-              </Text>
-            </View>
-          ) : null}
-          {isShared ? (
-            <View style={[styles.badge, { backgroundColor: theme.surfaceContainer }]}>
-              <Text style={[styles.badgeText, { color: theme.onSurfaceVariant }]}>
-                {t('shared.badge')}
               </Text>
             </View>
           ) : null}
@@ -101,14 +93,6 @@ const styles = StyleSheet.create({
   },
   name: {
     ...typography.headline,
-  },
-  badge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs / 2,
-    borderRadius: radius.sm,
-  },
-  badgeText: {
-    ...typography.metricLabel,
   },
   streakBadge: {
     paddingHorizontal: spacing.step6,

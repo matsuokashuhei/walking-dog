@@ -1,18 +1,18 @@
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatDistance, formatDistanceParts, formatDuration } from '@/lib/walk/format';
-import { useOwnerProfile, type OwnerProfileData } from './use-owner-profile';
+import { useUserProfile, type UserProfileData } from './use-user-profile';
 
-type OwnerProfileStatus = 'loading' | 'error' | 'ready';
+type UserProfileStatus = 'loading' | 'error' | 'ready';
 type Translate = (key: string, values?: Record<string, unknown>) => string;
 
-export interface OwnerProfileMetricViewModel {
+export interface UserProfileMetricViewModel {
   key: 'walks' | 'distance' | 'totalTime' | 'dogs';
   value: string;
   label: string;
 }
 
-export interface OwnerProfileWeekDayViewModel {
+export interface UserProfileWeekDayViewModel {
   key: string;
   label: string;
   distanceKm: number;
@@ -21,37 +21,37 @@ export interface OwnerProfileWeekDayViewModel {
   isToday: boolean;
 }
 
-export interface OwnerProfileWeekViewModel {
+export interface UserProfileWeekViewModel {
   title: string;
   totalLabel: string;
-  days: OwnerProfileWeekDayViewModel[];
+  days: UserProfileWeekDayViewModel[];
 }
 
-interface OwnerProfileBaseViewModel {
-  status: OwnerProfileStatus;
+interface UserProfileBaseViewModel {
+  status: UserProfileStatus;
   handleRetry: () => void;
 }
 
-export interface OwnerProfileReadyViewModel extends OwnerProfileBaseViewModel {
+export interface UserProfileReadyViewModel extends UserProfileBaseViewModel {
   status: 'ready';
   displayName: string;
   avatarUrl: string | null;
   initial: string;
   walkingSince: string;
-  metrics: OwnerProfileMetricViewModel[];
-  week: OwnerProfileWeekViewModel;
+  metrics: UserProfileMetricViewModel[];
+  week: UserProfileWeekViewModel;
 }
 
-export type OwnerProfileViewModel =
-  | (OwnerProfileBaseViewModel & { status: 'loading' })
-  | (OwnerProfileBaseViewModel & { status: 'error' })
-  | OwnerProfileReadyViewModel;
+export type UserProfileViewModel =
+  | (UserProfileBaseViewModel & { status: 'loading' })
+  | (UserProfileBaseViewModel & { status: 'error' })
+  | UserProfileReadyViewModel;
 
-export type { OwnerProfileData } from './use-owner-profile';
+export type { UserProfileData } from './use-user-profile';
 
-export function useOwnerProfileViewModel(): OwnerProfileViewModel {
+export function useUserProfileViewModel(): UserProfileViewModel {
   const { t, i18n } = useTranslation();
-  const { data, isLoading, error, refetch } = useOwnerProfile();
+  const { data, isLoading, error, refetch } = useUserProfile();
 
   const handleRetry = useCallback(() => {
     void refetch();
@@ -63,16 +63,16 @@ export function useOwnerProfileViewModel(): OwnerProfileViewModel {
   return {
     status: 'ready',
     handleRetry,
-    ...buildOwnerProfileViewModel(data, t, new Date(), i18n.language),
+    ...buildUserProfileViewModel(data, t, new Date(), i18n.language),
   };
 }
 
-export function buildOwnerProfileViewModel(
-  data: OwnerProfileData,
+export function buildUserProfileViewModel(
+  data: UserProfileData,
   t: Translate,
   now: Date = new Date(),
   locale?: string,
-): Omit<OwnerProfileReadyViewModel, 'status' | 'handleRetry'> {
+): Omit<UserProfileReadyViewModel, 'status' | 'handleRetry'> {
   const rawDisplayName = data.user.name ?? data.user.displayName ?? null;
   const displayName = rawDisplayName?.trim() || t('settings.profile.unknownName');
   const initial = rawDisplayName?.trim()?.charAt(0)?.toUpperCase() ?? '?';
@@ -112,11 +112,11 @@ export function buildOwnerProfileViewModel(
 }
 
 function buildWeekViewModel(
-  walks: OwnerProfileData['recentWalks'],
+  walks: UserProfileData['recentWalks'],
   t: Translate,
   now: Date,
   locale?: string,
-): OwnerProfileWeekViewModel {
+): UserProfileWeekViewModel {
   const weekStart = startOfWeekMonday(now);
   const metersByDay = new Map<string, number>();
   for (let i = 0; i < 7; i += 1) {

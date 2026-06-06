@@ -186,7 +186,7 @@ pub async fn set_goal_for_user(
     db.transaction::<_, dog_walk_goal::Model, ServiceError>(|txn| {
         let walk_amount = walk_amount.clone();
         Box::pin(async move {
-            dog_service::ensure_owned(txn, user_id, dog_id).await?;
+            dog_service::ensure_user_has_dog(txn, user_id, dog_id).await?;
             set_goal(txn, dog_id, walk_amount, effective_from, today).await
         })
     })
@@ -200,7 +200,7 @@ pub async fn edit_current_goal_for_user(
     dog_id: Uuid,
     walk_amount: walk_amount::Model,
 ) -> ServiceResult<dog_walk_goal::Model> {
-    dog_service::ensure_owned(db, user_id, dog_id).await?;
+    dog_service::ensure_user_has_dog(db, user_id, dog_id).await?;
     edit_current_goal(db, dog_id, walk_amount).await
 }
 

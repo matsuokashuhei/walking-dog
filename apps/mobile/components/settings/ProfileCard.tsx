@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
 import { spacing, typography } from '@/theme/tokens';
 import { GroupedCard } from '@/components/ui/GroupedCard';
-import { OwnerAvatar } from './OwnerAvatar';
+import { ProfileAvatar } from './ProfileAvatar';
 
 interface ProfileCardProps {
   displayName: string | null;
@@ -23,7 +23,7 @@ export function ProfileCard({ displayName, avatarUrl, onPress }: ProfileCardProp
     >
       <GroupedCard padding="md" elevated={false} style={styles.card}>
         <View style={styles.row}>
-          <OwnerAvatar
+          <ProfileAvatar
             displayName={displayName}
             avatarUrl={avatarUrl}
             size="card"

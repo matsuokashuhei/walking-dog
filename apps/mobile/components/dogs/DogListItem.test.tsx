@@ -30,20 +30,9 @@ describe('DogListItem', () => {
     expect(onPress).toHaveBeenCalledWith('dog-1');
   });
 
-  it('shows shared badge when role is member', () => {
-    const sharedDog: Dog = { ...mockDog, role: 'member' };
-    render(<DogListItem dog={sharedDog} onPress={jest.fn()} />);
-    expect(screen.getByText('Shared')).toBeTruthy();
-  });
-
-  it('does not show shared badge when role is owner', () => {
-    const ownedDog: Dog = { ...mockDog, role: 'owner' };
-    render(<DogListItem dog={ownedDog} onPress={jest.fn()} />);
-    expect(screen.queryByText('Shared')).toBeNull();
-  });
-
-  it('does not show shared badge when role is undefined', () => {
-    render(<DogListItem dog={mockDog} onPress={jest.fn()} />);
+  it('ignores a legacy shared role if cached data still contains it', () => {
+    const legacyDog = { ...mockDog, role: 'member' } as Dog;
+    render(<DogListItem dog={legacyDog} onPress={jest.fn()} />);
     expect(screen.queryByText('Shared')).toBeNull();
   });
 

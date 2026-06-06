@@ -6,16 +6,16 @@ import { GroupedCard } from '@/components/ui/GroupedCard';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { ErrorScreen } from '@/components/ui/ErrorScreen';
-import { OwnerAvatar } from '@/components/settings/OwnerAvatar';
+import { ProfileAvatar } from '@/components/settings/ProfileAvatar';
 import { useColors } from '@/hooks/use-colors';
-import { useOwnerProfileViewModel } from '@/hooks/use-owner-profile-view-model';
+import { useUserProfileViewModel } from '@/hooks/use-user-profile-view-model';
 import { components, spacing, typography } from '@/theme/tokens';
 
 export default function ProfileScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const theme = useColors();
-  const vm = useOwnerProfileViewModel();
+  const vm = useUserProfileViewModel();
 
   if (vm.status === 'loading') return <LoadingScreen />;
   if (vm.status === 'error') {
@@ -40,11 +40,11 @@ export default function ProfileScreen() {
       />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.identity}>
-          <OwnerAvatar
+          <ProfileAvatar
             displayName={vm.displayName}
             avatarUrl={vm.avatarUrl}
             size="profile"
-            testID="owner-profile-avatar"
+            testID="profile-avatar"
           />
           <Text style={[styles.name, { color: theme.onSurface }]} numberOfLines={1}>
             {vm.displayName}
@@ -86,17 +86,17 @@ export default function ProfileScreen() {
               const barHeight =
                 day.distanceKm > 0
                   ? Math.max(
-                      components.ownerProfileChart.minBarHeight,
-                      day.progress * components.ownerProfileChart.maxBarHeight,
+                      components.profileWalkChart.minBarHeight,
+                      day.progress * components.profileWalkChart.maxBarHeight,
                     )
-                  : components.ownerProfileChart.minBarHeight;
+                  : components.profileWalkChart.minBarHeight;
               return (
                 <View key={day.key} style={styles.chartColumn}>
                   <Text style={[styles.chartValue, { color: theme.onSurfaceVariant }]}>
                     {day.valueLabel}
                   </Text>
                   <View
-                    testID={`owner-profile-week-bar-${day.key}`}
+                    testID={`profile-week-bar-${day.key}`}
                     style={[
                       styles.chartBar,
                       {
@@ -188,10 +188,10 @@ const styles = StyleSheet.create({
     ...typography.footnote,
   },
   chart: {
-    height: components.ownerProfileChart.height,
+    height: components.profileWalkChart.height,
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: components.ownerProfileChart.gap,
+    gap: components.profileWalkChart.gap,
   },
   chartColumn: {
     flex: 1,

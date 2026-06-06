@@ -259,14 +259,14 @@ export const components = {
     strokeWidth: 1.8,
     viewBox: 26,
   },
-  ownerAvatar: {
+  profileAvatar: {
     cardSize: 60,
     profileSize: 88,
     editorSize: 100,
     cameraBadgeSize: 32,
     cameraBadgeBorderWidth: 3,
   },
-  ownerProfileChart: {
+  profileWalkChart: {
     height: 100,
     maxBarHeight: 80,
     minBarHeight: 4,

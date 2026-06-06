@@ -1,26 +1,26 @@
 import { useQuery } from '@tanstack/react-query';
 import { authenticatedRequest } from '@/lib/graphql/client';
-import { OWNER_PROFILE_QUERY } from '@/lib/graphql/queries/owner-profile';
+import { USER_PROFILE_QUERY } from '@/lib/graphql/queries/user-profile';
 import { meKeys } from '@/lib/graphql/keys';
 import { mapApiUser } from '@/lib/graphql/adapters';
 import { useIsAuthenticated } from './use-is-authenticated';
-import type { OwnerProfileResponse, User } from '@/types/graphql';
+import type { UserProfileResponse, User } from '@/types/graphql';
 
-export interface OwnerProfileWalkSummary {
+export interface UserProfileWalkSummary {
   id: string;
   startedAt: string;
   distanceM: number;
 }
 
-export interface OwnerProfileData {
+export interface UserProfileData {
   user: User;
   totalWalks: number;
   totalDistanceM: number;
   totalDurationSec: number;
-  recentWalks: OwnerProfileWalkSummary[];
+  recentWalks: UserProfileWalkSummary[];
 }
 
-export function mapOwnerProfileResponse(response: OwnerProfileResponse): OwnerProfileData {
+export function mapUserProfileResponse(response: UserProfileResponse): UserProfileData {
   return {
     user: mapApiUser(response.user),
     totalWalks: response.user.walks.totalCount,
@@ -34,17 +34,17 @@ export function mapOwnerProfileResponse(response: OwnerProfileResponse): OwnerPr
   };
 }
 
-// Owner profile はユーザー情報と散歩集計を同じ GraphQL query で取得します。
-export function useOwnerProfile(limit = 100) {
+// User profile はユーザー情報と散歩集計を同じ GraphQL query で取得します。
+export function useUserProfile(limit = 100) {
   const isAuthenticated = useIsAuthenticated();
-  return useQuery<OwnerProfileData>({
-    queryKey: [...meKeys.all, 'owner-profile', limit],
+  return useQuery<UserProfileData>({
+    queryKey: [...meKeys.all, 'user-profile', limit],
     queryFn: async () => {
-      const data = await authenticatedRequest<OwnerProfileResponse>(
-        OWNER_PROFILE_QUERY,
+      const data = await authenticatedRequest<UserProfileResponse>(
+        USER_PROFILE_QUERY,
         { first: limit },
       );
-      return mapOwnerProfileResponse(data);
+      return mapUserProfileResponse(data);
     },
     enabled: isAuthenticated,
   });

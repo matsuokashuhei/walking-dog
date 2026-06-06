@@ -153,7 +153,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn start_walk_rolls_back_when_a_dog_is_not_owned_by_user() {
+    async fn start_walk_rolls_back_when_a_dog_is_not_registered_to_user() {
         let user_id = Uuid::parse_str("019e0dc4-066b-7a22-b755-969ee6beb5e9").unwrap();
         let walk_id = Uuid::parse_str("019e541d-f9ff-7e33-9db6-71b08c717a28").unwrap();
         let stale_dog_id = Uuid::parse_str("019e0c14-2b36-73b3-8db2-01bbf64d0af9").unwrap();
@@ -176,7 +176,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn start_walk_commits_walk_and_walk_dogs_for_owned_dogs() {
+    async fn start_walk_commits_walk_and_walk_dogs_for_registered_dogs() {
         let user_id = Uuid::parse_str("019e0dc4-066b-7a22-b755-969ee6beb5e9").unwrap();
         let walk_id = Uuid::parse_str("019e541d-f9ff-7e33-9db6-71b08c717a28").unwrap();
         let dog_id = Uuid::parse_str("019e0dc4-d1d6-77e0-be4f-f688025006e6").unwrap();

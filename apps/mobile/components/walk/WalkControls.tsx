@@ -1,8 +1,10 @@
 import { useState, type ReactNode } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useColors } from '@/hooks/use-colors';
 import { useWalkElapsed } from '@/hooks/use-walk-elapsed';
-import { spacing } from '@/theme/tokens';
+import { components, spacing } from '@/theme/tokens';
 import { useSettingsStore } from '@/stores/settings-store';
 import { useWalkStore } from '@/stores/walk-store';
 import { formatDistanceParts, formatPace, formatTime } from '@/lib/walk/format';
@@ -15,6 +17,7 @@ interface WalkControlsProps {
   dogs: Dog[];
   onStop: () => void;
   isStopping: boolean;
+  onMinimize?: () => void;
   /** Pee/Poo/Photo 操作は walk.tsx から <WalkEventActions /> として差し込みます。 */
   children?: ReactNode;
 }
@@ -36,8 +39,15 @@ function initialPauseState(startedAtMs: number | null): PauseState {
 }
 
 // 記録中の下部パネルとして、犬の表示、メトリクス、イベント操作、停止操作をまとめます。
-export function WalkControls({ dogs, onStop, isStopping, children }: WalkControlsProps) {
+export function WalkControls({
+  dogs,
+  onStop,
+  isStopping,
+  onMinimize,
+  children,
+}: WalkControlsProps) {
   const { t } = useTranslation();
+  const theme = useColors();
   const startedAt = useWalkStore((s) => s.startedAt);
   const startedAtMs = startedAt?.getTime() ?? null;
   const totalDistanceM = useWalkStore((s) => s.totalDistanceM);
@@ -93,7 +103,31 @@ export function WalkControls({ dogs, onStop, isStopping, children }: WalkControl
 
   return (
     <View style={styles.sheet}>
-      <WalkIdentityHeader dogs={dogs} title={title} subtitle={subtitle} />
+      <WalkIdentityHeader
+        dogs={dogs}
+        title={title}
+        subtitle={subtitle}
+        action={
+          onMinimize ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('walk.recording.minimize')}
+              onPress={onMinimize}
+              style={({ pressed }) => [
+                styles.minimizeButton,
+                { backgroundColor: theme.surfaceContainer },
+                pressed && styles.minimizeButtonPressed,
+              ]}
+            >
+              <IconSymbol
+                name="chevron.down"
+                size={components.walkControls.minimizeIconSize}
+                color={theme.onSurface}
+              />
+            </Pressable>
+          ) : undefined
+        }
+      />
       <WalkMetricsRow metrics={metrics} />
 
       {children ? <View style={styles.slot}>{children}</View> : null}
@@ -119,6 +153,16 @@ function contextualWalkLabel(startedAt: Date | null, t: (key: string) => string)
 const styles = StyleSheet.create({
   sheet: {
     paddingTop: spacing.md,
+  },
+  minimizeButton: {
+    width: components.walkControls.minimizeButtonSize,
+    height: components.walkControls.minimizeButtonSize,
+    borderRadius: components.walkControls.minimizeButtonSize / 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  minimizeButtonPressed: {
+    opacity: 0.8,
   },
   slot: {
     marginBottom: spacing.md,

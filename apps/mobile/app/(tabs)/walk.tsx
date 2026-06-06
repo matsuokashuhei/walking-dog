@@ -14,7 +14,7 @@ import { WalkFloatingSheet } from '@/components/walk/WalkFloatingSheet';
 import { WalkMap } from '@/components/walk/WalkMap';
 import { WalkMapShell } from '@/components/walk/WalkMapShell';
 import { WalkReadySheetContent } from '@/components/walk/WalkReadySheetContent';
-import { WalkRecordingSheetContent } from '@/components/walk/WalkRecordingSheetContent';
+import { WalkRecordingControlsOverlay } from '@/components/walk/WalkRecordingControlsOverlay';
 import { WalkSummaryCard } from '@/components/walk/WalkSummaryCard';
 import { WalkTopChip } from '@/components/walk/WalkTopChip';
 import { useWalkStore } from '@/stores/walk-store';
@@ -62,17 +62,17 @@ export default function WalkScreen() {
             />
           }
           bottom={
-            <WalkFloatingSheet>
-              {isRecording ? (
-                <WalkRecordingSheetContent dogs={recordingDogs} />
-              ) : (
+            isRecording ? (
+              <WalkRecordingControlsOverlay dogs={recordingDogs} />
+            ) : (
+              <WalkFloatingSheet>
                 <WalkReadySheetContent
                   selection={readySelection}
                   onStart={vm.handleStart}
                   isStarting={vm.isStarting}
                 />
-              )}
-            </WalkFloatingSheet>
+              </WalkFloatingSheet>
+            )
           }
         />
       </View>

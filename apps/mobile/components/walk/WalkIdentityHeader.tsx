@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Tag } from '@/components/ui/Tag';
@@ -9,12 +10,13 @@ interface WalkIdentityHeaderProps {
   dogs: Dog[];
   title: string;
   subtitle: string;
+  action?: ReactNode;
 }
 
 const AVATAR = 32;
 
 // 記録中パネルのヘッダーとして、散歩中の犬と LIVE 状態を簡潔に示します。
-export function WalkIdentityHeader({ dogs, title, subtitle }: WalkIdentityHeaderProps) {
+export function WalkIdentityHeader({ dogs, title, subtitle, action }: WalkIdentityHeaderProps) {
   const theme = useColors();
 
   return (
@@ -43,7 +45,10 @@ export function WalkIdentityHeader({ dogs, title, subtitle }: WalkIdentityHeader
           </Text>
         </View>
       </View>
-      <Tag label="LIVE" tone="live" />
+      <View style={styles.trailing}>
+        <Tag label="LIVE" tone="live" />
+        {action}
+      </View>
     </View>
   );
 }
@@ -77,6 +82,12 @@ const styles = StyleSheet.create({
   titleColumn: {
     flex: 1,
     minWidth: 0,
+  },
+  trailing: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginLeft: spacing.sm,
   },
   title: {
     ...typography.body,

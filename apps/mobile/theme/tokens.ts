@@ -259,6 +259,22 @@ export const components = {
     strokeWidth: 1.8,
     viewBox: 26,
   },
+  walkControls: {
+    minimizeButtonSize: 32,
+    minimizeIconSize: 18,
+    panelPaddingBottom: 24,
+  },
+  walkMinimized: {
+    avatarSize: 38,
+    avatarOverlap: -12,
+    avatarBorderWidth: 2.5,
+    iconButtonSize: 38,
+    iconSize: 16,
+    pillPaddingV: 10,
+    pillPaddingLeft: 10,
+    pillPaddingRight: 14,
+    pillGap: 12,
+  },
   profileAvatar: {
     cardSize: 60,
     profileSize: 88,

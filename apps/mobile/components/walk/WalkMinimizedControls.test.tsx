@@ -7,12 +7,12 @@ jest.mock('@/hooks/use-color-scheme', () => ({
 }));
 
 jest.mock('expo-image', () => ({ Image: 'Image' }));
+jest.mock('@/components/ui/icon-symbol', () => ({ IconSymbol: 'IconSymbol' }));
 
-const mockSetMinimized = jest.fn();
+const mockExpand = jest.fn();
 const mockWalkStoreState = {
   startedAt: null as Date | null,
   totalDistanceM: 1420,
-  setMinimized: mockSetMinimized,
 };
 
 jest.mock('@/stores/walk-store', () => ({
@@ -38,7 +38,7 @@ const coco: Dog = {
 describe('WalkMinimizedControls', () => {
   beforeEach(() => {
     jest.useFakeTimers();
-    mockSetMinimized.mockClear();
+    mockExpand.mockClear();
     mockWalkStoreState.startedAt = null;
     mockWalkStoreState.totalDistanceM = 1420;
   });
@@ -48,27 +48,31 @@ describe('WalkMinimizedControls', () => {
   });
 
   it('renders distance and LIVE', () => {
-    render(<WalkMinimizedControls dogs={[coco]} />);
+    render(<WalkMinimizedControls dogs={[coco]} onExpand={mockExpand} />);
     expect(screen.getByText(/1420m/)).toBeTruthy();
     expect(screen.getByText('LIVE')).toBeTruthy();
   });
 
-  it('renders the expand hint', () => {
-    render(<WalkMinimizedControls dogs={[coco]} />);
-    expect(screen.getByText('Tap to expand for controls')).toBeTruthy();
+  it('keeps the expand hint accessible without rendering extra map text', () => {
+    render(<WalkMinimizedControls dogs={[coco]} onExpand={mockExpand} />);
+    expect(screen.queryByText('Tap to expand for controls')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Expand' })).toHaveProp(
+      'accessibilityHint',
+      'Tap to expand for controls',
+    );
   });
 
-  it('calls setMinimized(false) when the pill is tapped', () => {
-    render(<WalkMinimizedControls dogs={[coco]} />);
+  it('calls onExpand when the pill is tapped', () => {
+    render(<WalkMinimizedControls dogs={[coco]} onExpand={mockExpand} />);
     fireEvent.press(screen.getByRole('button', { name: 'Expand' }));
-    expect(mockSetMinimized).toHaveBeenCalledWith(false);
+    expect(mockExpand).toHaveBeenCalledTimes(1);
   });
 
   it('updates the elapsed label while recording', () => {
     jest.setSystemTime(new Date('2026-04-20T10:00:00.000Z'));
     mockWalkStoreState.startedAt = new Date('2026-04-20T09:59:56.000Z');
 
-    render(<WalkMinimizedControls dogs={[coco]} />);
+    render(<WalkMinimizedControls dogs={[coco]} onExpand={mockExpand} />);
     expect(screen.getByText('4s')).toBeTruthy();
 
     act(() => {

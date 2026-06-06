@@ -4,7 +4,8 @@ use sea_orm::ActiveModelTrait;
 use sea_orm::ActiveValue::{NotSet, Set};
 
 use crate::graphql::object::user::User;
-use crate::util::storage::upload_avatar;
+use crate::graphql::upload::storage_upload_from_graphql;
+use crate::service::storage::SharedStorageGateway;
 use crate::{entity::user, graphql::guard::AuthGuard};
 
 #[derive(Default, Debug)]
@@ -17,7 +18,9 @@ impl UserMutation {
         let user = ctx.data::<user::Model>().unwrap();
         let mut active_model = input.into_active_model(user.id);
         if let Some(file) = input.avatar {
-            active_model.avatar = Set(Some(upload_avatar(ctx, file).await?));
+            let storage = ctx.data::<SharedStorageGateway>().unwrap();
+            let upload = storage_upload_from_graphql(ctx, file, storage.max_upload_bytes())?;
+            active_model.avatar = Set(Some(storage.put_avatar(upload).await?));
         }
         let db = ctx.data::<sea_orm::DatabaseConnection>().unwrap();
         let updated_user = active_model.update(db).await?;

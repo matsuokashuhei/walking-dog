@@ -1,7 +1,7 @@
 use async_graphql::SimpleObject;
 use uuid::Uuid;
 
-use crate::{entity::track_point, graphql::object::coordinate::Coordinate};
+use crate::{graphql::object::coordinate::Coordinate, service::track_point};
 
 #[derive(SimpleObject, Clone, Debug)]
 pub struct TrackPoint {
@@ -17,8 +17,8 @@ pub struct TrackPointReceipt {
     pub accepted_at: chrono::DateTime<chrono::Utc>,
 }
 
-impl From<track_point::Model> for TrackPoint {
-    fn from(model: track_point::Model) -> Self {
+impl From<track_point::TrackPoint> for TrackPoint {
+    fn from(model: track_point::TrackPoint) -> Self {
         TrackPoint {
             walk_id: model.walk_id,
             tracked_at: model.tracked_at,

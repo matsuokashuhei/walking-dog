@@ -1,12 +1,14 @@
 use anyhow::Result;
 use async_graphql::{Context, InputObject, Object, Upload};
+use sea_orm::ActiveModelTrait;
 use sea_orm::ActiveValue::Set;
-use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter};
 use uuid::Uuid;
 
-use crate::entity::{user, walk, walk_photo};
+use crate::entity::{user, walk_photo};
+use crate::graphql::upload::storage_upload_from_graphql;
 use crate::graphql::{error::AppError, guard::AuthGuard, object::walk_photo::WalkPhoto};
-use crate::util::storage::upload_walk_photo;
+use crate::service::storage::SharedStorageGateway;
+use crate::service::walk as walk_service;
 
 #[derive(Default, Debug)]
 pub struct WalkPhotoMutation;
@@ -17,15 +19,13 @@ impl WalkPhotoMutation {
     async fn take_photo(&self, ctx: &Context<'_>, input: TakePhotoInput) -> Result<WalkPhoto> {
         let user = ctx.data::<user::Model>().unwrap();
         let db = ctx.data::<sea_orm::DatabaseConnection>().unwrap();
-        let Some(_) = walk::Entity::find_by_id(input.walk_id)
-            .filter(walk::Column::UserId.eq(user.id))
-            .one(db)
-            .await?
-        else {
-            return Err(AppError::NotFound.into());
-        };
+        walk_service::ensure_walk_belongs_to_user(db, user.id, input.walk_id)
+            .await
+            .map_err(AppError::from)?;
 
-        let file = upload_walk_photo(ctx, input.file).await?;
+        let storage = ctx.data::<SharedStorageGateway>().unwrap();
+        let upload = storage_upload_from_graphql(ctx, input.file, storage.max_upload_bytes())?;
+        let file = storage.put_walk_photo(upload).await?;
         let walk_photo = walk_photo::ActiveModel {
             walk_id: Set(input.walk_id),
             occurred_at: Set(input.occurred_at.into()),

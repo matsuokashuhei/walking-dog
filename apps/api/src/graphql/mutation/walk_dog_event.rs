@@ -3,7 +3,7 @@ use async_graphql::{Context, InputObject, Object};
 use sea_orm::{ActiveModelTrait, ActiveValue::Set, ColumnTrait, EntityTrait, QueryFilter};
 use uuid::Uuid;
 
-use crate::entity::{user, walk, walk_dog, walk_dog_event};
+use crate::entity::{user, walk_dog, walk_dog_event};
 use crate::graphql::{
     error::AppError,
     guard::AuthGuard,
@@ -12,6 +12,7 @@ use crate::graphql::{
         walk_dog_event::{EventType, WalkDogEvent},
     },
 };
+use crate::service::walk as walk_service;
 
 #[derive(Default, Debug)]
 pub struct WalkDogEventMutation;
@@ -21,19 +22,11 @@ async fn add_event_for_user(
     user_id: Uuid,
     input: AddEventInput,
 ) -> Result<walk_dog_event::Model> {
-    let Some(walk) = walk::Entity::find_by_id(input.walk_id)
-        .filter(walk::Column::UserId.eq(user_id))
-        .one(db)
-        .await?
-    else {
-        return Err(AppError::NotFound.into());
-    };
-
-    if walk.ended_at.is_some() {
-        return Err(
-            AppError::UnprocessableEntity("Cannot add event to an ended walk".to_string()).into(),
-        );
-    }
+    let walk = walk_service::ensure_walk_belongs_to_user(db, user_id, input.walk_id)
+        .await
+        .map_err(AppError::from)?;
+    walk_service::ensure_walk_is_active(&walk, "Cannot add event to an ended walk")
+        .map_err(AppError::from)?;
 
     let started_at: chrono::DateTime<chrono::Utc> = walk.started_at.into();
     if input.occurred_at < started_at {
@@ -43,14 +36,9 @@ async fn add_event_for_user(
         .into());
     }
 
-    let Some(walk_dog) = walk_dog::Entity::find()
-        .filter(walk_dog::Column::WalkId.eq(input.walk_id))
-        .filter(walk_dog::Column::DogId.eq(input.dog_id))
-        .one(db)
-        .await?
-    else {
-        return Err(AppError::NotFound.into());
-    };
+    let walk_dog = walk_service::ensure_dog_participates_in_walk(db, input.walk_id, input.dog_id)
+        .await
+        .map_err(AppError::from)?;
 
     if let Some(client_request_id) = input.client_request_id {
         if let Some(existing_event) = walk_dog_event::Entity::find()
@@ -126,6 +114,8 @@ mod tests {
 
     use chrono::TimeZone;
     use sea_orm::{DatabaseBackend, MockDatabase, Value};
+
+    use crate::entity::walk;
 
     use super::*;
     fn fixed_time() -> sea_orm::prelude::DateTimeWithTimeZone {

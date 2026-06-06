@@ -3,11 +3,12 @@ use async_graphql::{ComplexObject, Context, SimpleObject};
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
 use uuid::Uuid;
 
-use crate::entity::{dog, track_point, walk, walk_dog, walk_photo};
+use crate::entity::{dog, walk, walk_dog, walk_photo};
 use crate::graphql::{
     error::AppError,
     object::{dog::Dog, track_point::TrackPoint, walk_dog::WalkDog, walk_photo::WalkPhoto},
 };
+use crate::service::{track_point::SharedTrackPointRepository, walk as walk_service};
 use crate::util::error::format_error_chain;
 
 #[derive(SimpleObject, Clone, Debug)]
@@ -31,13 +32,11 @@ impl Walk {
         if self.ended_at.is_some() {
             return Ok(self.distance);
         }
-        let client = ctx.data::<aws_sdk_dynamodb::Client>().unwrap();
-        // DynamoDB Query は range key (tracked_at) で昇順ソート済みで返るため、再ソートは不要。
-        let points = track_point::Model::find_all_by_walk_id(client, self.id)
+        let repository = ctx.data::<SharedTrackPointRepository>().unwrap();
+        let distance = walk_service::live_distance_meters(repository.as_ref(), self.id)
             .await
             .map_err(|error| {
-                let error_ref: &(dyn std::error::Error + Send + Sync + 'static) = error.as_ref();
-                let error_chain = format_error_chain(error_ref);
+                let error_chain = format_error_chain(&error);
                 tracing::error!(
                     walk_id = %self.id,
                     error = ?error,
@@ -46,8 +45,7 @@ impl Walk {
                 );
                 AppError::InternalServerError(error_chain)
             })?;
-        let distance_m = crate::util::distance::cumulative_distance_meters(&points);
-        Ok(Some(distance_m.round() as i64))
+        Ok(Some(distance))
     }
 
     async fn walk_dogs(&self, ctx: &Context<'_>) -> Result<Vec<WalkDog>> {
@@ -84,12 +82,12 @@ impl Walk {
     }
 
     async fn track_points(&self, ctx: &Context<'_>) -> Result<Vec<TrackPoint>> {
-        let client = ctx.data::<aws_sdk_dynamodb::Client>().unwrap();
-        let track_points = track_point::Model::find_all_by_walk_id(client, self.id)
+        let repository = ctx.data::<SharedTrackPointRepository>().unwrap();
+        let track_points = repository
+            .find_all_by_walk_id(self.id)
             .await
             .map_err(|error| {
-                let error_ref: &(dyn std::error::Error + Send + Sync + 'static) = error.as_ref();
-                let error_chain = format_error_chain(error_ref);
+                let error_chain = format_error_chain(&error);
                 tracing::error!(
                     walk_id = %self.id,
                     error = ?error,

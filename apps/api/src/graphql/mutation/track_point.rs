@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use async_graphql::{Context, InputObject, Object};
-use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait};
+use sea_orm::DatabaseConnection;
 use uuid::Uuid;
 
 use crate::graphql::{
@@ -13,6 +13,7 @@ use crate::graphql::{
     },
 };
 use crate::queue::track_point::{TrackPointEnqueuer, TrackPointMessage, TrackPointQueueError};
+use crate::service::walk as walk_service;
 use crate::util::error::format_error_chain;
 use crate::{entity::user, graphql::guard::AuthGuard};
 
@@ -28,20 +29,12 @@ impl TrackPointMutation {
         input: TrackPointInput,
     ) -> Result<TrackPointReceipt> {
         let user = ctx.data::<user::Model>().unwrap();
-        let walk = crate::entity::walk::Entity::find_by_id(input.walk_id)
-            .has_related(
-                crate::entity::user::Entity,
-                crate::entity::user::Column::Id.eq(user.id),
-            )
-            .one(ctx.data::<DatabaseConnection>().unwrap())
-            .await?
-            .ok_or(AppError::NotFound)?;
-        if walk.ended_at.is_some() {
-            return Err(AppError::UnprocessableEntity(
-                "Cannot track point for an ended walk".to_string(),
-            )
-            .into());
-        }
+        let db = ctx.data::<DatabaseConnection>().unwrap();
+        let walk = walk_service::ensure_walk_belongs_to_user(db, user.id, input.walk_id)
+            .await
+            .map_err(AppError::from)?;
+        walk_service::ensure_walk_is_active(&walk, "Cannot track point for an ended walk")
+            .map_err(AppError::from)?;
 
         let accepted_at = chrono::Utc::now();
         let message = TrackPointMessage::new(

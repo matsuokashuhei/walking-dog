@@ -9,11 +9,12 @@ use crate::graphql::{
     error::AppError,
     guard::AuthGuard,
     object::dog::{Dog, Gender},
+    upload::storage_upload_from_graphql,
 };
 use crate::{
     entity::{birthday::Model, sea_orm_active_enums::GenderType, user},
     service::dog::{self as dog_service, AddDogCommand, FieldUpdate, UpdateDogCommand},
-    util::storage::{StorageError, upload_avatar},
+    service::storage::{SharedStorageGateway, StorageError},
 };
 
 #[derive(Default, Debug)]
@@ -194,18 +195,35 @@ fn update_goal_values(
 }
 
 async fn upload_dog_avatar(ctx: &Context<'_>, file: Upload) -> Result<String> {
-    upload_avatar(ctx, file).await.map_err(|e| {
-        if let Some(storage_error) = e.downcast_ref::<StorageError>() {
-            error!("Failed to upload avatar: {:?}", storage_error);
-            match storage_error {
-                StorageError::ContentTooLarge(_) => AppError::ContentTooLarge.into(),
-                StorageError::InternalError(message) => {
-                    AppError::InternalServerError(format!("Failed to upload avatar: {}", message))
-                        .into()
-                }
-            }
-        } else {
-            AppError::InternalServerError(format!("Failed to upload avatar: {}", e)).into()
+    let storage = ctx.data::<SharedStorageGateway>().unwrap();
+    let upload = storage_upload_from_graphql(ctx, file, storage.max_upload_bytes())
+        .map_err(map_avatar_upload_input_error)?;
+    storage
+        .put_avatar(upload)
+        .await
+        .map_err(map_avatar_upload_error)
+}
+
+fn map_avatar_upload_input_error(error: anyhow::Error) -> anyhow::Error {
+    if let Some(storage_error) = error.downcast_ref::<StorageError>() {
+        return map_avatar_upload_error_ref(storage_error);
+    }
+    AppError::InternalServerError(format!("Failed to upload avatar: {}", error)).into()
+}
+
+fn map_avatar_upload_error(error: StorageError) -> anyhow::Error {
+    map_avatar_upload_error_ref(&error)
+}
+
+fn map_avatar_upload_error_ref(error: &StorageError) -> anyhow::Error {
+    error!("Failed to upload avatar: {:?}", error);
+    match error {
+        StorageError::ContentTooLarge(_) => AppError::ContentTooLarge.into(),
+        StorageError::InternalError(message) => {
+            AppError::InternalServerError(format!("Failed to upload avatar: {}", message)).into()
         }
-    })
+        StorageError::MissingBucket(_) | StorageError::Read(_) => {
+            AppError::InternalServerError(format!("Failed to upload avatar: {}", error)).into()
+        }
+    }
 }

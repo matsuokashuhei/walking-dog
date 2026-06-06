@@ -1,6 +1,9 @@
-use crate::entity::track_point;
-
 const EARTH_RADIUS_M: f64 = 6_371_000.0;
+
+pub trait DistancePoint {
+    fn latitude(&self) -> f64;
+    fn longitude(&self) -> f64;
+}
 
 pub fn haversine_meters(lat1: f64, lng1: f64, lat2: f64, lng2: f64) -> f64 {
     let phi1 = lat1.to_radians();
@@ -12,23 +15,45 @@ pub fn haversine_meters(lat1: f64, lng1: f64, lat2: f64, lng2: f64) -> f64 {
     EARTH_RADIUS_M * c
 }
 
-pub fn cumulative_distance_meters(points: &[track_point::Model]) -> f64 {
+pub fn cumulative_distance_meters<T>(points: &[T]) -> f64
+where
+    T: DistancePoint,
+{
     points
         .windows(2)
-        .map(|w| haversine_meters(w[0].latitude, w[0].longitude, w[1].latitude, w[1].longitude))
+        .map(|w| {
+            haversine_meters(
+                w[0].latitude(),
+                w[0].longitude(),
+                w[1].latitude(),
+                w[1].longitude(),
+            )
+        })
         .sum()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::{DateTime, Utc};
-    use uuid::Uuid;
 
-    fn point(lat: f64, lng: f64, secs: i64) -> track_point::Model {
-        track_point::Model {
-            walk_id: Uuid::nil(),
-            tracked_at: DateTime::<Utc>::from_timestamp(secs, 0).unwrap(),
+    #[derive(Clone, Debug)]
+    struct LightweightPoint {
+        latitude: f64,
+        longitude: f64,
+    }
+
+    impl DistancePoint for LightweightPoint {
+        fn latitude(&self) -> f64 {
+            self.latitude
+        }
+
+        fn longitude(&self) -> f64 {
+            self.longitude
+        }
+    }
+
+    fn point(lat: f64, lng: f64) -> LightweightPoint {
+        LightweightPoint {
             latitude: lat,
             longitude: lng,
         }
@@ -49,21 +74,21 @@ mod tests {
 
     #[test]
     fn cumulative_empty_is_zero() {
-        let points: Vec<track_point::Model> = vec![];
+        let points: Vec<LightweightPoint> = vec![];
         assert_eq!(cumulative_distance_meters(&points), 0.0);
     }
 
     #[test]
     fn cumulative_single_point_is_zero() {
-        let points = vec![point(35.6812, 139.7671, 0)];
+        let points = vec![point(35.6812, 139.7671)];
         assert_eq!(cumulative_distance_meters(&points), 0.0);
     }
 
     #[test]
     fn cumulative_multiple_points_sums_segments() {
-        let p0 = point(35.6812, 139.7671, 0);
-        let p1 = point(35.6896, 139.7006, 60);
-        let p2 = point(35.6812, 139.7671, 120);
+        let p0 = point(35.6812, 139.7671);
+        let p1 = point(35.6896, 139.7006);
+        let p2 = point(35.6812, 139.7671);
         let total = cumulative_distance_meters(&[p0, p1, p2]);
         // round-trip Tokyo → Shinjuku → Tokyo ≈ 12.2km.
         assert!(

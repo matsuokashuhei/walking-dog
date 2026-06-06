@@ -2,18 +2,21 @@ use async_graphql::{
     ComplexObject, Context, Result, SimpleObject,
     connection::{Connection, Edge, EmptyFields, query},
 };
-use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
+use sea_orm::{ColumnTrait, EntityTrait, QueryOrder};
 use url::Url;
 use uuid::Uuid;
 
 use crate::{
-    entity::{dog, user, user_dog, walk},
+    entity::{dog, user, user_dog},
     graphql::{
         cursor::UuidCursor,
         error::AppError,
         object::{dog::Dog, walk::Walk, walk_connection::WalkConnectionFields},
     },
-    util::storage::avatar_url,
+    service::{
+        storage::avatar_url_from_env as avatar_url,
+        walk_read_model::{self, WalkHistoryRequest},
+    },
 };
 
 #[derive(SimpleObject, Clone, Debug)]
@@ -55,44 +58,29 @@ impl User {
             first,
             last,
             |after: Option<UuidCursor>, before: Option<UuidCursor>, first, last| async move {
-                let mut query = walk::Entity::find().filter(walk::Column::UserId.eq(user.id));
-                let (total_count, total_distance, total_duration) =
-                    walk::Entity::aggregate(db, query.clone()).await?;
-                let has_after = after.is_some();
-                let has_before = before.is_some();
-                query = query.order_by(walk::Column::Id, sea_orm::Order::Desc);
-                if let Some(after) = after {
-                    query = query.filter(walk::Column::Id.lt(after.id));
-                }
-                if let Some(before) = before {
-                    query = query.filter(walk::Column::Id.gt(before.id));
-                }
-                let mut has_previous = has_after;
-                let mut has_next = has_before;
-                let mut walks = query.all(db).await?;
-                if let Some(first) = first {
-                    if walks.len() > first {
-                        has_next = true;
-                    }
-                    walks.truncate(first);
-                }
-                if let Some(last) = last {
-                    if walks.len() > last {
-                        has_previous = true;
-                    }
-                    walks = walks.split_off(walks.len().saturating_sub(last));
-                }
+                let page = walk_read_model::user_walk_history(
+                    db,
+                    user.id,
+                    WalkHistoryRequest {
+                        after: after.map(|cursor| cursor.id),
+                        before: before.map(|cursor| cursor.id),
+                        first,
+                        last,
+                    },
+                )
+                .await
+                .map_err(AppError::from)?;
                 let mut connection = Connection::with_additional_fields(
-                    has_previous,
-                    has_next,
+                    page.has_previous,
+                    page.has_next,
                     WalkConnectionFields {
-                        total_count,
-                        total_distance,
-                        total_duration,
+                        total_count: page.total_count,
+                        total_distance: page.total_distance,
+                        total_duration: page.total_duration,
                     },
                 );
                 connection.edges.extend(
-                    walks
+                    page.walks
                         .into_iter()
                         .map(|walk| Edge::new(UuidCursor { id: walk.id }, Walk::from(walk))),
                 );

@@ -124,6 +124,18 @@ describe('walk-store', () => {
     );
   });
 
+  it('addPoint ignores duplicate points from overlapping foreground and background sources', () => {
+    useWalkStore.getState().startRecording('walk-123');
+    const point: WalkPoint = { lat: 35.6812, lng: 139.7671, recordedAt: '2026-03-23T10:00:00Z' };
+
+    useWalkStore.getState().addPoint(point);
+    jest.clearAllMocks();
+    useWalkStore.getState().addPoint({ ...point });
+
+    expect(useWalkStore.getState().points).toEqual([point]);
+    expect(persistActiveWalkSession).not.toHaveBeenCalled();
+  });
+
   it('setTotalDistanceM overwrites totalDistanceM with the server-calculated value', () => {
     useWalkStore.getState().setTotalDistanceM(1234);
     expect(useWalkStore.getState().totalDistanceM).toBe(1234);

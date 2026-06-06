@@ -8,6 +8,7 @@ import {
 import { buildWalkActivityProps } from './live-activity';
 import { updateWalkLiveActivity } from './live-activity-controller';
 import { totalHaversineDistance } from './distance';
+import { appendUniqueWalkPoints } from './points';
 import { useWalkStore } from '@/stores/walk-store';
 import type { WalkPoint } from '@/types/graphql';
 
@@ -25,7 +26,7 @@ function appendPointsToSession(
   session: ActiveWalkSessionSnapshot,
   incomingPoints: WalkPoint[],
 ): ActiveWalkSessionSnapshot {
-  const points = [...session.points, ...incomingPoints];
+  const points = appendUniqueWalkPoints(session.points, incomingPoints);
   return {
     ...session,
     points,
@@ -37,6 +38,44 @@ function syncRuntimeStore(session: ActiveWalkSessionSnapshot) {
   const state = useWalkStore.getState();
   if (state.phase === 'recording' && state.walkId !== session.walkId) return;
   state.hydrateRecordingSession(session);
+}
+
+type DiagnosticValue<T> = T | { error: string };
+
+interface BackgroundLocationDiagnostics {
+  foregroundPermission: DiagnosticValue<string>;
+  backgroundPermission: DiagnosticValue<string>;
+  providerStatus: DiagnosticValue<Location.LocationProviderStatus>;
+  taskRegistered: DiagnosticValue<boolean>;
+}
+
+function diagnosticError(error: unknown): { error: string } {
+  return { error: error instanceof Error ? error.message : String(error) };
+}
+
+async function readDiagnostic<T>(operation: () => Promise<T>): Promise<DiagnosticValue<T>> {
+  try {
+    return await operation();
+  } catch (error) {
+    return diagnosticError(error);
+  }
+}
+
+async function readBackgroundLocationDiagnostics(): Promise<BackgroundLocationDiagnostics> {
+  const [foregroundPermission, backgroundPermission, providerStatus, taskRegistered] =
+    await Promise.all([
+      readDiagnostic(async () => (await Location.getForegroundPermissionsAsync()).status),
+      readDiagnostic(async () => (await Location.getBackgroundPermissionsAsync()).status),
+      readDiagnostic(() => Location.getProviderStatusAsync()),
+      readDiagnostic(() => TaskManager.isTaskRegisteredAsync(WALK_BACKGROUND_LOCATION_TASK)),
+    ]);
+
+  return {
+    foregroundPermission,
+    backgroundPermission,
+    providerStatus,
+    taskRegistered,
+  };
 }
 
 export async function handleWalkBackgroundLocations(
@@ -67,7 +106,10 @@ export async function handleWalkBackgroundLocations(
 
 TaskManager.defineTask(WALK_BACKGROUND_LOCATION_TASK, async ({ data, error }) => {
   if (error) {
-    console.error('[walk.backgroundLocation] task failed', error);
+    console.error('[walk.backgroundLocation] task failed', {
+      error,
+      diagnostics: await readBackgroundLocationDiagnostics(),
+    });
     return;
   }
 

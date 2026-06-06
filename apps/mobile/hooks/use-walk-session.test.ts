@@ -176,11 +176,15 @@ describe('useWalkSession.start', () => {
     await act(async () => {
       walkId = await result.current.start({
         selectedDogIds: ['dog-1'],
+        backgroundLocationEnabled: false,
       });
     });
 
     expect(mockStartWalkMutateAsync).toHaveBeenCalledWith(['dog-1']);
     expect(walkId).toBe('walk-1');
+    expect(gpsTracker.startTracking).toHaveBeenCalledWith(expect.any(Function), {
+      backgroundLocationEnabled: false,
+    });
   });
 
   it('calls startRecording on the walk store with the walk id', async () => {

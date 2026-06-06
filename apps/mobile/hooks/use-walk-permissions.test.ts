@@ -11,16 +11,18 @@ beforeEach(() => {
 });
 
 describe('useWalkPermissions', () => {
-  it('requestGpsPermission returns true when location permission is granted', async () => {
-    (gpsTracker.requestPermission as jest.Mock).mockResolvedValue(true);
+  it('requestGpsPermission returns foreground and background permission capability', async () => {
+    const permission = { foregroundGranted: true, backgroundGranted: false };
+    (gpsTracker.requestPermission as jest.Mock).mockResolvedValue(permission);
     const { result } = renderHook(() => useWalkPermissions());
-    expect(await result.current.requestGpsPermission()).toBe(true);
+    expect(await result.current.requestGpsPermission()).toBe(permission);
     expect(gpsTracker.requestPermission).toHaveBeenCalledTimes(1);
   });
 
-  it('requestGpsPermission returns false when location permission is denied', async () => {
-    (gpsTracker.requestPermission as jest.Mock).mockResolvedValue(false);
+  it('requestGpsPermission returns denied foreground capability', async () => {
+    const permission = { foregroundGranted: false, backgroundGranted: false };
+    (gpsTracker.requestPermission as jest.Mock).mockResolvedValue(permission);
     const { result } = renderHook(() => useWalkPermissions());
-    expect(await result.current.requestGpsPermission()).toBe(false);
+    expect(await result.current.requestGpsPermission()).toBe(permission);
   });
 });

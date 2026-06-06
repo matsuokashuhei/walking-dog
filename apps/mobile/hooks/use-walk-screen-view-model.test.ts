@@ -60,7 +60,10 @@ describe('useWalkScreenViewModel', () => {
     mockSelectedDogIds = ['dog-1'];
     mockAction = undefined;
     mockWalkSessionIsStarting = false;
-    mockRequestGpsPermission.mockResolvedValue(true);
+    mockRequestGpsPermission.mockResolvedValue({
+      foregroundGranted: true,
+      backgroundGranted: true,
+    });
     mockWalkSessionStart.mockResolvedValue('walk-1');
   });
 
@@ -84,7 +87,10 @@ describe('useWalkScreenViewModel', () => {
   });
 
   it('alerts and aborts when GPS permission is denied', async () => {
-    mockRequestGpsPermission.mockResolvedValue(false);
+    mockRequestGpsPermission.mockResolvedValue({
+      foregroundGranted: false,
+      backgroundGranted: false,
+    });
     const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(jest.fn());
 
     const { result } = renderHook(() => useWalkScreenViewModel());
@@ -110,6 +116,7 @@ describe('useWalkScreenViewModel', () => {
 
     expect(mockWalkSessionStart).toHaveBeenCalledWith({
       selectedDogIds: ['dog-1'],
+      backgroundLocationEnabled: true,
     });
   });
 
@@ -124,6 +131,25 @@ describe('useWalkScreenViewModel', () => {
 
     expect(mockWalkSessionStart).toHaveBeenCalledWith({
       selectedDogIds: ['dog-1', 'dog-2'],
+      backgroundLocationEnabled: true,
+    });
+  });
+
+  it('starts foreground-only tracking when background permission is unavailable', async () => {
+    mockRequestGpsPermission.mockResolvedValue({
+      foregroundGranted: true,
+      backgroundGranted: false,
+    });
+
+    const { result } = renderHook(() => useWalkScreenViewModel());
+
+    await act(async () => {
+      await result.current.handleStart();
+    });
+
+    expect(mockWalkSessionStart).toHaveBeenCalledWith({
+      selectedDogIds: ['dog-1'],
+      backgroundLocationEnabled: false,
     });
   });
 

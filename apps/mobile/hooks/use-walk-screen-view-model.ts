@@ -23,14 +23,17 @@ export function useWalkScreenViewModel(): WalkScreenViewModel {
 
   // 散歩開始時は GPS 権限を確認してから散歩セッションを開始します。
   const handleStart = useCallback(async () => {
-    const gpsGranted = await permissions.requestGpsPermission();
-    if (!gpsGranted) {
+    const locationPermission = await permissions.requestGpsPermission();
+    if (!locationPermission.foregroundGranted) {
       Alert.alert(t('walk.permission.title'), t('walk.permission.message'));
       return;
     }
 
     try {
-      await walkSession.start({ selectedDogIds });
+      await walkSession.start({
+        selectedDogIds,
+        backgroundLocationEnabled: locationPermission.backgroundGranted,
+      });
     } catch (error) {
       console.error('[walk.start] failed', error);
       Alert.alert(t('common.error'), t('walk.error.startFailed'));

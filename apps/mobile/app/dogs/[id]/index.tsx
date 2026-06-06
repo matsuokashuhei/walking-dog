@@ -3,7 +3,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useDogDetailViewModel } from '@/hooks/use-dog-detail-view-model';
+import { WEEKLY_GOAL_CYCLE_DAYS } from '@/constants/walk';
 import { DogHero } from '@/components/dogs/DogHero';
+import { GoalProgressCard } from '@/components/dogs/GoalProgressCard';
 import { DogStatsCard } from '@/components/dogs/DogStatsCard';
 import { DogWalksList } from '@/components/dogs/DogWalksList';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
@@ -68,8 +70,29 @@ export default function DogDetailScreen() {
 
         {/* 散歩取得に失敗しているときは 0/0/0 の誤った統計を出さず、エラーだけ見せます。 */}
         {vm.dog.walkStats && !vm.walksError ? (
-          <View style={styles.statsSection}>
+          <View testID="dog-detail-stats-section" style={styles.statsSection}>
             <DogStatsCard stats={vm.dog.walkStats} streakDays={vm.streakDays} />
+          </View>
+        ) : null}
+
+        {!vm.walksError ? (
+          <View
+            testID="dog-detail-goal-progress-section"
+            style={styles.goalProgressSection}
+          >
+            <GoalProgressCard
+              title={t('dogs.detail.goalProgressTitle')}
+              subtitle={t(
+                vm.goalProgress.goalCycleDays === WEEKLY_GOAL_CYCLE_DAYS
+                  ? 'dogs.detail.goalProgressWeekly'
+                  : 'dogs.detail.goalProgressDaily',
+                {
+                  minutes: vm.goalProgress.progressMinutes,
+                  goal: vm.goalProgress.goalMinutes,
+                },
+              )}
+              progressPct={vm.goalProgress.progressPct}
+            />
           </View>
         ) : null}
 
@@ -147,6 +170,9 @@ const styles = StyleSheet.create({
   statsSection: {
     paddingHorizontal: spacing.md,
     paddingTop: spacing.lg,
+  },
+  goalProgressSection: {
+    paddingHorizontal: spacing.md,
   },
   walksSection: {
     paddingHorizontal: spacing.md,

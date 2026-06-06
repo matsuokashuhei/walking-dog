@@ -61,16 +61,6 @@ let mockWalks: Walk[] = [
     events: [],
   },
 ];
-let mockPack = {
-  todayKm: 1,
-  todayMinutes: 20,
-  goalProgressMinutes: 20,
-  goalMinutes: 30,
-  progressPct: 20,
-  perDog: {
-    'dog-1': { todayKm: 1, todayMinutes: 20, goalProgressMinutes: 20, goalMinutes: 30, goalCycleDays: 1, totalWalks: 1, streakDays: 5 },
-  },
-};
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({ id: 'dog-1' }),
   useRouter: () => ({ push: mockPush }),
@@ -82,10 +72,6 @@ jest.mock('@/hooks/use-dog', () => ({
 
 jest.mock('@/hooks/use-walks', () => ({
   useMyWalks: () => ({ data: mockWalks, error: mockWalksError, refetch: mockRefetchWalks }),
-}));
-
-jest.mock('@/hooks/use-pack-progress', () => ({
-  usePackProgress: () => mockPack,
 }));
 
 function expectReadyViewModel(
@@ -165,16 +151,6 @@ describe('useDogDetailViewModel', () => {
         events: [],
       },
     ];
-    mockPack = {
-      todayKm: 1,
-      todayMinutes: 20,
-      goalProgressMinutes: 20,
-      goalMinutes: 30,
-      progressPct: 20,
-      perDog: {
-        'dog-1': { todayKm: 1, todayMinutes: 20, goalProgressMinutes: 20, goalMinutes: 30, goalCycleDays: 1, totalWalks: 1, streakDays: 5 },
-      },
-    };
     mockWalksError = null;
   });
 
@@ -192,7 +168,13 @@ describe('useDogDetailViewModel', () => {
     const vm = expectReadyViewModel(result.current);
 
     expect(vm.meta).toBe('4y · Shiba Inu');
-    expect(vm.streakDays).toBe(5);
+    expect(vm.streakDays).toBe(1);
+    expect(vm.goalProgress).toEqual({
+      progressMinutes: 20,
+      goalMinutes: 30,
+      goalCycleDays: 1,
+      progressPct: 67,
+    });
     expect(vm.dogWalks.map((walk) => walk.id)).toEqual(['walk-1']);
     expect(Object.keys(vm)).not.toContain(['is', 'Ow', 'ner'].join(''));
   });

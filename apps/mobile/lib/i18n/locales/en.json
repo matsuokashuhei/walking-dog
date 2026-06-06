@@ -79,8 +79,6 @@
       "empty": "No dogs registered yet",
       "addDog": "Add Dog",
       "addCta": "+ Add",
-      "todayGoal": "Goal progress",
-      "acrossPack": "{{minutes}} / {{goal}} min across your pack",
       "streak": "🔥 {{days}}d",
       "todayStats": "{{km}} km today · {{count}} walks"
     },
@@ -100,6 +98,9 @@
       "seeAll": "See all",
       "streakLabel": "Streak",
       "streakDays": "{{days}}d",
+      "goalProgressTitle": "Goal progress",
+      "goalProgressDaily": "{{minutes}} / {{goal}} min today",
+      "goalProgressWeekly": "{{minutes}} / {{goal}} min this week",
       "back": "Dogs"
     },
     "edit": {

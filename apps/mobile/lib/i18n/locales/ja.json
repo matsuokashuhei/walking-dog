@@ -79,8 +79,6 @@
       "empty": "まだ犬が登録されていません",
       "addDog": "犬を追加",
       "addCta": "＋ 追加",
-      "todayGoal": "目標の進捗",
-      "acrossPack": "{{minutes}} / {{goal}}分（みんなの合計）",
       "streak": "🔥 {{days}}日",
       "todayStats": "今日 {{km}} km · {{count}}回"
     },
@@ -100,6 +98,9 @@
       "seeAll": "すべて見る",
       "streakLabel": "連続",
       "streakDays": "{{days}}日",
+      "goalProgressTitle": "目標の進捗",
+      "goalProgressDaily": "{{minutes}} / {{goal}}分（今日）",
+      "goalProgressWeekly": "{{minutes}} / {{goal}}分（今週）",
       "back": "愛犬"
     },
     "edit": {

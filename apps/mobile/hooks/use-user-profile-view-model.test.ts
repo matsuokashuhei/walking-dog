@@ -1,13 +1,13 @@
 import {
-  buildOwnerProfileViewModel,
-  type OwnerProfileData,
-} from './use-owner-profile-view-model';
+  buildUserProfileViewModel,
+  type UserProfileData,
+} from './use-user-profile-view-model';
 
 const t = (key: string, values?: Record<string, unknown>): string => {
   const map: Record<string, string> = {
     'settings.profile.title': 'Profile',
     'settings.profile.edit': 'Edit',
-    'settings.profile.unknownName': 'Unknown owner',
+    'settings.profile.unknownName': 'Unknown user',
     'settings.profile.walkingSince': `Walking since ${values?.date}`,
     'settings.profile.stats.walks': 'Walks',
     'settings.profile.stats.distance': 'km',
@@ -19,7 +19,7 @@ const t = (key: string, values?: Record<string, unknown>): string => {
   return map[key] ?? key;
 };
 
-const profileData: OwnerProfileData = {
+const profileData: UserProfileData = {
   user: {
     id: 'user-1',
     name: 'Mio Tanaka',
@@ -57,9 +57,9 @@ const profileData: OwnerProfileData = {
   ],
 };
 
-describe('buildOwnerProfileViewModel', () => {
-  it('builds owner identity, lifetime stats, and the current-week chart from real data', () => {
-    const vm = buildOwnerProfileViewModel(
+describe('buildUserProfileViewModel', () => {
+  it('builds user identity, lifetime stats, and the current-week chart from real data', () => {
+    const vm = buildUserProfileViewModel(
       profileData,
       t,
       new Date('2026-05-30T12:00:00+09:00'),
@@ -102,8 +102,8 @@ describe('buildOwnerProfileViewModel', () => {
     });
   });
 
-  it('falls back to an unknown owner label when the user has no name', () => {
-    const vm = buildOwnerProfileViewModel(
+  it('falls back to an unknown user label when the user has no name', () => {
+    const vm = buildUserProfileViewModel(
       {
         ...profileData,
         user: { ...profileData.user, name: null, displayName: null },
@@ -113,7 +113,7 @@ describe('buildOwnerProfileViewModel', () => {
       'en-US',
     );
 
-    expect(vm.displayName).toBe('Unknown owner');
+    expect(vm.displayName).toBe('Unknown user');
     expect(vm.initial).toBe('?');
   });
 });

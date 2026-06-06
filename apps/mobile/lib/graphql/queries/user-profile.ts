@@ -1,7 +1,7 @@
 import { gql } from '../gql';
 
-export const OWNER_PROFILE_QUERY = gql`
-  query OwnerProfile($first: Int) {
+export const USER_PROFILE_QUERY = gql`
+  query UserProfile($first: Int) {
     user {
       id
       name

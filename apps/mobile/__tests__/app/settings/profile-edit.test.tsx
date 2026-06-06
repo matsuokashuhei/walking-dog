@@ -86,7 +86,7 @@ describe('ProfileEditScreen', () => {
     });
   });
 
-  it('saves the edited owner name and returns to the profile screen', async () => {
+  it('saves the edited user name and returns to the profile screen', async () => {
     render(<ProfileEditScreen />);
 
     fireEvent.changeText(screen.getByLabelText('Name'), 'Mio Updated');
@@ -102,7 +102,7 @@ describe('ProfileEditScreen', () => {
     expect(mockBack).toHaveBeenCalledTimes(1);
   });
 
-  it('saves the selected avatar file with the edited owner name', async () => {
+  it('saves the selected avatar file with the edited user name', async () => {
     mockLaunchImageLibraryAsync.mockResolvedValue({
       canceled: false,
       assets: [

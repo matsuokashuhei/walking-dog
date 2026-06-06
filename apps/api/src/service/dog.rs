@@ -74,7 +74,7 @@ pub async fn update_dog(
     db.transaction::<_, dog::Model, ServiceError>(|txn| {
         let command = command.clone();
         Box::pin(async move {
-            ensure_owned(txn, user_id, command.id).await?;
+            ensure_user_has_dog(txn, user_id, command.id).await?;
 
             let updated_dog = command.clone().into_active_model().update(txn).await?;
             if let Some(walk_goal) = command.walk_goal {
@@ -95,7 +95,7 @@ pub async fn remove_dog(
     user_id: Uuid,
     dog_id: Uuid,
 ) -> ServiceResult<dog::Model> {
-    let dog = ensure_owned(db, user_id, dog_id).await?;
+    let dog = ensure_user_has_dog(db, user_id, dog_id).await?;
     let user_dog = user_dog::Entity::find()
         .filter(
             Condition::all()
@@ -109,7 +109,11 @@ pub async fn remove_dog(
     Ok(dog)
 }
 
-pub async fn ensure_owned<C>(db: &C, user_id: Uuid, dog_id: Uuid) -> ServiceResult<dog::Model>
+pub async fn ensure_user_has_dog<C>(
+    db: &C,
+    user_id: Uuid,
+    dog_id: Uuid,
+) -> ServiceResult<dog::Model>
 where
     C: ConnectionTrait,
 {

@@ -25,7 +25,7 @@ jest.mock('expo-image', () => ({
 
 jest.mock('@/components/ui/LoadingScreen', () => {
   const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
-  return { LoadingScreen: () => <Text>Loading owner profile</Text> };
+  return { LoadingScreen: () => <Text>Loading user profile</Text> };
 });
 
 jest.mock('@/components/ui/ErrorScreen', () => {
@@ -37,8 +37,8 @@ jest.mock('@/components/ui/ErrorScreen', () => {
   };
 });
 
-jest.mock('@/hooks/use-owner-profile-view-model', () => ({
-  useOwnerProfileViewModel: () => mockViewModel,
+jest.mock('@/hooks/use-user-profile-view-model', () => ({
+  useUserProfileViewModel: () => mockViewModel,
 }));
 
 describe('ProfileScreen', () => {
@@ -78,7 +78,7 @@ describe('ProfileScreen', () => {
 
     render(<ProfileScreen />);
 
-    expect(screen.getByText('Loading owner profile')).toBeTruthy();
+    expect(screen.getByText('Loading user profile')).toBeTruthy();
   });
 
   it('renders the error state and retry handler when profile data fails to load', () => {
@@ -90,7 +90,7 @@ describe('ProfileScreen', () => {
     expect(mockRetry).toHaveBeenCalledTimes(1);
   });
 
-  it('renders owner profile data and opens edit profile', () => {
+  it('renders user profile data and opens edit profile', () => {
     render(<ProfileScreen />);
 
     expect(screen.getByRole('header', { name: 'Profile' })).toBeTruthy();

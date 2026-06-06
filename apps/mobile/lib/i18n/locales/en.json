@@ -268,9 +268,6 @@
       "yesterday": "Yesterday"
     }
   },
-  "shared": {
-    "badge": "Shared"
-  },
   "settings": {
     "title": "Me",
     "sectionLabel": {
@@ -295,7 +292,7 @@
       "back": "‹ Me",
       "edit": "Edit",
       "loadError": "Failed to load profile",
-      "unknownName": "Unknown owner",
+      "unknownName": "Unknown user",
       "walkingSince": "Walking since {{date}}",
       "stats": {
         "walks": "Walks",

@@ -37,7 +37,6 @@ const mockDog: DogWithStats = {
   gender: 'Male',
   birthday: null,
   photoUrl: null,
-  role: 'owner',
   createdAt: '2024-01-01',
   walkStats: null,
 };
@@ -87,16 +86,9 @@ describe('DogDetailScreen', () => {
     mockCanGoBack = true;
   });
 
-  it('shows delete button for owner', () => {
-    mockMeData = { id: 'user-1' }; // owner
+  it('shows delete button for a loaded dog', () => {
     renderWithProviders(<DogDetailScreen />);
     expect(screen.getByText('Delete')).toBeTruthy();
-  });
-
-  it('hides delete button for non-owner member', () => {
-    mockDogData = { ...mockDog, role: 'member' };
-    renderWithProviders(<DogDetailScreen />);
-    expect(screen.queryByText('Delete')).toBeNull();
   });
 
   it('renders the large title screen header with dog title and back action', () => {
@@ -109,20 +101,14 @@ describe('DogDetailScreen', () => {
     expect(screen.getByLabelText('Dogs')).toBeTruthy();
   });
 
-  it('renders edit button exactly once in screen header for owner', () => {
+  it('renders edit button exactly once in screen header for a loaded dog', () => {
     renderWithProviders(<DogDetailScreen />);
     // Regression guard: Edit must appear exactly once (no duplicate from
     // a stray Stack header reintroduction).
     expect(screen.getAllByText('Edit')).toHaveLength(1);
   });
 
-  it('hides edit button for non-owner member', () => {
-    mockDogData = { ...mockDog, role: 'member' };
-    renderWithProviders(<DogDetailScreen />);
-    expect(screen.queryByText('Edit')).toBeNull();
-  });
-
-  it('navigates to edit screen when edit button is pressed (owner)', () => {
+  it('navigates to edit screen when edit button is pressed', () => {
     renderWithProviders(<DogDetailScreen />);
     fireEvent.press(screen.getByLabelText('Edit'));
     expect(mockPush).toHaveBeenCalledWith({
@@ -163,9 +149,4 @@ describe('DogDetailScreen', () => {
     expect(style.paddingHorizontal).toBe(spacing.md);
   });
 
-  it('hides delete button when dog has no role', () => {
-    mockDogData = { ...mockDog, role: undefined };
-    renderWithProviders(<DogDetailScreen />);
-    expect(screen.queryByText('Delete')).toBeNull();
-  });
 });

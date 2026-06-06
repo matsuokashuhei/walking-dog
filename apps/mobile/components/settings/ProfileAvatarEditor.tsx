@@ -2,24 +2,24 @@ import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
-import { OwnerAvatar } from './OwnerAvatar';
+import { ProfileAvatar } from './ProfileAvatar';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { normalizeImageContentType } from '@/lib/upload';
 import { useColors } from '@/hooks/use-colors';
 import { components, spacing, typography } from '@/theme/tokens';
 import type { UploadFile } from '@/lib/graphql/client';
 
-interface OwnerAvatarEditorProps {
+interface ProfileAvatarEditorProps {
   value: string | null;
   displayName: string | null;
   onChange: (file: UploadFile | null) => void;
 }
 
-export function OwnerAvatarEditor({
+export function ProfileAvatarEditor({
   value,
   displayName,
   onChange,
-}: OwnerAvatarEditorProps) {
+}: ProfileAvatarEditorProps) {
   const { t } = useTranslation();
   const theme = useColors();
   const [selectedFile, setSelectedFile] = useState<UploadFile | null>(null);
@@ -63,11 +63,11 @@ export function OwnerAvatarEditor({
         style={styles.pressable}
       >
         <View style={styles.avatarWrap}>
-          <OwnerAvatar
+          <ProfileAvatar
             displayName={displayName}
             avatarUrl={previewUri}
             size="editor"
-            testID="owner-avatar-editor-avatar"
+            testID="profile-avatar-editor-avatar"
           />
           <View
             style={[
@@ -108,10 +108,10 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: -spacing.xs / 2,
     bottom: -spacing.xs / 2,
-    width: components.ownerAvatar.cameraBadgeSize,
-    height: components.ownerAvatar.cameraBadgeSize,
-    borderRadius: components.ownerAvatar.cameraBadgeSize / 2,
-    borderWidth: components.ownerAvatar.cameraBadgeBorderWidth,
+    width: components.profileAvatar.cameraBadgeSize,
+    height: components.profileAvatar.cameraBadgeSize,
+    borderRadius: components.profileAvatar.cameraBadgeSize / 2,
+    borderWidth: components.profileAvatar.cameraBadgeBorderWidth,
     alignItems: 'center',
     justifyContent: 'center',
   },

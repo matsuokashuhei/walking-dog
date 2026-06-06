@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useDog } from '@/hooks/use-dog';
-import { useDogDetailAuthorization } from '@/hooks/use-dog-detail-authorization';
 import { useDeleteDog } from '@/hooks/use-dog-mutations';
 import { useMutationWithAlert } from '@/hooks/use-mutation-with-alert';
 import { usePackProgress } from '@/hooks/use-pack-progress';
@@ -45,7 +44,6 @@ interface DogDetailReadyViewModel {
   // 散歩履歴の取得に失敗したときだけ非 null。空配列と「失敗」を画面側で区別するために持ちます。
   walksError: Error | null;
   retryWalks: () => void;
-  isOwner: boolean;
   showDeleteConfirm: boolean;
   handleOpenWalk: (walkId: string) => void;
   openDeleteConfirm: () => void;
@@ -67,7 +65,6 @@ export function useDogDetailViewModel(): DogDetailViewModel {
   const pack = usePackProgress();
   const { mutateAsync: deleteDog } = useDeleteDog();
   const runWithAlert = useMutationWithAlert();
-  const { isOwner } = useDogDetailAuthorization(dog ?? undefined);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // 全散歩履歴から、現在表示している犬が参加した散歩だけを抽出します。
@@ -117,7 +114,6 @@ export function useDogDetailViewModel(): DogDetailViewModel {
     dogWalks,
     walksError,
     retryWalks,
-    isOwner,
     showDeleteConfirm,
     handleOpenWalk,
     openDeleteConfirm,

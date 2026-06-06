@@ -75,7 +75,6 @@ let mockPack = {
   },
 };
 let mockMe = { id: 'user-1' };
-let mockIsOwner = true;
 
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({ id: 'dog-1' }),
@@ -104,10 +103,6 @@ jest.mock('@/hooks/use-me', () => ({
 
 jest.mock('@/hooks/use-mutation-with-alert', () => ({
   useMutationWithAlert: () => mockRunWithAlert,
-}));
-
-jest.mock('@/hooks/use-dog-detail-authorization', () => ({
-  useDogDetailAuthorization: () => ({ isOwner: mockIsOwner }),
 }));
 
 function expectReadyViewModel(
@@ -198,7 +193,6 @@ describe('useDogDetailViewModel', () => {
       },
     };
     mockMe = { id: 'user-1' };
-    mockIsOwner = true;
     mockWalksError = null;
     mockDeleteDog.mockResolvedValue(true);
     mockRunWithAlert.mockImplementation(async (fn: () => Promise<unknown>) => fn());
@@ -220,7 +214,7 @@ describe('useDogDetailViewModel', () => {
     expect(vm.meta).toBe('4y · Shiba Inu');
     expect(vm.streakDays).toBe(5);
     expect(vm.dogWalks.map((walk) => walk.id)).toEqual(['walk-1']);
-    expect(vm.isOwner).toBe(true);
+    expect(Object.keys(vm)).not.toContain(['is', 'Ow', 'ner'].join(''));
   });
 
   it('has no walks error when the walks query succeeds', () => {

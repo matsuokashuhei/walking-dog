@@ -1,6 +1,6 @@
 //! Loose birthday value object stored as JSON on the `dog` table.
 //!
-//! Owners frequently know only the year, or only the year and month, so each
+//! People often know only the year, or only the year and month, so each
 //! component is independently optional rather than forming a strict date.
 
 use sea_orm::FromJsonQueryResult;

@@ -8,7 +8,7 @@ import { TextInput } from '@/components/ui/TextInput';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { ErrorScreen } from '@/components/ui/ErrorScreen';
-import { OwnerAvatarEditor } from '@/components/settings/OwnerAvatarEditor';
+import { ProfileAvatarEditor } from '@/components/settings/ProfileAvatarEditor';
 import { useMe } from '@/hooks/use-me';
 import { useUpdateUser } from '@/hooks/use-user-mutations';
 import { useMutationWithAlert } from '@/hooks/use-mutation-with-alert';
@@ -86,7 +86,7 @@ function ProfileEditContent({ me }: { me: User }) {
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
       >
-        <OwnerAvatarEditor
+        <ProfileAvatarEditor
           value={initialAvatar}
           displayName={name}
           onChange={setAvatarFile}

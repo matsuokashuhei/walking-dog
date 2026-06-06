@@ -1,7 +1,7 @@
 import { Alert } from 'react-native';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { OwnerAvatarEditor } from './OwnerAvatarEditor';
+import { ProfileAvatarEditor } from './ProfileAvatarEditor';
 
 jest.mock('@/hooks/use-color-scheme', () => ({
   useColorScheme: () => 'light',
@@ -31,7 +31,7 @@ const mockLaunchImageLibraryAsync =
     typeof ImagePicker.launchImageLibraryAsync
   >;
 
-describe('OwnerAvatarEditor', () => {
+describe('ProfileAvatarEditor', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.spyOn(Alert, 'alert').mockImplementation(() => {});
@@ -56,22 +56,22 @@ describe('OwnerAvatarEditor', () => {
       canceled: false,
       assets: [
         {
-          uri: 'file:///selected-owner.png',
+          uri: 'file:///selected-user.png',
           width: 100,
           height: 100,
-          fileName: 'selected-owner.png',
+          fileName: 'selected-user.png',
           mimeType: 'image/png',
         },
       ],
     });
-    render(<OwnerAvatarEditor value={null} displayName="Mio Tanaka" onChange={jest.fn()} />);
+    render(<ProfileAvatarEditor value={null} displayName="Mio Tanaka" onChange={jest.fn()} />);
 
     fireEvent.press(screen.getByRole('button', { name: 'Change photo' }));
 
     await waitFor(() => {
-      const image = screen.getByTestId('owner-avatar-editor-avatar-image');
-      expect(image.props.source).toEqual({ uri: 'file:///selected-owner.png' });
-      expect(image.props.recyclingKey).toBe('file:///selected-owner.png');
+      const image = screen.getByTestId('profile-avatar-editor-avatar-image');
+      expect(image.props.source).toEqual({ uri: 'file:///selected-user.png' });
+      expect(image.props.recyclingKey).toBe('file:///selected-user.png');
     });
     expect(screen.queryByText('M')).toBeNull();
   });

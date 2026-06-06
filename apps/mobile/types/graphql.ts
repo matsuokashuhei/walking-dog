@@ -63,7 +63,6 @@ export interface Dog {
   updatedAt?: string;
   birthday?: Birthday | null;
   photoUrl?: string | null;
-  role?: 'owner' | 'member';
   latestWalk?: LatestWalk | null;
   walkGoal?: DogWalkGoal | null;
 }
@@ -282,23 +281,23 @@ export interface UserResponse {
   user: ApiUser;
 }
 
-export interface ApiOwnerProfileWalk {
+export interface ApiUserProfileWalk {
   id: string;
   startedAt: string;
   endedAt: string | null;
   distance: number | null;
 }
 
-export interface ApiOwnerProfileWalkConnection {
+export interface ApiUserProfileWalkConnection {
   totalCount: number;
   totalDistance: number;
   totalDuration: number;
-  nodes: ApiOwnerProfileWalk[];
+  nodes: ApiUserProfileWalk[];
 }
 
-export interface OwnerProfileResponse {
+export interface UserProfileResponse {
   user: ApiUser & {
-    walks: ApiOwnerProfileWalkConnection;
+    walks: ApiUserProfileWalkConnection;
   };
 }
 

@@ -2,24 +2,24 @@ import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
-import { ProfileAvatar } from './ProfileAvatar';
+import { UserAvatar } from './UserAvatar';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { normalizeImageContentType } from '@/lib/upload';
 import { useColors } from '@/hooks/use-colors';
 import { components, spacing, typography } from '@/theme/tokens';
 import type { UploadFile } from '@/lib/graphql/client';
 
-interface ProfileAvatarEditorProps {
+interface UserAvatarEditorProps {
   value: string | null;
   displayName: string | null;
   onChange: (file: UploadFile | null) => void;
 }
 
-export function ProfileAvatarEditor({
+export function UserAvatarEditor({
   value,
   displayName,
   onChange,
-}: ProfileAvatarEditorProps) {
+}: UserAvatarEditorProps) {
   const { t } = useTranslation();
   const theme = useColors();
   const [selectedFile, setSelectedFile] = useState<UploadFile | null>(null);
@@ -29,8 +29,8 @@ export function ProfileAvatarEditor({
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
       Alert.alert(
-        t('settings.profileEdit.photoPermissionDenied'),
-        t('settings.profileEdit.photoPermissionMessage'),
+        t('userEdit.photoPermissionDenied'),
+        t('userEdit.photoPermissionMessage'),
       );
       return;
     }
@@ -57,17 +57,17 @@ export function ProfileAvatarEditor({
     <View style={styles.container}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={t('settings.profileEdit.changePhoto')}
+        accessibilityLabel={t('userEdit.changePhoto')}
         onPress={handleChangePhoto}
         hitSlop={spacing.sm}
         style={styles.pressable}
       >
         <View style={styles.avatarWrap}>
-          <ProfileAvatar
+          <UserAvatar
             displayName={displayName}
             avatarUrl={previewUri}
             size="editor"
-            testID="profile-avatar-editor-avatar"
+            testID="user-avatar-editor-avatar"
           />
           <View
             style={[
@@ -86,7 +86,7 @@ export function ProfileAvatarEditor({
           </View>
         </View>
         <Text style={[styles.changePhoto, { color: theme.interactive }]}>
-          {t('settings.profileEdit.changePhoto')}
+          {t('userEdit.changePhoto')}
         </Text>
       </Pressable>
     </View>
@@ -108,10 +108,10 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: -spacing.xs / 2,
     bottom: -spacing.xs / 2,
-    width: components.profileAvatar.cameraBadgeSize,
-    height: components.profileAvatar.cameraBadgeSize,
-    borderRadius: components.profileAvatar.cameraBadgeSize / 2,
-    borderWidth: components.profileAvatar.cameraBadgeBorderWidth,
+    width: components.userAvatar.cameraBadgeSize,
+    height: components.userAvatar.cameraBadgeSize,
+    borderRadius: components.userAvatar.cameraBadgeSize / 2,
+    borderWidth: components.userAvatar.cameraBadgeBorderWidth,
     alignItems: 'center',
     justifyContent: 'center',
   },

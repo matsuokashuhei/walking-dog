@@ -154,7 +154,7 @@ flowchart TD
 
   Tabs --> TabsDogs["dogs.tsx<br/>犬一覧"]
   Tabs --> TabsWalk["walk.tsx<br/>散歩タブ（ready / finished）"]
-  Tabs --> TabsSet["settings.tsx<br/>設定"]
+  Tabs --> TabsUser["user.tsx<br/>Me（ユーザー）"]
 ```
 
 ### 3-4. 認証フロー（NavigationGuard）

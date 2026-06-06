@@ -270,6 +270,7 @@
   },
   "settings": {
     "title": "マイページ",
+    "settingsTitle": "設定",
     "sectionLabel": {
       "preferences": "環境設定",
       "legal": "法的情報"
@@ -286,38 +287,36 @@
     "unitsMile": "マイル",
     "notifications": "通知",
     "notificationsValue": "オン",
-    "viewProfile": "プロフィールを見る",
-    "profile": {
-      "title": "プロフィール",
-      "back": "‹ マイページ",
-      "edit": "編集",
-      "loadError": "プロフィールの読み込みに失敗しました",
-      "unknownName": "名前未設定",
-      "walkingSince": "{{date}}から散歩中",
-      "stats": {
-        "walks": "散歩",
-        "distance": "km",
-        "totalTime": "合計時間",
-        "dogs": "愛犬"
-      },
-      "week": {
-        "title": "今週",
-        "total": "合計 {{distance}}"
-      }
-    },
-    "profileEdit": {
-      "title": "プロフィールを編集",
-      "name": "名前",
-      "changePhoto": "写真を変更",
-      "photoPermissionDenied": "写真へのアクセスが拒否されました",
-      "photoPermissionMessage": "プロフィール写真を更新するには写真へのアクセスを許可してください。",
-      "saveError": "プロフィールの保存に失敗しました。もう一度お試しください。"
-    },
+    "openSettings": "設定",
     "terms": "利用規約",
     "privacy": "プライバシーポリシー",
     "about": "このアプリについて",
     "signOut": "サインアウト",
     "signOutConfirm": "サインアウトしますか？",
     "loadError": "データの読み込みに失敗しました"
+  },
+  "user": {
+    "edit": "編集",
+    "loadError": "ユーザー情報の読み込みに失敗しました",
+    "unknownName": "名前未設定",
+    "walkingSince": "{{date}}から散歩中",
+    "stats": {
+      "walks": "散歩",
+      "distance": "km",
+      "totalTime": "合計時間",
+      "dogs": "愛犬"
+    },
+    "week": {
+      "title": "今週",
+      "total": "合計 {{distance}}"
+    }
+  },
+  "userEdit": {
+    "title": "ユーザーを編集",
+    "name": "名前",
+    "changePhoto": "写真を変更",
+    "photoPermissionDenied": "写真へのアクセスが拒否されました",
+    "photoPermissionMessage": "ユーザー写真を更新するには写真へのアクセスを許可してください。",
+    "saveError": "ユーザー情報の保存に失敗しました。もう一度お試しください。"
   }
 }

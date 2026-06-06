@@ -1,25 +1,24 @@
 import {
-  buildUserProfileViewModel,
+  buildUserScreenViewModel,
   type UserProfileData,
-} from './use-user-profile-view-model';
+} from './use-user-screen-view-model';
 
 const t = (key: string, values?: Record<string, unknown>): string => {
   const map: Record<string, string> = {
-    'settings.profile.title': 'Profile',
-    'settings.profile.edit': 'Edit',
-    'settings.profile.unknownName': 'Unknown user',
-    'settings.profile.walkingSince': `Walking since ${values?.date}`,
-    'settings.profile.stats.walks': 'Walks',
-    'settings.profile.stats.distance': 'km',
-    'settings.profile.stats.totalTime': 'Total time',
-    'settings.profile.stats.dogs': 'Dogs',
-    'settings.profile.week.title': 'This week',
-    'settings.profile.week.total': `${values?.distance} total`,
+    'user.edit': 'Edit',
+    'user.unknownName': 'Unknown user',
+    'user.walkingSince': `Walking since ${values?.date}`,
+    'user.stats.walks': 'Walks',
+    'user.stats.distance': 'km',
+    'user.stats.totalTime': 'Total time',
+    'user.stats.dogs': 'Dogs',
+    'user.week.title': 'This week',
+    'user.week.total': `${values?.distance} total`,
   };
   return map[key] ?? key;
 };
 
-const profileData: UserProfileData = {
+const userData: UserProfileData = {
   user: {
     id: 'user-1',
     name: 'Mio Tanaka',
@@ -57,10 +56,10 @@ const profileData: UserProfileData = {
   ],
 };
 
-describe('buildUserProfileViewModel', () => {
+describe('buildUserScreenViewModel', () => {
   it('builds user identity, lifetime stats, and the current-week chart from real data', () => {
-    const vm = buildUserProfileViewModel(
-      profileData,
+    const vm = buildUserScreenViewModel(
+      userData,
       t,
       new Date('2026-05-30T12:00:00+09:00'),
       'en-US',
@@ -103,10 +102,10 @@ describe('buildUserProfileViewModel', () => {
   });
 
   it('falls back to an unknown user label when the user has no name', () => {
-    const vm = buildUserProfileViewModel(
+    const vm = buildUserScreenViewModel(
       {
-        ...profileData,
-        user: { ...profileData.user, name: null, displayName: null },
+        ...userData,
+        user: { ...userData.user, name: null, displayName: null },
       },
       t,
       new Date('2026-05-30T12:00:00+09:00'),

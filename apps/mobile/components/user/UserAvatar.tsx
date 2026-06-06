@@ -4,22 +4,22 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useColors } from '@/hooks/use-colors';
 import { components, typography } from '@/theme/tokens';
 
-type ProfileAvatarSize = 'card' | 'profile' | 'editor';
+type UserAvatarSize = 'card' | 'display' | 'editor';
 type AvatarStyle = { width: number; height: number; borderRadius: number };
 
-interface ProfileAvatarProps {
+interface UserAvatarProps {
   displayName: string | null;
   avatarUrl: string | null;
-  size: ProfileAvatarSize;
+  size: UserAvatarSize;
   testID?: string;
 }
 
-export function ProfileAvatar({
+export function UserAvatar({
   displayName,
   avatarUrl,
   size,
   testID,
-}: ProfileAvatarProps) {
+}: UserAvatarProps) {
   const theme = useColors();
   const initial = displayName?.trim()?.charAt(0)?.toUpperCase() ?? '?';
   const avatarStyle = AVATAR_STYLE_BY_KIND[size];
@@ -68,19 +68,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cardAvatar: {
-    width: components.profileAvatar.cardSize,
-    height: components.profileAvatar.cardSize,
-    borderRadius: components.profileAvatar.cardSize / 2,
+    width: components.userAvatar.cardSize,
+    height: components.userAvatar.cardSize,
+    borderRadius: components.userAvatar.cardSize / 2,
   },
-  profileAvatar: {
-    width: components.profileAvatar.profileSize,
-    height: components.profileAvatar.profileSize,
-    borderRadius: components.profileAvatar.profileSize / 2,
+  displayAvatar: {
+    width: components.userAvatar.displaySize,
+    height: components.userAvatar.displaySize,
+    borderRadius: components.userAvatar.displaySize / 2,
   },
   editorAvatar: {
-    width: components.profileAvatar.editorSize,
-    height: components.profileAvatar.editorSize,
-    borderRadius: components.profileAvatar.editorSize / 2,
+    width: components.userAvatar.editorSize,
+    height: components.userAvatar.editorSize,
+    borderRadius: components.userAvatar.editorSize / 2,
   },
   cardInitial: {
     ...typography.title2,
@@ -90,8 +90,8 @@ const styles = StyleSheet.create({
   },
 });
 
-const AVATAR_STYLE_BY_KIND: Record<ProfileAvatarSize, AvatarStyle> = {
+const AVATAR_STYLE_BY_KIND: Record<UserAvatarSize, AvatarStyle> = {
   card: styles.cardAvatar,
-  profile: styles.profileAvatar,
+  display: styles.displayAvatar,
   editor: styles.editorAvatar,
 };

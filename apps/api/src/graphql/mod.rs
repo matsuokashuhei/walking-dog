@@ -4,11 +4,14 @@ pub mod guard;
 pub mod mutation;
 pub mod object;
 pub mod query;
+pub(crate) mod upload;
 
 use std::{env, sync::Arc};
 
 use crate::graphql::query::Query;
 use crate::queue::track_point::TrackPointEnqueuer;
+use crate::service::storage::{S3StorageGateway, SharedStorageGateway};
+use crate::service::track_point::{DynamoDbTrackPointRepository, SharedTrackPointRepository};
 use anyhow::Result;
 use async_graphql::{EmptySubscription, extensions::Tracing};
 use tracing::info;
@@ -20,12 +23,12 @@ pub async fn build_schema()
     info!("Database client ready");
     let cognito_client = build_cognitoidentityprovider_client().await;
     info!("Cognito client ready");
-    let dynamodb_client = build_dynamodb_client().await;
-    info!("DynamoDB client ready");
+    let track_point_repository = build_track_point_repository().await?;
+    info!("Track point repository ready");
     let track_point_enqueuer = build_track_point_enqueuer().await?;
     info!("Track point enqueuer ready");
-    let s3_client = build_s3_client().await;
-    info!("S3 client ready");
+    let storage_gateway = build_storage_gateway().await;
+    info!("Storage gateway ready");
 
     Ok(async_graphql::Schema::build(
         Query::default(),
@@ -34,9 +37,9 @@ pub async fn build_schema()
     )
     .data(database_connection)
     .data(cognito_client)
-    .data(dynamodb_client)
+    .data(track_point_repository)
     .data(track_point_enqueuer)
-    .data(s3_client)
+    .data(storage_gateway)
     .extension(Tracing)
     .finish())
 }
@@ -65,6 +68,13 @@ async fn build_dynamodb_client() -> aws_sdk_dynamodb::Client {
     aws_sdk_dynamodb::Client::new(&config)
 }
 
+async fn build_track_point_repository() -> Result<SharedTrackPointRepository> {
+    let dynamodb_client = build_dynamodb_client().await;
+    Ok(Arc::new(DynamoDbTrackPointRepository::from_env(
+        dynamodb_client,
+    )?))
+}
+
 async fn build_sqs_client() -> aws_sdk_sqs::Client {
     let config_loader = aws_config::from_env();
     let config = match env::var("AWS_SQS_ENDPOINT") {
@@ -83,6 +93,10 @@ async fn build_s3_client() -> aws_sdk_s3::Client {
     } else {
         aws_sdk_s3::Client::new(&config)
     }
+}
+
+async fn build_storage_gateway() -> SharedStorageGateway {
+    Arc::new(S3StorageGateway::from_env(build_s3_client().await))
 }
 
 async fn build_track_point_enqueuer() -> Result<Arc<TrackPointEnqueuer>> {

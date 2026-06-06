@@ -9,7 +9,7 @@ use aws_sdk_cognitoidentityprovider::operation::{
 use aws_sdk_s3::error::ProvideErrorMetadata;
 use tracing::error;
 
-use crate::{entity::track_point::TrackPointError, service::error::ServiceError};
+use crate::service::error::ServiceError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {
@@ -128,28 +128,6 @@ impl ErrorExtensions for AuthError {
                 error!("Change password error: {:?}", change_password_error);
                 e.set("code", 422);
                 e.set("message", change_password_error.message());
-            }
-        })
-    }
-}
-
-impl ErrorExtensions for TrackPointError {
-    fn extend(&self) -> Error {
-        Error::new(self.to_string()).extend_with(|_, e| match self {
-            TrackPointError::PutItemError(put_item_error) => {
-                error!("Put item error: {:?}", put_item_error);
-                e.set("code", 500);
-                e.set("message", put_item_error.message());
-            }
-            TrackPointError::BatchWriteItemError(batch_write_item_error) => {
-                error!("Batch write item error: {:?}", batch_write_item_error);
-                e.set("code", 500);
-                e.set("message", batch_write_item_error.message());
-            }
-            TrackPointError::QueryError(query_error) => {
-                error!("Query error: {:?}", query_error);
-                e.set("code", 500);
-                e.set("message", query_error.message());
             }
         })
     }

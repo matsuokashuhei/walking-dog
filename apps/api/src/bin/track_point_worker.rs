@@ -3,8 +3,9 @@ use std::{env, fmt, time::Duration};
 use anyhow::Result;
 use sqs_consumer::{Consumer, ConsumerOptions, TracingListener};
 use tokio::task::JoinSet;
-use walking_dog::queue::track_point::{
-    DynamoDbTrackPointBatchWriter, TrackPointBatchHandler, TrackPointBatchWriter,
+use walking_dog::{
+    queue::track_point::{TrackPointBatchHandler, TrackPointBatchWriter},
+    service::track_point::DynamoDbTrackPointRepository,
 };
 
 const DEFAULT_WORKER_CONCURRENCY: usize = 10;
@@ -41,7 +42,8 @@ async fn main() -> Result<()> {
             DEFAULT_HEARTBEAT_INTERVAL_SECONDS,
         )))
         .build()?;
-    let handler = TrackPointBatchHandler::new(DynamoDbTrackPointBatchWriter::new(dynamodb_client));
+    let handler =
+        TrackPointBatchHandler::new(DynamoDbTrackPointRepository::from_env(dynamodb_client)?);
 
     run_consumers(options, handler, worker_concurrency).await?;
 

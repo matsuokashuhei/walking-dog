@@ -3,10 +3,11 @@ use aws_sdk_sqs::operation::send_message::SendMessageError;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqs_consumer::{BatchMessageHandler, BatchOutcome};
-use std::fmt;
 use uuid::Uuid;
 
-use crate::entity::track_point;
+use crate::service::track_point::{
+    DynamoDbTrackPointRepository, TrackPoint, TrackPointRepository, TrackPointRepositoryError,
+};
 
 const TRACK_POINT_MESSAGE_VERSION: u16 = 1;
 
@@ -52,9 +53,9 @@ impl TrackPointMessage {
     }
 }
 
-impl From<TrackPointMessage> for track_point::Model {
+impl From<TrackPointMessage> for TrackPoint {
     fn from(message: TrackPointMessage) -> Self {
-        track_point::Model::new(
+        TrackPoint::new(
             message.walk_id,
             message.tracked_at,
             message.latitude,
@@ -105,44 +106,15 @@ pub trait TrackPointBatchWriter: Send + Sync + 'static {
     type Error: std::error::Error + Send + Sync + 'static;
 
     /// Failed writes are retried by SQS, so implementations must be idempotent.
-    async fn batch_put_write(&self, models: &[track_point::Model]) -> Result<(), Self::Error>;
-}
-
-#[derive(Clone)]
-pub struct DynamoDbTrackPointBatchWriter {
-    client: aws_sdk_dynamodb::Client,
-}
-
-impl DynamoDbTrackPointBatchWriter {
-    pub fn new(client: aws_sdk_dynamodb::Client) -> Self {
-        Self { client }
-    }
+    async fn batch_put_write(&self, points: &[TrackPoint]) -> Result<(), Self::Error>;
 }
 
 #[async_trait]
-impl TrackPointBatchWriter for DynamoDbTrackPointBatchWriter {
-    type Error = DynamoDbTrackPointBatchWriteError;
+impl TrackPointBatchWriter for DynamoDbTrackPointRepository {
+    type Error = TrackPointRepositoryError;
 
-    async fn batch_put_write(&self, models: &[track_point::Model]) -> Result<(), Self::Error> {
-        track_point::Model::batch_put_write(&self.client, models)
-            .await
-            .map_err(DynamoDbTrackPointBatchWriteError)
-    }
-}
-
-#[derive(Debug)]
-pub struct DynamoDbTrackPointBatchWriteError(anyhow::Error);
-
-impl fmt::Display for DynamoDbTrackPointBatchWriteError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl std::error::Error for DynamoDbTrackPointBatchWriteError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        let error: &(dyn std::error::Error + Send + Sync + 'static) = self.0.as_ref();
-        error.source()
+    async fn batch_put_write(&self, points: &[TrackPoint]) -> Result<(), Self::Error> {
+        self.batch_put(points).await
     }
 }
 
@@ -202,7 +174,7 @@ where
         &self,
         messages: Vec<aws_sdk_sqs::types::Message>,
     ) -> Result<BatchOutcome, Self::Error> {
-        let mut models = Vec::with_capacity(messages.len());
+        let mut points = Vec::with_capacity(messages.len());
 
         for message in &messages {
             let Some(body) = message.body() else {
@@ -215,7 +187,7 @@ where
 
             match TrackPointMessage::from_json(body) {
                 Ok(track_point_message) => {
-                    models.push(track_point::Model::from(track_point_message));
+                    points.push(TrackPoint::from(track_point_message));
                 }
                 Err(error) => {
                     tracing::warn!(
@@ -227,12 +199,12 @@ where
             }
         }
 
-        if models.is_empty() {
+        if points.is_empty() {
             return Ok(BatchOutcome::AckAll);
         }
 
         self.writer
-            .batch_put_write(&models)
+            .batch_put_write(&points)
             .await
             .map_err(|error| TrackPointBatchHandlerError::BatchWrite(Box::new(error)))?;
         Ok(BatchOutcome::AckAll)
@@ -343,10 +315,11 @@ mod tests {
             }
         }
 
-        let error =
-            TrackPointBatchHandlerError::BatchWrite(Box::new(DynamoDbTrackPointBatchWriteError(
-                anyhow::Error::new(BatchWriteFailure(ThrottlingException)),
-            )));
+        let error = TrackPointBatchHandlerError::BatchWrite(Box::new(
+            TrackPointRepositoryError::InvalidItem(anyhow::Error::new(BatchWriteFailure(
+                ThrottlingException,
+            ))),
+        ));
 
         let chain = format_error_chain(&error);
         assert!(chain.contains("DynamoDB batch write failed"), "{chain}");
@@ -368,8 +341,8 @@ mod tests {
     impl TrackPointBatchWriter for FakeWriter {
         type Error = FakeWriterError;
 
-        async fn batch_put_write(&self, models: &[track_point::Model]) -> Result<(), Self::Error> {
-            *self.written_count.lock().unwrap() += models.len();
+        async fn batch_put_write(&self, points: &[TrackPoint]) -> Result<(), Self::Error> {
+            *self.written_count.lock().unwrap() += points.len();
             if self.fail.load(Ordering::SeqCst) {
                 return Err(FakeWriterError);
             }

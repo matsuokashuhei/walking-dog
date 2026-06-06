@@ -15,6 +15,39 @@ jest.mock(
   }),
 );
 
+jest.mock('react-native-reanimated', () => {
+  const { Animated, Image, Text, View } = require('react-native');
+
+  class AnimationBuilderMock {
+    duration() {
+      return this;
+    }
+    springify() {
+      return this;
+    }
+    damping() {
+      return this;
+    }
+    stiffness() {
+      return this;
+    }
+  }
+
+  return {
+    __esModule: true,
+    default: {
+      ...Animated,
+      Image,
+      Text,
+      View,
+      createAnimatedComponent: (component: unknown) => component,
+    },
+    FadeIn: new AnimationBuilderMock(),
+    FadeOut: new AnimationBuilderMock(),
+    LinearTransition: new AnimationBuilderMock(),
+  };
+});
+
 // Initialize i18next with English translations so t() returns real strings in tests.
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';

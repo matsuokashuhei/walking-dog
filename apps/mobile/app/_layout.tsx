@@ -12,7 +12,6 @@ import { useAuthStore } from '@/stores/auth-store';
 import { useSettingsStore } from '@/stores/settings-store';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { ErrorScreen } from '@/components/ui/ErrorScreen';
-import { nativeStackHeader } from '@/theme/overrides';
 
 // 認証状態と現在の route group を見て、ログイン画面とアプリ本体の行き先を制御します。
 function NavigationGuard() {
@@ -75,20 +74,6 @@ function RootLayout() {
           <Stack.Screen
             name="walk-recording"
             options={{ headerShown: false, animation: 'fade', gestureEnabled: false }}
-          />
-          <Stack.Screen
-            name="walk-recording-controls"
-            options={{
-              headerShown: false,
-              presentation: 'formSheet',
-              // 記録操作はマップ上に重ねるため、form sheet の高さだけをこの route で固定します。
-              sheetAllowedDetents: [0.15, 0.45],
-              sheetInitialDetentIndex: 1,
-              sheetGrabberVisible: true,
-              sheetCornerRadius: nativeStackHeader.sheetCornerRadius,
-              gestureEnabled: false,
-              contentStyle: { backgroundColor: nativeStackHeader.transparentBackground },
-            }}
           />
         </Stack>
         <StatusBar style="auto" />

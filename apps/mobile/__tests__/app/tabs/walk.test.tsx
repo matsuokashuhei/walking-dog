@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen } from '@testing-library/react-native';
 import WalkScreen from '../../../app/(tabs)/walk';
 import type { Dog } from '@/types/graphql';
 
@@ -55,11 +55,26 @@ jest.mock('@/components/walk/WalkMapShell', () => {
 });
 jest.mock('@/components/walk/WalkSummaryCard', () => ({ WalkSummaryCard: () => null }));
 jest.mock('@/components/walk/WalkControls', () => {
-  const { Text, View } = jest.requireActual('react-native');
+  const { Pressable, Text, View } = jest.requireActual('react-native');
   return {
-    WalkControls: ({ children }: { children?: ReactNode }) => (
+    WalkControls: ({
+      children,
+      onMinimize,
+    }: {
+      children?: ReactNode;
+      onMinimize?: () => void;
+    }) => (
       <View>
         <Text>Recording controls</Text>
+        {onMinimize ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Minimize"
+            onPress={onMinimize}
+          >
+            <Text>Minimize</Text>
+          </Pressable>
+        ) : null}
         {children}
       </View>
     ),
@@ -85,6 +100,10 @@ type Phase = 'ready' | 'recording' | 'finished';
 let mockDogs: Dog[] = [];
 let mockPhase: Phase = 'ready';
 let mockSelectedDogIds: string[] = [];
+let mockIsMinimized = false;
+const mockSetMinimized = jest.fn((next: boolean) => {
+  mockIsMinimized = next;
+});
 
 jest.mock('@/hooks/use-me', () => ({
   useMe: () => ({ data: { dogs: mockDogs }, isLoading: false }),
@@ -108,8 +127,12 @@ type StoreState = {
   phase: Phase;
   dogs: Dog[];
   walkId: string | null;
+  startedAt: Date | null;
+  totalDistanceM: number;
+  isMinimized: boolean;
   selectDog: (id: string) => void;
   setSelectedDogs: (ids: string[]) => void;
+  setMinimized: (next: boolean) => void;
   requestCamera: () => void;
 };
 
@@ -120,8 +143,12 @@ jest.mock('@/stores/walk-store', () => ({
       phase: mockPhase,
       dogs: mockDogs,
       walkId: mockPhase === 'recording' ? 'walk-1' : null,
+      startedAt: new Date('2026-04-20T10:00:00.000Z'),
+      totalDistanceM: 240,
+      isMinimized: mockIsMinimized,
       selectDog: jest.fn(),
       setSelectedDogs: jest.fn(),
+      setMinimized: mockSetMinimized,
       requestCamera: jest.fn(),
     }),
 }));
@@ -151,6 +178,8 @@ describe('Walk tab route', () => {
     mockDogs = [];
     mockPhase = 'ready';
     mockSelectedDogIds = [];
+    mockIsMinimized = false;
+    mockSetMinimized.mockClear();
     mockWalkMapMounts = 0;
     mockWalkMapUnmounts = 0;
     mockWalkMapProps.length = 0;
@@ -183,6 +212,32 @@ describe('Walk tab route', () => {
     render(<WalkScreen />);
 
     expect(screen.queryByRole('header', { name: 'Walk' })).toBeNull();
+    expect(screen.getByText('Recording controls')).toBeTruthy();
+    expect(screen.getByText('Event actions')).toBeTruthy();
+  });
+
+  it('collapses recording controls in the Walk tab without showing event actions', () => {
+    mockPhase = 'recording';
+    mockDogs = [buildDog({})];
+    mockSelectedDogIds = ['d1'];
+
+    const { rerender } = render(<WalkScreen />);
+    fireEvent.press(screen.getByRole('button', { name: 'Minimize' }));
+    rerender(<WalkScreen />);
+
+    expect(mockSetMinimized).toHaveBeenCalledWith(true);
+    expect(screen.queryByText('Recording controls')).toBeNull();
+    expect(screen.queryByText('Event actions')).toBeNull();
+    expect(screen.queryByText('Tap to expand for controls')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Expand' })).toHaveProp(
+      'accessibilityHint',
+      'Tap to expand for controls',
+    );
+
+    fireEvent.press(screen.getByRole('button', { name: 'Expand' }));
+    rerender(<WalkScreen />);
+
+    expect(mockSetMinimized).toHaveBeenCalledWith(false);
     expect(screen.getByText('Recording controls')).toBeTruthy();
     expect(screen.getByText('Event actions')).toBeTruthy();
   });

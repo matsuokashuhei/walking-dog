@@ -1,44 +1,41 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Tag } from '@/components/ui/Tag';
 import { useColors } from '@/hooks/use-colors';
 import { useWalkElapsed } from '@/hooks/use-walk-elapsed';
 import { useSettingsStore } from '@/stores/settings-store';
 import { useWalkStore } from '@/stores/walk-store';
-import { elevation, radius, spacing, typography } from '@/theme/tokens';
+import { components, elevation, radius, spacing, typography } from '@/theme/tokens';
 import { formatDistance, formatTime } from '@/lib/walk/format';
 import type { Dog } from '@/types/graphql';
 
 interface WalkMinimizedControlsProps {
   dogs: Dog[];
+  onExpand: () => void;
 }
 
-const AVATAR = 28;
-
 // 記録中パネルを畳んだ状態で、経過時間と距離を確認しながら再展開できます。
-export function WalkMinimizedControls({ dogs }: WalkMinimizedControlsProps) {
+export function WalkMinimizedControls({ dogs, onExpand }: WalkMinimizedControlsProps) {
   const { t } = useTranslation();
   const theme = useColors();
   const startedAt = useWalkStore((s) => s.startedAt);
   const totalDistanceM = useWalkStore((s) => s.totalDistanceM);
-  const setMinimized = useWalkStore((s) => s.setMinimized);
   const units = useSettingsStore((s) => s.units);
   const elapsedSec = useWalkElapsed({ startedAt, isPaused: false, totalPausedMs: 0 });
-
-  // ミニ表示全体を 1 つの再展開ボタンとして扱います。
-  const expand = () => setMinimized(false);
 
   return (
     <View style={styles.wrap}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={t('walk.recording.expand')}
-        onPress={expand}
+        accessibilityHint={t('walk.recording.expandHint')}
+        onPress={onExpand}
         style={({ pressed }) => [
           styles.pill,
           { backgroundColor: theme.surface, borderColor: theme.border },
-          elevation.low,
+          elevation.mid,
           pressed && styles.pillPressed,
         ]}
       >
@@ -66,44 +63,44 @@ export function WalkMinimizedControls({ dogs }: WalkMinimizedControlsProps) {
           <Tag label="LIVE" tone="live" />
         </View>
         <View style={[styles.chevronButton, { backgroundColor: theme.surfaceContainer }]}>
-          <Text style={[styles.chevron, { color: theme.onSurface }]}>⌃</Text>
+          <IconSymbol
+            name="chevron.up"
+            size={components.walkMinimized.iconSize}
+            color={theme.onSurface}
+          />
         </View>
       </Pressable>
-      <Text style={[styles.hint, { color: theme.onSurfaceVariant }]}>
-        {t('walk.recording.expandHint')}
-      </Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: {
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.lg,
     alignItems: 'center',
+    width: '100%',
   },
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.xs,
-    paddingLeft: spacing.xs,
-    paddingRight: spacing.xs,
+    paddingVertical: components.walkMinimized.pillPaddingV,
+    paddingLeft: components.walkMinimized.pillPaddingLeft,
+    paddingRight: components.walkMinimized.pillPaddingRight,
     borderRadius: radius.full,
     borderWidth: StyleSheet.hairlineWidth,
-    gap: spacing.xs,
-    minWidth: '70%',
+    gap: components.walkMinimized.pillGap,
+    width: '100%',
   },
   pillPressed: { opacity: 0.85 },
   avatars: { flexDirection: 'row' },
   avatar: {
-    width: AVATAR,
-    height: AVATAR,
-    borderRadius: AVATAR / 2,
-    borderWidth: 1.5,
+    width: components.walkMinimized.avatarSize,
+    height: components.walkMinimized.avatarSize,
+    borderRadius: components.walkMinimized.avatarSize / 2,
+    borderWidth: components.walkMinimized.avatarBorderWidth,
   },
-  avatarOverlap: { marginLeft: -10 },
+  avatarOverlap: { marginLeft: components.walkMinimized.avatarOverlap },
   time: {
-    ...typography.body,
+    ...typography.title2,
     fontWeight: typography.largeTitle.fontWeight,
     fontVariant: ['tabular-nums'],
   },
@@ -113,21 +110,11 @@ const styles = StyleSheet.create({
   },
   tagWrap: { flex: 1, alignItems: 'flex-end' },
   chevronButton: {
-    width: 28,
-    height: 28,
-    borderRadius: radius.xxl - spacing.step10,
+    width: components.walkMinimized.iconButtonSize,
+    height: components.walkMinimized.iconButtonSize,
+    borderRadius: components.walkMinimized.iconButtonSize / 2,
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: spacing.xs,
-  },
-  chevron: {
-    fontSize: typography.headline.fontSize + StyleSheet.hairlineWidth,
-    fontWeight: typography.largeTitle.fontWeight,
-    lineHeight: typography.headline.fontSize + StyleSheet.hairlineWidth,
-  },
-  hint: {
-    ...typography.caption,
-    marginTop: spacing.xs,
-    textAlign: 'center',
   },
 });

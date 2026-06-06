@@ -74,6 +74,22 @@ describe('WalkControls', () => {
     expect(screen.getByRole('button', { name: 'End Walk' })).toBeTruthy();
   });
 
+  it('renders a minimize button and calls onMinimize', () => {
+    const onMinimize = jest.fn();
+    render(
+      <WalkControls
+        dogs={[coco]}
+        onStop={jest.fn()}
+        isStopping={false}
+        onMinimize={onMinimize}
+      />,
+    );
+
+    fireEvent.press(screen.getByRole('button', { name: 'Minimize' }));
+
+    expect(onMinimize).toHaveBeenCalledTimes(1);
+  });
+
   it('disables End Walk when isStopping', () => {
     render(<WalkControls dogs={[coco]} onStop={jest.fn()} isStopping={true} />);
     const button = screen.getByRole('button', { name: 'End Walk' });

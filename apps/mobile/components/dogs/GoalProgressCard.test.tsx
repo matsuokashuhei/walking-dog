@@ -1,24 +1,35 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import { PackRollupCard } from './PackRollupCard';
+import { GoalProgressCard } from './GoalProgressCard';
 
 jest.mock('@/hooks/use-color-scheme', () => ({
   useColorScheme: () => 'light',
 }));
 
-describe('PackRollupCard', () => {
+describe('GoalProgressCard', () => {
   it('renders the walking goal summary and progress label', () => {
-    render(<PackRollupCard progressMinutes={45} goalMinutes={90} progressPct={50} />);
+    render(
+      <GoalProgressCard
+        title="Goal progress"
+        subtitle="20 / 30 min today"
+        progressPct={67}
+      />,
+    );
 
     expect(screen.getByText('Goal progress')).toBeTruthy();
-    expect(screen.getByText('45 / 90 min across your pack')).toBeTruthy();
-    expect(screen.getByText('50%')).toBeTruthy();
+    expect(screen.getByText('20 / 30 min today')).toBeTruthy();
+    expect(screen.getByText('67%')).toBeTruthy();
   });
 
   it('becomes pressable when onPress is provided', () => {
     const onPress = jest.fn();
 
     render(
-      <PackRollupCard progressMinutes={45} goalMinutes={90} progressPct={50} onPress={onPress} />,
+      <GoalProgressCard
+        title="Goal progress"
+        subtitle="20 / 30 min today"
+        progressPct={67}
+        onPress={onPress}
+      />,
     );
 
     fireEvent.press(screen.getByRole('button', { name: 'Goal progress' }));
@@ -27,7 +38,13 @@ describe('PackRollupCard', () => {
   });
 
   it('does not render a button wrapper when onPress is omitted', () => {
-    render(<PackRollupCard progressMinutes={45} goalMinutes={90} progressPct={50} />);
+    render(
+      <GoalProgressCard
+        title="Goal progress"
+        subtitle="20 / 30 min today"
+        progressPct={67}
+      />,
+    );
 
     expect(screen.queryByRole('button', { name: 'Goal progress' })).toBeNull();
   });

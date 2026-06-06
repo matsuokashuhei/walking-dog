@@ -1,7 +1,8 @@
 import { useCallback, useMemo } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useDog } from '@/hooks/use-dog';
-import { usePackProgress } from '@/hooks/use-pack-progress';
+import { aggregatePackProgress } from '@/hooks/use-pack-progress';
+import type { GoalCycleDays } from '@/constants/walk';
 import { useMyWalks } from '@/hooks/use-walks';
 import type { Dog, DogWithStats, Walk } from '@/types/graphql';
 
@@ -38,6 +39,12 @@ interface DogDetailReadyViewModel {
   dog: DogWithStats;
   meta: string;
   streakDays: number;
+  goalProgress: {
+    progressMinutes: number;
+    goalMinutes: number;
+    goalCycleDays: GoalCycleDays;
+    progressPct: number;
+  };
   dogWalks: Walk[];
   // 散歩履歴の取得に失敗したときだけ非 null。空配列と「失敗」を画面側で区別するために持ちます。
   walksError: Error | null;
@@ -56,11 +63,14 @@ export function useDogDetailViewModel(): DogDetailViewModel {
   const { data: dog, isLoading } = useDog(dogId ?? '', 'ALL');
   const { data: walks = [], error: walksErrorRaw, refetch: refetchWalks } = useMyWalks(100);
   const walksError = walksErrorRaw ?? null;
-  const pack = usePackProgress();
 
   // 全散歩履歴から、現在表示している犬が参加した散歩だけを抽出します。
   const dogWalks = useMemo(
     () => (dog ? walks.filter((walk) => walk.dogs.some((walkDog) => walkDog.id === dog.id)) : []),
+    [dog, walks],
+  );
+  const dogProgress = useMemo(
+    () => (dog ? aggregatePackProgress(walks, [dog]).perDog[dog.id] : null),
     [dog, walks],
   );
 
@@ -79,12 +89,28 @@ export function useDogDetailViewModel(): DogDetailViewModel {
   if (isLoading || !dog) {
     return { status: 'loading' };
   }
+  const readyDogProgress = dogProgress!;
+  const progressPct =
+    readyDogProgress.goalMinutes > 0
+      ? Math.min(
+          100,
+          Math.round(
+            (readyDogProgress.goalProgressMinutes / readyDogProgress.goalMinutes) * 100,
+          ),
+        )
+      : 0;
 
   return {
     status: 'ready',
     dog,
     meta: buildMeta(dog),
-    streakDays: pack.perDog[dog.id]?.streakDays ?? 0,
+    streakDays: readyDogProgress.streakDays,
+    goalProgress: {
+      progressMinutes: readyDogProgress.goalProgressMinutes,
+      goalMinutes: readyDogProgress.goalMinutes,
+      goalCycleDays: readyDogProgress.goalCycleDays,
+      progressPct,
+    },
     dogWalks,
     walksError,
     retryWalks,

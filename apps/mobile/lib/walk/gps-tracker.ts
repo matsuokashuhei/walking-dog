@@ -5,16 +5,31 @@ import {
   stopWalkBackgroundLocationUpdates,
 } from './background-location-task';
 
-export async function requestPermission(): Promise<boolean> {
-  const foreground = await Location.requestForegroundPermissionsAsync();
-  if (foreground.status !== 'granted') return false;
+export interface WalkLocationPermissions {
+  foregroundGranted: boolean;
+  backgroundGranted: boolean;
+}
 
-  await Location.requestBackgroundPermissionsAsync();
-  return true;
+export interface StartTrackingOptions {
+  backgroundLocationEnabled: boolean;
+}
+
+export async function requestPermission(): Promise<WalkLocationPermissions> {
+  const foreground = await Location.requestForegroundPermissionsAsync();
+  if (foreground.status !== 'granted') {
+    return { foregroundGranted: false, backgroundGranted: false };
+  }
+
+  const background = await Location.requestBackgroundPermissionsAsync();
+  return {
+    foregroundGranted: true,
+    backgroundGranted: background.status === 'granted',
+  };
 }
 
 export async function startTracking(
   onPosition: (point: WalkPoint) => void,
+  { backgroundLocationEnabled }: StartTrackingOptions = { backgroundLocationEnabled: false },
 ): Promise<() => Promise<void>> {
   let subscription: Location.LocationSubscription;
   subscription = await Location.watchPositionAsync(
@@ -33,11 +48,13 @@ export async function startTracking(
   );
 
   let backgroundTrackingStarted = false;
-  try {
-    await startWalkBackgroundLocationUpdates();
-    backgroundTrackingStarted = true;
-  } catch (error) {
-    console.warn('[walk.backgroundLocation.start] unavailable', error);
+  if (backgroundLocationEnabled) {
+    try {
+      await startWalkBackgroundLocationUpdates();
+      backgroundTrackingStarted = true;
+    } catch (error) {
+      console.warn('[walk.backgroundLocation.start] unavailable', error);
+    }
   }
 
   return async () => {

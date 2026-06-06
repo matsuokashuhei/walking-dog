@@ -57,6 +57,10 @@ private final class WalkingDogWatchBridgeManager: NSObject, WCSessionDelegate {
 
     let payload = ["snapshotJson": snapshotJson]
     let session = WCSession.default
+    guard canPublishToWatch(session) else {
+      return
+    }
+
     do {
       try session.updateApplicationContext(payload)
     } catch {
@@ -143,9 +147,16 @@ private final class WalkingDogWatchBridgeManager: NSObject, WCSessionDelegate {
     return json
   }
 
+  private func canPublishToWatch(_ session: WCSession) -> Bool {
+    session.isPaired && session.isWatchAppInstalled
+  }
+
   private func sendAckCommand(id commandId: String) {
     let payload = ["ackCommandId": commandId]
     let session = WCSession.default
+    guard canPublishToWatch(session) else {
+      return
+    }
 
     if session.activationState != .activated {
       session.activate()

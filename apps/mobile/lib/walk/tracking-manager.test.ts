@@ -69,6 +69,7 @@ describe('beginWalkTracking', () => {
       addWalkPoints: jest.fn().mockResolvedValue(true),
       onPoint,
       onDistanceChange,
+      backgroundLocationEnabled: false,
     });
 
     const point: WalkPoint = { lat: 35.68, lng: 139.76, recordedAt: '2026-04-01T00:01:00Z' };
@@ -87,6 +88,9 @@ describe('beginWalkTracking', () => {
     expect(onPoint).not.toHaveBeenCalled();
     expect(onDistanceChange).not.toHaveBeenCalled();
     expect(stopTracking).toHaveBeenCalledTimes(1);
+    expect(startTracking).toHaveBeenCalledWith(expect.any(Function), {
+      backgroundLocationEnabled: false,
+    });
   });
 
   it('cleans up an older subscription when a newer session starts before it resolves', async () => {
@@ -233,9 +237,9 @@ describe('flushPendingWalkPoints', () => {
   it('keeps progress from successful batches when a later batch fails', async () => {
     useWalkStore.getState().startRecording('walk-1');
     const points: WalkPoint[] = Array.from({ length: MAX_POINTS_PER_BATCH + 50 }, (_, index) => ({
-      lat: 35.68,
-      lng: 139.76,
-      recordedAt: `2026-04-01T00:${String(index % 60).padStart(2, '0')}:00Z`,
+      lat: 35.68 + index * 0.00001,
+      lng: 139.76 + index * 0.00001,
+      recordedAt: new Date(Date.parse('2026-04-01T00:00:00Z') + index * 1000).toISOString(),
     }));
     points.forEach((point) => useWalkStore.getState().addPoint(point));
 

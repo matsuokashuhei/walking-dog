@@ -3,8 +3,8 @@ import { stopWalkBackgroundLocationUpdates } from '@/lib/walk/background-locatio
 import { useWalkStore } from '@/stores/walk-store';
 import type { WalkPoint, WalkPointInput } from '@/types/graphql';
 
-// Server-side validation rejects payloads over ~200 points per addWalkPoints
-// call (request size cap). Keep batches under this ceiling when flushing.
+// Keep each local flush bounded; useAddWalkPoints currently submits these points as
+// individual trackPoint mutations, so this also caps one flush cycle's request count.
 export const MAX_POINTS_PER_BATCH = 200;
 export const PERIODIC_FLUSH_INTERVAL_MS = 30_000;
 
@@ -16,6 +16,7 @@ let queuedFlushRequest: FlushPendingWalkPointsOptions | null = null;
 interface BeginWalkTrackingOptions {
   walkId: string;
   addWalkPoints: AddWalkPointsFn;
+  backgroundLocationEnabled?: boolean;
   onPoint: (point: WalkPoint) => void;
   onDistanceChange?: (distanceM: number) => void;
 }
@@ -39,19 +40,23 @@ function logPeriodicFlushError(error: unknown) {
 export async function beginWalkTracking({
   walkId,
   addWalkPoints,
+  backgroundLocationEnabled = false,
   onPoint,
   onDistanceChange,
 }: BeginWalkTrackingOptions) {
   const trackingGeneration = useWalkStore.getState().activateTrackingSession();
 
-  const stopTracking = await startTracking((point) => {
-    const state = useWalkStore.getState();
-    if (state.trackingGeneration !== trackingGeneration) return;
-    if (state.phase !== 'recording') return;
+  const stopTracking = await startTracking(
+    (point) => {
+      const state = useWalkStore.getState();
+      if (state.trackingGeneration !== trackingGeneration) return;
+      if (state.phase !== 'recording') return;
 
-    onPoint(point);
-    onDistanceChange?.(useWalkStore.getState().totalDistanceM);
-  });
+      onPoint(point);
+      onDistanceChange?.(useWalkStore.getState().totalDistanceM);
+    },
+    { backgroundLocationEnabled },
+  );
 
   const flushTimer = setInterval(() => {
     void flushPendingWalkPoints({ walkId, addWalkPoints }).catch(logPeriodicFlushError);

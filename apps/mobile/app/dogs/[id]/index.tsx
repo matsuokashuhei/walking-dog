@@ -7,8 +7,6 @@ import { DogHero } from '@/components/dogs/DogHero';
 import { DogStatsCard } from '@/components/dogs/DogStatsCard';
 import { DogWalksList } from '@/components/dogs/DogWalksList';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
-import { Button } from '@/components/ui/Button';
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useColors } from '@/hooks/use-colors';
 import { layout, spacing, typography } from '@/theme/tokens';
@@ -29,7 +27,7 @@ const NAME_OVERLAP = 50;
 // Pins the absolute overlay to both screen edges.
 const SCREEN_EDGE = 0;
 
-// 犬詳細画面はヒーロー表示、散歩統計、散歩履歴、編集/削除操作をまとめます。
+// 犬詳細画面はヒーロー表示、散歩統計、散歩履歴、編集導線をまとめます。
 export default function DogDetailScreen() {
   const { t } = useTranslation();
   const router = useRouter();
@@ -83,25 +81,6 @@ export default function DogDetailScreen() {
             onRetry={vm.retryWalks}
           />
         </View>
-
-        <View style={styles.actions}>
-          <Button
-            label={t('dogs.detail.delete')}
-            variant="destructive"
-            onPress={vm.openDeleteConfirm}
-            style={styles.actionButton}
-          />
-        </View>
-
-        <ConfirmDialog
-          visible={vm.showDeleteConfirm}
-          title={t('dogs.detail.deleteTitle')}
-          message={t('dogs.detail.deleteConfirm', { name: vm.dog.name })}
-          confirmLabel={t('dogs.detail.delete')}
-          onConfirm={vm.handleDelete}
-          onCancel={vm.closeDeleteConfirm}
-          destructive
-        />
       </ScrollView>
 
       <View
@@ -171,13 +150,6 @@ const styles = StyleSheet.create({
   },
   walksSection: {
     paddingHorizontal: spacing.md,
-  },
-  actions: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-  },
-  actionButton: {
-    width: '100%',
   },
   headerOverlay: {
     position: 'absolute',

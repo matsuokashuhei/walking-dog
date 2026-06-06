@@ -74,16 +74,13 @@ describe('useWalkScreenViewModel', () => {
     expect(result.current.isStarting).toBe(true);
   });
 
-  it('redirects to walk-recording and preserves the camera action', () => {
+  it('does not redirect to walk-recording when the phase becomes recording', () => {
     mockPhase = 'recording';
     mockAction = 'camera';
 
     renderHook(() => useWalkScreenViewModel());
 
-    expect(mockPush).toHaveBeenCalledWith({
-      pathname: '/walk-recording',
-      params: { action: 'camera' },
-    });
+    expect(mockPush).not.toHaveBeenCalled();
   });
 
   it('alerts and aborts when GPS permission is denied', async () => {

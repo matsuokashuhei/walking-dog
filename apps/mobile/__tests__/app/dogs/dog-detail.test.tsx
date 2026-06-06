@@ -41,19 +41,10 @@ const mockDog: DogWithStats = {
   walkStats: null,
 };
 
-let mockMeData: { id: string } | undefined = { id: 'user-1' };
 let mockDogData: DogWithStats = mockDog;
 
 jest.mock('@/hooks/use-dog', () => ({
   useDog: () => ({ data: mockDogData, isLoading: false }),
-}));
-
-jest.mock('@/hooks/use-dog-mutations', () => ({
-  useDeleteDog: () => ({ mutateAsync: jest.fn() }),
-}));
-
-jest.mock('@/hooks/use-me', () => ({
-  useMe: () => ({ data: mockMeData }),
 }));
 
 jest.mock('@/hooks/use-pack-progress', () => ({
@@ -81,14 +72,8 @@ function renderWithProviders(ui: React.ReactElement) {
 describe('DogDetailScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockMeData = { id: 'user-1' };
     mockDogData = mockDog;
     mockCanGoBack = true;
-  });
-
-  it('shows delete button for a loaded dog', () => {
-    renderWithProviders(<DogDetailScreen />);
-    expect(screen.getByText('Delete')).toBeTruthy();
   });
 
   it('renders the large title screen header with dog title and back action', () => {

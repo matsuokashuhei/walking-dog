@@ -46,7 +46,7 @@ export function useFinishWalk() {
   });
 }
 
-// GPS 点をサーバーへまとめて追加します。
+// API は trackPoint の単点 mutation を公開しているため、ローカルでまとめた GPS 点を順に送信します。
 export function useAddWalkPoints() {
   return useMutation<boolean, Error, { walkId: string; points: WalkPointInput[] }>({
     mutationFn: async ({ walkId, points }) => {

@@ -26,6 +26,7 @@ async function endLiveActivityAfterSavedWalk() {
 // 散歩開始時に必要な犬 ID です。
 export interface WalkSessionStartOptions {
   selectedDogIds: string[];
+  backgroundLocationEnabled?: boolean;
 }
 
 // 散歩の開始・終了、GPS トラッキングを一括で管理します。
@@ -37,7 +38,10 @@ export function useWalkSession() {
   const finish = useWalkStore((s) => s.finish);
 
   const start = useCallback(
-    async ({ selectedDogIds }: WalkSessionStartOptions): Promise<string> => {
+    async ({
+      selectedDogIds,
+      backgroundLocationEnabled = false,
+    }: WalkSessionStartOptions): Promise<string> => {
       // 既存の GPS 監視を止めてから、新しい散歩と端末側の記録状態を開始します。
       await stopWalkTracking();
 
@@ -67,6 +71,7 @@ export function useWalkSession() {
       await beginWalkTracking({
         walkId: walk.id,
         addWalkPoints: addWalkPointsMutation.mutateAsync,
+        backgroundLocationEnabled,
         onPoint: (point) => {
           useWalkStore.getState().addPoint(point);
         },

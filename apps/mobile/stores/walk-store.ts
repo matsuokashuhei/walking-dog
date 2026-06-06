@@ -6,6 +6,7 @@ import {
   persistActiveWalkSession,
 } from '@/lib/walk/active-walk-session';
 import { haversineDistance } from '@/lib/walk/distance';
+import { isDuplicateWalkPoint } from '@/lib/walk/points';
 
 type WalkPhase = 'ready' | 'recording' | 'finished';
 
@@ -156,18 +157,26 @@ export const useWalkStore = create<WalkState>((set, get) => ({
   },
 
   addPoint: (point) => {
+    let didAddPoint = false;
     set((state) => {
+      if (isDuplicateWalkPoint(state.points, point)) {
+        return {};
+      }
+
       const previousPoint = state.points[state.points.length - 1];
       const nextDistanceM = previousPoint
         ? state.totalDistanceM + haversineDistance(previousPoint, point)
         : state.totalDistanceM;
+      didAddPoint = true;
 
       return {
         points: [...state.points, point],
         totalDistanceM: nextDistanceM,
       };
     });
-    persistRecordingState(get());
+    if (didAddPoint) {
+      persistRecordingState(get());
+    }
   },
 
   setTotalDistanceM: (distanceM) => {

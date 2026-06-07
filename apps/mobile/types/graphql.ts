@@ -170,6 +170,19 @@ export interface UpdateUserInput {
   avatar?: string;
 }
 
+export interface ChangeEmailInput {
+  newEmail: string;
+}
+
+export interface ConfirmEmailChangeInput {
+  code: string;
+}
+
+export interface ChangePasswordInput {
+  oldPassword: string;
+  newPassword: string;
+}
+
 export interface CreateDogInput {
   name: string;
   breed?: string;
@@ -303,6 +316,18 @@ export interface UserProfileResponse {
 
 export interface UpdateUserResponse {
   updateUser: ApiUser;
+}
+
+export interface ChangeEmailResponse {
+  changeEmail: { success: boolean };
+}
+
+export interface ConfirmEmailChangeResponse {
+  confirmEmailChange: { success: boolean };
+}
+
+export interface ChangePasswordResponse {
+  changePassword: { success: boolean };
 }
 
 export interface WalkResponse {

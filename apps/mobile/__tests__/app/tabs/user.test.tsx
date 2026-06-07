@@ -86,7 +86,7 @@ describe('UserScreen', () => {
     };
   });
 
-  it('renders the user screen as the Me tab and links to settings', () => {
+  it('renders the user screen as the Me tab and links to account actions and settings', () => {
     render(<UserScreen />);
 
     expect(screen.getByRole('header', { name: 'Me' })).toBeTruthy();
@@ -101,6 +101,12 @@ describe('UserScreen', () => {
 
     fireEvent.press(screen.getByRole('button', { name: 'Edit' }));
     expect(mockPush).toHaveBeenCalledWith('/user/edit');
+
+    fireEvent.press(screen.getByRole('button', { name: 'Change email' }));
+    expect(mockPush).toHaveBeenCalledWith('/user/change-email');
+
+    fireEvent.press(screen.getByRole('button', { name: 'Change password' }));
+    expect(mockPush).toHaveBeenCalledWith('/user/change-password');
 
     fireEvent.press(screen.getByRole('button', { name: 'Settings' }));
     expect(mockPush).toHaveBeenCalledWith('/settings');

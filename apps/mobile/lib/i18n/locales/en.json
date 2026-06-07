@@ -300,6 +300,10 @@
     "loadError": "Failed to load user",
     "unknownName": "Unknown user",
     "walkingSince": "Walking since {{date}}",
+    "account": {
+      "changeEmail": "Change email",
+      "changePassword": "Change password"
+    },
     "stats": {
       "walks": "Walks",
       "distance": "km",
@@ -318,5 +322,31 @@
     "photoPermissionDenied": "Photo access denied",
     "photoPermissionMessage": "Allow photo access to update your user picture.",
     "saveError": "Failed to save user. Please try again."
+  },
+  "userChangeEmail": {
+    "title": "Change email",
+    "newEmail": "New email",
+    "sendCode": "Send code",
+    "codeSent": "Code sent to {{email}}",
+    "verificationCode": "Verification code",
+    "confirm": "Confirm email",
+    "error": {
+      "invalidCode": "Verification code is invalid",
+      "expiredCode": "Verification code has expired",
+      "generic": "Failed to change email. Please try again."
+    }
+  },
+  "userChangePassword": {
+    "title": "Change password",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm password",
+    "error": {
+      "mismatch": "Passwords do not match",
+      "tooShort": "Use at least 8 characters",
+      "currentPassword": "Current password is incorrect",
+      "invalidPassword": "Password does not meet requirements",
+      "generic": "Failed to change password. Please try again."
+    }
   }
 }

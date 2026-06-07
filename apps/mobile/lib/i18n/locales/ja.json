@@ -300,6 +300,10 @@
     "loadError": "ユーザー情報の読み込みに失敗しました",
     "unknownName": "名前未設定",
     "walkingSince": "{{date}}から散歩中",
+    "account": {
+      "changeEmail": "メールアドレスを変更",
+      "changePassword": "パスワードを変更"
+    },
     "stats": {
       "walks": "散歩",
       "distance": "km",
@@ -318,5 +322,31 @@
     "photoPermissionDenied": "写真へのアクセスが拒否されました",
     "photoPermissionMessage": "ユーザー写真を更新するには写真へのアクセスを許可してください。",
     "saveError": "ユーザー情報の保存に失敗しました。もう一度お試しください。"
+  },
+  "userChangeEmail": {
+    "title": "メールアドレスを変更",
+    "newEmail": "新しいメール",
+    "sendCode": "コードを送信",
+    "codeSent": "{{email}} にコードを送りました",
+    "verificationCode": "確認コード",
+    "confirm": "メールを確認",
+    "error": {
+      "invalidCode": "確認コードが正しくありません",
+      "expiredCode": "確認コードの有効期限が切れています",
+      "generic": "メールアドレスの変更に失敗しました。もう一度お試しください。"
+    }
+  },
+  "userChangePassword": {
+    "title": "パスワードを変更",
+    "currentPassword": "現在のパスワード",
+    "newPassword": "新しいパスワード",
+    "confirmPassword": "パスワード確認",
+    "error": {
+      "mismatch": "パスワードが一致しません",
+      "tooShort": "8文字以上で入力してください",
+      "currentPassword": "現在のパスワードが正しくありません",
+      "invalidPassword": "パスワードの要件を満たしていません",
+      "generic": "パスワードの変更に失敗しました。もう一度お試しください。"
+    }
   }
 }

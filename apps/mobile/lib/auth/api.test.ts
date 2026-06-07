@@ -1,9 +1,18 @@
 import { GraphQLError } from 'graphql';
-import { graphqlClient } from '../graphql/client';
+import { authenticatedRequest, graphqlClient } from '../graphql/client';
 import { ClientError } from '../graphql/client-error';
-import { confirmSignUp, refreshToken, signIn, signUp } from './api';
+import {
+  changeEmail,
+  changePassword,
+  confirmEmailChange,
+  confirmSignUp,
+  refreshToken,
+  signIn,
+  signUp,
+} from './api';
 
 jest.mock('../graphql/client', () => ({
+  authenticatedRequest: jest.fn(),
   graphqlClient: {
     request: jest.fn(),
   },
@@ -17,10 +26,14 @@ function makeClientError(message: string, status = 200): ClientError {
 }
 
 const mockRequest = graphqlClient.request as jest.Mock;
+const mockAuthenticatedRequest = authenticatedRequest as jest.MockedFunction<
+  typeof authenticatedRequest
+>;
 
 describe('auth api', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockAuthenticatedRequest.mockResolvedValue({ success: true });
   });
 
   it('signIn returns tokens on success', async () => {
@@ -107,5 +120,40 @@ describe('auth api', () => {
     mockRequest.mockRejectedValue(networkError);
 
     await expect(refreshToken('old-refresh-token')).rejects.toBe(networkError);
+  });
+
+  it('changeEmail uses authenticated GraphQL with the new email variable', async () => {
+    mockAuthenticatedRequest.mockResolvedValue({ changeEmail: { success: true } });
+
+    await expect(changeEmail('mio.new@example.com')).resolves.toBe(true);
+
+    expect(mockAuthenticatedRequest).toHaveBeenCalledWith(expect.any(String), {
+      input: { newEmail: 'mio.new@example.com' },
+    });
+  });
+
+  it('confirmEmailChange uses authenticated GraphQL with the verification code', async () => {
+    mockAuthenticatedRequest.mockResolvedValue({
+      confirmEmailChange: { success: true },
+    });
+
+    await expect(confirmEmailChange('123456')).resolves.toBe(true);
+
+    expect(mockAuthenticatedRequest).toHaveBeenCalledWith(expect.any(String), {
+      input: { code: '123456' },
+    });
+  });
+
+  it('changePassword uses authenticated GraphQL with old and new passwords', async () => {
+    mockAuthenticatedRequest.mockResolvedValue({ changePassword: { success: true } });
+
+    await expect(changePassword('oldPassword1', 'newpass1')).resolves.toBe(true);
+
+    expect(mockAuthenticatedRequest).toHaveBeenCalledWith(expect.any(String), {
+      input: {
+        oldPassword: 'oldPassword1',
+        newPassword: 'newpass1',
+      },
+    });
   });
 });

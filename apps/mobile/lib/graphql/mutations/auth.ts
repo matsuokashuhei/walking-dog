@@ -33,3 +33,27 @@ export const REFRESH_TOKEN_MUTATION = gql`
     }
   }
 `;
+
+export const CHANGE_EMAIL_MUTATION = gql`
+  mutation ChangeEmail($input: ChangeEmailInput!) {
+    changeEmail(input: $input) {
+      success
+    }
+  }
+`;
+
+export const CONFIRM_EMAIL_CHANGE_MUTATION = gql`
+  mutation ConfirmEmailChange($input: ConfirmEmailChangeInput!) {
+    confirmEmailChange(input: $input) {
+      success
+    }
+  }
+`;
+
+export const CHANGE_PASSWORD_MUTATION = gql`
+  mutation ChangePassword($input: ChangePasswordInput!) {
+    changePassword(input: $input) {
+      success
+    }
+  }
+`;

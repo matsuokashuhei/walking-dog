@@ -41,6 +41,16 @@ export default function UserScreen() {
           footer={
             <GroupedCard elevated={false} style={styles.settingsLinkCard}>
               <GroupedRow
+                leading={<IconSymbol name="envelope.fill" size={18} color={theme.interactive} />}
+                label={t('user.account.changeEmail')}
+                onPress={() => router.push('/user/change-email')}
+              />
+              <GroupedRow
+                leading={<IconSymbol name="key.fill" size={18} color={theme.interactive} />}
+                label={t('user.account.changePassword')}
+                onPress={() => router.push('/user/change-password')}
+              />
+              <GroupedRow
                 leading={<IconSymbol name="gearshape.fill" size={18} color={theme.interactive} />}
                 label={t('settings.openSettings')}
                 onPress={() => router.push('/settings')}

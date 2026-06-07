@@ -1,11 +1,19 @@
-import { graphqlClient } from '../graphql/client';
+import { authenticatedRequest, graphqlClient } from '../graphql/client';
 import {
+  CHANGE_EMAIL_MUTATION,
+  CHANGE_PASSWORD_MUTATION,
   SIGN_UP_MUTATION,
   CONFIRM_SIGN_UP_MUTATION,
+  CONFIRM_EMAIL_CHANGE_MUTATION,
   SIGN_IN_MUTATION,
   REFRESH_TOKEN_MUTATION,
 } from '../graphql/mutations/auth';
 import { toAuthError } from './errors';
+import type {
+  ChangeEmailResponse,
+  ChangePasswordResponse,
+  ConfirmEmailChangeResponse,
+} from '@/types/graphql';
 
 export interface SignUpResult {
   success: boolean;
@@ -103,4 +111,34 @@ export async function refreshToken(refreshTokenValue: string): Promise<RefreshTo
     )
   );
   return data.refreshToken;
+}
+
+export async function changeEmail(newEmail: string): Promise<boolean> {
+  const data = await mapAuthRequestError(() =>
+    authenticatedRequest<ChangeEmailResponse>(CHANGE_EMAIL_MUTATION, {
+      input: { newEmail },
+    }),
+  );
+  return data.changeEmail.success;
+}
+
+export async function confirmEmailChange(code: string): Promise<boolean> {
+  const data = await mapAuthRequestError(() =>
+    authenticatedRequest<ConfirmEmailChangeResponse>(CONFIRM_EMAIL_CHANGE_MUTATION, {
+      input: { code },
+    }),
+  );
+  return data.confirmEmailChange.success;
+}
+
+export async function changePassword(
+  oldPassword: string,
+  newPassword: string,
+): Promise<boolean> {
+  const data = await mapAuthRequestError(() =>
+    authenticatedRequest<ChangePasswordResponse>(CHANGE_PASSWORD_MUTATION, {
+      input: { oldPassword, newPassword },
+    }),
+  );
+  return data.changePassword.success;
 }

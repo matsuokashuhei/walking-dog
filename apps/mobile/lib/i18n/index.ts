@@ -7,6 +7,7 @@ import ja from './locales/ja.json';
 const languageTag = Localization.getLocales()[0]?.languageTag ?? 'ja';
 const languageCode = languageTag.startsWith('ja') ? 'ja' : 'en';
 
+// eslint-disable-next-line import/no-named-as-default-member
 i18n
   .use(initReactI18next)
   .init({

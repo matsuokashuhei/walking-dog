@@ -1,7 +1,7 @@
 import { registerWebModule, NativeModule } from 'expo';
 import type { WatchWalkSnapshotPublishResult } from './WalkingDogWatchBridgeModule';
 
-class WalkingDogWatchBridgeModule extends NativeModule<{}> {
+class WalkingDogWatchBridgeModule extends NativeModule<Record<string, never>> {
   async publishWalkSnapshot(_snapshotJson: string): Promise<WatchWalkSnapshotPublishResult> {
     return {
       storedInAppGroup: false,

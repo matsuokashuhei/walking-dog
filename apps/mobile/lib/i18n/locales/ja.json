@@ -59,8 +59,10 @@
       "title": "メール確認",
       "description": "{{email}} に確認コードを送りました",
       "code": "確認コード",
+      "digitLabel": "{{position}}桁目",
       "submit": "確認",
       "resend": "コードを再送する",
+      "verificationArchive": "安全な認証アーカイブ",
       "error": {
         "invalidCode": "確認コードが正しくありません",
         "expiredCode": "確認コードの有効期限が切れています",
@@ -221,6 +223,7 @@
       "titleMulti": "みんな、いい散歩だったね。",
       "perDog": "犬ごと",
       "viewEach": "個別に見る",
+      "perDogEventCounts": "{{name}} おしっこ {{pee}}、うんち {{poo}}、写真 {{photo}}",
       "minTogether": "{{names}} · {{min}}分いっしょに",
       "minSolo": "{{name}} · {{min}}分",
       "savedToHistoryMulti": "{{a}}と{{b}}の散歩履歴に保存します",
@@ -242,6 +245,7 @@
       "walker": "散歩した人",
       "startTime": "開始",
       "endTime": "終了",
+      "eventMarker": "{{emoji}} イベント",
       "timeSeparator": " - "
     },
     "permission": {
@@ -258,10 +262,30 @@
       "pee": "おしっこ",
       "poo": "うんち",
       "photo": "写真",
+      "photoThumbnail": "写真のサムネイル",
+      "photoThumbnailHint": "タップして全画面で表示",
+      "walkPhotoThumbnail": "散歩写真のサムネイル",
+      "closePhoto": "写真を閉じる",
+      "walkPhotoFullScreen": "散歩写真の全画面表示",
       "recordError": "記録に失敗しました。もう一度お試しください。",
       "photoPresignError": "写真のアップロード準備に失敗しました。もう一度お試しください。",
       "photoUploadError": "写真のアップロードに失敗しました。もう一度お試しください。",
       "cameraPermissionError": "カメラへのアクセスを許可してください。設定から変更できます。"
+    },
+    "map": {
+      "eventAt": "{{emoji}} イベント {{occurredAt}}",
+      "currentLocation": "現在の散歩位置 {{latitude}}, {{longitude}}",
+      "routeStart": "開始",
+      "routeEnd": "終了"
+    },
+    "activity": {
+      "walking": "散歩中",
+      "distance": "距離",
+      "walk": "散歩",
+      "pee": "おしっこ",
+      "poo": "うんち",
+      "endWalk": "散歩を終了",
+      "end": "終了"
     },
     "date": {
       "today": "今日",
@@ -318,5 +342,11 @@
     "photoPermissionDenied": "写真へのアクセスが拒否されました",
     "photoPermissionMessage": "ユーザー写真を更新するには写真へのアクセスを許可してください。",
     "saveError": "ユーザー情報の保存に失敗しました。もう一度お試しください。"
+  },
+  "nativePermissions": {
+    "locationWhenInUse": "Walking Dog は散歩ルートを記録するために位置情報を使用します。",
+    "locationAlwaysAndWhenInUse": "Walking Dog は散歩記録を継続するためにバックグラウンドで位置情報を使用します。",
+    "photos": "犬のプロフィール写真を設定するために写真へのアクセスを許可してください。",
+    "camera": "散歩イベントを記録するためにカメラの使用を許可してください。"
   }
 }

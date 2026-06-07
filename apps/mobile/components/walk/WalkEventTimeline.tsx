@@ -45,8 +45,8 @@ export function WalkEventTimeline({ events }: WalkEventTimelineProps) {
                   }
                 }}
                 accessibilityRole="button"
-                accessibilityLabel="Photo thumbnail"
-                accessibilityHint="Tap to view full screen"
+                accessibilityLabel={t('walk.event.photoThumbnail')}
+                accessibilityHint={t('walk.event.photoThumbnailHint')}
                 style={styles.thumbnailContainer}
               >
                 <Image
@@ -54,7 +54,7 @@ export function WalkEventTimeline({ events }: WalkEventTimelineProps) {
                   style={styles.thumbnail}
                   contentFit="cover"
                   cachePolicy="memory-disk"
-                  accessibilityLabel="Walk photo thumbnail"
+                  accessibilityLabel={t('walk.event.walkPhotoThumbnail')}
                 />
               </Pressable>
             ) : null}
@@ -74,7 +74,7 @@ export function WalkEventTimeline({ events }: WalkEventTimelineProps) {
             style={[styles.closeButton, { top: insets.top + 8 }]}
             onPress={() => setFullScreenPhoto(null)}
             accessibilityRole="button"
-            accessibilityLabel="Close photo"
+            accessibilityLabel={t('walk.event.closePhoto')}
           >
             <Text style={[styles.closeText, { color: theme.onInteractive }]}>✕</Text>
           </Pressable>
@@ -83,7 +83,7 @@ export function WalkEventTimeline({ events }: WalkEventTimelineProps) {
               source={{ uri: fullScreenPhoto }}
               style={styles.fullScreenImage}
               contentFit="contain"
-              accessibilityLabel="Walk photo full screen"
+              accessibilityLabel={t('walk.event.walkPhotoFullScreen')}
             />
           ) : null}
         </View>

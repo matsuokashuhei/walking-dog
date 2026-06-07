@@ -59,8 +59,10 @@
       "title": "Email Verification",
       "description": "We sent a confirmation code to {{email}}",
       "code": "Confirmation Code",
+      "digitLabel": "Digit {{position}}",
       "submit": "Confirm",
       "resend": "Resend Code",
+      "verificationArchive": "Secure verification archive",
       "error": {
         "invalidCode": "Invalid confirmation code",
         "expiredCode": "Confirmation code has expired",
@@ -221,6 +223,7 @@
       "titleMulti": "Nice walk, everyone.",
       "perDog": "Per dog",
       "viewEach": "View each",
+      "perDogEventCounts": "{{name}} pee {{pee}}, poo {{poo}}, photo {{photo}}",
       "minTogether": "{{names}} · {{min}} min together",
       "minSolo": "{{name}} · {{min}} min",
       "savedToHistoryMulti": "Saved to both {{a}}'s and {{b}}'s history",
@@ -242,6 +245,7 @@
       "walker": "Walker",
       "startTime": "Start",
       "endTime": "End",
+      "eventMarker": "{{emoji}} event",
       "timeSeparator": " - "
     },
     "permission": {
@@ -258,10 +262,30 @@
       "pee": "Pee",
       "poo": "Poop",
       "photo": "Photo",
+      "photoThumbnail": "Photo thumbnail",
+      "photoThumbnailHint": "Tap to view full screen",
+      "walkPhotoThumbnail": "Walk photo thumbnail",
+      "closePhoto": "Close photo",
+      "walkPhotoFullScreen": "Walk photo full screen",
       "recordError": "Failed to record. Please try again.",
       "photoPresignError": "Failed to prepare photo upload. Please try again.",
       "photoUploadError": "Failed to upload photo. Please try again.",
       "cameraPermissionError": "Camera access is required. Please enable it in Settings."
+    },
+    "map": {
+      "eventAt": "{{emoji}} event at {{occurredAt}}",
+      "currentLocation": "Current walk location at {{latitude}}, {{longitude}}",
+      "routeStart": "Start",
+      "routeEnd": "End"
+    },
+    "activity": {
+      "walking": "Walking",
+      "distance": "Distance",
+      "walk": "Walk",
+      "pee": "Pee",
+      "poo": "Poop",
+      "endWalk": "End walk",
+      "end": "End"
     },
     "date": {
       "today": "Today",
@@ -318,5 +342,11 @@
     "photoPermissionDenied": "Photo access denied",
     "photoPermissionMessage": "Allow photo access to update your user picture.",
     "saveError": "Failed to save user. Please try again."
+  },
+  "nativePermissions": {
+    "locationWhenInUse": "Walking Dog uses your location to record walk routes.",
+    "locationAlwaysAndWhenInUse": "Walking Dog uses your location in the background to keep recording active walks.",
+    "photos": "Allow Walking Dog to access your photos for dog profile pictures.",
+    "camera": "Allow Walking Dog to use the camera to record walk events."
   }
 }

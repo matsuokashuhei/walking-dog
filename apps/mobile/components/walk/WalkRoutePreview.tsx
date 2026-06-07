@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
+import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
 import { elevation, radius, spacing, typography } from '@/theme/tokens';
 import { TOKYO_STATION_COORDINATE } from '@/lib/walk/constants';
@@ -25,6 +26,7 @@ export function WalkRoutePreview({
   totalDistanceM,
   elapsedSec,
 }: WalkRoutePreviewProps) {
+  const { t } = useTranslation();
   const theme = useColors();
 
   // 記録点を地図座標へ変換し、ルートの始点と終点をマーカー表示に使います。
@@ -74,7 +76,7 @@ export function WalkRoutePreview({
             testID="route-preview-start"
             coordinate={start}
             anchor={{ x: 0.5, y: 0.5 }}
-            accessibilityLabel="Start"
+            accessibilityLabel={t('walk.map.routeStart')}
           >
             <View
               style={[
@@ -89,7 +91,7 @@ export function WalkRoutePreview({
             testID="route-preview-end"
             coordinate={end}
             anchor={{ x: 0.5, y: 0.5 }}
-            accessibilityLabel="End"
+            accessibilityLabel={t('walk.map.routeEnd')}
           >
             <View
               style={[

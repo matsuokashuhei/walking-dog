@@ -228,6 +228,15 @@ describe('useWalkSession.start', () => {
         },
       ],
       finishTarget: 'walk:finish',
+      labels: {
+        walking: 'Walking',
+        distance: 'Distance',
+        walk: 'Walk',
+        pee: 'Pee',
+        poo: 'Poop',
+        endWalk: 'End walk',
+        end: 'End',
+      },
     });
   });
 

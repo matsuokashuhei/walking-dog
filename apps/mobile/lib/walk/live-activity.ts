@@ -1,4 +1,5 @@
 import type { Dog, WalkActivityEventType, WalkEvent } from '@/types/graphql';
+import i18n from '@/lib/i18n';
 
 export const WALK_ACTIVITY_NAME = 'WalkingDogWalkActivity';
 const WALK_ACTIVITY_TARGET_PREFIX = 'walk';
@@ -13,12 +14,23 @@ export interface WalkActivityDogProps {
   pooTarget: string;
 }
 
+export interface WalkActivityLabels {
+  walking: string;
+  distance: string;
+  walk: string;
+  pee: string;
+  poo: string;
+  endWalk: string;
+  end: string;
+}
+
 export interface WalkActivityProps {
   walkId: string;
   startedAtMs: number;
   distanceLabel: string;
   dogs: WalkActivityDogProps[];
   finishTarget: string;
+  labels: WalkActivityLabels;
 }
 
 interface BuildWalkActivityPropsArgs {
@@ -46,6 +58,18 @@ function formatWalkDistance(distanceM: number): string {
   return `${(distanceM / 1000).toFixed(2)} km`;
 }
 
+function buildWalkActivityLabels(): WalkActivityLabels {
+  return {
+    walking: i18n.t('walk.activity.walking'),
+    distance: i18n.t('walk.activity.distance'),
+    walk: i18n.t('walk.activity.walk'),
+    pee: i18n.t('walk.activity.pee'),
+    poo: i18n.t('walk.activity.poo'),
+    endWalk: i18n.t('walk.activity.endWalk'),
+    end: i18n.t('walk.activity.end'),
+  };
+}
+
 export function buildWalkActivityProps({
   walkId,
   startedAt,
@@ -69,6 +93,7 @@ export function buildWalkActivityProps({
       };
     }),
     finishTarget: WALK_ACTIVITY_FINISH_TARGET,
+    labels: buildWalkActivityLabels(),
   };
 }
 

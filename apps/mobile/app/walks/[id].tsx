@@ -80,7 +80,9 @@ export default function WalkDetailScreen() {
                 <Marker
                   key={e.id}
                   coordinate={{ latitude: e.lat!, longitude: e.lng! }}
-                  accessibilityLabel={`${MAP_EVENT_EMOJIS[e.eventType]} event`}
+                  accessibilityLabel={t('walk.detail.eventMarker', {
+                    emoji: MAP_EVENT_EMOJIS[e.eventType],
+                  })}
                 >
                   <Text style={styles.eventMarker}>{MAP_EVENT_EMOJIS[e.eventType]}</Text>
                 </Marker>
@@ -121,7 +123,7 @@ export default function WalkDetailScreen() {
             valueColor={theme.onSurface}
           />
           <Metric
-            label="Pace"
+            label={t('walk.recording.pace')}
             value={vm.paceDisplay.value}
             unit={vm.paceDisplay.unit}
             labelColor={theme.onSurfaceVariant}

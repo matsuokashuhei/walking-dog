@@ -69,7 +69,12 @@ export function PerDogSummaryCard({
                   </Text>
                   <Text
                     style={[styles.counts, { color: theme.onSurfaceVariant }]}
-                    accessibilityLabel={`${dog.name} pee ${counts.pee}, poo ${counts.poo}, photo ${counts.photo}`}
+                    accessibilityLabel={t('walk.finished.perDogEventCounts', {
+                      name: dog.name,
+                      pee: counts.pee,
+                      poo: counts.poo,
+                      photo: counts.photo,
+                    })}
                   >
                     {`${UI_EVENT_EMOJIS.pee} ${counts.pee}  ·  ${UI_EVENT_EMOJIS.poo} ${counts.poo}  ·  ${UI_EVENT_EMOJIS.photo} ${counts.photo}`}
                   </Text>

@@ -37,7 +37,7 @@ describe('useThemedStyles', () => {
     );
   });
 
-  it('does not recreate styles when factory reference changes', () => {
+  it('recreates styles when factory reference changes', () => {
     let callCount = 0;
 
     const { rerender } = renderHook(() => {
@@ -51,8 +51,7 @@ describe('useThemedStyles', () => {
     const initialCallCount = callCount;
     rerender({});
 
-    // factory が deps から除外されているため、再レンダー時にスタイル再生成されない
-    // (theme が変わっていないので useMemo はキャッシュを返す)
-    expect(callCount).toBe(initialCallCount);
+    // factory が deps に含まれるため、参照が変わった場合はスタイルを再生成する。
+    expect(callCount).toBe(initialCallCount + 1);
   });
 });

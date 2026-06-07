@@ -49,7 +49,7 @@ const momo: Dog = {
 
 function panEvent(currentPageX: number, previousPageX = 0, timestamp = 1) {
   return {
-    nativeEvent: {},
+    nativeEvent: { touches: [{ pageX: currentPageX, pageY: 0 }] },
     touchHistory: {
       indexOfSingleActiveTouch: 0,
       mostRecentTimeStamp: timestamp,
@@ -123,6 +123,12 @@ describe('WalkControls', () => {
     render(<WalkControls dogs={[coco]} onStop={jest.fn()} isStopping={true} />);
     const button = screen.getByRole('button', { name: 'slide to end walk' });
     expect(button.props.accessibilityState?.disabled).toBe(true);
+
+    const control = screen.getByTestId('walk-end-slide-control');
+    expect(control.props.onStartShouldSetResponder).toEqual(expect.any(Function));
+    expect(control.props.onStartShouldSetResponder(panEvent(0))).toBe(false);
+    expect(control.props.onStartShouldSetResponderCapture).toEqual(expect.any(Function));
+    expect(control.props.onStartShouldSetResponderCapture(panEvent(0))).toBe(false);
   });
 
   it('renders single-dog identity with dog name and contextual walk label', () => {
@@ -159,13 +165,13 @@ describe('WalkControls', () => {
     const onStop = jest.fn();
     render(<WalkControls dogs={[coco]} onStop={onStop} isStopping={false} />);
 
-    fireEvent(screen.getByTestId('walk-end-slide-control'), 'layout', {
+    const control = screen.getByTestId('walk-end-slide-control');
+    fireEvent(control, 'layout', {
       nativeEvent: { layout: { width: 320 } },
     });
-    const thumb = screen.getByTestId('walk-end-slide-thumb');
-    fireEvent(thumb, 'responderGrant', panEvent(0, 0, 1));
-    fireEvent(thumb, 'responderMove', panEvent(260, 0, 2));
-    fireEvent(thumb, 'responderRelease', panEvent(260, 260, 3));
+    fireEvent(control, 'responderGrant', panEvent(0, 0, 1));
+    fireEvent(control, 'responderMove', panEvent(260, 0, 2));
+    fireEvent(control, 'responderRelease', panEvent(260, 260, 3));
 
     expect(onStop).not.toHaveBeenCalled();
     expect(alertSpy).toHaveBeenCalledWith(
@@ -183,5 +189,23 @@ describe('WalkControls', () => {
     confirm?.onPress?.();
 
     expect(onStop).toHaveBeenCalledTimes(1);
+  });
+
+  it('captures the slide responder from the track before layout is measured', () => {
+    render(<WalkControls dogs={[coco]} onStop={jest.fn()} isStopping={false} />);
+
+    const control = screen.getByTestId('walk-end-slide-control');
+    expect(control.props.onStartShouldSetResponder).toEqual(expect.any(Function));
+    expect(control.props.onStartShouldSetResponder(panEvent(0))).toBe(true);
+    expect(control.props.onStartShouldSetResponderCapture).toEqual(expect.any(Function));
+    expect(control.props.onStartShouldSetResponderCapture(panEvent(0))).toBe(true);
+  });
+
+  it('does not release the slide responder to a parent gesture once active', () => {
+    render(<WalkControls dogs={[coco]} onStop={jest.fn()} isStopping={false} />);
+
+    const control = screen.getByTestId('walk-end-slide-control');
+    expect(control.props.onResponderTerminationRequest).toEqual(expect.any(Function));
+    expect(control.props.onResponderTerminationRequest(panEvent(120))).toBe(false);
   });
 });

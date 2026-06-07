@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -31,13 +31,13 @@ export function WalkEndSlideControl({
   const translateX = useMemo(() => new Animated.Value(0), []);
   const [trackWidth, setTrackWidth] = useState(0);
 
-  const maxTravel = Math.max(
-    0,
-    trackWidth -
-      components.walkEndSlider.thumbSize -
-      components.walkEndSlider.trackPadding * 2,
-  );
+  const maxTravel = getMaxTravel(trackWidth);
+  const maxTravelRef = useRef(maxTravel);
   const label = t('walk.recording.slideToEndWalk');
+
+  useEffect(() => {
+    maxTravelRef.current = maxTravel;
+  }, [maxTravel]);
 
   const animateThumb = useCallback(
     (toValue: number, duration: number = components.walkEndSlider.resetDurationMs) => {
@@ -84,40 +84,45 @@ export function WalkEndSlideControl({
     );
   }, [onConfirm, resetThumb, t]);
 
-  const completeSlide = useCallback(() => {
-    animateThumb(maxTravel, components.walkEndSlider.completeDurationMs);
+  const completeSlide = useCallback((travel: number) => {
+    animateThumb(travel, components.walkEndSlider.completeDurationMs);
     askForConfirmation();
-  }, [animateThumb, askForConfirmation, maxTravel]);
+  }, [animateThumb, askForConfirmation]);
 
   const moveThumb = useCallback(
     (dx: number) => {
-      translateX.setValue(clamp(dx, 0, maxTravel));
+      translateX.setValue(clamp(dx, 0, maxTravelRef.current));
     },
-    [maxTravel, translateX],
+    [translateX],
   );
 
   const releaseThumb = useCallback(
     (dx: number) => {
-      const releaseX = clamp(dx, 0, maxTravel);
+      const travel = maxTravelRef.current;
+      const releaseX = clamp(dx, 0, travel);
       if (
-        maxTravel > 0 &&
-        releaseX >= maxTravel * components.walkEndSlider.completionThreshold
+        travel > 0 &&
+        releaseX >= travel * components.walkEndSlider.completionThreshold
       ) {
-        completeSlide();
+        completeSlide(travel);
         return;
       }
       resetThumb();
     },
-    [completeSlide, maxTravel, resetThumb],
+    [completeSlide, resetThumb],
   );
 
   const panResponder = useMemo(
     () =>
       PanResponder.create({
-        onStartShouldSetPanResponder: () => !disabled && maxTravel > 0,
+        onStartShouldSetPanResponder: () => !disabled,
+        onStartShouldSetPanResponderCapture: () => !disabled,
         onMoveShouldSetPanResponder: (_, gestureState) =>
           !disabled &&
-          maxTravel > 0 &&
+          Math.abs(gestureState.dx) > spacing.xs &&
+          Math.abs(gestureState.dx) > Math.abs(gestureState.dy),
+        onMoveShouldSetPanResponderCapture: (_, gestureState) =>
+          !disabled &&
           Math.abs(gestureState.dx) > spacing.xs &&
           Math.abs(gestureState.dx) > Math.abs(gestureState.dy),
         onPanResponderGrant: () => {
@@ -134,17 +139,21 @@ export function WalkEndSlideControl({
           }
         },
         onPanResponderTerminate: resetThumb,
+        onPanResponderTerminationRequest: () => false,
         onShouldBlockNativeResponder: () => true,
       }),
-    [disabled, maxTravel, moveThumb, releaseThumb, resetThumb, translateX],
+    [disabled, moveThumb, releaseThumb, resetThumb, translateX],
   );
 
   const handleLayout = useCallback((event: LayoutChangeEvent) => {
-    setTrackWidth(event.nativeEvent.layout.width);
+    const width = event.nativeEvent.layout.width;
+    maxTravelRef.current = getMaxTravel(width);
+    setTrackWidth(width);
   }, []);
 
   return (
     <View
+      {...panResponder.panHandlers}
       accessible
       accessibilityRole="button"
       accessibilityLabel={label}
@@ -166,7 +175,6 @@ export function WalkEndSlideControl({
         {label}
       </Text>
       <Animated.View
-        {...panResponder.panHandlers}
         style={[
           styles.thumb,
           { backgroundColor: theme.error, transform: [{ translateX }] },
@@ -186,6 +194,15 @@ export function WalkEndSlideControl({
         )}
       </Animated.View>
     </View>
+  );
+}
+
+function getMaxTravel(trackWidth: number) {
+  return Math.max(
+    0,
+    trackWidth -
+      components.walkEndSlider.thumbSize -
+      components.walkEndSlider.trackPadding * 2,
   );
 }
 

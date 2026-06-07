@@ -2,6 +2,6 @@
     email matsuokashuheiii@gmail.com
 }
 
-walkingdogdev.dpdns.org {
+walking-dog.cacheandbuffer.com {
     reverse_proxy api:3000
 }

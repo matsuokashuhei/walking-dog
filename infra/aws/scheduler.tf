@@ -27,9 +27,8 @@ resource "aws_lambda_function" "scheduler" {
       VPC_ID           = aws_vpc.main.id
       PROJECT_NAME        = var.project_name
       ENVIRONMENT         = var.environment
-      ACM_CERTIFICATE_ARN = aws_acm_certificate_validation.main.certificate_arn
-      ROUTE53_ZONE_ID     = aws_route53_zone.main.zone_id
-      DOMAIN_NAME         = "walkingdogdev.dpdns.org"
+      # Public DNS is managed in Cloudflare, and Sakura/Caddy handles TLS.
+      # Reintroducing this scheduler for ALB/ECS would need a Cloudflare DNS flow.
     }
   }
 

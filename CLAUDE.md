@@ -62,6 +62,7 @@ This project uses the obra/superpowers plugin. Always check for relevant skills 
 ## Local Docker Verification
 
 - 複数 worktree で `apps/compose.yml` を使うと、compose project 名 `apps` が衝突して `docker compose exec` が別 worktree の volume を見ていることがある。現在の worktree の API コードを検証するときは、必要に応じて `docker run --rm -v "$PWD":/walking-dog -v apps_cargo_cache:/usr/local/cargo -w /walking-dog/apps/api apps-api cargo test` のように明示的に current worktree を bind mount する。
+- Docker 経由の API `cargo test` で `can't find crate for ...` が依存 crate から出る場合は、workspace 側の `target/` や並行 Cargo 実行の artifact 競合を疑う。`-v apps_api_target_<topic>:/tmp/walking-dog-target` と `--target-dir /tmp/walking-dog-target -j 1` を付けて、current worktree bind mount と cargo registry cache から target cache を分離して再検証する。
 
 ## 開発フェーズとスキル
 

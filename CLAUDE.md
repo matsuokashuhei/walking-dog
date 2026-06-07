@@ -24,6 +24,7 @@
 ## Domain Notes
 
 - Walk goals are time-based, not distance-based. Store and edit them through `dog_walk_goal.walk_amount.minutes` plus `cycle_days` (`1` for DAILY, `7` for WEEKLY); keep distance metrics as separate stats.
+- Walk goal minute bounds are a shared API/Mobile contract. When changing selectable goal ranges, update `apps/api/src/service/dog_walk_goal.rs`, `apps/mobile/constants/walk.ts`, and their boundary tests together.
 - API track point storage details belong behind `service::track_point::TrackPointRepository`. GraphQL resolvers and queue handlers should use the service/domain `TrackPoint` contract instead of depending on DynamoDB table shape, timestamp encoding, or `AttributeValue` mapping.
 - API walk lifecycle and history semantics belong in `service::walk` and `service::walk_read_model`. GraphQL should translate inputs/outputs and keep ownership, active-walk checks, distance finalization, pagination totals, and aggregate SQL in those service modules.
 - API upload storage belongs behind `service::storage::StorageGateway`. GraphQL may adapt `Upload` into `StorageUpload`, but S3 clients, bucket/env handling, content-size policy, object keys, and avatar URL construction should stay in the storage service.

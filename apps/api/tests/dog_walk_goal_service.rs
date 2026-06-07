@@ -1,6 +1,8 @@
 use walking_dog::{
     entity::{dog_walk_goal, walk_amount},
-    service::dog_walk_goal::{GoalUpsertPlan, plan_goal_upsert, validate_goal_walk_amount},
+    service::dog_walk_goal::{
+        GoalUpsertPlan, plan_goal_upsert, validate_daily_goal_minutes, validate_goal_walk_amount,
+    },
 };
 
 fn current_goal(
@@ -89,13 +91,22 @@ fn goal_plan_updates_when_cycle_days_changes_even_if_minutes_match() {
 
 #[test]
 fn goal_walk_amount_is_validated_in_service_layer() {
-    assert!(validate_goal_walk_amount(&walk_amount(9, 1)).is_err());
+    assert!(validate_goal_walk_amount(&walk_amount(-1, 1)).is_err());
     assert!(validate_goal_walk_amount(&walk_amount(121, 1)).is_err());
-    assert!(validate_goal_walk_amount(&walk_amount(69, 7)).is_err());
+    assert!(validate_goal_walk_amount(&walk_amount(-1, 7)).is_err());
     assert!(validate_goal_walk_amount(&walk_amount(841, 7)).is_err());
     assert!(validate_goal_walk_amount(&walk_amount(30, 2)).is_err());
+    assert_eq!(
+        validate_goal_walk_amount(&walk_amount(0, 1)).unwrap(),
+        walk_amount(0, 1)
+    );
+    assert_eq!(
+        validate_goal_walk_amount(&walk_amount(0, 7)).unwrap(),
+        walk_amount(0, 7)
+    );
     assert_eq!(
         validate_goal_walk_amount(&walk_amount(210, 7)).unwrap(),
         walk_amount(210, 7)
     );
+    assert_eq!(validate_daily_goal_minutes(0).unwrap(), 0);
 }

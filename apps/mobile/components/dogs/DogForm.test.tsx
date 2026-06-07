@@ -7,13 +7,14 @@ import {
   isDogFormValid,
   type DogFormValues,
 } from './DogForm';
+import { spacing } from '@/theme/tokens';
 
 jest.mock('@/components/ui/icon-symbol', () => ({
   IconSymbol: () => null,
 }));
 
 jest.mock('@expo/ui/swift-ui', () => {
-  const React = require('react');
+  const React = jest.requireActual<typeof import('react')>('react');
   const { View } = jest.requireActual('react-native');
   return {
     Host: ({ children, ...props }: { children: React.ReactNode }) => (
@@ -33,6 +34,11 @@ jest.mock('@expo/ui/swift-ui', () => {
     ),
   };
 });
+
+jest.mock('@expo/ui/swift-ui/modifiers', () => ({
+  clipped: (clipped = true) => ({ $type: 'clipped', clipped }),
+  frame: (params: Record<string, unknown>) => ({ $type: 'frame', ...params }),
+}));
 
 function makeValues(overrides: Partial<DogFormValues> = {}): DogFormValues {
   return {
@@ -84,7 +90,7 @@ describe('DogForm', () => {
     );
     expect(screen.getByText('Time')).toBeTruthy();
     expect(screen.getByText('30 min')).toBeTruthy();
-    expect(screen.getByText('10 min')).toBeTruthy();
+    expect(screen.getByText('0 min')).toBeTruthy();
     expect(screen.getByText('120 min')).toBeTruthy();
   });
 
@@ -94,7 +100,7 @@ describe('DogForm', () => {
       true,
     );
     expect(screen.getByText('210 min')).toBeTruthy();
-    expect(screen.getByText('70 min')).toBeTruthy();
+    expect(screen.getByText('0 min')).toBeTruthy();
     expect(screen.getByText('840 min')).toBeTruthy();
   });
 
@@ -134,19 +140,35 @@ describe('DogForm', () => {
 
     fireEvent(screen.getByTestId('dog-goal-slider'), 'valueChange', 65);
 
-    expect(onChange).toHaveBeenLastCalledWith(makeValues({ goalMinutes: 70, goalCycleDays: 7 }));
+    expect(onChange).toHaveBeenLastCalledWith(makeValues({ goalMinutes: 65, goalCycleDays: 7 }));
   });
 
   it('updates the goal from the native slider value change', () => {
     const { onChange } = setup(makeValues({ goalMinutes: 30, goalCycleDays: 1 }));
     const slider = screen.getByTestId('dog-goal-slider');
 
-    expect(slider.props.min).toBe(10);
+    expect(slider.props.min).toBe(0);
     expect(slider.props.max).toBe(120);
     expect(slider.props.step).toBe(5);
     fireEvent(slider, 'valueChange', 120);
 
     expect(onChange).toHaveBeenCalledWith(makeValues({ goalMinutes: 120, goalCycleDays: 1 }));
+  });
+
+  it('keeps the native goal slider host tight to the slider track', () => {
+    setup();
+    const slider = screen.getByTestId('dog-goal-slider');
+
+    expect(screen.getByTestId('dog-goal-slider-host').props.style).toEqual(
+      expect.objectContaining({
+        height: spacing.xl,
+        width: '100%',
+      }),
+    );
+    expect(slider.props.modifiers).toEqual([
+      { $type: 'frame', height: spacing.xl },
+      { $type: 'clipped', clipped: true },
+    ]);
   });
 
   it('renders birthday in the profile group without an empty-state value', () => {

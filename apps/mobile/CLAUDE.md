@@ -47,6 +47,7 @@
 - Walk 開始・記録中などマップ主役の画面は、route 側で `ScreenHeader` / top-only `SafeAreaView` を挟まず、マップを全画面に敷いた上で `WalkMapShell` の overlay や必要な native surface を重ねる。
 - Walk タブの START → recording 遷移では、`WalkMapShell` / `WalkMap` / 下部 floating sheet の外枠を同じ route 内で維持し、route push で再 mount させない。`/walk-recording` は Live Activity / deep link 復帰用の互換 bridge として扱い、通常の記録 UI 所有者に戻さない。
 - 記録中の下部 controls は native `formSheet` route ではなく、Walk タブ内の map overlay として描画する。`useWalkStore().isMinimized` を単一の source of truth にし、縮小表示では pee/poop/photo などのイベント操作を出さず、経過時間・距離・LIVE 状態・展開操作だけに絞る。
+- 記録中の下部 floating controls の展開/縮小 layout transition は跳ねる spring motion にしない。`react-native-reanimated` の `springify` ではなく、短い duration-based transition で map overlay 上の操作面を落ち着いて切り替える。
 - Walk 開始前の preview マップは foreground の現在地 region へ寄せる。東京駅などの固定座標は GPS 現在地取得前に地図を描画するための初期領域に限定し、ready 画面の主表示として扱わない。
 - 記録中マップの現在地表示は `useWalkStore().points` の最新点を単一の source of truth にする。犬プロフィール画像などの表示情報は route 側で選択犬を解決して `WalkMap` に渡し、`showsUserLocation` など別系統の現在地表示と併用しない。
 - 散歩 GPS は foreground と background の位置情報権限を別々の capability として扱う。foreground が許可済みでも background が未許可なら `Location.startLocationUpdatesAsync` を呼ばず、foreground tracking のみで記録する。

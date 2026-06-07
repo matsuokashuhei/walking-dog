@@ -42,7 +42,7 @@ export function WalkRecordingControlsOverlay({ dogs }: WalkRecordingControlsOver
     <Animated.View
       entering={FadeIn.duration(140)}
       exiting={FadeOut.duration(100)}
-      layout={LinearTransition.springify().damping(24).stiffness(220)}
+      layout={LinearTransition.duration(180)}
       style={styles.root}
       testID="walk-recording-floating-controls"
     >

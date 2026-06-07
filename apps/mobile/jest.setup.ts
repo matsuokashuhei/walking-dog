@@ -19,18 +19,18 @@ jest.mock('react-native-reanimated', () => {
   const { Animated, Image, Text, View } = require('react-native');
 
   class AnimationBuilderMock {
-    duration() {
+    duration = jest.fn(() => {
       return this;
-    }
-    springify() {
+    });
+    springify = jest.fn(() => {
       return this;
-    }
-    damping() {
+    });
+    damping = jest.fn(() => {
       return this;
-    }
-    stiffness() {
+    });
+    stiffness = jest.fn(() => {
       return this;
-    }
+    });
   }
 
   return {

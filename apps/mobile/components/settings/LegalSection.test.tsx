@@ -41,12 +41,16 @@ describe('LegalSection', () => {
   it('opens the terms URL when tapped', () => {
     render(<LegalSection />);
     fireEvent.press(screen.getByRole('button', { name: 'Terms of Service' }));
-    expect(Linking.openURL).toHaveBeenCalledWith('https://walk.app/terms');
+    expect(Linking.openURL).toHaveBeenCalledWith(
+      'https://walking-dog.cacheandbuffer.com/terms',
+    );
   });
 
   it('opens the privacy URL when tapped', () => {
     render(<LegalSection />);
     fireEvent.press(screen.getByRole('button', { name: 'Privacy Policy' }));
-    expect(Linking.openURL).toHaveBeenCalledWith('https://walk.app/privacy');
+    expect(Linking.openURL).toHaveBeenCalledWith(
+      'https://walking-dog.cacheandbuffer.com/policy',
+    );
   });
 });

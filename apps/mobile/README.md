@@ -37,11 +37,11 @@ Xcode → Settings → Accounts に Apple ID を追加し、Personal Team とし
 | Script | Install | API URL | Configuration |
 |---|---|---|---|
 | `npm run ios:sim:local` | Simulator | `http://localhost:3000` | Debug |
-| `npm run ios:sim:dev` | Simulator | `https://walkingdogdev.dpdns.org` | Debug |
-| `npm run ios:sim:prod` | Simulator | `https://walkingdogdev.dpdns.org`（※本番未デプロイ） | Release |
+| `npm run ios:sim:dev` | Simulator | `https://walking-dog.cacheandbuffer.com` | Debug |
+| `npm run ios:sim:prod` | Simulator | `https://walking-dog.cacheandbuffer.com`（※本番未デプロイ） | Release |
 | `npm run ios:dev:local` | Device | `http://localhost:3000` | Debug |
-| `npm run ios:dev:dev` | Device | `https://walkingdogdev.dpdns.org` | Release |
-| `npm run ios:dev:prod` | Device | `https://walkingdogdev.dpdns.org`（※本番未デプロイ） | Release |
+| `npm run ios:dev:dev` | Device | `https://walking-dog.cacheandbuffer.com` | Release |
+| `npm run ios:dev:prod` | Device | `https://walking-dog.cacheandbuffer.com`（※本番未デプロイ） | Release |
 
 API URL は `EXPO_PUBLIC_API_URL` をスクリプト内でインライン指定し、`process.env.EXPO_PUBLIC_API_URL` 経由で JS バンドルにビルド時 inline される。`.env.*` ファイルは使用しない。
 
@@ -63,7 +63,7 @@ Bundle ID は全プロファイル共通で `com.walkingdog.app`。
   EXPO_PUBLIC_API_URL=http://<MacのLAN_IP>:3000 npm run ios:dev:local
   ```
 
-### Development (`walkingdogdev.dpdns.org`) — dev サーバ検証
+### Development (`walking-dog.cacheandbuffer.com`) — dev サーバ検証
 
 dev サーバの Rust API と通信する。Metro 不要・fast refresh なし。
 

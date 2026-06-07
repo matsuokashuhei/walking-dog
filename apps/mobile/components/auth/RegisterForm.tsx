@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { Linking, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/Button';
@@ -7,6 +7,7 @@ import { GroupedCard } from '@/components/ui/GroupedCard';
 import { TextInput } from '@/components/ui/TextInput';
 import { useColors } from '@/hooks/use-colors';
 import { toAuthError } from '@/lib/auth/errors';
+import { PRIVACY_POLICY_URL, TERMS_URL } from '@/lib/legal-urls';
 import { spacing, typography } from '@/theme/tokens';
 
 interface RegisterFormProps {
@@ -54,10 +55,8 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
     }
   }
 
-  function showComingSoon(
-    titleKey: 'auth.register.terms' | 'auth.register.privacyPolicy',
-  ) {
-    Alert.alert(t(titleKey), t('auth.register.comingSoonTerms'));
+  function openLegalUrl(url: string) {
+    void Linking.openURL(url);
   }
 
   const passwordError =
@@ -122,14 +121,14 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
       <Text style={[styles.legal, { color: theme.textDisabled }]}>
         {t('auth.register.agreePrefix')}
         <Text
-          onPress={() => showComingSoon('auth.register.terms')}
+          onPress={() => openLegalUrl(TERMS_URL)}
           style={[styles.legalLink, { color: theme.interactive }]}
         >
           {t('auth.register.terms')}
         </Text>
         {t('auth.register.agreeAnd')}
         <Text
-          onPress={() => showComingSoon('auth.register.privacyPolicy')}
+          onPress={() => openLegalUrl(PRIVACY_POLICY_URL)}
           style={[styles.legalLink, { color: theme.interactive }]}
         >
           {t('auth.register.privacyPolicy')}

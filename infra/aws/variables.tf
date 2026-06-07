@@ -13,6 +13,11 @@ variable "project_name" {
   default = "walking-dog"
 }
 
+variable "domain_name" {
+  type    = string
+  default = "walking-dog.cacheandbuffer.com"
+}
+
 # --- Cognito: Apple Sign-In ---
 
 variable "apple_client_id" {

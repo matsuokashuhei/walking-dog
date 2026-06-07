@@ -6,10 +6,8 @@ import { GroupedRow } from '@/components/ui/GroupedRow';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { useColors } from '@/hooks/use-colors';
+import { PRIVACY_POLICY_URL, TERMS_URL } from '@/lib/legal-urls';
 import { spacing } from '@/theme/tokens';
-
-const TERMS_URL = 'https://walk.app/terms';
-const PRIVACY_URL = 'https://walk.app/privacy';
 
 export function LegalSection() {
   const { t } = useTranslation();
@@ -21,7 +19,7 @@ export function LegalSection() {
   }
 
   function openPrivacy() {
-    void Linking.openURL(PRIVACY_URL);
+    void Linking.openURL(PRIVACY_POLICY_URL);
   }
 
   return (

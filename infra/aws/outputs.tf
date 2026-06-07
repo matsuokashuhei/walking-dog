@@ -104,22 +104,6 @@ output "github_actions_role_arn" {
   value = aws_iam_role.github_actions.arn
 }
 
-# --- Route53 ---
-
-output "route53_zone_id" {
-  value = aws_route53_zone.main.zone_id
-}
-
-output "route53_nameservers" {
-  value = aws_route53_zone.main.name_servers
-}
-
-# --- ACM ---
-
-output "acm_certificate_arn" {
-  value = aws_acm_certificate.main.arn
-}
-
 # --- ECR ---
 
 output "ecr_repository_url" {

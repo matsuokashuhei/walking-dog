@@ -49,7 +49,6 @@
       "agreeAnd": "と",
       "privacyPolicy": "プライバシーポリシー",
       "agreeSuffix": "に同意したものとみなされます。",
-      "comingSoonTerms": "近日対応予定です",
       "error": {
         "userExists": "このメールアドレスは既に登録されています",
         "invalidPassword": "パスワードの要件を満たしていません",

@@ -204,9 +204,9 @@
       "morningWalk": "Morning walk",
       "afternoonWalk": "Afternoon walk",
       "eveningWalk": "Evening walk",
-      "pause": "Pause",
-      "resume": "Resume",
       "endWalk": "End Walk",
+      "slideToEndWalk": "slide to end walk",
+      "endWalkConfirmTitle": "End this walk?",
       "minimize": "Minimize",
       "expand": "Expand",
       "expandHint": "Tap to expand for controls"

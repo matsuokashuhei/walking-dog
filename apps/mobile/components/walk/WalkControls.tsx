@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -22,22 +22,6 @@ interface WalkControlsProps {
   children?: ReactNode;
 }
 
-interface PauseState {
-  startedAtMs: number | null;
-  isPaused: boolean;
-  pausedAtMs: number | null;
-  totalPausedMs: number;
-}
-
-function initialPauseState(startedAtMs: number | null): PauseState {
-  return {
-    startedAtMs,
-    isPaused: false,
-    pausedAtMs: null,
-    totalPausedMs: 0,
-  };
-}
-
 // 記録中の下部パネルとして、犬の表示、メトリクス、イベント操作、停止操作をまとめます。
 export function WalkControls({
   dogs,
@@ -49,37 +33,10 @@ export function WalkControls({
   const { t } = useTranslation();
   const theme = useColors();
   const startedAt = useWalkStore((s) => s.startedAt);
-  const startedAtMs = startedAt?.getTime() ?? null;
   const totalDistanceM = useWalkStore((s) => s.totalDistanceM);
   const units = useSettingsStore((s) => s.units);
 
-  const [pauseState, setPauseState] = useState(() => initialPauseState(startedAtMs));
-  const activePauseState =
-    pauseState.startedAtMs === startedAtMs ? pauseState : initialPauseState(startedAtMs);
-  const { isPaused, totalPausedMs } = activePauseState;
-  const elapsedSec = useWalkElapsed({ startedAt, isPaused, totalPausedMs });
-
-  // 一時停止の開始時刻を state に残し、再開時に累計停止時間へ加算します。
-  const togglePause = () => {
-    const now = Date.now();
-    setPauseState((previous) => {
-      const current =
-        previous.startedAtMs === startedAtMs ? previous : initialPauseState(startedAtMs);
-      if (current.isPaused && current.pausedAtMs !== null) {
-        return {
-          ...current,
-          isPaused: false,
-          pausedAtMs: null,
-          totalPausedMs: current.totalPausedMs + (now - current.pausedAtMs),
-        };
-      }
-      return {
-        ...current,
-        isPaused: true,
-        pausedAtMs: now,
-      };
-    });
-  };
+  const elapsedSec = useWalkElapsed({ startedAt });
 
   // 記録中パネルのメトリクスは、設定単位に合わせた表示文字列へ変換して渡します。
   const { value: distanceValue, unit: distanceUnit } = formatDistanceParts(totalDistanceM, units);
@@ -133,9 +90,7 @@ export function WalkControls({
       {children ? <View style={styles.slot}>{children}</View> : null}
 
       <WalkControlsActions
-        isPaused={isPaused}
         isStopping={isStopping}
-        onTogglePause={togglePause}
         onStop={onStop}
       />
     </View>

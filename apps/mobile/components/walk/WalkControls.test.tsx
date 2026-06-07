@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { Alert, type AlertButton } from 'react-native';
 import { WalkControls } from './WalkControls';
 import type { Dog } from '@/types/graphql';
 
@@ -46,14 +47,40 @@ const momo: Dog = {
   createdAt: '2026-01-02',
 };
 
+function panEvent(currentPageX: number, previousPageX = 0, timestamp = 1) {
+  return {
+    nativeEvent: {},
+    touchHistory: {
+      indexOfSingleActiveTouch: 0,
+      mostRecentTimeStamp: timestamp,
+      numberActiveTouches: 1,
+      touchBank: [
+        {
+          currentPageX,
+          currentPageY: 0,
+          currentTimeStamp: timestamp,
+          previousPageX,
+          previousPageY: 0,
+          previousTimeStamp: timestamp - 1,
+          touchActive: true,
+        },
+      ],
+    },
+  };
+}
+
 describe('WalkControls', () => {
+  let alertSpy: jest.SpyInstance;
+
   beforeEach(() => {
     jest.useFakeTimers();
     mockWalkStoreState.startedAt = null;
     mockWalkStoreState.totalDistanceM = 0;
+    alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
   });
 
   afterEach(() => {
+    alertSpy.mockRestore();
     jest.useRealTimers();
   });
 
@@ -69,9 +96,11 @@ describe('WalkControls', () => {
     expect(screen.getByText('LIVE')).toBeTruthy();
   });
 
-  it('renders the destructive End Walk button', () => {
+  it('renders the slide control instead of Pause or Resume buttons', () => {
     render(<WalkControls dogs={[coco]} onStop={jest.fn()} isStopping={false} />);
-    expect(screen.getByRole('button', { name: 'End Walk' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'slide to end walk' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Pause' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Resume' })).toBeNull();
   });
 
   it('renders a minimize button and calls onMinimize', () => {
@@ -90,9 +119,9 @@ describe('WalkControls', () => {
     expect(onMinimize).toHaveBeenCalledTimes(1);
   });
 
-  it('disables End Walk when isStopping', () => {
+  it('disables the slide control when isStopping', () => {
     render(<WalkControls dogs={[coco]} onStop={jest.fn()} isStopping={true} />);
-    const button = screen.getByRole('button', { name: 'End Walk' });
+    const button = screen.getByRole('button', { name: 'slide to end walk' });
     expect(button.props.accessibilityState?.disabled).toBe(true);
   });
 
@@ -112,13 +141,6 @@ describe('WalkControls', () => {
     expect(screen.getByText('Group walk · together')).toBeTruthy();
   });
 
-  it('Pause button toggles to Resume when pressed', () => {
-    render(<WalkControls dogs={[coco]} onStop={jest.fn()} isStopping={false} />);
-    const pause = screen.getByRole('button', { name: 'Pause' });
-    fireEvent.press(pause);
-    expect(screen.getByRole('button', { name: 'Resume' })).toBeTruthy();
-  });
-
   it('updates the elapsed metric while the walk is active', () => {
     jest.setSystemTime(new Date('2026-04-20T10:00:00.000Z'));
     mockWalkStoreState.startedAt = new Date('2026-04-20T09:59:54.000Z');
@@ -131,5 +153,35 @@ describe('WalkControls', () => {
     });
 
     expect(screen.getByText('8s')).toBeTruthy();
+  });
+
+  it('asks for confirmation after a completed slide before stopping the walk', () => {
+    const onStop = jest.fn();
+    render(<WalkControls dogs={[coco]} onStop={onStop} isStopping={false} />);
+
+    fireEvent(screen.getByTestId('walk-end-slide-control'), 'layout', {
+      nativeEvent: { layout: { width: 320 } },
+    });
+    const thumb = screen.getByTestId('walk-end-slide-thumb');
+    fireEvent(thumb, 'responderGrant', panEvent(0, 0, 1));
+    fireEvent(thumb, 'responderMove', panEvent(260, 0, 2));
+    fireEvent(thumb, 'responderRelease', panEvent(260, 260, 3));
+
+    expect(onStop).not.toHaveBeenCalled();
+    expect(alertSpy).toHaveBeenCalledWith(
+      'End this walk?',
+      undefined,
+      expect.arrayContaining([
+        expect.objectContaining({ text: 'Cancel', style: 'cancel' }),
+        expect.objectContaining({ text: 'End Walk', style: 'destructive' }),
+      ]),
+      expect.objectContaining({ cancelable: true }),
+    );
+
+    const alertButtons = alertSpy.mock.calls[0][2] as AlertButton[] | undefined;
+    const confirm = alertButtons?.find((button) => button.text === 'End Walk');
+    confirm?.onPress?.();
+
+    expect(onStop).toHaveBeenCalledTimes(1);
   });
 });

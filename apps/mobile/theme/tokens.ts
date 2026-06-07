@@ -264,6 +264,17 @@ export const components = {
     minimizeIconSize: 18,
     panelPaddingBottom: 24,
   },
+  walkEndSlider: {
+    height: 58,
+    thumbSize: 50,
+    thumbIconSize: 22,
+    trackPadding: 4,
+    labelSidePadding: 12,
+    completionThreshold: 0.85,
+    resetDurationMs: 180,
+    completeDurationMs: 120,
+    disabledOpacity: 0.4,
+  },
   walkMinimized: {
     avatarSize: 38,
     avatarOverlap: -12,

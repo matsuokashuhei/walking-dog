@@ -23,7 +23,7 @@ export function WalkMinimizedControls({ dogs, onExpand }: WalkMinimizedControlsP
   const startedAt = useWalkStore((s) => s.startedAt);
   const totalDistanceM = useWalkStore((s) => s.totalDistanceM);
   const units = useSettingsStore((s) => s.units);
-  const elapsedSec = useWalkElapsed({ startedAt, isPaused: false, totalPausedMs: 0 });
+  const elapsedSec = useWalkElapsed({ startedAt });
 
   return (
     <View style={styles.wrap}>

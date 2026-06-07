@@ -204,9 +204,9 @@
       "morningWalk": "朝の散歩",
       "afternoonWalk": "昼の散歩",
       "eveningWalk": "夜の散歩",
-      "pause": "一時停止",
-      "resume": "再開",
       "endWalk": "散歩を終了",
+      "slideToEndWalk": "スライドして散歩を終了",
+      "endWalkConfirmTitle": "散歩を終了しますか？",
       "minimize": "縮小表示",
       "expand": "展開",
       "expandHint": "タップして操作を展開"

@@ -29,6 +29,7 @@ const MAPPING = {
   xmark: 'close',
   checkmark: 'check',
   'camera.fill': 'photo-camera',
+  power: 'power-settings-new',
 } satisfies Record<string, ComponentProps<typeof MaterialIcons>['name']>;
 
 type IconSymbolName = keyof typeof MAPPING;

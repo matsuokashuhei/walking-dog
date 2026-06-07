@@ -27,6 +27,7 @@
 - API track point storage details belong behind `service::track_point::TrackPointRepository`. GraphQL resolvers and queue handlers should use the service/domain `TrackPoint` contract instead of depending on DynamoDB table shape, timestamp encoding, or `AttributeValue` mapping.
 - API walk lifecycle and history semantics belong in `service::walk` and `service::walk_read_model`. GraphQL should translate inputs/outputs and keep ownership, active-walk checks, distance finalization, pagination totals, and aggregate SQL in those service modules.
 - API upload storage belongs behind `service::storage::StorageGateway`. GraphQL may adapt `Upload` into `StorageUpload`, but S3 clients, bucket/env handling, content-size policy, object keys, and avatar URL construction should stay in the storage service.
+- Legal document drafts belong in `docs/legal/`. Draft-only legal work should not change app legal URLs or registration/settings behavior unless explicitly requested.
 
 ## Development Rules
 

@@ -13,6 +13,44 @@ variable "project_name" {
   default = "walking-dog"
 }
 
+# --- Cognito email via Amazon SES ---
+
+variable "cognito_use_ses_email" {
+  type        = bool
+  description = "When true, Cognito sends user-pool emails through Amazon SES. Set false only while bootstrapping SES DNS verification records."
+  default     = true
+}
+
+variable "cognito_email_domain" {
+  type        = string
+  description = "Domain identity verified in Amazon SES and used for Cognito email delivery."
+  default     = "walking-dog.cacheandbuffer.com"
+}
+
+variable "cognito_email_from_address" {
+  type        = string
+  description = "FROM email address for Cognito confirmation emails. Must belong to cognito_email_domain."
+  default     = "no-reply@walking-dog.cacheandbuffer.com"
+}
+
+variable "cognito_email_from_name" {
+  type        = string
+  description = "Display name for Cognito confirmation emails sent through Amazon SES."
+  default     = "Walking Dog"
+}
+
+variable "cognito_email_mail_from_domain" {
+  type        = string
+  description = "Custom MAIL FROM subdomain for Amazon SES bounce handling and SPF alignment."
+  default     = "ses-bounce.walking-dog.cacheandbuffer.com"
+}
+
+variable "ses_sandbox_recipient_email_addresses" {
+  type        = set(string)
+  description = "Email addresses to verify in Amazon SES for sandbox testing. Terraform requests verification emails; recipients must click the SES verification link."
+  default     = []
+}
+
 # --- Cognito: Apple Sign-In ---
 
 variable "apple_client_id" {

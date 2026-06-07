@@ -20,6 +20,21 @@ output "cognito_domain" {
   value = "${aws_cognito_user_pool_domain.main.domain}.auth.${var.aws_region}.amazoncognito.com"
 }
 
+output "ses_cognito_domain_identity_arn" {
+  description = "Amazon SES domain identity ARN used by Cognito when cognito_use_ses_email is true."
+  value       = aws_ses_domain_identity.cognito.arn
+}
+
+output "ses_cloudflare_dns_records" {
+  description = "DNS records to add in Cloudflare for SES domain verification, DKIM, custom MAIL FROM, and DMARC."
+  value       = local.ses_cloudflare_dns_records
+}
+
+output "ses_sandbox_recipient_email_identities" {
+  description = "SES email identities requested by Terraform for sandbox recipient testing. Each recipient must click the SES verification email link."
+  value       = sort(tolist(var.ses_sandbox_recipient_email_addresses))
+}
+
 # --- DynamoDB ---
 
 output "dynamodb_table_track_point" {

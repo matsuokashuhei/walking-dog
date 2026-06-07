@@ -1,8 +1,8 @@
 # --- GitHub Actions OIDC ---
 
 resource "aws_iam_openid_connect_provider" "github" {
-  url             = "https://token.actions.githubusercontent.com"
-  client_id_list  = ["sts.amazonaws.com"]
+  url            = "https://token.actions.githubusercontent.com"
+  client_id_list = ["sts.amazonaws.com"]
   # AWS validates GitHub's OIDC certificate chain directly;
   # the thumbprint is not used for verification but is required by the API.
   thumbprint_list = ["ffffffffffffffffffffffffffffffffffffffff"]

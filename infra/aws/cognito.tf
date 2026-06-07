@@ -58,7 +58,9 @@ resource "aws_cognito_user_pool" "main" {
   }
 
   email_configuration {
-    email_sending_account = "COGNITO_DEFAULT"
+    email_sending_account = var.cognito_use_ses_email ? "DEVELOPER" : "COGNITO_DEFAULT"
+    from_email_address    = var.cognito_use_ses_email ? local.cognito_email_from : null
+    source_arn            = var.cognito_use_ses_email ? aws_ses_domain_identity.cognito.arn : null
   }
 
   verification_message_template {
@@ -103,11 +105,11 @@ resource "aws_cognito_identity_provider" "apple" {
   provider_type = "SignInWithApple"
 
   provider_details = {
-    client_id                = var.apple_client_id
-    team_id                  = var.apple_team_id
-    key_id                   = var.apple_key_id
-    private_key              = var.apple_private_key
-    authorize_scopes         = "email name"
+    client_id        = var.apple_client_id
+    team_id          = var.apple_team_id
+    key_id           = var.apple_key_id
+    private_key      = var.apple_private_key
+    authorize_scopes = "email name"
   }
 
   attribute_mapping = {

@@ -1,4 +1,4 @@
-import { Alert } from 'react-native';
+import { Linking } from 'react-native';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { RegisterForm } from './RegisterForm';
 
@@ -9,7 +9,14 @@ jest.mock('@/hooks/use-auth', () => ({
 }));
 
 describe('RegisterForm', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
 
   it('renders required fields with Precise labels', () => {
     render(<RegisterForm onSuccess={jest.fn()} />);
@@ -91,19 +98,19 @@ describe('RegisterForm', () => {
     expect(screen.getByText('Privacy Policy')).toBeTruthy();
   });
 
-  it('shows a Coming soon Alert when Terms is pressed', () => {
-    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
+  it('opens the terms URL when Terms is pressed', () => {
     render(<RegisterForm onSuccess={jest.fn()} />);
     fireEvent.press(screen.getByText('Terms'));
-    expect(alertSpy).toHaveBeenCalled();
-    alertSpy.mockRestore();
+    expect(Linking.openURL).toHaveBeenCalledWith(
+      'https://walking-dog.cacheandbuffer.com/terms',
+    );
   });
 
-  it('shows a Coming soon Alert when Privacy Policy is pressed', () => {
-    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
+  it('opens the privacy policy URL when Privacy Policy is pressed', () => {
     render(<RegisterForm onSuccess={jest.fn()} />);
     fireEvent.press(screen.getByText('Privacy Policy'));
-    expect(alertSpy).toHaveBeenCalled();
-    alertSpy.mockRestore();
+    expect(Linking.openURL).toHaveBeenCalledWith(
+      'https://walking-dog.cacheandbuffer.com/policy',
+    );
   });
 });

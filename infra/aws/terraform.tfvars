@@ -1,6 +1,7 @@
 environment  = "dev"
 project_name = "walking-dog"
 aws_region   = "ap-northeast-1"
+domain_name  = "walking-dog.cacheandbuffer.com"
 
 # Cognito social login credentials
 # Set via TF_VAR_ environment variables or uncomment and fill in:

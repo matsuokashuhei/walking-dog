@@ -20,6 +20,7 @@ use walking_dog::{
     auth,
     entity::user,
     graphql::{self, mutation, query::Query},
+    legal,
 };
 
 #[tokio::main]
@@ -36,6 +37,8 @@ async fn main() -> anyhow::Result<()> {
             auth::autenticate_user,
         ))
         .route("/health", get(|| async { StatusCode::OK }))
+        .route("/terms", get(legal::terms))
+        .route("/policy", get(legal::policy))
         .with_state(schema);
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
     axum::serve(TcpListener::bind(addr).await.unwrap(), app).await?;

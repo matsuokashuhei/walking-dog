@@ -49,7 +49,6 @@
       "agreeAnd": " and ",
       "privacyPolicy": "Privacy Policy",
       "agreeSuffix": ".",
-      "comingSoonTerms": "This page is coming soon.",
       "error": {
         "userExists": "This email is already registered",
         "invalidPassword": "Password does not meet requirements",

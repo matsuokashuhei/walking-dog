@@ -26,6 +26,7 @@ export function buildWatchWalkSnapshot({
   if (phase !== 'recording' || !walkId || !startedAt) {
     return {
       isActive: false,
+      syncState: 'fresh',
       walkId: null,
       startedAtMs: null,
       distanceM: 0,
@@ -37,6 +38,7 @@ export function buildWatchWalkSnapshot({
 
   return {
     isActive: true,
+    syncState: 'fresh',
     walkId,
     startedAtMs: startedAt.getTime(),
     distanceM,

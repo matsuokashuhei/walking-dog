@@ -15,7 +15,7 @@ public class WalkingDogWatchBridgeModule: Module {
       }
     }
 
-    AsyncFunction("publishWalkSnapshot") { (snapshotJson: String) in
+    AsyncFunction("publishWalkSnapshot") { (snapshotJson: String) -> [String: Any] in
       self.manager.publishWalkSnapshot(snapshotJson)
     }
 
@@ -37,6 +37,7 @@ private final class WalkingDogWatchBridgeManager: NSObject, WCSessionDelegate {
   private let pendingCommandsKey = "watch.walk.pending_commands.v1"
   private let queue = DispatchQueue(label: "com.walkingdog.watch-bridge")
   private var eventSink: ((String) -> Void)?
+  private var latestSnapshotJson: String?
 
   private override init() {
     super.init()
@@ -47,25 +48,74 @@ private final class WalkingDogWatchBridgeManager: NSObject, WCSessionDelegate {
     eventSink = sink
   }
 
-  func publishWalkSnapshot(_ snapshotJson: String) {
-    queue.sync {
+  func publishWalkSnapshot(_ snapshotJson: String) -> [String: Any] {
+    let storedInAppGroup = queue.sync {
+      latestSnapshotJson = snapshotJson
       defaults?.set(snapshotJson, forKey: snapshotKey)
+      return defaults != nil
     }
+
     guard WCSession.isSupported() else {
-      return
+      return publishResult(
+        storedInAppGroup: storedInAppGroup,
+        watchConnectivitySupported: false,
+        failureReason: "watch_connectivity_unsupported"
+      )
+    }
+
+    let session = WCSession.default
+    session.delegate = self
+
+    if session.activationState != .activated {
+      session.activate()
+    }
+
+    return publishSnapshotPayload(snapshotJson, storedInAppGroup: storedInAppGroup, session: session)
+  }
+
+  private func publishSnapshotPayload(
+    _ snapshotJson: String,
+    storedInAppGroup: Bool,
+    session: WCSession
+  ) -> [String: Any] {
+    var result = publishResult(
+      storedInAppGroup: storedInAppGroup,
+      watchConnectivitySupported: true,
+      session: session
+    )
+
+    guard session.isPaired else {
+      result["failureReason"] = "watch_not_paired"
+      return result
+    }
+    guard session.isWatchAppInstalled else {
+      result["failureReason"] = "watch_app_not_installed"
+      return result
+    }
+    guard session.activationState == .activated else {
+      result["activationRequested"] = true
+      result["failureReason"] = "session_not_activated"
+      return result
     }
 
     let payload = ["snapshotJson": snapshotJson]
-    let session = WCSession.default
-    guard canPublishToWatch(session) else {
-      return
-    }
-
     do {
       try session.updateApplicationContext(payload)
+      result["applicationContextUpdated"] = true
     } catch {
+      result["failureReason"] = "update_application_context_failed"
+      result["errorDescription"] = String(describing: error)
       NSLog("[WalkingDogWatchBridge] Failed to update Watch application context: %@", String(describing: error))
     }
+
+    if session.isReachable {
+      result["immediateMessageAttempted"] = true
+      session.sendMessage(payload, replyHandler: nil) { error in
+        NSLog("[WalkingDogWatchBridge] Failed to send immediate Watch snapshot message: %@", String(describing: error))
+      }
+    }
+
+    return result
   }
 
   func pendingCommands() -> [String] {
@@ -151,6 +201,42 @@ private final class WalkingDogWatchBridgeManager: NSObject, WCSessionDelegate {
     session.isPaired && session.isWatchAppInstalled
   }
 
+  private func publishResult(
+    storedInAppGroup: Bool,
+    watchConnectivitySupported: Bool,
+    failureReason: String? = nil,
+    session: WCSession? = nil
+  ) -> [String: Any] {
+    var result: [String: Any] = [
+      "storedInAppGroup": storedInAppGroup,
+      "watchConnectivitySupported": watchConnectivitySupported,
+      "paired": session?.isPaired ?? false,
+      "watchAppInstalled": session?.isWatchAppInstalled ?? false,
+      "activationState": session.map { activationStateName($0.activationState) } ?? "unsupported",
+      "reachable": session?.isReachable ?? false,
+      "activationRequested": false,
+      "applicationContextUpdated": false,
+      "immediateMessageAttempted": false,
+    ]
+    if let failureReason {
+      result["failureReason"] = failureReason
+    }
+    return result
+  }
+
+  private func activationStateName(_ activationState: WCSessionActivationState) -> String {
+    switch activationState {
+    case .notActivated:
+      return "notActivated"
+    case .inactive:
+      return "inactive"
+    case .activated:
+      return "activated"
+    @unknown default:
+      return "unknown"
+    }
+  }
+
   private func sendAckCommand(id commandId: String) {
     let payload = ["ackCommandId": commandId]
     let session = WCSession.default
@@ -175,7 +261,28 @@ private final class WalkingDogWatchBridgeManager: NSObject, WCSessionDelegate {
     _ session: WCSession,
     activationDidCompleteWith activationState: WCSessionActivationState,
     error: Error?
-  ) {}
+  ) {
+    if let error {
+      NSLog("[WalkingDogWatchBridge] WCSession activation failed: %@", String(describing: error))
+      return
+    }
+
+    guard activationState == .activated else {
+      return
+    }
+
+    let snapshotJson = queue.sync {
+      latestSnapshotJson ?? defaults?.string(forKey: snapshotKey)
+    }
+    guard let snapshotJson else {
+      return
+    }
+
+    let result = publishSnapshotPayload(snapshotJson, storedInAppGroup: true, session: session)
+    if let failureReason = result["failureReason"] as? String {
+      NSLog("[WalkingDogWatchBridge] Deferred Watch snapshot publish failed: %@", failureReason)
+    }
+  }
 
   func sessionDidBecomeInactive(_ session: WCSession) {}
 

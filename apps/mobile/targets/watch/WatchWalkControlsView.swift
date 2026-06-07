@@ -39,6 +39,7 @@ struct WatchWalkControlsView: View {
     ScrollView {
       VStack(alignment: .leading, spacing: 10) {
         WatchWalkHeader(snapshot: store.snapshot)
+        syncStatus
 
         Button {
           handleEventTap(.pee)
@@ -89,6 +90,15 @@ struct WatchWalkControlsView: View {
   private var pendingStatus: some View {
     if !store.pendingCommandIds.isEmpty {
       Label("\(store.pendingCommandIds.count) pending", systemImage: "clock")
+        .font(.caption2)
+        .foregroundStyle(.secondary)
+    }
+  }
+
+  @ViewBuilder
+  private var syncStatus: some View {
+    if store.syncState != .fresh {
+      Label(store.syncState.title, systemImage: store.syncState.systemImage)
         .font(.caption2)
         .foregroundStyle(.secondary)
     }

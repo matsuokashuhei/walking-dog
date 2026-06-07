@@ -1,5 +1,5 @@
 export const DEFAULT_DAILY_GOAL_MINUTES = 30;
-export const MIN_DAILY_GOAL_MINUTES = 10;
+export const MIN_DAILY_GOAL_MINUTES = 0;
 export const MAX_DAILY_GOAL_MINUTES = 120;
 export const DAILY_GOAL_STEP_MINUTES = 5;
 export const DAILY_GOAL_CYCLE_DAYS = 1;

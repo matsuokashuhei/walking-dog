@@ -24,9 +24,11 @@
 ## Domain Notes
 
 - Walk goals are time-based, not distance-based. Store and edit them through `dog_walk_goal.walk_amount.minutes` plus `cycle_days` (`1` for DAILY, `7` for WEEKLY); keep distance metrics as separate stats.
+- Walk goal minute bounds are a shared API/Mobile contract. When changing selectable goal ranges, update `apps/api/src/service/dog_walk_goal.rs`, `apps/mobile/constants/walk.ts`, and their boundary tests together.
 - API track point storage details belong behind `service::track_point::TrackPointRepository`. GraphQL resolvers and queue handlers should use the service/domain `TrackPoint` contract instead of depending on DynamoDB table shape, timestamp encoding, or `AttributeValue` mapping.
 - API walk lifecycle and history semantics belong in `service::walk` and `service::walk_read_model`. GraphQL should translate inputs/outputs and keep ownership, active-walk checks, distance finalization, pagination totals, and aggregate SQL in those service modules.
 - API upload storage belongs behind `service::storage::StorageGateway`. GraphQL may adapt `Upload` into `StorageUpload`, but S3 clients, bucket/env handling, content-size policy, object keys, and avatar URL construction should stay in the storage service.
+- Legal document drafts belong in `docs/legal/`. Draft-only legal work should not change app legal URLs or registration/settings behavior unless explicitly requested.
 
 ## Development Rules
 
@@ -62,6 +64,7 @@ This project uses the obra/superpowers plugin. Always check for relevant skills 
 ## Local Docker Verification
 
 - 複数 worktree で `apps/compose.yml` を使うと、compose project 名 `apps` が衝突して `docker compose exec` が別 worktree の volume を見ていることがある。現在の worktree の API コードを検証するときは、必要に応じて `docker run --rm -v "$PWD":/walking-dog -v apps_cargo_cache:/usr/local/cargo -w /walking-dog/apps/api apps-api cargo test` のように明示的に current worktree を bind mount する。
+- Docker 経由の API `cargo test` で `can't find crate for ...` が依存 crate から出る場合は、workspace 側の `target/` や並行 Cargo 実行の artifact 競合を疑う。`-v apps_api_target_<topic>:/tmp/walking-dog-target` と `--target-dir /tmp/walking-dog-target -j 1` を付けて、current worktree bind mount と cargo registry cache から target cache を分離して再検証する。
 
 ## 開発フェーズとスキル
 

@@ -5,8 +5,22 @@ type WatchBridgeEvents = {
   onWatchWalkCommand(event: { commandJson: string }): void;
 };
 
+export type WatchWalkSnapshotPublishResult = {
+  storedInAppGroup: boolean;
+  watchConnectivitySupported: boolean;
+  paired: boolean;
+  watchAppInstalled: boolean;
+  activationState: 'unsupported' | 'notActivated' | 'inactive' | 'activated' | 'unknown';
+  reachable: boolean;
+  activationRequested: boolean;
+  applicationContextUpdated: boolean;
+  immediateMessageAttempted: boolean;
+  failureReason?: string;
+  errorDescription?: string;
+};
+
 type WalkingDogWatchBridgeModule = {
-  publishWalkSnapshot(snapshotJson: string): Promise<void>;
+  publishWalkSnapshot(snapshotJson: string): Promise<WatchWalkSnapshotPublishResult>;
   getPendingCommands(): Promise<string[]>;
   ackCommand(commandId: string): Promise<void>;
   addListener<EventName extends keyof WatchBridgeEvents>(
@@ -19,8 +33,10 @@ function getNativeModule(): WalkingDogWatchBridgeModule | null {
   return requireOptionalNativeModule<WalkingDogWatchBridgeModule>('WalkingDogWatchBridge');
 }
 
-export async function publishWalkSnapshot(snapshot: WatchWalkSnapshot): Promise<void> {
-  await getNativeModule()?.publishWalkSnapshot(JSON.stringify(snapshot));
+export async function publishWalkSnapshot(
+  snapshot: WatchWalkSnapshot,
+): Promise<WatchWalkSnapshotPublishResult | null> {
+  return (await getNativeModule()?.publishWalkSnapshot(JSON.stringify(snapshot))) ?? null;
 }
 
 export async function getPendingCommands(): Promise<WatchWalkCommand[]> {

@@ -12,8 +12,11 @@ export interface WatchWalkSnapshotDog {
   pooCount: number;
 }
 
+export type WatchWalkSyncState = 'fresh' | 'stale' | 'offline';
+
 export interface WatchWalkSnapshot {
   isActive: boolean;
+  syncState: WatchWalkSyncState;
   walkId: string | null;
   startedAtMs: number | null;
   distanceM: number;

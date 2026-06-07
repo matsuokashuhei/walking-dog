@@ -3,6 +3,8 @@ import { publishWalkSnapshot } from '@/lib/watch/bridge';
 import { buildWatchWalkSnapshot } from '@/lib/watch/snapshot';
 import { useWalkStore } from '@/stores/walk-store';
 
+const loggedPublishFailureReasons = new Set<string>();
+
 export function useWatchWalkSnapshotSync() {
   const phase = useWalkStore((s) => s.phase);
   const walkId = useWalkStore((s) => s.walkId);
@@ -34,8 +36,15 @@ export function useWatchWalkSnapshotSync() {
         distanceM,
         latestPoint,
       }),
-    ).catch((error) => {
-      console.error('[watch.snapshot] failed to publish walk snapshot', error);
-    });
+    )
+      .then((result) => {
+        if (result?.failureReason && !loggedPublishFailureReasons.has(result.failureReason)) {
+          loggedPublishFailureReasons.add(result.failureReason);
+          console.warn('[watch.snapshot] publish diagnostic', result);
+        }
+      })
+      .catch((error) => {
+        console.error('[watch.snapshot] failed to publish walk snapshot', error);
+      });
   }, [distanceM, dogs, events, latestPoint, phase, startedAt, walkId]);
 }

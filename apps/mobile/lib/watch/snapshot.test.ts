@@ -46,6 +46,7 @@ describe('buildWatchWalkSnapshot', () => {
       }),
     ).toEqual({
       isActive: false,
+      syncState: 'fresh',
       walkId: null,
       startedAtMs: null,
       distanceM: 0,
@@ -74,6 +75,7 @@ describe('buildWatchWalkSnapshot', () => {
       }),
     ).toEqual({
       isActive: true,
+      syncState: 'fresh',
       walkId: 'walk-1',
       startedAtMs: Date.parse('2026-05-24T00:00:00.000Z'),
       distanceM: 1234,

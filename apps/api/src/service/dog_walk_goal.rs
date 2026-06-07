@@ -12,7 +12,7 @@ use crate::{
     },
 };
 
-pub const MIN_DAILY_GOAL_MINUTES: i32 = 10;
+pub const MIN_DAILY_GOAL_MINUTES: i32 = 0;
 pub const MAX_DAILY_GOAL_MINUTES: i32 = 120;
 pub const DAILY_GOAL_CYCLE_DAYS: i32 = 1;
 pub const WEEKLY_GOAL_CYCLE_DAYS: i32 = 7;
@@ -37,7 +37,7 @@ pub enum GoalUpsertPlan {
 pub fn validate_daily_goal_minutes(minutes: i32) -> ServiceResult<i32> {
     if !(MIN_DAILY_GOAL_MINUTES..=MAX_DAILY_GOAL_MINUTES).contains(&minutes) {
         return Err(ServiceError::UnprocessableEntity(
-            "dailyGoalMinutes must be between 10 and 120".into(),
+            "dailyGoalMinutes must be between 0 and 120".into(),
         ));
     }
     Ok(minutes)
@@ -48,14 +48,14 @@ pub fn validate_goal_walk_amount(input: &walk_amount::Model) -> ServiceResult<wa
         DAILY_GOAL_CYCLE_DAYS => {
             if !(MIN_DAILY_GOAL_MINUTES..=MAX_DAILY_GOAL_MINUTES).contains(&input.minutes) {
                 return Err(ServiceError::UnprocessableEntity(
-                    "walkGoal.minutes must be between 10 and 120 for DAILY".into(),
+                    "walkGoal.minutes must be between 0 and 120 for DAILY".into(),
                 ));
             }
         }
         WEEKLY_GOAL_CYCLE_DAYS => {
             if !(MIN_WEEKLY_GOAL_MINUTES..=MAX_WEEKLY_GOAL_MINUTES).contains(&input.minutes) {
                 return Err(ServiceError::UnprocessableEntity(
-                    "walkGoal.minutes must be between 70 and 840 for WEEKLY".into(),
+                    "walkGoal.minutes must be between 0 and 840 for WEEKLY".into(),
                 ));
             }
         }

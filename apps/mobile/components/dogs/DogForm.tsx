@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Host, Slider as SwiftUISlider } from '@expo/ui/swift-ui';
+import { clipped, frame } from '@expo/ui/swift-ui/modifiers';
 import { GroupedCard } from '@/components/ui/GroupedCard';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -55,6 +56,11 @@ const DEFAULT_DAY_COUNT = 31;
 const MONTH_SAMPLE_YEAR = 2020;
 const MONTH_SAMPLE_DAY = 1;
 const DOG_GENDER_VALUES = ['MALE', 'FEMALE', 'OTHER'] as const;
+const GOAL_SLIDER_HEIGHT = spacing.xl;
+const GOAL_SLIDER_MODIFIERS = [
+  frame({ height: GOAL_SLIDER_HEIGHT }),
+  clipped(),
+];
 type DogGenderValue = (typeof DOG_GENDER_VALUES)[number];
 
 // 02b. Dog edit の inset-grouped 形式: 1 枚のカードに行を積み上げ、hairline で区切る。
@@ -372,13 +378,14 @@ function GoalSection({ minutes, cycleDays, onChange }: GoalSectionProps) {
             {t('dogs.form.goalMinutes', { count: clampedMinutes })}
           </Text>
         </View>
-        <Host style={styles.goalSliderHost}>
+        <Host style={styles.goalSliderHost} testID="dog-goal-slider-host">
           <SwiftUISlider
             value={clampedMinutes}
             min={minMinutes}
             max={maxMinutes}
             step={DAILY_GOAL_STEP_MINUTES}
             onValueChange={setFromMinutes}
+            modifiers={GOAL_SLIDER_MODIFIERS}
             testID="dog-goal-slider"
           />
         </Host>
@@ -661,7 +668,7 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
   },
   goalSliderHost: {
-    height: spacing.step44,
+    height: GOAL_SLIDER_HEIGHT,
     width: '100%',
   },
   goalLimits: {

@@ -81,7 +81,6 @@ export function ConfirmForm({ email, onSuccess }: ConfirmFormProps) {
             textContentType="oneTimeCode"
             accessibilityLabel={t('auth.confirm.digitLabel', {
               position: index + 1,
-              defaultValue: `Digit ${index + 1}`,
             })}
             accessibilityRole="none"
             autoFocus={index === 0}
@@ -111,7 +110,7 @@ export function ConfirmForm({ email, onSuccess }: ConfirmFormProps) {
       </TouchableOpacity>
 
       <Text style={[styles.footer, { color: theme.onSurfaceVariant }]}>
-        SECURE VERIFICATION ARCHIVE
+        {t('auth.confirm.verificationArchive')}
       </Text>
     </View>
   );

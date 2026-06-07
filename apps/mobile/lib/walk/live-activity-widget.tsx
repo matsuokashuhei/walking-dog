@@ -41,7 +41,7 @@ function WalkActivityLayout(props: WalkActivityProps, _environment: LiveActivity
       <HStack spacing={8}>
         <VStack alignment="leading" spacing={2}>
           <Text modifiers={[font({ size: 12, weight: 'medium' }), foregroundStyle(secondary)]}>
-            Walking
+            {props.labels.walking}
           </Text>
           <Text
             timerInterval={elapsedTimerInterval}
@@ -52,7 +52,7 @@ function WalkActivityLayout(props: WalkActivityProps, _environment: LiveActivity
         <Spacer minLength={8} />
         <VStack alignment="trailing" spacing={2}>
           <Text modifiers={[font({ size: 12, weight: 'medium' }), foregroundStyle(secondary)]}>
-            Distance
+            {props.labels.distance}
           </Text>
           <Text
             modifiers={[font({ size: 22, weight: 'bold', design: 'rounded' }), monospacedDigit(), foregroundStyle(foreground)]}>
@@ -74,12 +74,12 @@ function WalkActivityLayout(props: WalkActivityProps, _environment: LiveActivity
             </Text>
             <Spacer minLength={2} />
             <Button
-              label={`${peeEmoji} Pee ${dog.peeCount}`}
+              label={`${peeEmoji} ${props.labels.pee} ${dog.peeCount}`}
               target={dog.peeTarget}
               modifiers={[buttonStyle('bordered'), controlSize('small'), tint(accent)]}
             />
             <Button
-              label={`${pooEmoji} Poop ${dog.pooCount}`}
+              label={`${pooEmoji} ${props.labels.poo} ${dog.pooCount}`}
               target={dog.pooTarget}
               modifiers={[buttonStyle('bordered'), controlSize('small'), tint('#8A6F4F')]}
             />
@@ -87,7 +87,7 @@ function WalkActivityLayout(props: WalkActivityProps, _environment: LiveActivity
         ))}
       </VStack>
       <Button
-        label="End walk"
+        label={props.labels.endWalk}
         systemImage="stop.circle.fill"
         role="destructive"
         target={props.finishTarget}
@@ -106,7 +106,9 @@ function WalkActivityLayout(props: WalkActivityProps, _environment: LiveActivity
     expandedLeading: (
       <VStack modifiers={[padding({ all: 8 })]}>
         <Image systemName="figure.walk" color={accent} />
-        <Text modifiers={[font({ size: 11 }), foregroundStyle(secondary)]}>Walk</Text>
+        <Text modifiers={[font({ size: 11 }), foregroundStyle(secondary)]}>
+          {props.labels.walk}
+        </Text>
       </VStack>
     ),
     expandedTrailing: (
@@ -131,18 +133,18 @@ function WalkActivityLayout(props: WalkActivityProps, _environment: LiveActivity
           </Text>
           <Spacer minLength={2} />
           <Button
-            label={`${peeEmoji} Pee ${firstDog.peeCount}`}
+            label={`${peeEmoji} ${props.labels.pee} ${firstDog.peeCount}`}
             target={firstDog.peeTarget}
             modifiers={[buttonStyle('bordered'), controlSize('small'), tint(accent)]}
           />
           <Button
-            label={`${pooEmoji} Poop ${firstDog.pooCount}`}
+            label={`${pooEmoji} ${props.labels.poo} ${firstDog.pooCount}`}
             target={firstDog.pooTarget}
             modifiers={[buttonStyle('bordered'), controlSize('small'), tint('#8A6F4F')]}
           />
         </HStack>
         <Button
-          label="End"
+          label={props.labels.end}
           systemImage="stop.circle.fill"
           role="destructive"
           target={props.finishTarget}

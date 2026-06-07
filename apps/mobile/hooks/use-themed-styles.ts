@@ -9,5 +9,5 @@ type StyleFactory<T extends StyleSheet.NamedStyles<T>> = (theme: ColorTokens) =>
 export function useThemedStyles<T extends StyleSheet.NamedStyles<T>>(factory: StyleFactory<T>): T {
   const colorScheme = useColorScheme();
   const theme = colors[colorScheme ?? 'light'];
-  return useMemo(() => StyleSheet.create(factory(theme)), [theme]);
+  return useMemo(() => StyleSheet.create(factory(theme)), [factory, theme]);
 }

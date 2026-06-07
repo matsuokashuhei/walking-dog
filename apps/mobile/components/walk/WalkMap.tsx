@@ -3,6 +3,7 @@ import * as Location from 'expo-location';
 import { Image } from 'expo-image';
 import { StyleSheet, Text, View } from 'react-native';
 import MapView, { Marker, Polyline, type Region } from 'react-native-maps';
+import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
 import { useWalkStore } from '@/stores/walk-store';
 import { MAP_EVENT_EMOJIS } from '@/lib/walk/events';
@@ -89,6 +90,7 @@ function usePreviewCurrentLocationRegion(enabled: boolean): Region | undefined {
 
 // 散歩マップは GPS 軌跡と記録イベントを store から読み、地図表示の単一の情報源にします。
 export function WalkMap({ mode = 'recording', dogs = [] }: WalkMapProps) {
+  const { t } = useTranslation();
   const theme = useColors();
   const mapRef = useRef<MapView | null>(null);
   const points = useWalkStore((s) => s.points);
@@ -146,7 +148,13 @@ export function WalkMap({ mode = 'recording', dogs = [] }: WalkMapProps) {
             coordinate={lastPoint}
             anchor={{ x: 0.5, y: 0.5 }}
           >
-            <CurrentLocationMarker dogs={dogs} coordinate={lastPoint} />
+            <CurrentLocationMarker
+              dogs={dogs}
+              accessibilityLabel={t('walk.map.currentLocation', {
+                latitude: lastPoint.latitude,
+                longitude: lastPoint.longitude,
+              })}
+            />
           </Marker>
         ) : null}
         {/* 座標を持つイベントだけをマーカー化し、記録操作と地図表示を同期させます。 */}
@@ -158,7 +166,10 @@ export function WalkMap({ mode = 'recording', dogs = [] }: WalkMapProps) {
                   key={e.id}
                   testID={`event-marker-${e.id}`}
                   coordinate={{ latitude: e.lat!, longitude: e.lng! }}
-                  accessibilityLabel={`${MAP_EVENT_EMOJIS[e.eventType]} event at ${e.occurredAt}`}
+                  accessibilityLabel={t('walk.map.eventAt', {
+                    emoji: MAP_EVENT_EMOJIS[e.eventType],
+                    occurredAt: e.occurredAt,
+                  })}
                 >
                   <Text style={styles.eventMarker}>{MAP_EVENT_EMOJIS[e.eventType]}</Text>
                 </Marker>
@@ -171,17 +182,17 @@ export function WalkMap({ mode = 'recording', dogs = [] }: WalkMapProps) {
 
 interface CurrentLocationMarkerProps {
   dogs: Dog[];
-  coordinate: MapCoordinate;
+  accessibilityLabel: string;
 }
 
-function CurrentLocationMarker({ dogs, coordinate }: CurrentLocationMarkerProps) {
+function CurrentLocationMarker({ dogs, accessibilityLabel }: CurrentLocationMarkerProps) {
   const theme = useColors();
   const visibleDogs = dogs.slice(0, 2);
 
   return (
     <View
       style={styles.currentLocationMarker}
-      accessibilityLabel={`Current walk location at ${coordinate.latitude}, ${coordinate.longitude}`}
+      accessibilityLabel={accessibilityLabel}
     >
       <View
         style={[

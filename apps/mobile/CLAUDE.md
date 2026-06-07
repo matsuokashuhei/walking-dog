@@ -55,6 +55,7 @@
 - Dog 詳細画面は閲覧と編集導線に集中させ、Delete ボタンや削除確認などの破壊的操作を置かない。犬の削除操作は編集画面の remove フローに集約する。
 - Me タブの route file は `app/(tabs)/user.tsx` とし、ユーザーのプロフィールと散歩貢献を主表示する画面として扱う。表示設定・法務リンク・サインアウトなどの設定一覧は Me 下部のリンクから開く `/settings` に置き、ユーザー編集は `/user/edit` に置く。Me タブ上部にプロフィールカードから別プロフィール詳細へ遷移する旧構造を戻さない。
 - Dog 詳細画面の goal progress は犬単体の時間目標進捗として、summary stats と Walk 一覧の間に置く。散歩履歴取得エラー時は誤った 0 進捗を出さず、Walk 一覧側のエラー表示に集約する。
+- Commit 前 lint は repo root の `.githooks/pre-commit` が `apps/mobile` で `npm run lint` を実行する。hooksPath が外れている場合は `apps/mobile` で `npm run hooks:install` を実行して `core.hooksPath=.githooks` に戻す。
 
 ## iOS Simulator 起動手順
 

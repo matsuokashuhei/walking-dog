@@ -24,6 +24,16 @@ const dogs: Dog[] = [
   },
 ];
 
+const labels = {
+  walking: 'Walking',
+  distance: 'Distance',
+  walk: 'Walk',
+  pee: 'Pee',
+  poo: 'Poop',
+  endWalk: 'End walk',
+  end: 'End',
+};
+
 function event(dogId: string, eventType: 'pee' | 'poo', id: string): WalkEvent {
   return {
     id,
@@ -76,6 +86,7 @@ describe('walk live activity helpers', () => {
         },
       ],
       finishTarget: WALK_ACTIVITY_FINISH_TARGET,
+      labels,
     });
   });
 

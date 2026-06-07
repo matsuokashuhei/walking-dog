@@ -20,6 +20,15 @@ const props: WalkActivityProps = {
   distanceLabel: '80 m',
   dogs: [],
   finishTarget: 'finish',
+  labels: {
+    walking: 'Walking',
+    distance: 'Distance',
+    walk: 'Walk',
+    pee: 'Pee',
+    poo: 'Poop',
+    endWalk: 'End walk',
+    end: 'End',
+  },
 };
 
 describe('walk live activity controller', () => {

@@ -5,7 +5,7 @@ import { useMyWalks } from '@/hooks/use-walks';
 import type { DogWithStats, StatsPeriod } from '@/types/graphql';
 
 // 犬の詳細と期間別統計を取得し、ID が未確定の間は問い合わせを止めます。
-export function useDog(id: string, period: StatsPeriod = 'ALL') {
+export function useDog(id: string, _period: StatsPeriod = 'ALL') {
   const meQuery = useMe();
   const walksQuery = useMyWalks(100);
 
@@ -37,5 +37,5 @@ export function useDog(id: string, period: StatsPeriod = 'ALL') {
       error: meQuery.error ?? walksQuery.error,
       refetch: meQuery.refetch,
     } as unknown) as UseQueryResult<DogWithStats | null, Error>;
-  }, [id, meQuery, period, walksQuery]);
+  }, [id, meQuery, walksQuery]);
 }

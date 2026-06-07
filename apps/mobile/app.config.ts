@@ -1,5 +1,8 @@
 // apps/mobile/app.config.ts
 import type { ExpoConfig, ConfigContext } from 'expo/config';
+import en from './lib/i18n/locales/en.json';
+
+const nativePermissions = en.nativePermissions;
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
@@ -18,8 +21,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'com.apple.security.application-groups': ['group.com.walkingdog.app'],
     },
     infoPlist: {
-      NSLocationWhenInUseUsageDescription:
-        'Walking Dog uses your location to record walk routes.',
+      NSLocationWhenInUseUsageDescription: nativePermissions.locationWhenInUse,
     },
   },
   android: {
@@ -54,18 +56,16 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       'expo-location',
       {
-        locationWhenInUsePermission:
-          'Walking Dog uses your location to record walk routes.',
-        locationAlwaysAndWhenInUsePermission:
-          'Walking Dog uses your location in the background to keep recording active walks.',
+        locationWhenInUsePermission: nativePermissions.locationWhenInUse,
+        locationAlwaysAndWhenInUsePermission: nativePermissions.locationAlwaysAndWhenInUse,
         isIosBackgroundLocationEnabled: true,
       },
     ],
     [
       'expo-image-picker',
       {
-        photosPermission: 'Allow Walking Dog to access your photos for dog profile pictures.',
-        cameraPermission: 'Allow Walking Dog to use the camera to record walk events.',
+        photosPermission: nativePermissions.photos,
+        cameraPermission: nativePermissions.camera,
       },
     ],
     [

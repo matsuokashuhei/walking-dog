@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface UseWalkElapsedOptions {
   startedAt: Date | null;
@@ -12,33 +12,28 @@ export function useWalkElapsed({
   isPaused,
   totalPausedMs,
 }: UseWalkElapsedOptions) {
-  const [elapsedSec, setElapsedSec] = useState(0);
-  const pausedAtRef = useRef<number | null>(null);
+  const [nowMs, setNowMs] = useState(() => Date.now());
 
   // 一時停止中は時刻を固定し、再開時にタイマー表示が進みすぎないようにします。
   useEffect(() => {
     if (!startedAt) {
-      pausedAtRef.current = null;
-      setElapsedSec(0);
       return;
     }
 
     if (isPaused) {
-      pausedAtRef.current ??= Date.now();
-    } else {
-      pausedAtRef.current = null;
+      return;
     }
 
-    const tick = () => {
-      const currentTimeMs = isPaused ? pausedAtRef.current ?? Date.now() : Date.now();
-      const elapsedMs = currentTimeMs - startedAt.getTime() - totalPausedMs;
-      setElapsedSec(Math.max(0, Math.floor(elapsedMs / 1000)));
-    };
-
-    tick();
-    const intervalId = setInterval(tick, 1000);
+    const intervalId = setInterval(() => {
+      setNowMs(Date.now());
+    }, 1000);
     return () => clearInterval(intervalId);
-  }, [startedAt, isPaused, totalPausedMs]);
+  }, [startedAt, isPaused]);
 
-  return elapsedSec;
+  if (!startedAt) {
+    return 0;
+  }
+
+  const elapsedMs = nowMs - startedAt.getTime() - totalPausedMs;
+  return Math.max(0, Math.floor(elapsedMs / 1000));
 }

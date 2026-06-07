@@ -1,6 +1,7 @@
 environment  = "dev"
 project_name = "walking-dog"
 aws_region   = "ap-northeast-1"
+domain_name  = "walking-dog.cacheandbuffer.com"
 
 # Cognito email through Amazon SES
 # If SES DNS records are not verified yet, run the bootstrap apply with:

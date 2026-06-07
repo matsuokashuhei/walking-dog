@@ -1,0 +1,4 @@
+interface:
+  display_name: "Terraform via Docker"
+  short_description: "Run Terraform through Docker for this repo"
+  default_prompt: "Use $terraform before running Terraform, AWS infrastructure, or IaC commands in this repo."

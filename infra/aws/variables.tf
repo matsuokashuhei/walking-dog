@@ -13,6 +13,11 @@ variable "project_name" {
   default = "walking-dog"
 }
 
+variable "domain_name" {
+  type    = string
+  default = "walking-dog.cacheandbuffer.com"
+}
+
 # --- Cognito email via Amazon SES ---
 
 variable "cognito_use_ses_email" {

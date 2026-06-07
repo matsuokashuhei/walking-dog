@@ -7,7 +7,7 @@ Cognito / DynamoDB / S3 は AWS の dev 環境リソースを IAM ユーザー�
 ## アーキテクチャ
 
 ```
-   HTTPS (walkingdogdev.dpdns.org)
+   HTTPS (walking-dog.cacheandbuffer.com)
         │
         ▼
 ┌─────────────────────────────────┐       ┌──────────────────────────────────┐
@@ -18,7 +18,7 @@ Cognito / DynamoDB / S3 は AWS の dev 環境リソースを IAM ユーザー�
 │  │  (reverse    │    Encrypt    │  ───► │  S3                              │
 │  │   proxy)     │               │       │  ECR (walking-dog-api)           │
 │  └──────┬───────┘               │       │                                  │
-│         │ :3000 (internal)      │       │  Route53 (walkingdogdev.dpdns)   │
+│         │ :3000 (internal)      │       │  Cloudflare DNS                  │
 │  ┌──────▼───────┐               │       │                                  │
 │  │ walking-dog   │──┐            │       │  IAM User:                       │
 │  │ -api :3000    │  │            │       │    walking-dog-dev-vps-api       │
@@ -35,7 +35,7 @@ Cognito / DynamoDB / S3 は AWS の dev 環境リソースを IAM ユーザー�
 - Docker イメージは GitHub Actions でビルドし ECR に push
 - VPS は ECR から pull するだけ（Rust のコンパイルは行わない）
 - Caddy が Let's Encrypt 証明書を自動取得・更新して HTTPS 終端する
-- `walkingdogdev.dpdns.org` の A レコードは Route53 で VPS IP を指す
+- `walking-dog.cacheandbuffer.com` の A レコードは Cloudflare DNS で VPS IP を指す
 - アバターと散歩写真は専用の CloudFront distribution（`avatars` 用 / `photos` 用）から配信する。S3 バケットは OAC 経由でのみアクセス可能（`infra/aws/cloudfront.tf` 参照）
 
 ## 前提
@@ -44,7 +44,13 @@ Cognito / DynamoDB / S3 は AWS の dev 環境リソースを IAM ユーザー�
 - Docker と Docker Compose plugin がインストール済み
 - AWS アクセスキー（`terraform output` から取得）
 - さくらVPS のパケットフィルタで **TCP 22 / 80 / 443** を許可
-- Route53 の `walkingdogdev.dpdns.org` A レコードが VPS IP を指している
+- Cloudflare DNS の `walking-dog.cacheandbuffer.com` A レコードが VPS IP を指している
+
+Cloudflare の設定:
+
+| Type | Name | Value | Proxy status |
+|------|------|-------|--------------|
+| `A` | `walking-dog` | `133.167.103.109` | `DNS only` |
 
 ## 初回セットアップ
 
@@ -108,7 +114,7 @@ vi .env
 
 ```bash
 # HTTPS 経由（外部から。Caddy が Let's Encrypt 証明書を自動取得するので初回は数十秒かかる）
-curl https://walkingdogdev.dpdns.org/health
+curl https://walking-dog.cacheandbuffer.com/health
 # → "ok"
 
 # VPS 内部から api コンテナへ直接
@@ -127,7 +133,7 @@ docker compose logs -f caddy
 
 よくある失敗理由:
 - パケットフィルタで 80/443 が閉じている
-- DNS が VPS IP を指していない（`dig walkingdogdev.dpdns.org +short` で確認）
+- DNS が VPS IP を指していない（`dig walking-dog.cacheandbuffer.com +short` で確認）
 - Let's Encrypt のレート制限（同じドメインで失敗を繰り返すと一時的に ban される）
 
 ## 更新デプロイ

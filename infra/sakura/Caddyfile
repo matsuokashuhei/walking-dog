@@ -1,7 +1,23 @@
 {
-    email matsuokashuheiii@gmail.com
+	email matsuokashuheiii@gmail.com
 }
 
 walking-dog.cacheandbuffer.com {
-    reverse_proxy api:3000
+	@terms path /terms /terms/
+	handle @terms {
+		root * /srv/legal
+		rewrite * /terms.html
+		file_server
+	}
+
+	@policy path /policy /policy/
+	handle @policy {
+		root * /srv/legal
+		rewrite * /policy.html
+		file_server
+	}
+
+	handle {
+		reverse_proxy api:3000
+	}
 }

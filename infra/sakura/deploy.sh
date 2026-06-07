@@ -1,5 +1,5 @@
 #!/bin/bash
-# Deploy the API on Sakura VPS: log into ECR, pull latest image, restart services.
+# Deploy the Sakura stack: update tracked files, pull the API image, restart services.
 set -euo pipefail
 
 cd "$(dirname "$0")"

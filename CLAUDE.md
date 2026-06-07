@@ -30,6 +30,7 @@
 - API upload storage belongs behind `service::storage::StorageGateway`. GraphQL may adapt `Upload` into `StorageUpload`, but S3 clients, bucket/env handling, content-size policy, object keys, and avatar URL construction should stay in the storage service.
 - Cognito email delivery uses Amazon SES with the domain DNS records managed in Cloudflare. Keep Cloudflare dashboard runbooks under `infra/cloudflare`; Cloudflare API tokens are not needed for Cognito email delivery.
 - Legal document drafts belong in `docs/legal/`. Draft-only legal work should not change app legal URLs or registration/settings behavior unless explicitly requested.
+- Sakura-published legal pages belong in `infra/sakura/legal/` and are served by Caddy at `/terms` and `/policy`; do not add API routes for legal document hosting.
 
 ## Development Rules
 

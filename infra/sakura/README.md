@@ -3,6 +3,7 @@
 GraphQL サーバーと PostgreSQL をさくらVPS上で docker compose で運用するテスト環境。
 Cognito / DynamoDB / S3 は AWS の dev 環境リソースを IAM ユーザー経由で利用する。
 犬の写真は S3 バケットを CloudFront 経由で配信する。
+利用規約とプライバシーポリシーは API ではなく、Caddy が静的 HTML として配信する。
 
 ## アーキテクチャ
 
@@ -15,7 +16,7 @@ Cognito / DynamoDB / S3 は AWS の dev 環境リソースを IAM ユーザー�
 │                                  │       │                                  │
 │  ┌──────────────┐               │       │  Cognito User Pool               │
 │  │ caddy :80/443│◄── Let's      │       │  DynamoDB                        │
-│  │  (reverse    │    Encrypt    │  ───► │  S3                              │
+│  │  (static +   │    Encrypt    │  ───► │  S3                              │
 │  │   proxy)     │               │       │  ECR (walking-dog-api)           │
 │  └──────┬───────┘               │       │                                  │
 │         │ :3000 (internal)      │       │  Cloudflare DNS                  │
@@ -35,6 +36,7 @@ Cognito / DynamoDB / S3 は AWS の dev 環境リソースを IAM ユーザー�
 - Docker イメージは GitHub Actions でビルドし ECR に push
 - VPS は ECR から pull するだけ（Rust のコンパイルは行わない）
 - Caddy が Let's Encrypt 証明書を自動取得・更新して HTTPS 終端する
+- Caddy は `/terms` と `/policy` を `infra/sakura/legal/` の静的 HTML から配信し、それ以外のリクエストを API に reverse proxy する
 - `walking-dog.cacheandbuffer.com` の A レコードは Cloudflare DNS で VPS IP を指す
 - アバターと散歩写真は専用の CloudFront distribution（`avatars` 用 / `photos` 用）から配信する。S3 バケットは OAC 経由でのみアクセス可能（`infra/aws/cloudfront.tf` 参照）
 
@@ -117,6 +119,12 @@ vi .env
 curl https://walking-dog.cacheandbuffer.com/health
 # → "ok"
 
+curl https://walking-dog.cacheandbuffer.com/terms
+# → 利用規約 HTML
+
+curl https://walking-dog.cacheandbuffer.com/policy
+# → プライバシーポリシー HTML
+
 # VPS 内部から api コンテナへ直接
 docker compose exec api curl -s http://localhost:3000/health
 # → "ok"
@@ -139,7 +147,8 @@ docker compose logs -f caddy
 ## 更新デプロイ
 
 main ブランチの `apps/api/` を更新すると GitHub Actions が自動で ECR に push する。
-VPS では以下を実行するだけで最新版に更新できる:
+VPS では以下を実行するだけで最新版に更新できる。
+`infra/sakura/legal/` や Caddy 設定だけの変更は API イメージの再ビルドを必要とせず、`git pull` 後の compose 再作成で反映される:
 
 ```bash
 cd ~/walking-dog/infra/sakura
@@ -147,12 +156,18 @@ cd ~/walking-dog/infra/sakura
 ```
 
 `deploy.sh` の処理内容:
-1. `git pull --ff-only` で `infra/sakura/` の tracked file を最新化
+1. `git pull --ff-only` で `infra/sakura/` の tracked file（静的法務 HTML を含む）を最新化
 2. ECR にログイン（12時間有効なトークンを都度取得）
 3. 最新イメージを pull
-4. `docker compose up -d --force-recreate` でコンテナを再作成
+4. `docker compose up -d --force-recreate` でコンテナを再作成し、Caddy の静的ファイル mount と設定を反映
 
 PostgreSQL は `postgres_data` volume でデータ永続化されるため、API の再起動時にも保持される。
+
+### 法務ページを更新する場合
+
+`docs/legal/*.ja.md` を確認してから `infra/sakura/legal/terms.html` / `infra/sakura/legal/policy.html` を更新する。
+API コンテナは `/terms` と `/policy` を提供しないため、Sakura 環境では Caddy の静的配信を正とする。
+反映は VPS 上で `./deploy.sh` を実行する。
 
 ### 環境変数を追加・変更した場合
 

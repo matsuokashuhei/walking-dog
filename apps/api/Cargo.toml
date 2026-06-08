@@ -21,11 +21,11 @@ async-trait = "0.1.89"
 tokio = { version = "1.52.3", features = ["macros", "rt-multi-thread", "sync", "time"] }
 tracing = { version = "0.1.44" }
 tracing-subscriber = { version = "0.3.23" }
-aws-config = { version = "1.8.17", features = ["behavior-version-latest"] }
-aws-sdk-dynamodb = "1.113.0"
-aws-sdk-s3 = { version = "1.134.0", features = ["behavior-version-latest"] }
-aws-sdk-sqs = "1.100.0"
-aws-sdk-cognitoidentityprovider = "1.118.0"
+aws-config = { version = "1.8.18", features = ["behavior-version-latest"] }
+aws-sdk-dynamodb = "1.115.0"
+aws-sdk-s3 = { version = "1.135.0", features = ["behavior-version-latest"] }
+aws-sdk-sqs = "1.101.0"
+aws-sdk-cognitoidentityprovider = "1.120.0"
 chrono = { version = "0.4.44", default-features = false, features = ["serde", "std"] }
 anyhow = "1.0.102"
 uuid = { version = "1.23.2", features = ["serde", "v7"] }

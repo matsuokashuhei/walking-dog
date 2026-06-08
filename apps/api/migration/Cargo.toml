@@ -11,8 +11,8 @@ path = "src/lib.rs"
 
 [dependencies]
 tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread"] }
-aws-config = { version = "1.8.17", features = ["behavior-version-latest"] }
-aws-sdk-dynamodb = "1.113.0"
+aws-config = { version = "1.8.18", features = ["behavior-version-latest"] }
+aws-sdk-dynamodb = "1.115.0"
 
 [dependencies.sea-orm-migration]
 version = "~2.0.0-rc.40"

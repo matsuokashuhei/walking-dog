@@ -39,7 +39,7 @@
       "displayName": "Your name",
       "email": "Email",
       "password": "Password",
-      "passwordError": "Must be at least 8 characters",
+      "passwordError": "Use at least 8 characters with uppercase, lowercase, and a number.",
       "submit": "Continue",
       "loginLink": "Already have an account? Login",
       "back": "Back",

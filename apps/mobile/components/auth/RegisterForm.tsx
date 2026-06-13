@@ -7,6 +7,7 @@ import { GroupedCard } from '@/components/ui/GroupedCard';
 import { TextInput } from '@/components/ui/TextInput';
 import { useColors } from '@/hooks/use-colors';
 import { toAuthError } from '@/lib/auth/errors';
+import { isValidPassword, PASSWORD_RULES_DESCRIPTOR } from '@/lib/auth/password-policy';
 import { PRIVACY_POLICY_URL, TERMS_URL } from '@/lib/legal-urls';
 import { spacing, typography } from '@/theme/tokens';
 
@@ -28,7 +29,7 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
   const [loading, setLoading] = useState(false);
 
   const isValid =
-    email.length > 0 && password.length >= 8 && displayName.length > 0;
+    email.length > 0 && isValidPassword(password) && displayName.length > 0;
 
   async function handleSubmit() {
     if (!isValid) return;
@@ -62,7 +63,7 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
   }
 
   const passwordError =
-    password.length > 0 && password.length < 8
+    password.length > 0 && !isValidPassword(password)
       ? t('auth.register.passwordError')
       : undefined;
 
@@ -99,7 +100,7 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
           onChangeText={setPassword}
           secureTextEntry={!isE2EBuild}
           textContentType={isE2EBuild ? 'none' : 'newPassword'}
-          passwordRules={isE2EBuild ? undefined : 'minlength: 8;'}
+          passwordRules={isE2EBuild ? undefined : PASSWORD_RULES_DESCRIPTOR}
           autoComplete={isE2EBuild ? 'off' : 'password-new'}
           error={passwordError}
         />

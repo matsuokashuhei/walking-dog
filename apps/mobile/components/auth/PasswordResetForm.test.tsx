@@ -63,7 +63,25 @@ describe('PasswordResetForm', () => {
     expect(mockOnComplete).toHaveBeenCalledTimes(1);
   });
 
-  it('shows a password mismatch message without calling the reset API', async () => {
+  it('keeps reset disabled when the new password does not meet policy', async () => {
+    mockForgotPassword.mockResolvedValue(true);
+    render(<PasswordResetForm onComplete={mockOnComplete} />);
+
+    fireEvent.changeText(screen.getByLabelText('Email'), 'user@example.com');
+    fireEvent.press(screen.getByRole('button', { name: 'Send reset code' }));
+    await screen.findByText('Check your email');
+
+    fillCode('123456');
+    fireEvent.changeText(screen.getByLabelText('New password'), 'password123');
+    fireEvent.changeText(screen.getByLabelText('Confirm'), 'password123');
+
+    const button = screen.getByRole('button', { name: 'Reset password' });
+    expect(button).toBeDisabled();
+    fireEvent.press(button);
+    expect(mockConfirmForgotPassword).not.toHaveBeenCalled();
+  });
+
+  it('keeps reset disabled until confirmation matches the new password', async () => {
     mockForgotPassword.mockResolvedValue(true);
     render(<PasswordResetForm onComplete={mockOnComplete} />);
 
@@ -74,9 +92,10 @@ describe('PasswordResetForm', () => {
     fillCode('123456');
     fireEvent.changeText(screen.getByLabelText('New password'), 'Newpass1');
     fireEvent.changeText(screen.getByLabelText('Confirm'), 'Different1');
-    fireEvent.press(screen.getByRole('button', { name: 'Reset password' }));
 
-    expect(screen.getByText('Passwords do not match')).toBeTruthy();
+    const button = screen.getByRole('button', { name: 'Reset password' });
+    expect(button).toBeDisabled();
+    fireEvent.press(button);
     expect(mockConfirmForgotPassword).not.toHaveBeenCalled();
   });
 

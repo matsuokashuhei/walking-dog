@@ -14,6 +14,7 @@ import { TextInput } from '@/components/ui/TextInput';
 import { useColors } from '@/hooks/use-colors';
 import { useOtpInput } from '@/hooks/use-otp-input';
 import { toAuthError } from '@/lib/auth/errors';
+import { isValidPassword, PASSWORD_RULES_DESCRIPTOR } from '@/lib/auth/password-policy';
 import { components, radius, spacing, typography } from '@/theme/tokens';
 
 interface PasswordResetFormProps {
@@ -23,7 +24,6 @@ interface PasswordResetFormProps {
 type Step = 'request' | 'confirm' | 'done';
 
 const CODE_LENGTH = 6;
-const PASSWORD_MIN_LENGTH = 8;
 
 export function PasswordResetForm({ onComplete }: PasswordResetFormProps) {
   const { forgotPassword, confirmForgotPassword } = useAuth();
@@ -42,8 +42,9 @@ export function PasswordResetForm({ onComplete }: PasswordResetFormProps) {
   const canRequestCode = email.length > 0;
   const canReset =
     otp.isComplete &&
-    newPassword.length >= PASSWORD_MIN_LENGTH &&
-    confirmPassword.length > 0;
+    isValidPassword(newPassword) &&
+    confirmPassword.length > 0 &&
+    newPassword === confirmPassword;
 
   async function handleRequestCode() {
     if (!canRequestCode) return;
@@ -192,7 +193,7 @@ export function PasswordResetForm({ onComplete }: PasswordResetFormProps) {
             onChangeText={setNewPassword}
             secureTextEntry
             textContentType="newPassword"
-            passwordRules="minlength: 8;"
+            passwordRules={PASSWORD_RULES_DESCRIPTOR}
             autoComplete="password-new"
           />
           <TextInput
@@ -203,7 +204,7 @@ export function PasswordResetForm({ onComplete }: PasswordResetFormProps) {
             onChangeText={setConfirmPassword}
             secureTextEntry
             textContentType="newPassword"
-            passwordRules="minlength: 8;"
+            passwordRules={PASSWORD_RULES_DESCRIPTOR}
             autoComplete="password-new"
           />
         </GroupedCard>

@@ -30,21 +30,27 @@ describe('ChangePasswordScreen', () => {
     expect(screen.getByRole('button', { name: 'Update password' })).toBeDisabled();
 
     fireEvent.changeText(screen.getByLabelText('Current password'), 'Currentpass1');
+    fireEvent.changeText(screen.getByLabelText('New password'), 'password123');
+    fireEvent.changeText(screen.getByLabelText('Confirm password'), 'password123');
+
+    expect(screen.getByRole('button', { name: 'Update password' })).toBeDisabled();
+
     fireEvent.changeText(screen.getByLabelText('New password'), 'Newpass1');
     fireEvent.changeText(screen.getByLabelText('Confirm password'), 'Newpass1');
 
     expect(screen.getByRole('button', { name: 'Update password' })).not.toBeDisabled();
   });
 
-  it('shows a mismatch error without calling the API', async () => {
+  it('keeps submit disabled until confirmation matches the new password', async () => {
     render(<ChangePasswordScreen />);
 
     fireEvent.changeText(screen.getByLabelText('Current password'), 'Currentpass1');
     fireEvent.changeText(screen.getByLabelText('New password'), 'Newpass1');
     fireEvent.changeText(screen.getByLabelText('Confirm password'), 'Different1');
-    fireEvent.press(screen.getByRole('button', { name: 'Update password' }));
 
-    expect(screen.getByText('Passwords do not match')).toBeTruthy();
+    const button = screen.getByRole('button', { name: 'Update password' });
+    expect(button).toBeDisabled();
+    fireEvent.press(button);
     expect(mockChangePassword).not.toHaveBeenCalled();
   });
 

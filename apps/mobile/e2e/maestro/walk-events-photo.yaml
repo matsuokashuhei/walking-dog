@@ -1,0 +1,40 @@
+# Harness preconditions:
+# - Owner is authenticated.
+# - A dog named Harness Event Dog exists and a walk can be started.
+# - Camera permission and photo capture are controlled by the harness.
+# - Local storage service is running when photo upload is exercised.
+appId: com.walkingdog.app
+name: Walk Events And Photo
+tags:
+  - harness
+  - walk-events-photo
+  - journey
+env:
+  DOG_NAME: Harness Event Dog
+---
+- launchApp:
+    clearState: false
+- tapOn: Walk
+- assertVisible: ${DOG_NAME}
+- tapOn: START WALK
+- extendedWaitUntil:
+    visible: Recording
+    timeout: 15000
+- tapOn: Pee
+- tapOn: Poop
+- tapOn: Photo
+- runFlow:
+    when:
+      visible: OK
+    commands:
+      - tapOn: OK
+- tapOn: End Walk
+- extendedWaitUntil:
+    visible: Walk Complete!
+    timeout: 15000
+- assertVisible: Per dog
+- tapOn: Save walk
+- extendedWaitUntil:
+    visible: Recent Walks
+    timeout: 15000
+- takeScreenshot: harness-walk-events-photo

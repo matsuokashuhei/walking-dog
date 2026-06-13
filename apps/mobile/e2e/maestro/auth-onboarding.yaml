@@ -1,0 +1,45 @@
+# Harness preconditions:
+# - App is installed as com.walkingdog.app and points to the intended API.
+# - Simulator language is English.
+# - Cognito-local or dev Cognito can create the email below.
+# - If confirmation is required, the harness exposes the verification code.
+appId: com.walkingdog.app
+name: Auth Onboarding
+tags:
+  - harness
+  - auth
+  - journey
+env:
+  E2E_NAME: Harness Owner
+  E2E_EMAIL: harness-auth@example.com
+  E2E_PASSWORD: password123
+  E2E_CONFIRMATION_CODE: "123456"
+---
+- launchApp:
+    clearState: true
+- assertVisible: Walking Dog
+- tapOn: Create an account
+- assertVisible: Create Account
+- tapOn:
+    id: register-displayName
+- inputText: ${E2E_NAME}
+- tapOn:
+    id: register-email
+- inputText: ${E2E_EMAIL}
+- tapOn:
+    id: register-password
+- inputText: ${E2E_PASSWORD}
+- tapOn: Continue
+- runFlow:
+    when:
+      visible: Email Verification
+    commands:
+      - tapOn: Confirmation Code
+      - inputText: ${E2E_CONFIRMATION_CODE}
+      - tapOn: Confirm
+- extendedWaitUntil:
+    visible: Dogs
+    timeout: 15000
+- assertVisible: Walk
+- assertVisible: Me
+- takeScreenshot: harness-auth-onboarding

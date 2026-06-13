@@ -1,14 +1,12 @@
 use anyhow::Result;
 use async_graphql::{Context, InputObject, Object, SimpleObject};
-use aws_sdk_cognitoidentityprovider::operation::get_tokens_from_refresh_token::GetTokensFromRefreshTokenOutput;
-use aws_sdk_cognitoidentityprovider::operation::initiate_auth::InitiateAuthOutput;
-use aws_sdk_cognitoidentityprovider::types::AttributeType;
 use axum_extra::headers::authorization;
 use sea_orm::{ActiveModelTrait, ActiveValue::Set, DatabaseConnection};
 
 use crate::entity::user;
 use crate::graphql::error::AppError;
 use crate::graphql::{error::AuthError, guard::AuthGuard};
+use crate::service::auth::{AuthTokenPair, SharedAuthGateway};
 
 #[derive(Default, Debug)]
 pub struct AuthMutation;
@@ -16,17 +14,11 @@ pub struct AuthMutation;
 #[Object]
 impl AuthMutation {
     async fn sign_up(&self, ctx: &Context<'_>, input: SignUpInput) -> Result<SignUpOutput> {
-        let cognitoidentityprovider_client = ctx
-            .data::<aws_sdk_cognitoidentityprovider::Client>()
-            .unwrap();
-        let output = cognitoidentityprovider_client
-            .sign_up()
-            .client_id(std::env::var("AWS_COGNITO_CLIENT_ID").unwrap())
-            .username(input.email.clone())
-            .password(input.password)
-            .send()
+        let auth_gateway = ctx.data::<SharedAuthGateway>().unwrap();
+        let output = auth_gateway
+            .sign_up(input.email.clone(), input.password)
             .await
-            .map_err(|e| AuthError::SignUpError(e.into_service_error()))?;
+            .map_err(AuthError::from)?;
         let db = ctx.data::<DatabaseConnection>().unwrap();
         let user = user::ActiveModel {
             cognito_sub: Set(output.user_sub),
@@ -41,33 +33,20 @@ impl AuthMutation {
         ctx: &Context<'_>,
         input: ConfirmSignUpInput,
     ) -> Result<ConfirmSignUpOutput> {
-        let cognitoidentityprovider_client = ctx
-            .data::<aws_sdk_cognitoidentityprovider::Client>()
-            .unwrap();
-        cognitoidentityprovider_client
-            .confirm_sign_up()
-            .client_id(std::env::var("AWS_COGNITO_CLIENT_ID").unwrap())
-            .username(input.email)
-            .confirmation_code(input.code)
-            .send()
+        let auth_gateway = ctx.data::<SharedAuthGateway>().unwrap();
+        auth_gateway
+            .confirm_sign_up(input.email, input.code)
             .await
-            .map_err(|e| AuthError::ConfirmSignUpError(e.into_service_error()))?;
+            .map_err(AuthError::from)?;
         Ok(ConfirmSignUpOutput { success: true })
     }
 
     async fn sign_in(&self, ctx: &Context<'_>, input: SignInInput) -> Result<SignInOutput> {
-        let cognitoidentityprovider_client = ctx
-            .data::<aws_sdk_cognitoidentityprovider::Client>()
-            .unwrap();
-        let output = cognitoidentityprovider_client
-            .initiate_auth()
-            .client_id(std::env::var("AWS_COGNITO_CLIENT_ID").unwrap())
-            .auth_flow(aws_sdk_cognitoidentityprovider::types::AuthFlowType::UserPasswordAuth)
-            .auth_parameters("USERNAME", input.email)
-            .auth_parameters("PASSWORD", input.password)
-            .send()
+        let auth_gateway = ctx.data::<SharedAuthGateway>().unwrap();
+        let output = auth_gateway
+            .sign_in(input.email, input.password)
             .await
-            .map_err(|e| AuthError::SignInError(e.into_service_error()))?;
+            .map_err(AuthError::from)?;
         Ok(output.into())
     }
 
@@ -76,33 +55,22 @@ impl AuthMutation {
         ctx: &Context<'_>,
         input: RefreshTokenInput,
     ) -> Result<RefreshTokenOutput> {
-        let cognitoidentityprovider_client = ctx
-            .data::<aws_sdk_cognitoidentityprovider::Client>()
-            .unwrap();
-        let output = cognitoidentityprovider_client
-            .get_tokens_from_refresh_token()
-            .client_id(std::env::var("AWS_COGNITO_CLIENT_ID").unwrap())
+        let auth_gateway = ctx.data::<SharedAuthGateway>().unwrap();
+        let output = auth_gateway
             .refresh_token(input.refresh_token)
-            .send()
             .await
-            .map_err(|e| AuthError::RefreshTokenError(e.into_service_error()))?;
-        let output = RefreshTokenOutput::try_from(output)
-            .map_err(|error| AppError::InternalServerError(error.to_string()))?;
-        Ok(output)
+            .map_err(AuthError::from)?;
+        Ok(RefreshTokenOutput::from(output))
     }
 
     #[graphql(guard = "AuthGuard")]
     async fn sign_out(&self, ctx: &Context<'_>) -> Result<SignOutOutput> {
-        let cognitoidentityprovider_client = ctx
-            .data::<aws_sdk_cognitoidentityprovider::Client>()
-            .unwrap();
+        let auth_gateway = ctx.data::<SharedAuthGateway>().unwrap();
         let authorization = ctx.data::<authorization::Bearer>().unwrap();
-        let _ = cognitoidentityprovider_client
-            .global_sign_out()
-            .access_token(authorization.token())
-            .send()
+        auth_gateway
+            .sign_out(authorization.token())
             .await
-            .map_err(|e| AuthError::SignOutError(e.into_service_error()))?;
+            .map_err(AuthError::from)?;
         Ok(SignOutOutput { success: true })
     }
 
@@ -112,25 +80,14 @@ impl AuthMutation {
         ctx: &Context<'_>,
         input: ChangeEmailInput,
     ) -> Result<ChangeEmailOutput> {
-        let cognitoidentityprovider_client = ctx
-            .data::<aws_sdk_cognitoidentityprovider::Client>()
-            .unwrap();
+        let auth_gateway = ctx.data::<SharedAuthGateway>().unwrap();
         let authorization = ctx
             .data::<authorization::Bearer>()
             .map_err(|_| AppError::Unauthorized)?;
-        cognitoidentityprovider_client
-            .update_user_attributes()
-            .access_token(authorization.token())
-            .user_attributes(
-                AttributeType::builder()
-                    .name("email")
-                    .value(input.new_email)
-                    .build()
-                    .unwrap(),
-            )
-            .send()
+        auth_gateway
+            .change_email(authorization.token(), input.new_email)
             .await
-            .map_err(|e| AuthError::UpdateUserAttributesError(e.into_service_error()))?;
+            .map_err(AuthError::from)?;
         Ok(ChangeEmailOutput { success: true })
     }
 
@@ -140,20 +97,14 @@ impl AuthMutation {
         ctx: &Context<'_>,
         input: ConfirmEmailChangeInput,
     ) -> Result<ConfirmEmailChangeOutput> {
-        let cognitoidentityprovider_client = ctx
-            .data::<aws_sdk_cognitoidentityprovider::Client>()
-            .unwrap();
+        let auth_gateway = ctx.data::<SharedAuthGateway>().unwrap();
         let authorization = ctx
             .data::<authorization::Bearer>()
             .map_err(|_| AppError::Unauthorized)?;
-        cognitoidentityprovider_client
-            .verify_user_attribute()
-            .access_token(authorization.token())
-            .attribute_name("email")
-            .code(input.code)
-            .send()
+        auth_gateway
+            .confirm_email_change(authorization.token(), input.code)
             .await
-            .map_err(|e| AuthError::VerifyUserAttributeError(e.into_service_error()))?;
+            .map_err(AuthError::from)?;
         Ok(ConfirmEmailChangeOutput { success: true })
     }
 
@@ -163,20 +114,14 @@ impl AuthMutation {
         ctx: &Context<'_>,
         input: ChangePasswordInput,
     ) -> Result<SignOutOutput> {
-        let cognitoidentityprovider_client = ctx
-            .data::<aws_sdk_cognitoidentityprovider::Client>()
-            .unwrap();
+        let auth_gateway = ctx.data::<SharedAuthGateway>().unwrap();
         let authorization = ctx
             .data::<authorization::Bearer>()
             .map_err(|_| AppError::Unauthorized)?;
-        cognitoidentityprovider_client
-            .change_password()
-            .previous_password(input.old_password)
-            .proposed_password(input.new_password)
-            .access_token(authorization.token())
-            .send()
+        auth_gateway
+            .change_password(authorization.token(), input.old_password, input.new_password)
             .await
-            .map_err(|e| AuthError::ChangePasswordError(e.into_service_error()))?;
+            .map_err(AuthError::from)?;
         Ok(SignOutOutput { success: true })
     }
 }
@@ -220,19 +165,11 @@ pub struct SignInOutput {
     refresh_token: String,
 }
 
-impl From<InitiateAuthOutput> for SignInOutput {
-    fn from(output: InitiateAuthOutput) -> Self {
+impl From<AuthTokenPair> for SignInOutput {
+    fn from(output: AuthTokenPair) -> Self {
         SignInOutput {
-            access_token: output
-                .authentication_result
-                .as_ref()
-                .and_then(|result| result.access_token.clone())
-                .unwrap_or_default(),
-            refresh_token: output
-                .authentication_result
-                .as_ref()
-                .and_then(|result| result.refresh_token.clone())
-                .unwrap_or_default(),
+            access_token: output.access_token,
+            refresh_token: output.refresh_token,
         }
     }
 }
@@ -248,40 +185,13 @@ pub struct RefreshTokenOutput {
     refresh_token: String,
 }
 
-impl TryFrom<GetTokensFromRefreshTokenOutput> for RefreshTokenOutput {
-    type Error = RefreshTokenOutputError;
-
-    fn try_from(output: GetTokensFromRefreshTokenOutput) -> std::result::Result<Self, Self::Error> {
-        let result = output
-            .authentication_result
-            .as_ref()
-            .ok_or(RefreshTokenOutputError::MissingAuthenticationResult)?;
-        let access_token = result
-            .access_token
-            .clone()
-            .filter(|token| !token.is_empty())
-            .ok_or(RefreshTokenOutputError::MissingAccessToken)?;
-        let refresh_token = result
-            .refresh_token
-            .clone()
-            .filter(|token| !token.is_empty())
-            .ok_or(RefreshTokenOutputError::MissingRefreshToken)?;
-
-        Ok(Self {
-            access_token,
-            refresh_token,
-        })
+impl From<AuthTokenPair> for RefreshTokenOutput {
+    fn from(output: AuthTokenPair) -> Self {
+        RefreshTokenOutput {
+            access_token: output.access_token,
+            refresh_token: output.refresh_token,
+        }
     }
-}
-
-#[derive(Debug, thiserror::Error, PartialEq, Eq)]
-pub enum RefreshTokenOutputError {
-    #[error("Cognito refresh response is missing authentication result")]
-    MissingAuthenticationResult,
-    #[error("Cognito refresh response is missing access token")]
-    MissingAccessToken,
-    #[error("Cognito refresh response is missing refresh token")]
-    MissingRefreshToken,
 }
 
 #[derive(Clone, Debug, InputObject)]
@@ -308,48 +218,4 @@ pub struct ConfirmEmailChangeOutput {
 pub struct ChangePasswordInput {
     old_password: String,
     new_password: String,
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use aws_sdk_cognitoidentityprovider::types::AuthenticationResultType;
-
-    fn get_tokens_output(
-        access_token: Option<&str>,
-        refresh_token: Option<&str>,
-    ) -> GetTokensFromRefreshTokenOutput {
-        let mut authentication_result = AuthenticationResultType::builder();
-        if let Some(access_token) = access_token {
-            authentication_result = authentication_result.access_token(access_token);
-        }
-        if let Some(refresh_token) = refresh_token {
-            authentication_result = authentication_result.refresh_token(refresh_token);
-        }
-
-        GetTokensFromRefreshTokenOutput::builder()
-            .authentication_result(authentication_result.build())
-            .build()
-    }
-
-    #[test]
-    fn refresh_token_output_uses_rotated_tokens() {
-        let output = RefreshTokenOutput::try_from(get_tokens_output(
-            Some("new-access"),
-            Some("new-refresh"),
-        ))
-        .expect("rotated token output should be valid");
-
-        assert_eq!(output.access_token, "new-access");
-        assert_eq!(output.refresh_token, "new-refresh");
-    }
-
-    #[test]
-    fn refresh_token_output_rejects_missing_refresh_token() {
-        let error = RefreshTokenOutput::try_from(get_tokens_output(Some("new-access"), None))
-            .err()
-            .expect("missing refresh token should be rejected");
-
-        assert_eq!(error, RefreshTokenOutputError::MissingRefreshToken);
-    }
 }

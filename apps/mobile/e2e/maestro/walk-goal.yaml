@@ -1,0 +1,37 @@
+# Harness preconditions:
+# - Owner is authenticated.
+# - A dog named Harness Goal Dog exists and opens from the Dogs list.
+# - Goal controls are visible in edit mode and simulator language is English.
+appId: com.walkingdog.app
+name: Walk Goal
+tags:
+  - harness
+  - walk-goal
+  - journey
+env:
+  DOG_NAME: Harness Goal Dog
+---
+- launchApp:
+    clearState: false
+- tapOn: Dogs
+- assertVisible: Dogs
+- tapOn: ${DOG_NAME}
+- assertVisible: Dog Profile
+- tapOn: Edit
+- assertVisible: Edit dog
+- scrollUntilVisible:
+    element:
+      text: GOAL
+    direction: DOWN
+- assertVisible: DAILY
+- assertVisible: WEEKLY
+- tapOn: WEEKLY
+- assertVisible: Time
+- tapOn:
+    id: dog-goal-slider
+- tapOn: Save
+- extendedWaitUntil:
+    visible: Dog Profile
+    timeout: 15000
+- assertVisible: Goal progress
+- takeScreenshot: harness-walk-goal

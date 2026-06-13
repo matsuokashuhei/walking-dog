@@ -97,5 +97,5 @@ Release ビルド。本番 API は未デプロイのため当面は dev サー�
 ## 関連ドキュメント
 
 - 開発ルール: [CLAUDE.md](./CLAUDE.md)
-- バックエンド: [`../api/CLAUDE.md`](../api/CLAUDE.md)
+- バックエンド: [`../api/README.md`](../api/README.md)
 - プロジェクト全体: [`../../CLAUDE.md`](../../CLAUDE.md)

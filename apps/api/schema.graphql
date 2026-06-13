@@ -55,6 +55,16 @@ type ConfirmEmailChangeOutput {
 	success: Boolean!
 }
 
+input ConfirmForgotPasswordInput {
+	email: String!
+	code: String!
+	newPassword: String!
+}
+
+type ConfirmForgotPasswordOutput {
+	success: Boolean!
+}
+
 input ConfirmSignUpInput {
 	email: String!
 	code: String!
@@ -120,6 +130,14 @@ enum EventType {
 	GREET
 }
 
+input ForgotPasswordInput {
+	email: String!
+}
+
+type ForgotPasswordOutput {
+	success: Boolean!
+}
+
 enum Gender {
 	MALE
 	FEMALE
@@ -133,6 +151,8 @@ scalar Longitude
 type Mutation {
 	signUp(input: SignUpInput!): SignUpOutput!
 	confirmSignUp(input: ConfirmSignUpInput!): ConfirmSignUpOutput!
+	forgotPassword(input: ForgotPasswordInput!): ForgotPasswordOutput!
+	confirmForgotPassword(input: ConfirmForgotPasswordInput!): ConfirmForgotPasswordOutput!
 	signIn(input: SignInInput!): SignInOutput!
 	refreshToken(input: RefreshTokenInput!): RefreshTokenOutput!
 	signOut: SignOutOutput!

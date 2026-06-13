@@ -4,7 +4,9 @@ import type * as AuthApiModule from '@/lib/auth/api';
 import type * as AuthStoreModule from '@/stores/auth-store';
 
 jest.mock('@/lib/auth/api', () => ({
+  confirmForgotPassword: jest.fn(),
   confirmSignUp: jest.fn(),
+  forgotPassword: jest.fn(),
   signIn: jest.fn(),
   signOut: jest.fn(),
   signUp: jest.fn(),
@@ -75,5 +77,31 @@ describe('use-auth', () => {
 
     expect(mockAuthApi.signOut).toHaveBeenCalledWith('my-token');
     expect(mockClearAuth).toHaveBeenCalled();
+  });
+
+  it('forgotPassword delegates to authApi', async () => {
+    mockAuthApi.forgotPassword.mockResolvedValue(true);
+
+    const { result } = renderHook(() => useAuth());
+    await act(async () => {
+      await result.current.forgotPassword('user@example.com');
+    });
+
+    expect(mockAuthApi.forgotPassword).toHaveBeenCalledWith('user@example.com');
+  });
+
+  it('confirmForgotPassword delegates to authApi', async () => {
+    mockAuthApi.confirmForgotPassword.mockResolvedValue(true);
+
+    const { result } = renderHook(() => useAuth());
+    await act(async () => {
+      await result.current.confirmForgotPassword('user@example.com', '123456', 'Newpass1');
+    });
+
+    expect(mockAuthApi.confirmForgotPassword).toHaveBeenCalledWith(
+      'user@example.com',
+      '123456',
+      'Newpass1',
+    );
   });
 });

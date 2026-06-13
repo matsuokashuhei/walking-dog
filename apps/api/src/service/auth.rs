@@ -3,7 +3,8 @@ use aws_sdk_cognitoidentityprovider::{
     Client,
     error::ProvideErrorMetadata,
     operation::{
-        change_password::ChangePasswordError, confirm_sign_up::ConfirmSignUpError,
+        change_password::ChangePasswordError, confirm_forgot_password::ConfirmForgotPasswordError,
+        confirm_sign_up::ConfirmSignUpError, forgot_password::ForgotPasswordError,
         get_tokens_from_refresh_token::GetTokensFromRefreshTokenError,
         global_sign_out::GlobalSignOutError, initiate_auth::InitiateAuthError,
         sign_up::SignUpError, update_user_attributes::UpdateUserAttributesError,
@@ -17,8 +18,11 @@ pub type SharedAuthGateway = Arc<dyn AuthGateway>;
 
 #[async_trait]
 pub trait AuthGateway: Send + Sync + 'static {
-    async fn sign_up(&self, email: String, password: String)
-    -> Result<SignUpResult, AuthGatewayError>;
+    async fn sign_up(
+        &self,
+        email: String,
+        password: String,
+    ) -> Result<SignUpResult, AuthGatewayError>;
     async fn confirm_sign_up(&self, email: String, code: String) -> Result<(), AuthGatewayError>;
     async fn sign_in(
         &self,
@@ -28,8 +32,18 @@ pub trait AuthGateway: Send + Sync + 'static {
     async fn refresh_token(&self, refresh_token: String)
     -> Result<AuthTokenPair, AuthGatewayError>;
     async fn sign_out(&self, access_token: &str) -> Result<(), AuthGatewayError>;
-    async fn change_email(&self, access_token: &str, new_email: String)
-    -> Result<(), AuthGatewayError>;
+    async fn forgot_password(&self, email: String) -> Result<(), AuthGatewayError>;
+    async fn confirm_forgot_password(
+        &self,
+        email: String,
+        code: String,
+        new_password: String,
+    ) -> Result<(), AuthGatewayError>;
+    async fn change_email(
+        &self,
+        access_token: &str,
+        new_email: String,
+    ) -> Result<(), AuthGatewayError>;
     async fn confirm_email_change(
         &self,
         access_token: &str,
@@ -72,9 +86,7 @@ impl AuthGateway for CognitoAuthGateway {
             .password(password)
             .send()
             .await
-            .map_err(|error| {
-                AuthGatewayError::from_sign_up_error(error.into_service_error())
-            })?;
+            .map_err(|error| AuthGatewayError::from_sign_up_error(error.into_service_error()))?;
 
         Ok(SignUpResult {
             user_sub: output.user_sub,
@@ -143,6 +155,39 @@ impl AuthGateway for CognitoAuthGateway {
             .send()
             .await
             .map_err(|error| AuthGatewayError::from_sign_out_error(error.into_service_error()))?;
+        Ok(())
+    }
+
+    async fn forgot_password(&self, email: String) -> Result<(), AuthGatewayError> {
+        self.client
+            .forgot_password()
+            .client_id(&self.client_id)
+            .username(email)
+            .send()
+            .await
+            .map_err(|error| {
+                AuthGatewayError::from_forgot_password_error(error.into_service_error())
+            })?;
+        Ok(())
+    }
+
+    async fn confirm_forgot_password(
+        &self,
+        email: String,
+        code: String,
+        new_password: String,
+    ) -> Result<(), AuthGatewayError> {
+        self.client
+            .confirm_forgot_password()
+            .client_id(&self.client_id)
+            .username(email)
+            .confirmation_code(code)
+            .password(new_password)
+            .send()
+            .await
+            .map_err(|error| {
+                AuthGatewayError::from_confirm_forgot_password_error(error.into_service_error())
+            })?;
         Ok(())
     }
 
@@ -251,6 +296,8 @@ pub enum AuthOperation {
     SignIn,
     RefreshToken,
     SignOut,
+    ForgotPassword,
+    ConfirmForgotPassword,
     UpdateUserAttributes,
     VerifyUserAttribute,
     ChangePassword,
@@ -264,6 +311,8 @@ impl fmt::Display for AuthOperation {
             AuthOperation::SignIn => "Sign in",
             AuthOperation::RefreshToken => "Refresh token",
             AuthOperation::SignOut => "Sign out",
+            AuthOperation::ForgotPassword => "Forgot password",
+            AuthOperation::ConfirmForgotPassword => "Confirm forgot password",
             AuthOperation::UpdateUserAttributes => "Update user attributes",
             AuthOperation::VerifyUserAttribute => "Verify user attribute",
             AuthOperation::ChangePassword => "Change password",
@@ -323,6 +372,14 @@ impl AuthGatewayError {
 
     fn from_sign_out_error(error: GlobalSignOutError) -> Self {
         Self::from_provider_error(AuthOperation::SignOut, error)
+    }
+
+    fn from_forgot_password_error(error: ForgotPasswordError) -> Self {
+        Self::from_provider_error(AuthOperation::ForgotPassword, error)
+    }
+
+    fn from_confirm_forgot_password_error(error: ConfirmForgotPasswordError) -> Self {
+        Self::from_provider_error(AuthOperation::ConfirmForgotPassword, error)
     }
 
     fn from_update_user_attributes_error(error: UpdateUserAttributesError) -> Self {

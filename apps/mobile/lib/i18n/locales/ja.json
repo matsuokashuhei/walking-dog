@@ -69,6 +69,34 @@
         "generic": "確認に失敗しました"
       }
     },
+    "reset": {
+      "secureRecovery": "安全なアカウント復旧",
+      "requestTitle": "パスワードをリセット",
+      "requestDescription": "Walking Dog に登録しているメールアドレスを入力してください。散歩の記録に戻れるよう、確認コードを送ります。",
+      "email": "メール",
+      "emailHint": "Walking Dog アカウントに紐づくメールアドレスを使ってください。",
+      "sendCode": "リセットコードを送信",
+      "confirmTitle": "メールを確認してください",
+      "confirmDescription": "{{email}} にコードを送りました。下に入力して新しいパスワードを設定してください。",
+      "code": "確認コード",
+      "digitLabel": "{{position}}桁目",
+      "newPassword": "新しいパスワード",
+      "confirmPassword": "確認",
+      "passwordHint": "8文字以上で、大文字・小文字・数字を含めてください。",
+      "submit": "パスワードをリセット",
+      "resend": "コードを再送する",
+      "doneTitle": "パスワードをリセットしました",
+      "doneDescription": "パスワードを更新しました。もう一度サインインして、愛犬との散歩を続けましょう。",
+      "backToSignIn": "サインインに戻る",
+      "error": {
+        "request": "リセットコードを送信できませんでした",
+        "invalidCode": "リセットコードが正しくありません",
+        "expiredCode": "リセットコードの有効期限が切れています",
+        "invalidPassword": "パスワードの要件を満たしていません",
+        "passwordMismatch": "パスワードが一致しません",
+        "generic": "パスワードリセットに失敗しました"
+      }
+    },
     "error": {
       "networkError": "ネットワーク接続を確認してください"
     }

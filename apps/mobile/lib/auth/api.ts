@@ -2,6 +2,8 @@ import { graphqlClient } from '../graphql/client';
 import {
   SIGN_UP_MUTATION,
   CONFIRM_SIGN_UP_MUTATION,
+  FORGOT_PASSWORD_MUTATION,
+  CONFIRM_FORGOT_PASSWORD_MUTATION,
   SIGN_IN_MUTATION,
   REFRESH_TOKEN_MUTATION,
 } from '../graphql/mutations/auth';
@@ -28,6 +30,14 @@ interface SignUpResponse {
 
 interface ConfirmSignUpResponse {
   confirmSignUp: { success: boolean };
+}
+
+interface ForgotPasswordResponse {
+  forgotPassword: { success: boolean };
+}
+
+interface ConfirmForgotPasswordResponse {
+  confirmForgotPassword: { success: boolean };
 }
 
 interface SignInResponse {
@@ -78,6 +88,31 @@ export async function confirmSignUp(email: string, code: string): Promise<boolea
     })
   );
   return data.confirmSignUp.success;
+}
+
+export async function forgotPassword(email: string): Promise<boolean> {
+  const data = await mapAuthRequestError(() =>
+    graphqlClient.request<ForgotPasswordResponse>(FORGOT_PASSWORD_MUTATION, {
+      input: { email },
+    })
+  );
+  return data.forgotPassword.success;
+}
+
+export async function confirmForgotPassword(
+  email: string,
+  code: string,
+  newPassword: string
+): Promise<boolean> {
+  const data = await mapAuthRequestError(() =>
+    graphqlClient.request<ConfirmForgotPasswordResponse>(
+      CONFIRM_FORGOT_PASSWORD_MUTATION,
+      {
+        input: { email, code, newPassword },
+      },
+    )
+  );
+  return data.confirmForgotPassword.success;
 }
 
 export async function signIn(email: string, password: string): Promise<SignInResult> {

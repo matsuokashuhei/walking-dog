@@ -28,6 +28,7 @@ export default function LoginScreen() {
           onSuccess={() => {
             // 認証後の遷移は _layout.tsx の NavigationGuard が一元管理します。
           }}
+          onForgotPassword={() => router.push('/(auth)/reset-password')}
         />
       </View>
       <Pressable

@@ -12,7 +12,7 @@ tags:
 env:
   E2E_NAME: Harness Owner
   E2E_EMAIL: harness-auth@example.com
-  E2E_PASSWORD: password123
+  E2E_PASSWORD: Password123
   E2E_NEW_PASSWORD: Newpass1
   E2E_CONFIRMATION_CODE: "123456"
 ---

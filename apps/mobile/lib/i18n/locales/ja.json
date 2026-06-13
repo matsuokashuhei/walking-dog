@@ -39,7 +39,7 @@
       "displayName": "お名前",
       "email": "メール",
       "password": "パスワード",
-      "passwordError": "8文字以上で入力してください",
+      "passwordError": "8文字以上で、大文字・小文字・数字を含めてください。",
       "submit": "次へ",
       "loginLink": "ログインはこちら",
       "back": "戻る",

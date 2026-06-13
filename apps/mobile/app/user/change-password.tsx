@@ -10,9 +10,9 @@ import { TextInput } from '@/components/ui/TextInput';
 import { useAuth } from '@/hooks/use-auth';
 import { useColors } from '@/hooks/use-colors';
 import { toAuthError } from '@/lib/auth/errors';
+import { isValidPassword, PASSWORD_RULES_DESCRIPTOR } from '@/lib/auth/password-policy';
 import { spacing, typography } from '@/theme/tokens';
 
-const PASSWORD_MIN_LENGTH = 8;
 const isE2EBuild = process.env.EXPO_PUBLIC_E2E === '1';
 
 export default function ChangePasswordScreen() {
@@ -28,8 +28,9 @@ export default function ChangePasswordScreen() {
 
   const canSubmit =
     currentPassword.length > 0 &&
-    newPassword.length >= PASSWORD_MIN_LENGTH &&
+    isValidPassword(newPassword) &&
     confirmPassword.length > 0 &&
+    newPassword === confirmPassword &&
     !submitting;
 
   async function handleSubmit() {
@@ -96,7 +97,7 @@ export default function ChangePasswordScreen() {
             onChangeText={setNewPassword}
             secureTextEntry={!isE2EBuild}
             textContentType={isE2EBuild ? 'none' : 'newPassword'}
-            passwordRules={isE2EBuild ? undefined : 'minlength: 8;'}
+            passwordRules={isE2EBuild ? undefined : PASSWORD_RULES_DESCRIPTOR}
             autoComplete={isE2EBuild ? 'off' : 'password-new'}
           />
           <TextInput
@@ -107,7 +108,7 @@ export default function ChangePasswordScreen() {
             onChangeText={setConfirmPassword}
             secureTextEntry={!isE2EBuild}
             textContentType={isE2EBuild ? 'none' : 'newPassword'}
-            passwordRules={isE2EBuild ? undefined : 'minlength: 8;'}
+            passwordRules={isE2EBuild ? undefined : PASSWORD_RULES_DESCRIPTOR}
             autoComplete={isE2EBuild ? 'off' : 'password-new'}
           />
         </GroupedCard>

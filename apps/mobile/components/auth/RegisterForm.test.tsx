@@ -30,10 +30,18 @@ describe('RegisterForm', () => {
     expect(screen.getByText(/dog's profile on the next step/i)).toBeTruthy();
   });
 
-  it('disables Continue when fields are empty or password too short', () => {
+  it('disables Continue when fields are empty or password does not meet policy', () => {
     render(<RegisterForm onSuccess={jest.fn()} />);
     const button = screen.getByRole('button', { name: 'Continue' });
     expect(button).toBeDisabled();
+
+    fireEvent.changeText(screen.getByLabelText('Your name'), 'Taro');
+    fireEvent.changeText(screen.getByLabelText('Email'), 'new@example.com');
+    fireEvent.changeText(screen.getByLabelText('Password'), 'password123');
+
+    expect(button).toBeDisabled();
+    fireEvent.press(button);
+    expect(mockSignUp).not.toHaveBeenCalled();
   });
 
   it('calls signUp with form values on Continue', async () => {
@@ -42,11 +50,11 @@ describe('RegisterForm', () => {
 
     fireEvent.changeText(screen.getByLabelText('Your name'), 'Taro');
     fireEvent.changeText(screen.getByLabelText('Email'), 'new@example.com');
-    fireEvent.changeText(screen.getByLabelText('Password'), 'password123');
+    fireEvent.changeText(screen.getByLabelText('Password'), 'Password123');
     fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
 
     await waitFor(() => {
-      expect(mockSignUp).toHaveBeenCalledWith('new@example.com', 'password123', 'Taro');
+      expect(mockSignUp).toHaveBeenCalledWith('new@example.com', 'Password123', 'Taro');
     });
   });
 
@@ -56,7 +64,7 @@ describe('RegisterForm', () => {
 
     fireEvent.changeText(screen.getByLabelText('Your name'), 'Taro');
     fireEvent.changeText(screen.getByLabelText('Email'), 'new@example.com');
-    fireEvent.changeText(screen.getByLabelText('Password'), 'password123');
+    fireEvent.changeText(screen.getByLabelText('Password'), 'Password123');
     fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
 
     await waitFor(() => {
@@ -70,7 +78,7 @@ describe('RegisterForm', () => {
 
     fireEvent.changeText(screen.getByLabelText('Your name'), 'Taro');
     fireEvent.changeText(screen.getByLabelText('Email'), 'new@example.com');
-    fireEvent.changeText(screen.getByLabelText('Password'), 'password123');
+    fireEvent.changeText(screen.getByLabelText('Password'), 'Password123');
     fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
 
     await waitFor(() => {
@@ -84,7 +92,7 @@ describe('RegisterForm', () => {
 
     fireEvent.changeText(screen.getByLabelText('Your name'), 'Taro');
     fireEvent.changeText(screen.getByLabelText('Email'), 'new@example.com');
-    fireEvent.changeText(screen.getByLabelText('Password'), 'password123');
+    fireEvent.changeText(screen.getByLabelText('Password'), 'Password123');
     fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
 
     await waitFor(() => {

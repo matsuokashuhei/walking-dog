@@ -13,6 +13,7 @@ use aws_sdk_cognitoidentityprovider::{
     types::{AttributeType, AuthFlowType},
 };
 use std::{fmt, sync::Arc};
+use tracing::warn;
 
 pub type SharedAuthGateway = Arc<dyn AuthGateway>;
 
@@ -60,15 +61,26 @@ pub trait AuthGateway: Send + Sync + 'static {
 pub struct CognitoAuthGateway {
     client: Client,
     client_id: String,
+    skip_global_sign_out: bool,
 }
 
 impl CognitoAuthGateway {
     pub fn from_env(client: Client) -> anyhow::Result<Self> {
+        let cognito_endpoint = std::env::var("AWS_COGNITO_ENDPOINT").ok();
         Ok(Self {
             client,
             client_id: std::env::var("AWS_COGNITO_CLIENT_ID")?,
+            skip_global_sign_out: cognito_endpoint
+                .as_deref()
+                .is_some_and(is_local_cognito_endpoint),
         })
     }
+}
+
+fn is_local_cognito_endpoint(endpoint: &str) -> bool {
+    endpoint.contains("cognito-local")
+        || endpoint.contains("localhost")
+        || endpoint.contains("127.0.0.1")
 }
 
 #[async_trait]
@@ -149,6 +161,13 @@ impl AuthGateway for CognitoAuthGateway {
     }
 
     async fn sign_out(&self, access_token: &str) -> Result<(), AuthGatewayError> {
+        if self.skip_global_sign_out {
+            warn!(
+                "Skipping Cognito GlobalSignOut because the configured local Cognito endpoint does not implement it"
+            );
+            return Ok(());
+        }
+
         self.client
             .global_sign_out()
             .access_token(access_token)

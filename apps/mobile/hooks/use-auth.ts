@@ -35,6 +35,14 @@ export function useAuth() {
     await authApi.confirmForgotPassword(email, code, newPassword);
   }
 
+  async function changePassword(
+    oldPassword: string,
+    newPassword: string
+  ): Promise<void> {
+    await authApi.changePassword(oldPassword, newPassword);
+    await clearAuth();
+  }
+
   async function signOut(): Promise<void> {
     // アクセストークンがある場合だけ、サーバーへサインアウトを通知します。
     if (accessToken) {
@@ -52,6 +60,7 @@ export function useAuth() {
     confirmSignUp,
     forgotPassword,
     confirmForgotPassword,
+    changePassword,
     signOut,
   };
 }

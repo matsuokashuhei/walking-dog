@@ -13,6 +13,7 @@ env:
   E2E_NAME: Harness Owner
   E2E_EMAIL: harness-auth@example.com
   E2E_PASSWORD: password123
+  E2E_NEW_PASSWORD: Newpass1
   E2E_CONFIRMATION_CODE: "123456"
 ---
 - launchApp:
@@ -34,12 +35,51 @@ env:
     when:
       visible: Email Verification
     commands:
-      - tapOn: Confirmation Code
-      - inputText: ${E2E_CONFIRMATION_CODE}
+      - tapOn: "1"
+      - tapOn: "2"
+      - tapOn: "3"
+      - tapOn: "4"
+      - tapOn: "5"
+      - tapOn: "6"
       - tapOn: Confirm
 - extendedWaitUntil:
-    visible: Dogs
+    visible: Welcome back
+    timeout: 15000
+- tapOn:
+    id: login-email
+- inputText: ${E2E_EMAIL}
+- tapOn:
+    id: login-password
+- inputText: ${E2E_PASSWORD}
+- tapOn: Sign in
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow:
+    when:
+      visible: Save Password?
+    commands:
+      - tapOn: Not Now
+- extendedWaitUntil:
+    visible: No dogs yet
     timeout: 15000
 - assertVisible: Walk
 - assertVisible: Me
+- tapOn: Me
+- tapOn:
+    id: user-change-password-row
+- assertVisible: Change password
+- tapOn:
+    id: change-password-current
+- inputText: ${E2E_PASSWORD}
+- tapOn:
+    id: change-password-new
+- inputText: ${E2E_NEW_PASSWORD}
+- tapOn:
+    id: change-password-confirm
+- inputText: ${E2E_NEW_PASSWORD}
+- tapOn:
+    id: change-password-submit
+- extendedWaitUntil:
+    visible: Welcome back
+    timeout: 15000
 - takeScreenshot: harness-auth-onboarding

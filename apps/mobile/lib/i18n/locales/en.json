@@ -340,6 +340,7 @@
     "notifications": "Notifications",
     "notificationsValue": "On",
     "openSettings": "Settings",
+    "changePassword": "Change password",
     "terms": "Terms of Service",
     "privacy": "Privacy Policy",
     "about": "About",
@@ -370,6 +371,20 @@
     "photoPermissionDenied": "Photo access denied",
     "photoPermissionMessage": "Allow photo access to update your user picture.",
     "saveError": "Failed to save user. Please try again."
+  },
+  "userChangePassword": {
+    "title": "Change password",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm password",
+    "passwordHint": "Use at least 8 characters with uppercase, lowercase, and a number.",
+    "submit": "Update password",
+    "error": {
+      "currentPassword": "Current password is incorrect",
+      "invalidPassword": "Password does not meet requirements",
+      "passwordMismatch": "Passwords do not match",
+      "generic": "Password change failed"
+    }
   },
   "nativePermissions": {
     "locationWhenInUse": "Walking Dog uses your location to record walk routes.",

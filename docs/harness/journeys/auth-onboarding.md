@@ -15,7 +15,8 @@
 ## Scope
 
 A new owner creates an account, confirms email when required, signs in, and reaches
-the authenticated app with the expected Dogs, Walk, and Me surfaces.
+the authenticated app with the expected Dogs, Walk, and Me surfaces. A signed-in
+owner can also change their password from Me and must sign in again afterward.
 
 ## Acceptance Criteria
 
@@ -25,13 +26,21 @@ the authenticated app with the expected Dogs, Walk, and Me surfaces.
   requires confirmation.
 - Sign-in stores tokens through secure storage, not AsyncStorage.
 - Authenticated navigation shows Dogs, Walk, and Me tabs.
+- Changing password requires the current password, a valid new password, and
+  matching confirmation before submitting.
+- Successful password change clears local auth and returns the owner to sign-in.
+- Real Cognito invalidates sessions through `GlobalSignOut`; `cognito-local`
+  supports `ChangePassword` but not `GlobalSignOut`, so local harness proof
+  treats local token clearing as the enforced re-login boundary.
 - Invalid credentials and network failures surface actionable errors without
   silently falling back to an authenticated state.
 
 ## Evidence
 
 - Maestro: `apps/mobile/e2e/maestro/auth-onboarding.yaml`.
-- API: GraphQL sign-up, confirm, and sign-in request/response snippets.
-- Mobile: screenshot of authenticated tabs and command output for auth tests.
+- API: GraphQL sign-up, confirm, sign-in, and change-password request/response
+  snippets with password variables redacted.
+- Mobile: screenshot of authenticated tabs, password-change entry, and command
+  output for auth tests.
 - Observability: API logs showing the auth mutation path and no token values in
   logs.

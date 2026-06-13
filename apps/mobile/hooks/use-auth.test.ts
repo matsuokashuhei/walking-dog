@@ -4,6 +4,7 @@ import type * as AuthApiModule from '@/lib/auth/api';
 import type * as AuthStoreModule from '@/stores/auth-store';
 
 jest.mock('@/lib/auth/api', () => ({
+  changePassword: jest.fn(),
   confirmForgotPassword: jest.fn(),
   confirmSignUp: jest.fn(),
   forgotPassword: jest.fn(),
@@ -103,5 +104,39 @@ describe('use-auth', () => {
       '123456',
       'Newpass1',
     );
+  });
+
+  it('changePassword delegates to authApi then clears local auth', async () => {
+    mockAuthApi.changePassword.mockResolvedValue(true);
+    mockUseAuthStore.mockReturnValue({
+      isAuthenticated: true,
+      isLoading: false,
+      accessToken: 'my-token',
+      setAuth: mockSetAuth,
+      clearAuth: mockClearAuth,
+      initialize: jest.fn(),
+    });
+
+    const { result } = renderHook(() => useAuth());
+    await act(async () => {
+      await result.current.changePassword('Currentpass1', 'Newpass1');
+    });
+
+    expect(mockAuthApi.changePassword).toHaveBeenCalledWith('Currentpass1', 'Newpass1');
+    expect(mockAuthApi.signOut).not.toHaveBeenCalled();
+    expect(mockClearAuth).toHaveBeenCalled();
+  });
+
+  it('changePassword leaves local auth intact when the API fails', async () => {
+    mockAuthApi.changePassword.mockRejectedValue({ kind: 'invalid-credentials' });
+
+    const { result } = renderHook(() => useAuth());
+    await act(async () => {
+      await expect(
+        result.current.changePassword('Wrongpass1', 'Newpass1')
+      ).rejects.toMatchObject({ kind: 'invalid-credentials' });
+    });
+
+    expect(mockClearAuth).not.toHaveBeenCalled();
   });
 });

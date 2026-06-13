@@ -1,9 +1,9 @@
 use anyhow::Result;
 use async_graphql::{Context, InputObject, Object, SimpleObject};
-use axum_extra::headers::authorization;
 use sea_orm::{ActiveModelTrait, ActiveValue::Set, DatabaseConnection};
 
 use crate::entity::user;
+use crate::graphql::AuthAccessToken;
 use crate::graphql::error::AppError;
 use crate::graphql::{error::AuthError, guard::AuthGuard};
 use crate::service::auth::{AuthTokenPair, SharedAuthGateway};
@@ -92,7 +92,9 @@ impl AuthMutation {
     #[graphql(guard = "AuthGuard")]
     async fn sign_out(&self, ctx: &Context<'_>) -> Result<SignOutOutput> {
         let auth_gateway = ctx.data::<SharedAuthGateway>().unwrap();
-        let authorization = ctx.data::<authorization::Bearer>().unwrap();
+        let authorization = ctx
+            .data::<AuthAccessToken>()
+            .map_err(|_| AppError::Unauthorized)?;
         auth_gateway
             .sign_out(authorization.token())
             .await
@@ -108,7 +110,7 @@ impl AuthMutation {
     ) -> Result<ChangeEmailOutput> {
         let auth_gateway = ctx.data::<SharedAuthGateway>().unwrap();
         let authorization = ctx
-            .data::<authorization::Bearer>()
+            .data::<AuthAccessToken>()
             .map_err(|_| AppError::Unauthorized)?;
         auth_gateway
             .change_email(authorization.token(), input.new_email)
@@ -125,7 +127,7 @@ impl AuthMutation {
     ) -> Result<ConfirmEmailChangeOutput> {
         let auth_gateway = ctx.data::<SharedAuthGateway>().unwrap();
         let authorization = ctx
-            .data::<authorization::Bearer>()
+            .data::<AuthAccessToken>()
             .map_err(|_| AppError::Unauthorized)?;
         auth_gateway
             .confirm_email_change(authorization.token(), input.code)
@@ -139,10 +141,10 @@ impl AuthMutation {
         &self,
         ctx: &Context<'_>,
         input: ChangePasswordInput,
-    ) -> Result<SignOutOutput> {
+    ) -> Result<ChangePasswordOutput> {
         let auth_gateway = ctx.data::<SharedAuthGateway>().unwrap();
         let authorization = ctx
-            .data::<authorization::Bearer>()
+            .data::<AuthAccessToken>()
             .map_err(|_| AppError::Unauthorized)?;
         auth_gateway
             .change_password(
@@ -152,7 +154,11 @@ impl AuthMutation {
             )
             .await
             .map_err(AuthError::from)?;
-        Ok(SignOutOutput { success: true })
+        auth_gateway
+            .sign_out(authorization.token())
+            .await
+            .map_err(AuthError::from)?;
+        Ok(ChangePasswordOutput { success: true })
     }
 }
 
@@ -270,4 +276,9 @@ pub struct ConfirmEmailChangeOutput {
 pub struct ChangePasswordInput {
     old_password: String,
     new_password: String,
+}
+
+#[derive(SimpleObject)]
+pub struct ChangePasswordOutput {
+    success: bool,
 }

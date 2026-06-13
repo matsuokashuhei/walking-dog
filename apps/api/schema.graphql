@@ -47,6 +47,10 @@ input ChangePasswordInput {
 	newPassword: String!
 }
 
+type ChangePasswordOutput {
+	success: Boolean!
+}
+
 input ConfirmEmailChangeInput {
 	code: String!
 }
@@ -158,7 +162,7 @@ type Mutation {
 	signOut: SignOutOutput!
 	changeEmail(input: ChangeEmailInput!): ChangeEmailOutput!
 	confirmEmailChange(input: ConfirmEmailChangeInput!): ConfirmEmailChangeOutput!
-	changePassword(input: ChangePasswordInput!): SignOutOutput!
+	changePassword(input: ChangePasswordInput!): ChangePasswordOutput!
 	addDog(input: AddDogInput!): Dog!
 	updateDog(input: UpdateDogInput!): Dog!
 	removeDog(input: RemoveDogInput!): Dog!
@@ -439,4 +443,3 @@ schema {
 	query: Query
 	mutation: Mutation
 }
-

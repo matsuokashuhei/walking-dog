@@ -4,8 +4,10 @@ import {
   CONFIRM_SIGN_UP_MUTATION,
   FORGOT_PASSWORD_MUTATION,
   CONFIRM_FORGOT_PASSWORD_MUTATION,
+  CHANGE_PASSWORD_MUTATION,
   SIGN_IN_MUTATION,
   REFRESH_TOKEN_MUTATION,
+  SIGN_OUT_MUTATION,
 } from '../graphql/mutations/auth';
 import { toAuthError } from './errors';
 
@@ -40,12 +42,20 @@ interface ConfirmForgotPasswordResponse {
   confirmForgotPassword: { success: boolean };
 }
 
+interface ChangePasswordResponse {
+  changePassword: { success: boolean };
+}
+
 interface SignInResponse {
   signIn: SignInResult;
 }
 
 interface RefreshTokenResponse {
   refreshToken: RefreshTokenResult;
+}
+
+interface SignOutResponse {
+  signOut: { success: boolean };
 }
 
 async function mapAuthRequestError<T>(request: () => Promise<T>): Promise<T> {
@@ -125,7 +135,22 @@ export async function signIn(email: string, password: string): Promise<SignInRes
 }
 
 export async function signOut(_accessToken: string): Promise<boolean> {
-  return true;
+  const data = await mapAuthRequestError(() =>
+    graphqlClient.request<SignOutResponse>(SIGN_OUT_MUTATION)
+  );
+  return data.signOut.success;
+}
+
+export async function changePassword(
+  oldPassword: string,
+  newPassword: string,
+): Promise<boolean> {
+  const data = await mapAuthRequestError(() =>
+    graphqlClient.request<ChangePasswordResponse>(CHANGE_PASSWORD_MUTATION, {
+      input: { oldPassword, newPassword },
+    })
+  );
+  return data.changePassword.success;
 }
 
 export async function refreshToken(refreshTokenValue: string): Promise<RefreshTokenResult> {

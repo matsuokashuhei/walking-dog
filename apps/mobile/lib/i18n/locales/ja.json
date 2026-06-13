@@ -340,6 +340,7 @@
     "notifications": "通知",
     "notificationsValue": "オン",
     "openSettings": "設定",
+    "changePassword": "パスワードを変更",
     "terms": "利用規約",
     "privacy": "プライバシーポリシー",
     "about": "このアプリについて",
@@ -370,6 +371,20 @@
     "photoPermissionDenied": "写真へのアクセスが拒否されました",
     "photoPermissionMessage": "ユーザー写真を更新するには写真へのアクセスを許可してください。",
     "saveError": "ユーザー情報の保存に失敗しました。もう一度お試しください。"
+  },
+  "userChangePassword": {
+    "title": "パスワードを変更",
+    "currentPassword": "現在のパスワード",
+    "newPassword": "新しいパスワード",
+    "confirmPassword": "確認用パスワード",
+    "passwordHint": "8文字以上で、大文字・小文字・数字を含めてください。",
+    "submit": "パスワードを更新",
+    "error": {
+      "currentPassword": "現在のパスワードが正しくありません",
+      "invalidPassword": "パスワードの要件を満たしていません",
+      "passwordMismatch": "パスワードが一致しません",
+      "generic": "パスワード変更に失敗しました"
+    }
   },
   "nativePermissions": {
     "locationWhenInUse": "Walking Dog は散歩ルートを記録するために位置情報を使用します。",

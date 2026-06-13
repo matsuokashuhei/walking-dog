@@ -10,6 +10,8 @@ import { toAuthError } from '@/lib/auth/errors';
 import { PRIVACY_POLICY_URL, TERMS_URL } from '@/lib/legal-urls';
 import { spacing, typography } from '@/theme/tokens';
 
+const isE2EBuild = process.env.EXPO_PUBLIC_E2E === '1';
+
 interface RegisterFormProps {
   onSuccess: (email: string, userConfirmed: boolean) => void;
 }
@@ -95,10 +97,10 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
           testID="register-password"
           value={password}
           onChangeText={setPassword}
-          secureTextEntry
-          textContentType="newPassword"
-          passwordRules="minlength: 8;"
-          autoComplete="password-new"
+          secureTextEntry={!isE2EBuild}
+          textContentType={isE2EBuild ? 'none' : 'newPassword'}
+          passwordRules={isE2EBuild ? undefined : 'minlength: 8;'}
+          autoComplete={isE2EBuild ? 'off' : 'password-new'}
           error={passwordError}
         />
       </GroupedCard>

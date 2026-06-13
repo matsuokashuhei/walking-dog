@@ -32,6 +32,14 @@ export const CONFIRM_FORGOT_PASSWORD_MUTATION = gql`
   }
 `;
 
+export const CHANGE_PASSWORD_MUTATION = gql`
+  mutation ChangePassword($input: ChangePasswordInput!) {
+    changePassword(input: $input) {
+      success
+    }
+  }
+`;
+
 export const SIGN_IN_MUTATION = gql`
   mutation SignIn($input: SignInInput!) {
     signIn(input: $input) {
@@ -46,6 +54,14 @@ export const REFRESH_TOKEN_MUTATION = gql`
     refreshToken(input: $input) {
       accessToken
       refreshToken
+    }
+  }
+`;
+
+export const SIGN_OUT_MUTATION = gql`
+  mutation SignOut {
+    signOut {
+      success
     }
   }
 `;

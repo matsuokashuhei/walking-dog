@@ -12,6 +12,10 @@ use axum::{
     response::{Html, IntoResponse},
     routing::get,
 };
+use axum_extra::{
+    TypedHeader,
+    headers::{Authorization, authorization::Bearer},
+};
 use migration::{Migrator, MigratorTrait};
 use sea_orm::Database;
 use tokio::net::TcpListener;
@@ -45,12 +49,16 @@ async fn main() -> anyhow::Result<()> {
 async fn graphql_handler(
     State(schema): State<Schema<Query, mutation::Mutation, EmptySubscription>>,
     user: Option<axum::Extension<user::Model>>,
+    authorization: Option<TypedHeader<Authorization<Bearer>>>,
     request: GraphQLRequest,
 ) -> GraphQLResponse {
-    let mut request = request.into_inner();
-    if let Some(axum::Extension(user)) = user {
-        request = request.data(user);
-    }
+    let access_token = authorization
+        .map(|TypedHeader(authorization)| graphql::AuthAccessToken::new(authorization.token()));
+    let request = graphql::attach_request_context(
+        request.into_inner(),
+        user.map(|axum::Extension(user)| user),
+        access_token,
+    );
     schema.execute(request).await.into()
 }
 

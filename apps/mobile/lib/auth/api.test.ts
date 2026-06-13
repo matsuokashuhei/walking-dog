@@ -2,11 +2,13 @@ import { GraphQLError } from 'graphql';
 import { graphqlClient } from '../graphql/client';
 import { ClientError } from '../graphql/client-error';
 import {
+  changePassword,
   confirmForgotPassword,
   confirmSignUp,
   forgotPassword,
   refreshToken,
   signIn,
+  signOut,
   signUp,
 } from './api';
 
@@ -127,6 +129,41 @@ describe('auth api', () => {
     ).rejects.toMatchObject({
       kind: 'invalid-password',
     });
+  });
+
+  it('changePassword sends the current and new password for the signed-in user', async () => {
+    mockRequest.mockResolvedValue({ changePassword: { success: true } });
+
+    await expect(changePassword('Currentpass1', 'Newpass1')).resolves.toBe(true);
+    expect(mockRequest).toHaveBeenCalledWith(expect.any(String), {
+      input: {
+        oldPassword: 'Currentpass1',
+        newPassword: 'Newpass1',
+      },
+    });
+  });
+
+  it('changePassword maps incorrect current passwords to invalid-credentials', async () => {
+    mockRequest.mockRejectedValue(makeClientError('NotAuthorizedException'));
+
+    await expect(changePassword('Wrongpass1', 'Newpass1')).rejects.toMatchObject({
+      kind: 'invalid-credentials',
+    });
+  });
+
+  it('changePassword maps password policy failures to invalid-password', async () => {
+    mockRequest.mockRejectedValue(makeClientError('PasswordHistoryPolicyViolationException'));
+
+    await expect(changePassword('Currentpass1', 'Currentpass1')).rejects.toMatchObject({
+      kind: 'invalid-password',
+    });
+  });
+
+  it('signOut calls the authenticated sign out mutation', async () => {
+    mockRequest.mockResolvedValue({ signOut: { success: true } });
+
+    await expect(signOut('access-token')).resolves.toBe(true);
+    expect(mockRequest).toHaveBeenCalledWith(expect.any(String));
   });
 
   it('refreshToken returns refreshed tokens on success', async () => {

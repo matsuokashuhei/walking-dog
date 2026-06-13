@@ -8,14 +8,42 @@ pub(crate) mod upload;
 
 use std::{env, sync::Arc};
 
+use crate::entity::user;
 use crate::graphql::query::Query;
 use crate::queue::track_point::TrackPointEnqueuer;
 use crate::service::auth::{CognitoAuthGateway, SharedAuthGateway};
 use crate::service::storage::{S3StorageGateway, SharedStorageGateway};
 use crate::service::track_point::{DynamoDbTrackPointRepository, SharedTrackPointRepository};
 use anyhow::Result;
-use async_graphql::{EmptySubscription, extensions::Tracing};
+use async_graphql::{EmptySubscription, Request, extensions::Tracing};
 use tracing::info;
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct AuthAccessToken(String);
+
+impl AuthAccessToken {
+    pub fn new(token: impl Into<String>) -> Self {
+        Self(token.into())
+    }
+
+    pub fn token(&self) -> &str {
+        &self.0
+    }
+}
+
+pub fn attach_request_context(
+    mut request: Request,
+    user: Option<user::Model>,
+    access_token: Option<AuthAccessToken>,
+) -> Request {
+    if let Some(user) = user {
+        request = request.data(user);
+    }
+    if let Some(access_token) = access_token {
+        request = request.data(access_token);
+    }
+    request
+}
 
 pub async fn build_schema()
 -> anyhow::Result<async_graphql::Schema<Query, mutation::Mutation, EmptySubscription>> {

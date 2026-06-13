@@ -37,12 +37,21 @@ describe('useOtpInput', () => {
     expect(result.current.digits[0]).toBe('5');
   });
 
-  it('setDigit keeps only the last character of multi-character input', () => {
+  it('setDigit distributes multi-character input from the given index', () => {
     const { result } = renderHook(() => useOtpInput(6));
     act(() => {
-      result.current.setDigit(0, '12');
+      result.current.setDigit(0, '123456');
     });
-    expect(result.current.digits[0]).toBe('2');
+    expect(result.current.digits).toEqual(['1', '2', '3', '4', '5', '6']);
+    expect(result.current.code).toBe('123456');
+  });
+
+  it('setDigit distributes multi-character input without overflowing', () => {
+    const { result } = renderHook(() => useOtpInput(6));
+    act(() => {
+      result.current.setDigit(4, '789');
+    });
+    expect(result.current.digits).toEqual(['', '', '', '', '7', '8']);
   });
 
   it('setDigit with empty value clears the digit', () => {
@@ -68,6 +77,18 @@ describe('useOtpInput', () => {
       result.current.setDigit(0, '4');
     });
     expect(input1.focus).toHaveBeenCalledTimes(1);
+  });
+
+  it('setDigit advances focus after distributed multi-character input', () => {
+    const { result } = renderHook(() => useOtpInput(6));
+    const input3 = makeMockInput();
+    act(() => {
+      result.current.setInputRef(3)(input3);
+    });
+    act(() => {
+      result.current.setDigit(0, '123');
+    });
+    expect(input3.focus).toHaveBeenCalledTimes(1);
   });
 
   it('setDigit on the last index does not attempt to focus beyond the end', () => {

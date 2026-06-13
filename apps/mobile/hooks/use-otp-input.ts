@@ -13,15 +13,26 @@ export function useOtpInput(length: number) {
 
   const setDigit = useCallback(
     (index: number, value: string) => {
-      // 貼り付けやキーボード入力から数字 1 桁だけを採用し、次の欄へ進めます。
-      const digit = value.replace(/[^0-9]/g, '').slice(-1);
+      const numericInput = value.replace(/[^0-9]/g, '');
       setDigits((prev) => {
         const next = [...prev];
-        next[index] = digit;
+        if (!numericInput) {
+          next[index] = '';
+          return next;
+        }
+        numericInput
+          .slice(0, length - index)
+          .split('')
+          .forEach((digit, offset) => {
+            next[index + offset] = digit;
+          });
         return next;
       });
-      if (digit && index < length - 1) {
-        inputRefs.current[index + 1]?.focus();
+      if (numericInput) {
+        const nextIndex = index + numericInput.length;
+        if (nextIndex < length) {
+          inputRefs.current[nextIndex]?.focus();
+        }
       }
     },
     [length],

@@ -16,6 +16,22 @@ export const CONFIRM_SIGN_UP_MUTATION = gql`
   }
 `;
 
+export const FORGOT_PASSWORD_MUTATION = gql`
+  mutation ForgotPassword($input: ForgotPasswordInput!) {
+    forgotPassword(input: $input) {
+      success
+    }
+  }
+`;
+
+export const CONFIRM_FORGOT_PASSWORD_MUTATION = gql`
+  mutation ConfirmForgotPassword($input: ConfirmForgotPasswordInput!) {
+    confirmForgotPassword(input: $input) {
+      success
+    }
+  }
+`;
+
 export const SIGN_IN_MUTATION = gql`
   mutation SignIn($input: SignInInput!) {
     signIn(input: $input) {

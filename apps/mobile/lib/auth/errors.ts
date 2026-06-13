@@ -75,7 +75,7 @@ export function toAuthError(error: unknown): AuthError {
     return { kind: 'user-exists', message };
   }
 
-  if (includesAny(normalizedMessage, ['INVALID_PASSWORD'])) {
+  if (includesAny(normalizedMessage, ['INVALID_PASSWORD', 'INVALIDPASSWORDEXCEPTION'])) {
     return { kind: 'invalid-password', message };
   }
 

@@ -41,6 +41,32 @@ impl AuthMutation {
         Ok(ConfirmSignUpOutput { success: true })
     }
 
+    async fn forgot_password(
+        &self,
+        ctx: &Context<'_>,
+        input: ForgotPasswordInput,
+    ) -> Result<ForgotPasswordOutput> {
+        let auth_gateway = ctx.data::<SharedAuthGateway>().unwrap();
+        auth_gateway
+            .forgot_password(input.email)
+            .await
+            .map_err(AuthError::from)?;
+        Ok(ForgotPasswordOutput { success: true })
+    }
+
+    async fn confirm_forgot_password(
+        &self,
+        ctx: &Context<'_>,
+        input: ConfirmForgotPasswordInput,
+    ) -> Result<ConfirmForgotPasswordOutput> {
+        let auth_gateway = ctx.data::<SharedAuthGateway>().unwrap();
+        auth_gateway
+            .confirm_forgot_password(input.email, input.code, input.new_password)
+            .await
+            .map_err(AuthError::from)?;
+        Ok(ConfirmForgotPasswordOutput { success: true })
+    }
+
     async fn sign_in(&self, ctx: &Context<'_>, input: SignInInput) -> Result<SignInOutput> {
         let auth_gateway = ctx.data::<SharedAuthGateway>().unwrap();
         let output = auth_gateway
@@ -119,7 +145,11 @@ impl AuthMutation {
             .data::<authorization::Bearer>()
             .map_err(|_| AppError::Unauthorized)?;
         auth_gateway
-            .change_password(authorization.token(), input.old_password, input.new_password)
+            .change_password(
+                authorization.token(),
+                input.old_password,
+                input.new_password,
+            )
             .await
             .map_err(AuthError::from)?;
         Ok(SignOutOutput { success: true })
@@ -150,6 +180,28 @@ pub struct ConfirmSignUpInput {
 
 #[derive(SimpleObject)]
 pub struct ConfirmSignUpOutput {
+    success: bool,
+}
+
+#[derive(Clone, Debug, InputObject)]
+pub struct ForgotPasswordInput {
+    email: String,
+}
+
+#[derive(SimpleObject)]
+pub struct ForgotPasswordOutput {
+    success: bool,
+}
+
+#[derive(Clone, Debug, InputObject)]
+pub struct ConfirmForgotPasswordInput {
+    email: String,
+    code: String,
+    new_password: String,
+}
+
+#[derive(SimpleObject)]
+pub struct ConfirmForgotPasswordOutput {
     success: bool,
 }
 

@@ -11,9 +11,10 @@ import { spacing, typography } from '@/theme/tokens';
 
 interface LoginFormProps {
   onSuccess: () => void;
+  onForgotPassword: () => void;
 }
 
-export function LoginForm({ onSuccess }: LoginFormProps) {
+export function LoginForm({ onSuccess, onForgotPassword }: LoginFormProps) {
   const { signIn } = useAuth();
   const { t } = useTranslation();
   const theme = useColors();
@@ -50,7 +51,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
   }
 
   function handleForgotPassword() {
-    Alert.alert(t('auth.login.forgotPassword'), t('auth.login.comingSoonApple'));
+    onForgotPassword();
   }
 
   function handleApple() {

@@ -1,7 +1,14 @@
 import { GraphQLError } from 'graphql';
 import { graphqlClient } from '../graphql/client';
 import { ClientError } from '../graphql/client-error';
-import { confirmSignUp, refreshToken, signIn, signUp } from './api';
+import {
+  confirmForgotPassword,
+  confirmSignUp,
+  forgotPassword,
+  refreshToken,
+  signIn,
+  signUp,
+} from './api';
 
 jest.mock('../graphql/client', () => ({
   graphqlClient: {
@@ -74,6 +81,51 @@ describe('auth api', () => {
     await expect(confirmSignUp('user@example.com', '123456')).rejects.toMatchObject({
       kind: 'code-mismatch',
       reason: 'expired',
+    });
+  });
+
+  it('forgotPassword requests a reset code for an email address', async () => {
+    mockRequest.mockResolvedValue({ forgotPassword: { success: true } });
+
+    await expect(forgotPassword('user@example.com')).resolves.toBe(true);
+    expect(mockRequest).toHaveBeenCalledWith(expect.any(String), {
+      input: { email: 'user@example.com' },
+    });
+  });
+
+  it('confirmForgotPassword sends the code and new password', async () => {
+    mockRequest.mockResolvedValue({ confirmForgotPassword: { success: true } });
+
+    await expect(
+      confirmForgotPassword('user@example.com', '123456', 'Newpass1')
+    ).resolves.toBe(true);
+    expect(mockRequest).toHaveBeenCalledWith(expect.any(String), {
+      input: {
+        email: 'user@example.com',
+        code: '123456',
+        newPassword: 'Newpass1',
+      },
+    });
+  });
+
+  it('confirmForgotPassword maps invalid reset codes to code-mismatch', async () => {
+    mockRequest.mockRejectedValue(makeClientError('CodeMismatchException'));
+
+    await expect(
+      confirmForgotPassword('user@example.com', '000000', 'Newpass1')
+    ).rejects.toMatchObject({
+      kind: 'code-mismatch',
+      reason: 'invalid',
+    });
+  });
+
+  it('confirmForgotPassword maps invalid new passwords to invalid-password', async () => {
+    mockRequest.mockRejectedValue(makeClientError('InvalidPasswordException'));
+
+    await expect(
+      confirmForgotPassword('user@example.com', '123456', 'short')
+    ).rejects.toMatchObject({
+      kind: 'invalid-password',
     });
   });
 

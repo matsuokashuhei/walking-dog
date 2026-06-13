@@ -84,6 +84,8 @@ services:
 
   cognito-local:
     image: jagregory/cognito-local:latest
+    environment:
+      CODE: "123456"
     ports:
       - "${WD_COGNITO_PORT:-9229}:9229"
     volumes:

@@ -69,6 +69,34 @@
         "generic": "Verification failed"
       }
     },
+    "reset": {
+      "secureRecovery": "Secure account recovery",
+      "requestTitle": "Reset your password",
+      "requestDescription": "Enter the email you use for Walking Dog. We'll send a verification code to help you get back to your walks.",
+      "email": "Email",
+      "emailHint": "Use the email address connected to your Walking Dog account.",
+      "sendCode": "Send reset code",
+      "confirmTitle": "Check your email",
+      "confirmDescription": "We sent a code to {{email}}. Enter it below and choose a new password.",
+      "code": "Verification code",
+      "digitLabel": "Digit {{position}}",
+      "newPassword": "New password",
+      "confirmPassword": "Confirm",
+      "passwordHint": "Use at least 8 characters with uppercase, lowercase, and a number.",
+      "submit": "Reset password",
+      "resend": "Resend code",
+      "doneTitle": "Password reset",
+      "doneDescription": "Your password has been updated. Sign in again to keep walking with your companion.",
+      "backToSignIn": "Back to Sign in",
+      "error": {
+        "request": "Could not send a reset code",
+        "invalidCode": "Invalid reset code",
+        "expiredCode": "Reset code has expired",
+        "invalidPassword": "Password does not meet requirements",
+        "passwordMismatch": "Passwords do not match",
+        "generic": "Password reset failed"
+      }
+    },
     "error": {
       "networkError": "Please check your network connection"
     }

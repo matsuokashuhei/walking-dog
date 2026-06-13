@@ -1,0 +1,31 @@
+name: Harness
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 0 * * 1"
+
+concurrency:
+  group: harness-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  invariants:
+    name: Repository Invariants
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Run harness script tests
+        run: node --test scripts/harness/*.test.mjs
+
+      - name: Validate knowledge, architecture, and quality
+        run: node scripts/harness/validate-all.mjs

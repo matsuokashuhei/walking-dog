@@ -1,0 +1,47 @@
+# Harness preconditions:
+# - Owner is already authenticated or the harness logs in before this flow.
+# - API has no existing dog named Harness Coco for this owner, or duplicate names are acceptable.
+# - Photo selection is controlled by a future fixture; this skeleton covers profile fields.
+appId: com.walkingdog.app
+name: Dog Profile
+tags:
+  - harness
+  - dog-profile
+  - journey
+env:
+  DOG_NAME: Harness Coco
+  DOG_BREED: Shiba Inu
+---
+- launchApp:
+    clearState: false
+- tapOn: Dogs
+- assertVisible: Dogs
+- runFlow:
+    when:
+      visible: Add Dog
+    commands:
+      - tapOn: Add Dog
+- runFlow:
+    when:
+      visible: "+ Add"
+    commands:
+      - tapOn: "+ Add"
+- assertVisible: Register dog
+- tapOn: Name
+- inputText: ${DOG_NAME}
+- tapOn: Breed
+- inputText: ${DOG_BREED}
+- tapOn: Gender
+- tapOn: Female
+- tapOn: Save
+- extendedWaitUntil:
+    visible: ${DOG_NAME}
+    timeout: 15000
+- tapOn: ${DOG_NAME}
+- assertVisible: Dog Profile
+- assertVisible: Goal progress
+- assertVisible: Walks
+- tapOn: Edit
+- assertVisible: Edit dog
+- assertVisible: ${DOG_NAME}
+- takeScreenshot: harness-dog-profile

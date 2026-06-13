@@ -1,100 +1,87 @@
-# walking-dog — Monorepo
+# walking-dog Agent Map
 
-## Product Vision
+This repository exists to make dogs and owners happier through better walks.
+Agents should keep this file small and use it as a map into the repository-local
+system of record.
 
-このプロダクトは犬と飼い主に幸せを届けるために存在する。機能・UI を設計するときは、以下の3軸で判断すること。
+## Product Decision Axes
 
-### 犬の体験
-- 散歩中に出会う他の犬との交流を親密にする
-- **問い**: この機能は犬同士の出会い・関係性を深めるか？
+Every product change must explain its impact on:
 
-### データによる散歩の最大化
-- 散歩をデータ化して蓄積し、分析することで散歩の楽しさを最大化する
-- **問い**: この機能で得たデータは、散歩体験の改善につながるか？
+- Dog experience: does it deepen encounters and relationships between dogs?
+- Walk data: does the data improve future walk quality or insight?
+- Owner contribution: does it make owners want to walk and care more?
 
-### 飼い主の貢献心
-- 犬が散歩を楽しんでいることをデータで示し、飼い主の犬への貢献心を引き出す
-- **問い**: この画面・機能は飼い主の「もっと散歩してあげたい」という気持ちを引き出すか？
+Source of truth: [docs/product/principles.md](docs/product/principles.md)
 
-## General Rules
+## Required Reading By Task
 
-- **エラーを隠す回避策を提案しない** — バグ修正では必ず根本原因を特定して直す。エラーを握りつぶすコード（optional化、try/catch追加、fallback値）を「修正」として提案してはならない。
-- **差分の小ささより全体最適を優先する** — コードは常にシステム全体の整合性、単純さ、拡張性が最も高くなる形で設計すること。既存コードの変更を最小にすることや、変更を局所に閉じ込めること自体を目的にしてはならない。必要なら変更範囲が広がっても、その場しのぎではなく、より一貫した理想の設計を選ぶこと。
+- Harness process: [docs/harness/README.md](docs/harness/README.md)
+- Domain rules: [docs/harness/domain-rules.md](docs/harness/domain-rules.md)
+- Architecture overview: [docs/architecture/harness-first-development.md](docs/architecture/harness-first-development.md)
+- Local runbook: [docs/runbooks/local-harness.md](docs/runbooks/local-harness.md)
+- Journey catalog: [docs/harness/journeys/](docs/harness/journeys/)
+- Quality score: [docs/harness/quality-score.md](docs/harness/quality-score.md)
+- Lessons learned: [docs/harness/lessons-learned.md](docs/harness/lessons-learned.md)
+- API details: [apps/api/README.md](apps/api/README.md)
+- Mobile details: [apps/mobile/CLAUDE.md](apps/mobile/CLAUDE.md)
+- Legal publishing: [infra/sakura/README.md](infra/sakura/README.md)
+- Cloudflare/Cognito email: [docs/cloudflare-cognito-email.md](docs/cloudflare-cognito-email.md)
 
-## Domain Notes
+## Mechanical Gates
 
-- Walk goals are time-based, not distance-based. Store and edit them through `dog_walk_goal.walk_amount.minutes` plus `cycle_days` (`1` for DAILY, `7` for WEEKLY); keep distance metrics as separate stats.
-- Walk goal minute bounds are a shared API/Mobile contract. When changing selectable goal ranges, update `apps/api/src/service/dog_walk_goal.rs`, `apps/mobile/constants/walk.ts`, and their boundary tests together.
-- API track point storage details belong behind `service::track_point::TrackPointRepository`. GraphQL resolvers and queue handlers should use the service/domain `TrackPoint` contract instead of depending on DynamoDB table shape, timestamp encoding, or `AttributeValue` mapping.
-- API walk lifecycle and history semantics belong in `service::walk` and `service::walk_read_model`. GraphQL should translate inputs/outputs and keep ownership, active-walk checks, distance finalization, pagination totals, and aggregate SQL in those service modules.
-- API upload storage belongs behind `service::storage::StorageGateway`. GraphQL may adapt `Upload` into `StorageUpload`, but S3 clients, bucket/env handling, content-size policy, object keys, and avatar URL construction should stay in the storage service.
-- Cognito email delivery uses Amazon SES with the domain DNS records managed in Cloudflare. Keep Cloudflare dashboard runbooks under `infra/cloudflare`; Cloudflare API tokens are not needed for Cognito email delivery.
-- Cognito refresh uses `GetTokensFromRefreshToken` with refresh token rotation enabled. App clients must not include `ALLOW_REFRESH_TOKEN_AUTH`; API must reject Cognito refresh responses that omit access or refresh tokens instead of returning fallback token values.
-- Legal document drafts belong in `docs/legal/`. Draft-only legal work should not change app legal URLs or registration/settings behavior unless explicitly requested.
-- Sakura-published legal pages belong in `infra/sakura/legal/` and are served by Caddy at `/terms` and `/policy`; do not add API routes for legal document hosting.
+Before claiming work is ready, run:
 
-## Development Rules
-
-各サービスの詳細な開発ルールはそれぞれの CLAUDE.md を参照：
-- API: `apps/api/CLAUDE.md`
-- Mobile: `apps/mobile/CLAUDE.md`
-
-## Directory Structure
-
-```
-walking-dog/
-├── apps/       # Deployable applications (depend on packages/)
-│   ├── api/    # Backend API
-│   ├── mobile/ # React Native / Expo app
-│   └── web/    # Web frontend
-├── docs/       # Design documents and specs
-├── infra/      # Cloud infrastructure (IaC)
-├── packages/   # Shared libraries used by apps/
-│   ├── ui/     # (future) Shared UI components
-│   ├── types/  # (future) Shared TypeScript types
-│   └── utils/  # (future) Shared utilities
-└── README.md
+```bash
+node scripts/harness/validate-all.mjs
 ```
 
-# Development Workflow
+For API changes, also run the API tests from the current worktree. Prefer the
+bind-mounted Docker form when multiple worktrees may share compose volumes.
 
-This project uses the obra/superpowers plugin. Always check for relevant skills before taking any action.
+For Mobile changes, run from `apps/mobile`:
 
-## Project-scoped Skills
+```bash
+npm test
+npm run typecheck
+npm run lint
+```
 
-- UI の設計・実装・リファクタリングで Expo / React Native / `@expo/ui` / `@expo/ui/swift-ui` を扱う場合は、最初に `.codex/skills/expo-ui-docs-first/SKILL.md` を読むこと。repo-local skill の自動検出が効かないセッションでも、このファイルを明示的に参照してから計画・実装する。
+## Harness Commands
 
-## Local Docker Verification
+```bash
+node scripts/harness/validate-knowledge.mjs
+node scripts/harness/validate-architecture.mjs
+node scripts/harness/validate-all.mjs
+node scripts/harness/dev-stack.mjs up
+node scripts/harness/reset-local-data.mjs
+HARNESS_ACCESS_TOKEN=<token> node scripts/harness/run-api-journey.mjs walk-lifecycle
+node scripts/harness/query-observability.mjs
+node scripts/harness/score-quality.mjs
+```
 
-- 複数 worktree で `apps/compose.yml` を使うと、compose project 名 `apps` が衝突して `docker compose exec` が別 worktree の volume を見ていることがある。現在の worktree の API コードを検証するときは、必要に応じて `docker run --rm -v "$PWD":/walking-dog -v apps_cargo_cache:/usr/local/cargo -w /walking-dog/apps/api apps-api cargo test` のように明示的に current worktree を bind mount する。
-- Docker 経由の API `cargo test` で `can't find crate for ...` が依存 crate から出る場合は、workspace 側の `target/` や並行 Cargo 実行の artifact 競合を疑う。`-v apps_api_target_<topic>:/tmp/walking-dog-target` と `--target-dir /tmp/walking-dog-target -j 1` を付けて、current worktree bind mount と cargo registry cache から target cache を分離して再検証する。
+## Non-Negotiable Rules
 
-## 開発フェーズとスキル
+- Do not hide errors with optionalization, fallback values, or catch-and-ignore fixes.
+- Prefer whole-system consistency, simplicity, and extensibility over small diffs.
+- Keep API storage details behind service gateways and repositories.
+- Keep walk lifecycle/history semantics in service modules, not GraphQL resolvers.
+- Cognito refresh uses `GetTokensFromRefreshToken` with refresh token rotation
+  enabled. App clients must not include `ALLOW_REFRESH_TOKEN_AUTH`; API must
+  reject Cognito refresh responses that omit access or refresh tokens.
+- Keep Mobile UI aligned with Expo/React Native rules in `apps/mobile/CLAUDE.md`.
+- When a bug, review comment, stale doc, or confusing pattern appears, promote the
+  learning into docs, a harness validator, a journey, or a project skill.
 
-各フェーズで以下の superpowers スキルを使うこと：
+## Skills
 
-### 設計フェーズ
-- **brainstorming** — アイデア出し・方針検討
-- **writing-plans** — 実装計画の作成
+This project uses the Superpowers plugin. Check relevant skills before acting:
 
-### 実装フェーズ
-- **subagent-driven-development** — subagent に実装を委譲
-- **executing-plans** — 作成した計画を実行
-- **dispatching-parallel-agents** — 独立したタスクを並列実行
-- **test-driven-development** — RED → GREEN → REFACTOR サイクルで実装
+- Design: brainstorming, writing-plans
+- Implementation: subagent-driven-development, executing-plans, test-driven-development
+- Debugging: systematic-debugging
+- Review: requesting-code-review, receiving-code-review
+- Completion: verification-before-completion, finishing-a-development-branch
 
-### レビューフェーズ
-- **requesting-code-review** — 実装完了後、subagent にコードレビューを依頼
-- **receiving-code-review** — レビューコメントを受け取ったら、盲目的に実装せず技術的に検証してから対応
-- **finishing-a-development-branch** — 実装完了後のブランチをクリーンアップして PR を作成
-
-### 統合ワークフロー
-- **`/dev_ja`** — フルパイプライン（ヒアリング→設計→実装→レビュー→テスト）。要件が曖昧な大規模タスク向け
-- **`/pge`** — Planner-Generator-Evaluator の改善ループ。仕様が明確な小〜中規模タスク向け。公式スキルのみ使用
-
-### デバッグフェーズ
-- **systematic-debugging** — バグ・テスト失敗・CI エラーに直面したら使う
-
-## セッション終了時
-
-作業が終わったら必ずセッションを振り返り、学びをCLAUDE.mdまたはskillに反映すること。
+For Expo / React Native UI work, first read
+[.codex/skills/expo-ui-docs-first/SKILL.md](.codex/skills/expo-ui-docs-first/SKILL.md).

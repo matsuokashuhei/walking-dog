@@ -1,0 +1,36 @@
+# Harness preconditions:
+# - Owner is authenticated.
+# - Seed data includes at least one completed walk for Harness History Dog.
+# - The completed walk includes duration, distance, points, and at least one event.
+appId: com.walkingdog.app
+name: Walk History Owner Contribution
+tags:
+  - harness
+  - walk-history
+  - owner-contribution
+  - journey
+env:
+  DOG_NAME: Harness History Dog
+---
+- launchApp:
+    clearState: false
+- tapOn: Dogs
+- assertVisible: ${DOG_NAME}
+- tapOn: ${DOG_NAME}
+- assertVisible: Dog Profile
+- assertVisible: Goal progress
+- assertVisible: Walks
+- tapOn: See all
+- assertVisible: Recent Walks
+- tapOn:
+    text: ".*min"
+    index: 0
+- assertVisible: Walk Detail
+- assertVisible: Route
+- assertVisible: Dogs
+- tapOn: Back
+- tapOn: Me
+- assertVisible: Me
+- assertVisible: This week
+- assertVisible: Total time
+- takeScreenshot: harness-walk-history-owner-contribution

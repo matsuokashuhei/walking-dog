@@ -1,0 +1,27 @@
+{
+  "users": [
+    {
+      "email": "harness-owner@example.com",
+      "password": "HarnessPassw0rd!",
+      "displayName": "Harness Owner"
+    }
+  ],
+  "dogs": [
+    {
+      "name": "Mugi",
+      "breed": "Shiba Inu",
+      "dailyGoalMinutes": 30
+    }
+  ],
+  "walk": {
+    "points": [
+      { "latitude": 35.6812, "longitude": 139.7671, "secondsFromStart": 0 },
+      { "latitude": 35.6818, "longitude": 139.7683, "secondsFromStart": 60 },
+      { "latitude": 35.6822, "longitude": 139.7690, "secondsFromStart": 120 }
+    ],
+    "events": [
+      { "type": "PEE", "secondsFromStart": 75 },
+      { "type": "POOP", "secondsFromStart": 135 }
+    ]
+  }
+}

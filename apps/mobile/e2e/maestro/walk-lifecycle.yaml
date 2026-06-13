@@ -1,0 +1,37 @@
+# Harness preconditions:
+# - Owner is authenticated.
+# - At least one dog named Harness Walker exists and is selectable for walking.
+# - Location permission is granted or controlled by the harness.
+# - GPS replay or simulator location is configured before START WALK.
+appId: com.walkingdog.app
+name: Walk Lifecycle
+tags:
+  - harness
+  - walk-lifecycle
+  - journey
+env:
+  DOG_NAME: Harness Walker
+---
+- launchApp:
+    clearState: false
+- tapOn: Walk
+- assertVisible: Walk
+- assertVisible: ${DOG_NAME}
+- tapOn: START WALK
+- extendedWaitUntil:
+    visible: Recording
+    timeout: 15000
+- assertVisible: Time
+- assertVisible: Distance
+- tapOn: Pause
+- assertVisible: Resume
+- tapOn: Resume
+- tapOn: End Walk
+- extendedWaitUntil:
+    visible: Walk Complete!
+    timeout: 15000
+- tapOn: Save walk
+- extendedWaitUntil:
+    visible: Recent Walks
+    timeout: 15000
+- takeScreenshot: harness-walk-lifecycle

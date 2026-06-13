@@ -10,6 +10,7 @@ use std::{env, sync::Arc};
 
 use crate::graphql::query::Query;
 use crate::queue::track_point::TrackPointEnqueuer;
+use crate::service::auth::{CognitoAuthGateway, SharedAuthGateway};
 use crate::service::storage::{S3StorageGateway, SharedStorageGateway};
 use crate::service::track_point::{DynamoDbTrackPointRepository, SharedTrackPointRepository};
 use anyhow::Result;
@@ -21,8 +22,8 @@ pub async fn build_schema()
     info!("Building GraphQL schema");
     let database_connection = build_database_connection().await;
     info!("Database client ready");
-    let cognito_client = build_cognitoidentityprovider_client().await;
-    info!("Cognito client ready");
+    let auth_gateway = build_auth_gateway().await?;
+    info!("Auth gateway ready");
     let track_point_repository = build_track_point_repository().await?;
     info!("Track point repository ready");
     let track_point_enqueuer = build_track_point_enqueuer().await?;
@@ -36,7 +37,7 @@ pub async fn build_schema()
         EmptySubscription,
     )
     .data(database_connection)
-    .data(cognito_client)
+    .data(auth_gateway)
     .data(track_point_repository)
     .data(track_point_enqueuer)
     .data(storage_gateway)
@@ -57,6 +58,12 @@ async fn build_cognitoidentityprovider_client() -> aws_sdk_cognitoidentityprovid
         Err(_) => config_loader.load().await,
     };
     aws_sdk_cognitoidentityprovider::Client::new(&config)
+}
+
+async fn build_auth_gateway() -> Result<SharedAuthGateway> {
+    Ok(Arc::new(CognitoAuthGateway::from_env(
+        build_cognitoidentityprovider_client().await,
+    )?))
 }
 
 async fn build_dynamodb_client() -> aws_sdk_dynamodb::Client {

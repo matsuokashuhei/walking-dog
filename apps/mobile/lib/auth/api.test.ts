@@ -79,12 +79,12 @@ describe('auth api', () => {
 
   it('refreshToken returns refreshed tokens on success', async () => {
     mockRequest.mockResolvedValue({
-      refreshToken: { accessToken: 'new-access-token', refreshToken: 'old-refresh-token' },
+      refreshToken: { accessToken: 'new-access-token', refreshToken: 'new-refresh-token' },
     });
 
     await expect(refreshToken('old-refresh-token')).resolves.toEqual({
       accessToken: 'new-access-token',
-      refreshToken: 'old-refresh-token',
+      refreshToken: 'new-refresh-token',
     });
     expect(mockRequest).toHaveBeenCalledWith(
       expect.any(String),

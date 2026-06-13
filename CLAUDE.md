@@ -29,6 +29,7 @@
 - API walk lifecycle and history semantics belong in `service::walk` and `service::walk_read_model`. GraphQL should translate inputs/outputs and keep ownership, active-walk checks, distance finalization, pagination totals, and aggregate SQL in those service modules.
 - API upload storage belongs behind `service::storage::StorageGateway`. GraphQL may adapt `Upload` into `StorageUpload`, but S3 clients, bucket/env handling, content-size policy, object keys, and avatar URL construction should stay in the storage service.
 - Cognito email delivery uses Amazon SES with the domain DNS records managed in Cloudflare. Keep Cloudflare dashboard runbooks under `infra/cloudflare`; Cloudflare API tokens are not needed for Cognito email delivery.
+- Cognito refresh uses `GetTokensFromRefreshToken` with refresh token rotation enabled. App clients must not include `ALLOW_REFRESH_TOKEN_AUTH`; API must reject Cognito refresh responses that omit access or refresh tokens instead of returning fallback token values.
 - Legal document drafts belong in `docs/legal/`. Draft-only legal work should not change app legal URLs or registration/settings behavior unless explicitly requested.
 - Sakura-published legal pages belong in `infra/sakura/legal/` and are served by Caddy at `/terms` and `/policy`; do not add API routes for legal document hosting.
 

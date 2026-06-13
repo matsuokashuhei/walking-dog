@@ -79,7 +79,6 @@ impl AuthMutation {
         let cognitoidentityprovider_client = ctx
             .data::<aws_sdk_cognitoidentityprovider::Client>()
             .unwrap();
-        // let output = cognitoidentityprovi))
         let output = cognitoidentityprovider_client
             .get_tokens_from_refresh_token()
             .client_id(std::env::var("AWS_COGNITO_CLIENT_ID").unwrap())
@@ -87,7 +86,9 @@ impl AuthMutation {
             .send()
             .await
             .map_err(|e| AuthError::RefreshTokenError(e.into_service_error()))?;
-        Ok(RefreshTokenOutput::from(output))
+        let output = RefreshTokenOutput::try_from(output)
+            .map_err(|error| AppError::InternalServerError(error.to_string()))?;
+        Ok(output)
     }
 
     #[graphql(guard = "AuthGuard")]
@@ -247,21 +248,40 @@ pub struct RefreshTokenOutput {
     refresh_token: String,
 }
 
-impl From<GetTokensFromRefreshTokenOutput> for RefreshTokenOutput {
-    fn from(output: GetTokensFromRefreshTokenOutput) -> Self {
-        RefreshTokenOutput {
-            access_token: output
-                .authentication_result
-                .as_ref()
-                .and_then(|result| result.access_token.clone())
-                .unwrap_or_default(),
-            refresh_token: output
-                .authentication_result
-                .as_ref()
-                .and_then(|result| result.refresh_token.clone())
-                .unwrap_or_default(),
-        }
+impl TryFrom<GetTokensFromRefreshTokenOutput> for RefreshTokenOutput {
+    type Error = RefreshTokenOutputError;
+
+    fn try_from(output: GetTokensFromRefreshTokenOutput) -> std::result::Result<Self, Self::Error> {
+        let result = output
+            .authentication_result
+            .as_ref()
+            .ok_or(RefreshTokenOutputError::MissingAuthenticationResult)?;
+        let access_token = result
+            .access_token
+            .clone()
+            .filter(|token| !token.is_empty())
+            .ok_or(RefreshTokenOutputError::MissingAccessToken)?;
+        let refresh_token = result
+            .refresh_token
+            .clone()
+            .filter(|token| !token.is_empty())
+            .ok_or(RefreshTokenOutputError::MissingRefreshToken)?;
+
+        Ok(Self {
+            access_token,
+            refresh_token,
+        })
     }
+}
+
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+pub enum RefreshTokenOutputError {
+    #[error("Cognito refresh response is missing authentication result")]
+    MissingAuthenticationResult,
+    #[error("Cognito refresh response is missing access token")]
+    MissingAccessToken,
+    #[error("Cognito refresh response is missing refresh token")]
+    MissingRefreshToken,
 }
 
 #[derive(Clone, Debug, InputObject)]
@@ -290,22 +310,46 @@ pub struct ChangePasswordInput {
     new_password: String,
 }
 
-// impl SignInOutput {
-//     fn from_refresh_token_auth_output(output: InitiateAuthOutput, refresh_token: String) -> Self {
-//         SignInOutput::from_auth_output(output, Some(refresh_token))
-//     }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use aws_sdk_cognitoidentityprovider::types::AuthenticationResultType;
 
-//     fn from_auth_output(
-//         output: InitiateAuthOutput,
-//         fallback_refresh_token: Option<String>,
-//     ) -> Self {
-//         let result = output.authentication_result.unwrap();
-//         SignInOutput {
-//             access_token: result.access_token.unwrap_or_default(),
-//             refresh_token: result
-//                 .refresh_token
-//                 .or(fallback_refresh_token)
-//                 .unwrap_or_default(),
-//         }
-//     }
-// }
+    fn get_tokens_output(
+        access_token: Option<&str>,
+        refresh_token: Option<&str>,
+    ) -> GetTokensFromRefreshTokenOutput {
+        let mut authentication_result = AuthenticationResultType::builder();
+        if let Some(access_token) = access_token {
+            authentication_result = authentication_result.access_token(access_token);
+        }
+        if let Some(refresh_token) = refresh_token {
+            authentication_result = authentication_result.refresh_token(refresh_token);
+        }
+
+        GetTokensFromRefreshTokenOutput::builder()
+            .authentication_result(authentication_result.build())
+            .build()
+    }
+
+    #[test]
+    fn refresh_token_output_uses_rotated_tokens() {
+        let output = RefreshTokenOutput::try_from(get_tokens_output(
+            Some("new-access"),
+            Some("new-refresh"),
+        ))
+        .expect("rotated token output should be valid");
+
+        assert_eq!(output.access_token, "new-access");
+        assert_eq!(output.refresh_token, "new-refresh");
+    }
+
+    #[test]
+    fn refresh_token_output_rejects_missing_refresh_token() {
+        let error = RefreshTokenOutput::try_from(get_tokens_output(Some("new-access"), None))
+            .err()
+            .expect("missing refresh token should be rejected");
+
+        assert_eq!(error, RefreshTokenOutputError::MissingRefreshToken);
+    }
+}

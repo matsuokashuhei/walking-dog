@@ -18,83 +18,19 @@
       "title": "Walking Dog",
       "heading": "おかえりなさい",
       "subtitle": "散歩の記録と犬の友情を大切に",
-      "email": "メール",
-      "password": "パスワード",
-      "submit": "サインイン",
-      "register": "アカウントを作成",
-      "forgotPassword": "パスワードを忘れた場合",
-      "or": "または",
-      "continueWithApple": "Apple でサインイン",
-      "newHere": "はじめての方は",
-      "createAccountLink": "アカウント作成",
-      "comingSoonApple": "Apple でサインインは近日対応予定です",
-      "error": {
-        "invalidCredentials": "メールアドレスまたはパスワードが正しくありません",
-        "generic": "ログインに失敗しました"
-      }
+      "email": "メール"
     },
-    "register": {
-      "title": "アカウント作成",
-      "subtitle": "ほんの少しの情報で、すぐ散歩を始められます。",
-      "displayName": "お名前",
-      "email": "メール",
-      "password": "パスワード",
-      "passwordError": "8文字以上で入力してください",
+    "oneTimePassword": {
+      "continueWithEmail": "メールで続ける",
+      "checkEmailTitle": "メールを確認してください",
+      "checkEmailDescription": "{{email}} に6桁のコードを送りました。",
+      "label": "ワンタイムパスワード",
       "submit": "次へ",
-      "loginLink": "ログインはこちら",
-      "back": "戻る",
-      "dogProfileHint": "次のステップで愛犬のプロフィールを追加できます。足のサイズ、ペース、写真を記録します。",
-      "agreePrefix": "続けることで、",
-      "terms": "利用規約",
-      "agreeAnd": "と",
-      "privacyPolicy": "プライバシーポリシー",
-      "agreeSuffix": "に同意したものとみなされます。",
       "error": {
-        "userExists": "このメールアドレスは既に登録されています",
-        "invalidPassword": "パスワードの要件を満たしていません",
-        "generic": "アカウント作成に失敗しました"
-      }
-    },
-    "confirm": {
-      "title": "メール確認",
-      "description": "{{email}} に確認コードを送りました",
-      "code": "確認コード",
-      "digitLabel": "{{position}}桁目",
-      "submit": "確認",
-      "resend": "コードを再送する",
-      "verificationArchive": "安全な認証アーカイブ",
-      "error": {
-        "invalidCode": "確認コードが正しくありません",
-        "expiredCode": "確認コードの有効期限が切れています",
-        "generic": "確認に失敗しました"
-      }
-    },
-    "reset": {
-      "secureRecovery": "安全なアカウント復旧",
-      "requestTitle": "パスワードをリセット",
-      "requestDescription": "Walking Dog に登録しているメールアドレスを入力してください。散歩の記録に戻れるよう、確認コードを送ります。",
-      "email": "メール",
-      "emailHint": "Walking Dog アカウントに紐づくメールアドレスを使ってください。",
-      "sendCode": "リセットコードを送信",
-      "confirmTitle": "メールを確認してください",
-      "confirmDescription": "{{email}} にコードを送りました。下に入力して新しいパスワードを設定してください。",
-      "code": "確認コード",
-      "digitLabel": "{{position}}桁目",
-      "newPassword": "新しいパスワード",
-      "confirmPassword": "確認",
-      "passwordHint": "8文字以上で、大文字・小文字・数字を含めてください。",
-      "submit": "パスワードをリセット",
-      "resend": "コードを再送する",
-      "doneTitle": "パスワードをリセットしました",
-      "doneDescription": "パスワードを更新しました。もう一度サインインして、愛犬との散歩を続けましょう。",
-      "backToSignIn": "サインインに戻る",
-      "error": {
-        "request": "リセットコードを送信できませんでした",
-        "invalidCode": "リセットコードが正しくありません",
-        "expiredCode": "リセットコードの有効期限が切れています",
-        "invalidPassword": "パスワードの要件を満たしていません",
-        "passwordMismatch": "パスワードが一致しません",
-        "generic": "パスワードリセットに失敗しました"
+        "request": "ワンタイムパスワードを送信できませんでした",
+        "invalidCode": "ワンタイムパスワードが正しくありません",
+        "expiredCode": "ワンタイムパスワードの有効期限が切れています",
+        "verify": "ワンタイムパスワードを確認できませんでした"
       }
     },
     "error": {
@@ -340,7 +276,6 @@
     "notifications": "通知",
     "notificationsValue": "オン",
     "openSettings": "設定",
-    "changePassword": "パスワードを変更",
     "terms": "利用規約",
     "privacy": "プライバシーポリシー",
     "about": "このアプリについて",
@@ -371,20 +306,6 @@
     "photoPermissionDenied": "写真へのアクセスが拒否されました",
     "photoPermissionMessage": "ユーザー写真を更新するには写真へのアクセスを許可してください。",
     "saveError": "ユーザー情報の保存に失敗しました。もう一度お試しください。"
-  },
-  "userChangePassword": {
-    "title": "パスワードを変更",
-    "currentPassword": "現在のパスワード",
-    "newPassword": "新しいパスワード",
-    "confirmPassword": "確認用パスワード",
-    "passwordHint": "8文字以上で、大文字・小文字・数字を含めてください。",
-    "submit": "パスワードを更新",
-    "error": {
-      "currentPassword": "現在のパスワードが正しくありません",
-      "invalidPassword": "パスワードの要件を満たしていません",
-      "passwordMismatch": "パスワードが一致しません",
-      "generic": "パスワード変更に失敗しました"
-    }
   },
   "nativePermissions": {
     "locationWhenInUse": "Walking Dog は散歩ルートを記録するために位置情報を使用します。",

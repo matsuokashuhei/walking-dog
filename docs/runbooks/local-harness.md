@@ -87,7 +87,7 @@ The local simulator build points at `http://localhost:3000`.
 ## API Journey Harness
 
 ```bash
-export HARNESS_ACCESS_TOKEN="<token from local auth issuer or signIn>"
+export HARNESS_ACCESS_TOKEN="<token from local auth issuer or verifyOneTimePassword>"
 node scripts/harness/run-api-journey.mjs walk-lifecycle
 ```
 

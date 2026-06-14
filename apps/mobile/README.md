@@ -44,6 +44,7 @@ Xcode → Settings → Accounts に Apple ID を追加し、Personal Team とし
 | `npm run ios:dev:prod` | Device | `https://walking-dog.cacheandbuffer.com`（※本番未デプロイ） | Release |
 
 API URL は `EXPO_PUBLIC_API_URL` をスクリプト内でインライン指定し、`process.env.EXPO_PUBLIC_API_URL` 経由で JS バンドルにビルド時 inline される。`.env.*` ファイルは使用しない。
+`ios:sim:local` と `ios:dev:local` は既定で `http://localhost:3000` を使うが、worktree-specific harness port を使う場合は `EXPO_PUBLIC_API_URL=http://localhost:<port> npm run ios:sim:local` のように上書きできる。
 
 実機で dev サーバ相手に Metro / fast refresh を使いたいときだけ、例外として `npm run ios:dev:dev:debug` を使う。これは Debug dev-client build を install し、`npm run start:dev-client` と組み合わせて使う。
 

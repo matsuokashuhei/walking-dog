@@ -1,8 +1,7 @@
 # Harness preconditions:
 # - App is installed as com.walkingdog.app and points to the intended API.
 # - Simulator language is English.
-# - Cognito-local or dev Cognito can create the email below.
-# - If confirmation is required, the harness exposes the verification code.
+# - Cognito-local or dev Cognito can send the one-time password below.
 appId: com.walkingdog.app
 name: Auth Onboarding
 tags:
@@ -10,76 +9,49 @@ tags:
   - auth
   - journey
 env:
-  E2E_NAME: Harness Owner
-  E2E_EMAIL: harness-auth@example.com
-  E2E_PASSWORD: password123
-  E2E_NEW_PASSWORD: Newpass1
+  E2E_EMAIL: harness-passwordless@example.com
   E2E_CONFIRMATION_CODE: "123456"
 ---
 - launchApp:
     clearState: true
 - assertVisible: Walking Dog
-- tapOn: Create an account
-- assertVisible: Create Account
-- tapOn:
-    id: register-displayName
-- inputText: ${E2E_NAME}
-- tapOn:
-    id: register-email
-- inputText: ${E2E_EMAIL}
-- tapOn:
-    id: register-password
-- inputText: ${E2E_PASSWORD}
-- tapOn: Continue
 - runFlow:
     when:
-      visible: Email Verification
+      visible: Development Build
     commands:
-      - tapOn: "1"
-      - tapOn: "2"
-      - tapOn: "3"
-      - tapOn: "4"
-      - tapOn: "5"
-      - tapOn: "6"
-      - tapOn: Confirm
-- extendedWaitUntil:
-    visible: Welcome back
-    timeout: 15000
+      - tapOn: "http://.*:8081"
 - tapOn:
-    id: login-email
-- inputText: ${E2E_EMAIL}
+    point: "50%,91%"
+- tapOn: Continue
 - tapOn:
-    id: login-password
-- inputText: ${E2E_PASSWORD}
-- tapOn: Sign in
+    point: "88%,48%"
 - waitForAnimationToEnd:
     timeout: 5000
+- extendedWaitUntil:
+    visible: Continue with email
+    timeout: 30000
+- tapOn:
+    id: auth-email
+- inputText: ${E2E_EMAIL}
+- pressKey: Enter
 - runFlow:
     when:
-      visible: Save Password?
+      visible: Continue with email
     commands:
-      - tapOn: Not Now
+      - hideKeyboard
+      - tapOn:
+          id: auth-continue-email
+- extendedWaitUntil:
+    visible: Check your email
+    timeout: 15000
+- tapOn:
+    id: one-time-password
+- inputText: ${E2E_CONFIRMATION_CODE}
+- waitForAnimationToEnd:
+    timeout: 5000
 - extendedWaitUntil:
     visible: No dogs yet
     timeout: 15000
 - assertVisible: Walk
 - assertVisible: Me
-- tapOn: Me
-- tapOn:
-    id: user-change-password-row
-- assertVisible: Change password
-- tapOn:
-    id: change-password-current
-- inputText: ${E2E_PASSWORD}
-- tapOn:
-    id: change-password-new
-- inputText: ${E2E_NEW_PASSWORD}
-- tapOn:
-    id: change-password-confirm
-- inputText: ${E2E_NEW_PASSWORD}
-- tapOn:
-    id: change-password-submit
-- extendedWaitUntil:
-    visible: Welcome back
-    timeout: 15000
 - takeScreenshot: harness-auth-onboarding

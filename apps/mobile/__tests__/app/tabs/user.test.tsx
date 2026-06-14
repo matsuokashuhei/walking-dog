@@ -104,8 +104,6 @@ describe('UserScreen', () => {
 
     fireEvent.press(screen.getByRole('button', { name: 'Settings' }));
     expect(mockPush).toHaveBeenCalledWith('/settings');
-
-    fireEvent.press(screen.getByRole('button', { name: 'Change password' }));
-    expect(mockPush).toHaveBeenCalledWith('/user/change-password');
+    expect(screen.queryByText('Change password')).toBeNull();
   });
 });

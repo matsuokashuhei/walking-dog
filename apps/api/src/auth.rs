@@ -87,8 +87,7 @@ pub async fn autenticate_user(
         Ok(Some(user)) => Some(user),
         Ok(None) => {
             // Cognito 検証は通ったが DB に対応行が無い既存ユーザーはここで JIT 作成する。
-            // 既存の signUp resolver と同じ shape (cognito_sub のみ) で追加し、
-            // 名前は updateUser で後付けする運用に合わせる。
+            // メール OneTimePassword 後は cognito_sub のみで追加し、名前は updateUser で後付けする。
             warn!(cognito_sub = %cognito_sub, "User not found in DB; auto-provisioning");
             let active = user::ActiveModel {
                 cognito_sub: Set(cognito_sub.clone()),

@@ -14,33 +14,29 @@
 
 ## Scope
 
-A new owner creates an account, confirms email when required, signs in, and reaches
-the authenticated app with the expected Dogs, Walk, and Me surfaces. A signed-in
-owner can also change their password from Me and must sign in again afterward.
+An owner enters an email address, receives a six-digit one-time password, verifies
+it without pressing an additional confirmation button, and reaches the
+authenticated app with the expected Dogs, Walk, and Me surfaces.
 
 ## Acceptance Criteria
 
-- Registration requires display name, email, and a valid password.
-- Terms and privacy links open the configured `/terms` and `/policy` URLs.
-- Confirmation flow accepts the harness-provided verification code when Cognito
-  requires confirmation.
+- The initial auth screen only asks for email.
+- `requestOneTimePassword` returns the same shaped response for existing and new
+  email addresses.
+- The six-digit one-time password can be pasted or auto-filled into a single input.
+- Filling all six digits automatically calls `verifyOneTimePassword`; there is no
+  required confirm button for the happy path.
 - Sign-in stores tokens through secure storage, not AsyncStorage.
 - Authenticated navigation shows Dogs, Walk, and Me tabs.
-- Changing password requires the current password, a valid new password, and
-  matching confirmation before submitting.
-- Successful password change clears local auth and returns the owner to sign-in.
-- Real Cognito invalidates sessions through `GlobalSignOut`; `cognito-local`
-  supports `ChangePassword` but not `GlobalSignOut`, so local harness proof
-  treats local token clearing as the enforced re-login boundary.
-- Invalid credentials and network failures surface actionable errors without
-  silently falling back to an authenticated state.
+- Invalid, expired, consumed, and network failures surface actionable errors
+  without silently falling back to an authenticated state.
+- Forgot password and change password surfaces are not present.
 
 ## Evidence
 
 - Maestro: `apps/mobile/e2e/maestro/auth-onboarding.yaml`.
-- API: GraphQL sign-up, confirm, sign-in, and change-password request/response
-  snippets with password variables redacted.
-- Mobile: screenshot of authenticated tabs, password-change entry, and command
-  output for auth tests.
+- API: GraphQL request/verify one-time password request/response snippets with
+  token values redacted.
+- Mobile: screenshot of authenticated tabs and command output for auth tests.
 - Observability: API logs showing the auth mutation path and no token values in
   logs.

@@ -28,18 +28,6 @@ describe('toAuthError', () => {
     });
   });
 
-  it('maps user exists messages to user-exists', () => {
-    expect(toAuthError(makeClientError('USER_EXISTS'))).toMatchObject({
-      kind: 'user-exists',
-    });
-  });
-
-  it('maps invalid password messages to invalid-password', () => {
-    expect(toAuthError(makeClientError('INVALID_PASSWORD'))).toMatchObject({
-      kind: 'invalid-password',
-    });
-  });
-
   it('maps invalid confirmation codes to code-mismatch invalid', () => {
     expect(toAuthError(makeClientError('INVALID_CODE'))).toMatchObject({
       kind: 'code-mismatch',

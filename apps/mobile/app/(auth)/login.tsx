@@ -1,14 +1,12 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AppMark } from '@/components/auth/AppMark';
-import { LoginForm } from '@/components/auth/LoginForm';
+import { EmailAuthForm } from '@/components/auth/EmailAuthForm';
 import { useColors } from '@/hooks/use-colors';
-import { components, spacing, typography } from '@/theme/tokens';
+import { spacing, typography } from '@/theme/tokens';
 
 // ログイン画面は認証フォームだけを担当し、成功後の遷移はルートの認証ガードに任せます。
 export default function LoginScreen() {
-  const router = useRouter();
   const { t } = useTranslation();
   const theme = useColors();
 
@@ -24,26 +22,12 @@ export default function LoginScreen() {
             {t('auth.login.subtitle')}
           </Text>
         </View>
-        <LoginForm
+        <EmailAuthForm
           onSuccess={() => {
             // 認証後の遷移は _layout.tsx の NavigationGuard が一元管理します。
           }}
-          onForgotPassword={() => router.push('/(auth)/reset-password')}
         />
       </View>
-      <Pressable
-        onPress={() => router.push('/(auth)/register')}
-        accessibilityRole="link"
-        accessibilityLabel={t('auth.login.createAccountLink')}
-        style={styles.footer}
-      >
-        <Text style={[styles.footerText, { color: theme.onSurfaceVariant }]}>
-          {t('auth.login.newHere')}{' '}
-          <Text style={[styles.footerLink, { color: theme.interactive }]}>
-            {t('auth.login.createAccountLink')}
-          </Text>
-        </Text>
-      </Pressable>
     </View>
   );
 }
@@ -67,16 +51,5 @@ const styles = StyleSheet.create({
   },
   sub: {
     ...typography.subheadline,
-  },
-  footer: {
-    alignItems: 'center',
-    paddingBottom: spacing.step60 - spacing.step10,
-    paddingTop: spacing.md,
-  },
-  footerText: {
-    ...typography.subheadline,
-  },
-  footerLink: {
-    fontWeight: components.button.fontPrimary.fontWeight,
   },
 });

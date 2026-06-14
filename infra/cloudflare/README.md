@@ -164,7 +164,7 @@ AWS Console:
 3. `Account dashboard` を開く。
 4. Sending statusがsandboxの場合、production accessを申請する。
 
-申請では、この用途がCognitoの認証・確認コード・パスワードリセットなどのtransactional emailであり、marketing emailではないことを明記します。
+申請では、この用途がCognitoの認証・確認コードなどのtransactional emailであり、marketing emailではないことを明記します。
 
 ## Switch Cognito to SES
 
@@ -202,9 +202,9 @@ SES consoleから直接test emailを送ります。
 
 次にCognito経由で確認します。
 
-1. GraphQL `signUp` mutationを実行する。
+1. GraphQL `requestOneTimePassword` mutationを実行する。
 2. `no-reply@walking-dog.cacheandbuffer.com` から確認コードメールが届くことを確認する。
-3. 受信したcodeで `confirmSignUp` を実行する。
+3. 受信したcodeで `verifyOneTimePassword` を実行する。
 4. `changeEmail` / `confirmEmailChange` も確認する。
 
 ## Troubleshooting

@@ -1,53 +1,29 @@
 import { graphqlClient } from '../graphql/client';
 import {
-  SIGN_UP_MUTATION,
-  CONFIRM_SIGN_UP_MUTATION,
-  FORGOT_PASSWORD_MUTATION,
-  CONFIRM_FORGOT_PASSWORD_MUTATION,
-  CHANGE_PASSWORD_MUTATION,
-  SIGN_IN_MUTATION,
   REFRESH_TOKEN_MUTATION,
+  REQUEST_ONE_TIME_PASSWORD_MUTATION,
   SIGN_OUT_MUTATION,
+  VERIFY_ONE_TIME_PASSWORD_MUTATION,
 } from '../graphql/mutations/auth';
 import { toAuthError } from './errors';
 
-export interface SignUpResult {
-  success: boolean;
-  userConfirmed: boolean;
+export interface RequestOneTimePasswordResult {
+  challengeId: string;
 }
 
-export interface SignInResult {
+export interface AuthTokenResult {
   accessToken: string;
   refreshToken: string;
 }
 
-export interface RefreshTokenResult {
-  accessToken: string;
-  refreshToken: string;
+export type RefreshTokenResult = AuthTokenResult;
+
+interface RequestOneTimePasswordResponse {
+  requestOneTimePassword: RequestOneTimePasswordResult;
 }
 
-interface SignUpResponse {
-  signUp: SignUpResult;
-}
-
-interface ConfirmSignUpResponse {
-  confirmSignUp: { success: boolean };
-}
-
-interface ForgotPasswordResponse {
-  forgotPassword: { success: boolean };
-}
-
-interface ConfirmForgotPasswordResponse {
-  confirmForgotPassword: { success: boolean };
-}
-
-interface ChangePasswordResponse {
-  changePassword: { success: boolean };
-}
-
-interface SignInResponse {
-  signIn: SignInResult;
+interface VerifyOneTimePasswordResponse {
+  verifyOneTimePassword: AuthTokenResult;
 }
 
 interface RefreshTokenResponse {
@@ -78,79 +54,40 @@ async function mapRefreshTokenRequestError<T>(request: () => Promise<T>): Promis
   }
 }
 
-export async function signUp(
+export async function requestOneTimePassword(
   email: string,
-  password: string,
-  _displayName: string
-): Promise<SignUpResult> {
+): Promise<RequestOneTimePasswordResult> {
   const data = await mapAuthRequestError(() =>
-    graphqlClient.request<SignUpResponse>(SIGN_UP_MUTATION, {
-      input: { email, password },
-    })
-  );
-  return { ...data.signUp, userConfirmed: false };
-}
-
-export async function confirmSignUp(email: string, code: string): Promise<boolean> {
-  const data = await mapAuthRequestError(() =>
-    graphqlClient.request<ConfirmSignUpResponse>(CONFIRM_SIGN_UP_MUTATION, {
-      input: { email, code },
-    })
-  );
-  return data.confirmSignUp.success;
-}
-
-export async function forgotPassword(email: string): Promise<boolean> {
-  const data = await mapAuthRequestError(() =>
-    graphqlClient.request<ForgotPasswordResponse>(FORGOT_PASSWORD_MUTATION, {
-      input: { email },
-    })
-  );
-  return data.forgotPassword.success;
-}
-
-export async function confirmForgotPassword(
-  email: string,
-  code: string,
-  newPassword: string
-): Promise<boolean> {
-  const data = await mapAuthRequestError(() =>
-    graphqlClient.request<ConfirmForgotPasswordResponse>(
-      CONFIRM_FORGOT_PASSWORD_MUTATION,
+    graphqlClient.request<RequestOneTimePasswordResponse>(
+      REQUEST_ONE_TIME_PASSWORD_MUTATION,
       {
-        input: { email, code, newPassword },
+        input: { email },
       },
-    )
+    ),
   );
-  return data.confirmForgotPassword.success;
+  return data.requestOneTimePassword;
 }
 
-export async function signIn(email: string, password: string): Promise<SignInResult> {
+export async function verifyOneTimePassword(
+  challengeId: string,
+  code: string,
+): Promise<AuthTokenResult> {
   const data = await mapAuthRequestError(() =>
-    graphqlClient.request<SignInResponse>(SIGN_IN_MUTATION, {
-      input: { email, password },
-    })
+    graphqlClient.request<VerifyOneTimePasswordResponse>(
+      VERIFY_ONE_TIME_PASSWORD_MUTATION,
+      {
+        input: { challengeId, code },
+      },
+    ),
   );
-  return data.signIn;
+  return data.verifyOneTimePassword;
 }
 
 export async function signOut(_accessToken: string): Promise<boolean> {
   const data = await mapAuthRequestError(() =>
-    graphqlClient.request<SignOutResponse>(SIGN_OUT_MUTATION)
+    graphqlClient.request<SignOutResponse>(SIGN_OUT_MUTATION),
   );
   return data.signOut.success;
-}
-
-export async function changePassword(
-  oldPassword: string,
-  newPassword: string,
-): Promise<boolean> {
-  const data = await mapAuthRequestError(() =>
-    graphqlClient.request<ChangePasswordResponse>(CHANGE_PASSWORD_MUTATION, {
-      input: { oldPassword, newPassword },
-    })
-  );
-  return data.changePassword.success;
 }
 
 export async function refreshToken(refreshTokenValue: string): Promise<RefreshTokenResult> {
@@ -160,7 +97,7 @@ export async function refreshToken(refreshTokenValue: string): Promise<RefreshTo
       {
         input: { refreshToken: refreshTokenValue },
       },
-    )
+    ),
   );
   return data.refreshToken;
 }

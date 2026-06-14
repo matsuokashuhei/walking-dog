@@ -34,6 +34,10 @@ apm_modules/
 # Mac
 *.DS_Store
 
+# Local mobile build and E2E artifacts
+apps/mobile/build/
+harness-auth-onboarding.png
+
 # AI Agents and Skills
 .claude/agents/code-architect.md
 .claude/agents/code-explorer.md

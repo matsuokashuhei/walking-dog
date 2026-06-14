@@ -2,7 +2,6 @@
   "users": [
     {
       "email": "harness-owner@example.com",
-      "password": "HarnessPassw0rd!",
       "displayName": "Harness Owner"
     }
   ],

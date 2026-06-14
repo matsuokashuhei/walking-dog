@@ -1,17 +1,8 @@
 resource "aws_cognito_user_pool" "main" {
   name = "${var.project_name}-${var.environment}"
 
-  username_attributes      = ["email", "phone_number"]
-  auto_verified_attributes = ["email", "phone_number"]
-
-  password_policy {
-    minimum_length                   = 8
-    require_uppercase                = true
-    require_lowercase                = true
-    require_numbers                  = true
-    require_symbols                  = false
-    temporary_password_validity_days = 7
-  }
+  username_attributes      = ["email"]
+  auto_verified_attributes = ["email"]
 
   schema {
     name                = "name"
@@ -37,25 +28,7 @@ resource "aws_cognito_user_pool" "main" {
     }
   }
 
-  schema {
-    name                = "phone_number"
-    attribute_data_type = "String"
-    mutable             = true
-    required            = false
-
-    string_attribute_constraints {
-      min_length = 0
-      max_length = 2048
-    }
-  }
-
   mfa_configuration = "OFF"
-
-  sms_configuration {
-    external_id    = "${var.project_name}-${var.environment}-cognito"
-    sns_caller_arn = aws_iam_role.cognito_sns.arn
-    sns_region     = var.aws_region
-  }
 
   email_configuration {
     email_sending_account = var.cognito_use_ses_email ? "DEVELOPER" : "COGNITO_DEFAULT"
@@ -71,15 +44,8 @@ resource "aws_cognito_user_pool" "main" {
     allow_admin_create_user_only = false
   }
 
-  account_recovery_setting {
-    recovery_mechanism {
-      name     = "verified_email"
-      priority = 1
-    }
-    recovery_mechanism {
-      name     = "verified_phone_number"
-      priority = 2
-    }
+  sign_in_policy {
+    allowed_first_auth_factors = ["EMAIL_OTP"]
   }
 
   tags = {
@@ -158,9 +124,10 @@ resource "aws_cognito_user_pool_client" "app" {
   generate_secret = false
 
   explicit_auth_flows = [
-    "ALLOW_USER_PASSWORD_AUTH",
-    "ALLOW_USER_SRP_AUTH",
+    "ALLOW_USER_AUTH",
   ]
+
+  auth_session_validity = 10
 
   refresh_token_rotation {
     feature                    = "ENABLED"

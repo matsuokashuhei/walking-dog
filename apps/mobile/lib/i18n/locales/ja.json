@@ -290,7 +290,19 @@
     "about": "このアプリについて",
     "signOut": "サインアウト",
     "signOutConfirm": "サインアウトしますか？",
-    "loadError": "データの読み込みに失敗しました"
+    "loadError": "データの読み込みに失敗しました",
+    "emailChange": {
+      "title": "メールを変更",
+      "currentEmail": "現在のメール",
+      "newEmail": "新しいメール",
+      "sendCode": "コードを送信",
+      "error": {
+        "emailInUse": "このメールはすでに使われています",
+        "sessionExpired": "もう一度ログインしてください",
+        "sendGeneric": "コードを送信できませんでした",
+        "confirmGeneric": "メールを変更できませんでした"
+      }
+    }
   },
   "user": {
     "edit": "編集",
@@ -306,6 +318,9 @@
     "week": {
       "title": "今週",
       "total": "合計 {{distance}}"
+    },
+    "account": {
+      "changeEmail": "メールを変更"
     }
   },
   "userEdit": {

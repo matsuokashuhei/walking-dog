@@ -1,6 +1,8 @@
 import { useAuthStore } from '@/stores/auth-store';
 import * as authApi from '@/lib/auth/api';
 import type {
+  EmailChangeChallenge,
+  EmailChangeConfirmation,
   OneTimePasswordChallenge,
   VerifyOneTimePasswordInput,
 } from '@/lib/auth/api';
@@ -20,6 +22,14 @@ export function useAuth() {
     await setAuth(result.accessToken, result.refreshToken);
   }
 
+  async function changeEmail(newEmail: string): Promise<EmailChangeChallenge> {
+    return authApi.changeEmail(newEmail);
+  }
+
+  async function confirmEmailChange(code: string): Promise<EmailChangeConfirmation> {
+    return authApi.confirmEmailChange(code);
+  }
+
   async function signOut(): Promise<void> {
     // アクセストークンがある場合だけ、サーバーへサインアウトを通知します。
     if (accessToken) {
@@ -34,6 +44,8 @@ export function useAuth() {
     accessToken,
     requestOneTimePassword,
     verifyOneTimePassword,
+    changeEmail,
+    confirmEmailChange,
     signOut,
   };
 }

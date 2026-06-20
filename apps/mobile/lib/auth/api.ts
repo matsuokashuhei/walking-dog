@@ -1,5 +1,7 @@
-import { graphqlClient } from '../graphql/client';
+import { authenticatedRequest, graphqlClient } from '../graphql/client';
 import {
+  CHANGE_EMAIL_MUTATION,
+  CONFIRM_EMAIL_CHANGE_MUTATION,
   REQUEST_ONE_TIME_PASSWORD_MUTATION,
   VERIFY_ONE_TIME_PASSWORD_MUTATION,
   REFRESH_TOKEN_MUTATION,
@@ -26,6 +28,15 @@ export interface AuthTokenPair {
 
 export type RefreshTokenResult = AuthTokenPair;
 
+export interface EmailChangeChallenge {
+  email: string;
+  codeLength: number;
+}
+
+export interface EmailChangeConfirmation {
+  email: string;
+}
+
 interface RequestOneTimePasswordResponse {
   requestOneTimePassword: OneTimePasswordChallenge;
 }
@@ -40,6 +51,14 @@ interface RefreshTokenResponse {
 
 interface SignOutResponse {
   signOut: { success: boolean };
+}
+
+interface ChangeEmailResponse {
+  changeEmail: EmailChangeChallenge;
+}
+
+interface ConfirmEmailChangeResponse {
+  confirmEmailChange: EmailChangeConfirmation;
 }
 
 async function mapAuthRequestError<T>(request: () => Promise<T>): Promise<T> {
@@ -83,6 +102,24 @@ export async function verifyOneTimePassword(
     )
   );
   return data.verifyOneTimePassword;
+}
+
+export async function changeEmail(newEmail: string): Promise<EmailChangeChallenge> {
+  const data = await mapAuthRequestError(() =>
+    authenticatedRequest<ChangeEmailResponse>(CHANGE_EMAIL_MUTATION, {
+      input: { newEmail },
+    })
+  );
+  return data.changeEmail;
+}
+
+export async function confirmEmailChange(code: string): Promise<EmailChangeConfirmation> {
+  const data = await mapAuthRequestError(() =>
+    authenticatedRequest<ConfirmEmailChangeResponse>(CONFIRM_EMAIL_CHANGE_MUTATION, {
+      input: { code },
+    })
+  );
+  return data.confirmEmailChange;
 }
 
 export async function signOut(_accessToken: string): Promise<boolean> {

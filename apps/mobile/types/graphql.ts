@@ -156,6 +156,7 @@ export interface Walk {
 
 export interface User {
   id: string;
+  email: string;
   name?: string | null;
   avatar?: string | null;
   createdAt: string;
@@ -215,6 +216,7 @@ export interface ApiDog {
 
 export interface ApiUser {
   id: string;
+  email: string;
   name: string | null;
   avatar: string | null;
   createdAt: string;

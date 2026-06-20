@@ -2,6 +2,8 @@ import { GraphQLError } from 'graphql';
 import { graphqlClient } from '../graphql/client';
 import { ClientError } from '../graphql/client-error';
 import {
+  changeEmail,
+  confirmEmailChange,
   refreshToken,
   signOut,
   requestOneTimePassword,
@@ -9,6 +11,7 @@ import {
 } from './api';
 
 jest.mock('../graphql/client', () => ({
+  authenticatedRequest: jest.fn(),
   graphqlClient: {
     request: jest.fn(),
   },
@@ -22,6 +25,9 @@ function makeClientError(message: string, status = 200): ClientError {
 }
 
 const mockRequest = graphqlClient.request as jest.Mock;
+const mockAuthenticatedRequest = (
+  require('../graphql/client') as { authenticatedRequest: jest.Mock }
+).authenticatedRequest;
 
 describe('auth api', () => {
   beforeEach(() => {
@@ -134,5 +140,46 @@ describe('auth api', () => {
     mockRequest.mockRejectedValue(networkError);
 
     await expect(refreshToken('old-refresh-token')).rejects.toBe(networkError);
+  });
+
+  it('changeEmail sends the new login email through an authenticated mutation', async () => {
+    mockAuthenticatedRequest.mockResolvedValue({
+      changeEmail: {
+        email: 'new-mio@walk.app',
+        codeLength: 6,
+      },
+    });
+
+    await expect(changeEmail('new-mio@walk.app')).resolves.toEqual({
+      email: 'new-mio@walk.app',
+      codeLength: 6,
+    });
+    expect(mockAuthenticatedRequest).toHaveBeenCalledWith(expect.any(String), {
+      input: { newEmail: 'new-mio@walk.app' },
+    });
+  });
+
+  it('confirmEmailChange returns the confirmed login email', async () => {
+    mockAuthenticatedRequest.mockResolvedValue({
+      confirmEmailChange: {
+        email: 'new-mio@walk.app',
+      },
+    });
+
+    await expect(confirmEmailChange('123456')).resolves.toEqual({
+      email: 'new-mio@walk.app',
+    });
+    expect(mockAuthenticatedRequest).toHaveBeenCalledWith(expect.any(String), {
+      input: { code: '123456' },
+    });
+  });
+
+  it('confirmEmailChange maps expired codes to code-mismatch', async () => {
+    mockAuthenticatedRequest.mockRejectedValue(makeClientError('ExpiredCodeException'));
+
+    await expect(confirmEmailChange('123456')).rejects.toMatchObject({
+      kind: 'code-mismatch',
+      reason: 'expired',
+    });
   });
 });

@@ -5,7 +5,7 @@ use aws_sdk_cognitoidentityprovider::{
     operation::{
         admin_delete_user::AdminDeleteUserError, admin_get_user::AdminGetUserError,
         confirm_sign_up::ConfirmSignUpError,
-        get_tokens_from_refresh_token::GetTokensFromRefreshTokenError,
+        get_tokens_from_refresh_token::GetTokensFromRefreshTokenError, get_user::GetUserError,
         global_sign_out::GlobalSignOutError, initiate_auth::InitiateAuthError,
         respond_to_auth_challenge::RespondToAuthChallengeError, sign_up::SignUpError,
         update_user_attributes::UpdateUserAttributesError,
@@ -19,9 +19,11 @@ pub type SharedAuthGateway = Arc<dyn AuthGateway>;
 
 const SIGN_UP_CONFIRMATION_CODE_LENGTH: i32 = 6;
 const SIGN_IN_ONE_TIME_PASSWORD_CODE_LENGTH: i32 = 8;
+const EMAIL_CHANGE_CONFIRMATION_CODE_LENGTH: i32 = 6;
 
 #[async_trait]
 pub trait AuthGateway: Send + Sync + 'static {
+    async fn current_email(&self, access_token: &str) -> Result<String, AuthGatewayError>;
     async fn request_one_time_password(
         &self,
         email: String,
@@ -39,12 +41,12 @@ pub trait AuthGateway: Send + Sync + 'static {
         &self,
         access_token: &str,
         new_email: String,
-    ) -> Result<(), AuthGatewayError>;
+    ) -> Result<EmailChangeChallenge, AuthGatewayError>;
     async fn confirm_email_change(
         &self,
         access_token: &str,
         code: String,
-    ) -> Result<(), AuthGatewayError>;
+    ) -> Result<EmailChangeConfirmation, AuthGatewayError>;
 }
 
 pub struct CognitoAuthGateway {
@@ -130,6 +132,10 @@ fn ensure_user_can_authenticate(
 
 #[async_trait]
 impl AuthGateway for CognitoAuthGateway {
+    async fn current_email(&self, access_token: &str) -> Result<String, AuthGatewayError> {
+        self.current_user_email(access_token).await
+    }
+
     async fn request_one_time_password(
         &self,
         email: String,
@@ -207,14 +213,15 @@ impl AuthGateway for CognitoAuthGateway {
         &self,
         access_token: &str,
         new_email: String,
-    ) -> Result<(), AuthGatewayError> {
+    ) -> Result<EmailChangeChallenge, AuthGatewayError> {
+        let new_email = normalize_email(new_email);
         self.client
             .update_user_attributes()
             .access_token(access_token)
             .user_attributes(
                 AttributeType::builder()
                     .name("email")
-                    .value(new_email)
+                    .value(&new_email)
                     .build()
                     .expect("email user attribute is valid"),
             )
@@ -223,14 +230,17 @@ impl AuthGateway for CognitoAuthGateway {
             .map_err(|error| {
                 AuthGatewayError::from_update_user_attributes_error(error.into_service_error())
             })?;
-        Ok(())
+        Ok(EmailChangeChallenge {
+            email: new_email,
+            code_length: EMAIL_CHANGE_CONFIRMATION_CODE_LENGTH,
+        })
     }
 
     async fn confirm_email_change(
         &self,
         access_token: &str,
         code: String,
-    ) -> Result<(), AuthGatewayError> {
+    ) -> Result<EmailChangeConfirmation, AuthGatewayError> {
         self.client
             .verify_user_attribute()
             .access_token(access_token)
@@ -241,11 +251,32 @@ impl AuthGateway for CognitoAuthGateway {
             .map_err(|error| {
                 AuthGatewayError::from_verify_user_attribute_error(error.into_service_error())
             })?;
-        Ok(())
+        Ok(EmailChangeConfirmation {
+            email: self.current_user_email(access_token).await?,
+        })
     }
 }
 
 impl CognitoAuthGateway {
+    async fn current_user_email(&self, access_token: &str) -> Result<String, AuthGatewayError> {
+        let output = self
+            .client
+            .get_user()
+            .access_token(access_token)
+            .send()
+            .await
+            .map_err(|error| AuthGatewayError::from_get_user_error(error.into_service_error()))?;
+        output
+            .user_attributes
+            .iter()
+            .find(|attribute| attribute.name() == "email")
+            .and_then(|attribute| attribute.value().map(ToOwned::to_owned))
+            .filter(|email| !email.is_empty())
+            .ok_or_else(|| {
+                AuthGatewayError::missing_provider_token(AuthOperation::GetUser, "email")
+            })
+    }
+
     async fn cognito_user_state(
         &self,
         email: &str,
@@ -454,6 +485,17 @@ pub struct AuthTokenPair {
     pub refresh_token: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EmailChangeChallenge {
+    pub email: String,
+    pub code_length: i32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EmailChangeConfirmation {
+    pub email: String,
+}
+
 impl AuthTokenPair {
     fn from_auth_result(
         operation: AuthOperation,
@@ -485,6 +527,7 @@ pub enum AuthOperation {
     RequestOneTimePassword,
     SignUp,
     SignIn,
+    GetUser,
     AdminGetUser,
     AdminDeleteUser,
     VerifyOneTimePassword,
@@ -500,6 +543,7 @@ impl fmt::Display for AuthOperation {
             AuthOperation::RequestOneTimePassword => "Request one-time password",
             AuthOperation::SignUp => "Sign up",
             AuthOperation::SignIn => "Sign in",
+            AuthOperation::GetUser => "Get user",
             AuthOperation::AdminGetUser => "Admin get user",
             AuthOperation::AdminDeleteUser => "Admin delete user",
             AuthOperation::VerifyOneTimePassword => "Verify one-time password",
@@ -592,6 +636,10 @@ impl AuthGatewayError {
 
     fn from_admin_get_user_error(error: AdminGetUserError) -> Self {
         Self::from_provider_error(AuthOperation::AdminGetUser, error)
+    }
+
+    fn from_get_user_error(error: GetUserError) -> Self {
+        Self::from_provider_error(AuthOperation::GetUser, error)
     }
 
     fn from_admin_delete_user_error(error: AdminDeleteUserError) -> Self {

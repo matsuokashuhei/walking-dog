@@ -39,14 +39,25 @@ export default function UserScreen() {
         <UserSummary
           user={vm}
           footer={
-            <GroupedCard elevated={false} style={styles.settingsLinkCard}>
-              <GroupedRow
-                leading={<IconSymbol name="gearshape.fill" size={18} color={theme.interactive} />}
-                label={t('settings.openSettings')}
-                onPress={() => router.push('/settings')}
-                separator={false}
-              />
-            </GroupedCard>
+            <>
+              <GroupedCard elevated={false} style={styles.accountActionsCard}>
+                <GroupedRow
+                  leading={<IconSymbol name="envelope.fill" size={18} color={theme.interactive} />}
+                  label={t('user.account.changeEmail')}
+                  testID="account-change-email"
+                  onPress={() => router.push('/settings/email')}
+                  separator={false}
+                />
+              </GroupedCard>
+              <GroupedCard elevated={false} style={styles.settingsLinkCard}>
+                <GroupedRow
+                  leading={<IconSymbol name="gearshape.fill" size={18} color={theme.interactive} />}
+                  label={t('settings.openSettings')}
+                  onPress={() => router.push('/settings')}
+                  separator={false}
+                />
+              </GroupedCard>
+            </>
           }
         />
       </ScrollView>
@@ -61,7 +72,10 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     paddingBottom: spacing.xxl,
   },
-  settingsLinkCard: {
+  accountActionsCard: {
     marginTop: spacing.lg,
+  },
+  settingsLinkCard: {
+    marginTop: spacing.md,
   },
 });

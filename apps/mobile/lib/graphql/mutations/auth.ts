@@ -19,6 +19,23 @@ export const VERIFY_ONE_TIME_PASSWORD_MUTATION = gql`
   }
 `;
 
+export const CHANGE_EMAIL_MUTATION = gql`
+  mutation ChangeEmail($input: ChangeEmailInput!) {
+    changeEmail(input: $input) {
+      email
+      codeLength
+    }
+  }
+`;
+
+export const CONFIRM_EMAIL_CHANGE_MUTATION = gql`
+  mutation ConfirmEmailChange($input: ConfirmEmailChangeInput!) {
+    confirmEmailChange(input: $input) {
+      email
+    }
+  }
+`;
+
 export const REFRESH_TOKEN_MUTATION = gql`
   mutation RefreshToken($input: RefreshTokenInput!) {
     refreshToken(input: $input) {

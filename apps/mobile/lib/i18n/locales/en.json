@@ -290,7 +290,19 @@
     "about": "About",
     "signOut": "Sign Out",
     "signOutConfirm": "Are you sure you want to sign out?",
-    "loadError": "Failed to load data"
+    "loadError": "Failed to load data",
+    "emailChange": {
+      "title": "Change email",
+      "currentEmail": "Current email",
+      "newEmail": "New email",
+      "sendCode": "Send code",
+      "error": {
+        "emailInUse": "That email is already in use",
+        "sessionExpired": "Please sign in again",
+        "sendGeneric": "Could not send a code",
+        "confirmGeneric": "Could not change email"
+      }
+    }
   },
   "user": {
     "edit": "Edit",
@@ -306,6 +318,9 @@
     "week": {
       "title": "This week",
       "total": "{{distance}} total"
+    },
+    "account": {
+      "changeEmail": "Change email"
     }
   },
   "userEdit": {

@@ -68,7 +68,13 @@ export function toAuthError(error: unknown): AuthError {
     return { kind: 'invalid-credentials', message };
   }
 
-  if (includesAny(normalizedMessage, ['USER_EXISTS', 'USERNAMEEXISTSEXCEPTION'])) {
+  if (
+    includesAny(normalizedMessage, [
+      'USER_EXISTS',
+      'USERNAMEEXISTSEXCEPTION',
+      'ALIASEXISTSEXCEPTION',
+    ])
+  ) {
     return { kind: 'user-exists', message };
   }
 

@@ -61,6 +61,7 @@ describe('UserScreen', () => {
       status: 'ready',
       handleRetry: mockRetry,
       displayName: 'Mio Tanaka',
+      email: 'mio@walk.app',
       avatarUrl: null,
       initial: 'M',
       walkingSince: 'Walking since March 2024',
@@ -94,6 +95,7 @@ describe('UserScreen', () => {
     expect(screen.getByTestId('settings-header-left-action-slot')).toBeTruthy();
     expect(screen.getByTestId('settings-header-right-action-slot')).toBeTruthy();
     expect(screen.getByText('Mio Tanaka')).toBeTruthy();
+    expect(screen.getByText('mio@walk.app')).toBeTruthy();
     expect(screen.getByText('Walking since March 2024')).toBeTruthy();
     expect(screen.getByText('412.8')).toBeTruthy();
     expect(screen.getByText('This week')).toBeTruthy();
@@ -104,6 +106,9 @@ describe('UserScreen', () => {
 
     fireEvent.press(screen.getByRole('button', { name: 'Settings' }));
     expect(mockPush).toHaveBeenCalledWith('/settings');
+
+    fireEvent.press(screen.getByRole('button', { name: 'Change email' }));
+    expect(mockPush).toHaveBeenCalledWith('/settings/email');
 
     expect(screen.queryByRole('button', { name: 'Change password' })).toBeNull();
   });

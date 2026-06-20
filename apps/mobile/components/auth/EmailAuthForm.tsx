@@ -148,6 +148,7 @@ export function EmailAuthForm({ onSuccess }: EmailAuthFormProps) {
       {!challenge ? (
         <Button
           label={t('auth.login.submit')}
+          testID="auth-submit-email"
           onPress={handleSubmit}
           loading={requestLoading}
           disabled={!canRequestCode}

@@ -38,4 +38,25 @@ fn schema_removes_password_lifecycle_mutations() {
     assert!(!sdl.contains("password: String!"));
     assert!(!sdl.contains("newPassword"));
     assert!(!sdl.contains("oldPassword"));
+    assert!(!sdl.contains("ChangePassword"));
+    assert!(!sdl.contains("changePassword"));
+}
+
+#[test]
+fn schema_exposes_email_change_without_legacy_success_flags() {
+    let schema =
+        async_graphql::Schema::build(Query::default(), Mutation::default(), EmptySubscription)
+            .finish();
+    let sdl = schema.sdl();
+
+    assert!(sdl.contains("email: String!"));
+    assert!(sdl.contains("changeEmail(input: ChangeEmailInput!): ChangeEmailOutput!"));
+    assert!(sdl.contains(
+        "confirmEmailChange(input: ConfirmEmailChangeInput!): ConfirmEmailChangeOutput!"
+    ));
+    assert!(sdl.contains("type ChangeEmailOutput"));
+    assert!(sdl.contains("codeLength: Int!"));
+    assert!(sdl.contains("type ConfirmEmailChangeOutput"));
+    assert!(!sdl.contains("type ChangeEmailOutput {\n\tsuccess: Boolean!"));
+    assert!(!sdl.contains("type ConfirmEmailChangeOutput {\n\tsuccess: Boolean!"));
 }

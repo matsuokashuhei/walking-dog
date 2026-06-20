@@ -9,11 +9,13 @@ use uuid::Uuid;
 use crate::{
     entity::{dog, user, user_dog},
     graphql::{
+        AuthAccessToken,
         cursor::UuidCursor,
         error::AppError,
         object::{dog::Dog, walk::Walk, walk_connection::WalkConnectionFields},
     },
     service::{
+        auth::SharedAuthGateway,
         storage::avatar_url_from_env as avatar_url,
         walk_read_model::{self, WalkHistoryRequest},
     },
@@ -31,6 +33,18 @@ pub struct User {
 
 #[ComplexObject]
 impl User {
+    async fn email(&self, ctx: &Context<'_>) -> Result<String> {
+        let auth_gateway = ctx.data::<SharedAuthGateway>().unwrap();
+        let authorization = ctx
+            .data::<AuthAccessToken>()
+            .map_err(|_| AppError::Unauthorized)?;
+        auth_gateway
+            .current_email(authorization.token())
+            .await
+            .map_err(crate::graphql::error::AuthError::from)
+            .map_err(Into::into)
+    }
+
     async fn dogs(&self, ctx: &Context<'_>) -> Result<Vec<Dog>> {
         let db = ctx.data::<sea_orm::DatabaseConnection>().unwrap();
         let dogs = dog::Entity::find()

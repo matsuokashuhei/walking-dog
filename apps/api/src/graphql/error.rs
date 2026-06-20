@@ -82,6 +82,7 @@ fn auth_error_status_code(operation: AuthOperation) -> i32 {
     match operation {
         AuthOperation::RequestOneTimePassword
         | AuthOperation::SignIn
+        | AuthOperation::GetUser
         | AuthOperation::AdminGetUser
         | AuthOperation::AdminDeleteUser
         | AuthOperation::VerifyOneTimePassword

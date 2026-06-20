@@ -24,11 +24,13 @@ test('dev-stack does not use compose override files for port replacement', () =>
   assert.doesNotMatch(source, /compose\.override\.ya?ml/);
 });
 
-test('dev-stack no longer starts cognito-local', () => {
+test('dev-stack no longer starts removed local-only services', () => {
   const compose = readFileSync('apps/compose.yml', 'utf8');
   const source = readFileSync('scripts/harness/dev-stack.mjs', 'utf8');
 
   assert.doesNotMatch(compose, /cognito-local/);
+  assert.doesNotMatch(compose, /schemaspy/i);
   assert.doesNotMatch(source, /cognito-local/);
+  assert.doesNotMatch(source, /schemaspy/i);
   assert.doesNotMatch(source, /WD_COGNITO_PORT/);
 });

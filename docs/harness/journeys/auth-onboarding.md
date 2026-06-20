@@ -14,33 +14,32 @@
 
 ## Scope
 
-A new owner creates an account, confirms email when required, signs in, and reaches
-the authenticated app with the expected Dogs, Walk, and Me surfaces. A signed-in
-owner can also change their password from Me and must sign in again afterward.
+A new or returning owner enters email, verifies the email one-time password,
+and reaches the authenticated app with the expected Dogs, Walk, and Me
+surfaces. The backend creates a Cognito and `users` row automatically when the
+email is not registered.
 
 ## Acceptance Criteria
 
-- Registration requires display name, email, and a valid password.
+- Authentication requires email only.
+- The UI does not ask the owner to choose sign-in versus account creation.
 - Terms and privacy links open the configured `/terms` and `/policy` URLs.
-- Confirmation flow accepts the harness-provided verification code when Cognito
-  requires confirmation.
-- Sign-in stores tokens through secure storage, not AsyncStorage.
+- Email one-time password accepts the operator-provided AWS Cognito code.
+- Completing the 8-digit one-time password automatically verifies without a
+  separate confirm button.
+- Successful verification stores tokens through secure storage, not AsyncStorage.
 - Authenticated navigation shows Dogs, Walk, and Me tabs.
-- Changing password requires the current password, a valid new password, and
-  matching confirmation before submitting.
-- Successful password change clears local auth and returns the owner to sign-in.
-- Real Cognito invalidates sessions through `GlobalSignOut`; `cognito-local`
-  supports `ChangePassword` but not `GlobalSignOut`, so local harness proof
-  treats local token clearing as the enforced re-login boundary.
-- Invalid credentials and network failures surface actionable errors without
-  silently falling back to an authenticated state.
+- Forgot password, reset password, and change password controls are not present.
+- Invalid, expired, or already-consumed one-time password attempts surface
+  actionable errors and allow re-entry.
+- Network failures surface actionable errors without silently falling back to an
+  authenticated state.
 
 ## Evidence
 
 - Maestro: `apps/mobile/e2e/maestro/auth-onboarding.yaml`.
-- API: GraphQL sign-up, confirm, sign-in, and change-password request/response
-  snippets with password variables redacted.
-- Mobile: screenshot of authenticated tabs, password-change entry, and command
-  output for auth tests.
+- API: GraphQL `requestOneTimePassword` and `verifyOneTimePassword` request/response
+  snippets with `session`, `code`, access token, and refresh token redacted.
+- Mobile: screenshot of authenticated tabs and command output for auth tests.
 - Observability: API logs showing the auth mutation path and no token values in
   logs.

@@ -11,10 +11,25 @@ node scripts/harness/dev-stack.mjs up
 The script writes `.harness-runs/dev-stack/env.json` with the compose project name
 and per-worktree ports.
 
-## Local Auth Issuer
+## Local API Authentication
+
+Local API auth uses the real AWS Cognito user pool. Configure `apps/api/.env.local`
+with the same values used by the deployed environment:
+
+```bash
+AWS_REGION=ap-northeast-1
+AWS_COGNITO_USER_POOL_ID=<real-user-pool-id>
+AWS_COGNITO_CLIENT_ID=<real-app-client-id>
+```
+
+Do not set `AWS_COGNITO_ENDPOINT` for normal local app runs. Sign-up and sign-in
+send real Cognito email one-time passwords.
+
+## Harness Auth Issuer
 
 Run a harness issuer when you need a signed local token without bypassing JWT
-verification:
+verification for protected API journeys. This issuer is not a replacement for
+Cognito sign-up, sign-in, or email one-time password verification.
 
 ```bash
 AWS_COGNITO_USER_POOL_ID=local_6fbc20 \
@@ -30,8 +45,9 @@ curl -fsS http://localhost:9229/token \
   -d '{"sub":"00000000-0000-7000-8000-000000000001"}'
 ```
 
-Point the API at this issuer with `AWS_COGNITO_ENDPOINT=http://localhost:9229`
-and the same `AWS_COGNITO_USER_POOL_ID`.
+Only point a test-only API process at this issuer with
+`AWS_COGNITO_ENDPOINT=http://localhost:9229` and the same
+`AWS_COGNITO_USER_POOL_ID`. Do not use that endpoint for mobile auth flows.
 
 ## Health Check
 
@@ -87,7 +103,7 @@ The local simulator build points at `http://localhost:3000`.
 ## API Journey Harness
 
 ```bash
-export HARNESS_ACCESS_TOKEN="<token from local auth issuer or signIn>"
+export HARNESS_ACCESS_TOKEN="<token from harness auth issuer or real Cognito sign-in>"
 node scripts/harness/run-api-journey.mjs walk-lifecycle
 ```
 
@@ -107,8 +123,11 @@ Preconditions:
 
 Run one journey:
 
+For auth onboarding, request an AWS Cognito email one-time password and pass the
+received code into the run:
+
 ```bash
-maestro test apps/mobile/e2e/maestro/auth-onboarding.yaml
+E2E_CONFIRMATION_CODE=<code> maestro test apps/mobile/e2e/maestro/auth-onboarding.yaml
 ```
 
 Run all current skeletons:

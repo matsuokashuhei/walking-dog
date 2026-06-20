@@ -2,14 +2,10 @@ import { GraphQLError } from 'graphql';
 import { graphqlClient } from '../graphql/client';
 import { ClientError } from '../graphql/client-error';
 import {
-  changePassword,
-  confirmForgotPassword,
-  confirmSignUp,
-  forgotPassword,
   refreshToken,
-  signIn,
   signOut,
-  signUp,
+  requestOneTimePassword,
+  verifyOneTimePassword,
 } from './api';
 
 jest.mock('../graphql/client', () => ({
@@ -32,130 +28,70 @@ describe('auth api', () => {
     jest.clearAllMocks();
   });
 
-  it('signIn returns tokens on success', async () => {
+  it('requestOneTimePassword starts an email one-time password challenge', async () => {
     mockRequest.mockResolvedValue({
-      signIn: { accessToken: 'access-token', refreshToken: 'refresh-token' },
+      requestOneTimePassword: {
+        email: 'user@example.com',
+        session: 'otp-session',
+      },
     });
 
-    await expect(signIn('user@example.com', 'password123')).resolves.toEqual({
-      accessToken: 'access-token',
-      refreshToken: 'refresh-token',
+    await expect(requestOneTimePassword('user@example.com')).resolves.toEqual({
+      email: 'user@example.com',
+      session: 'otp-session',
     });
-    expect(mockRequest).toHaveBeenCalledWith(expect.any(String), {
-      input: { email: 'user@example.com', password: 'password123' },
-    });
-  });
-
-  it('signIn maps backend auth failures to invalid-credentials', async () => {
-    mockRequest.mockRejectedValue(makeClientError('NotAuthorizedException'));
-
-    await expect(signIn('user@example.com', 'wrong')).rejects.toMatchObject({
-      kind: 'invalid-credentials',
-    });
-  });
-
-  it('signUp returns the signup result on success', async () => {
-    mockRequest.mockResolvedValue({ signUp: { success: true, userConfirmed: false } });
-
-    await expect(signUp('user@example.com', 'password123', 'Taro')).resolves.toEqual({
-      success: true,
-      userConfirmed: false,
-    });
-  });
-
-  it('signUp maps duplicate users to user-exists', async () => {
-    mockRequest.mockRejectedValue(makeClientError('USER_EXISTS'));
-
-    await expect(signUp('user@example.com', 'password123', 'Taro')).rejects.toMatchObject({
-      kind: 'user-exists',
-    });
-  });
-
-  it('confirmSignUp resolves with the server response on success', async () => {
-    mockRequest.mockResolvedValue({ confirmSignUp: { success: true } });
-
-    await expect(confirmSignUp('user@example.com', '123456')).resolves.toBe(true);
-  });
-
-  it('confirmSignUp maps expired codes to code-mismatch', async () => {
-    mockRequest.mockRejectedValue(makeClientError('EXPIRED_CODE'));
-
-    await expect(confirmSignUp('user@example.com', '123456')).rejects.toMatchObject({
-      kind: 'code-mismatch',
-      reason: 'expired',
-    });
-  });
-
-  it('forgotPassword requests a reset code for an email address', async () => {
-    mockRequest.mockResolvedValue({ forgotPassword: { success: true } });
-
-    await expect(forgotPassword('user@example.com')).resolves.toBe(true);
     expect(mockRequest).toHaveBeenCalledWith(expect.any(String), {
       input: { email: 'user@example.com' },
     });
   });
 
-  it('confirmForgotPassword sends the code and new password', async () => {
-    mockRequest.mockResolvedValue({ confirmForgotPassword: { success: true } });
-
-    await expect(
-      confirmForgotPassword('user@example.com', '123456', 'Newpass1')
-    ).resolves.toBe(true);
-    expect(mockRequest).toHaveBeenCalledWith(expect.any(String), {
-      input: {
-        email: 'user@example.com',
-        code: '123456',
-        newPassword: 'Newpass1',
-      },
-    });
-  });
-
-  it('confirmForgotPassword maps invalid reset codes to code-mismatch', async () => {
-    mockRequest.mockRejectedValue(makeClientError('CodeMismatchException'));
-
-    await expect(
-      confirmForgotPassword('user@example.com', '000000', 'Newpass1')
-    ).rejects.toMatchObject({
-      kind: 'code-mismatch',
-      reason: 'invalid',
-    });
-  });
-
-  it('confirmForgotPassword maps invalid new passwords to invalid-password', async () => {
-    mockRequest.mockRejectedValue(makeClientError('InvalidPasswordException'));
-
-    await expect(
-      confirmForgotPassword('user@example.com', '123456', 'short')
-    ).rejects.toMatchObject({
-      kind: 'invalid-password',
-    });
-  });
-
-  it('changePassword sends the current and new password for the signed-in user', async () => {
-    mockRequest.mockResolvedValue({ changePassword: { success: true } });
-
-    await expect(changePassword('Currentpass1', 'Newpass1')).resolves.toBe(true);
-    expect(mockRequest).toHaveBeenCalledWith(expect.any(String), {
-      input: {
-        oldPassword: 'Currentpass1',
-        newPassword: 'Newpass1',
-      },
-    });
-  });
-
-  it('changePassword maps incorrect current passwords to invalid-credentials', async () => {
+  it('requestOneTimePassword maps backend auth failures to invalid-credentials', async () => {
     mockRequest.mockRejectedValue(makeClientError('NotAuthorizedException'));
 
-    await expect(changePassword('Wrongpass1', 'Newpass1')).rejects.toMatchObject({
+    await expect(requestOneTimePassword('user@example.com')).rejects.toMatchObject({
       kind: 'invalid-credentials',
     });
   });
 
-  it('changePassword maps password policy failures to invalid-password', async () => {
-    mockRequest.mockRejectedValue(makeClientError('PasswordHistoryPolicyViolationException'));
+  it('verifyOneTimePassword returns tokens on success', async () => {
+    mockRequest.mockResolvedValue({
+      verifyOneTimePassword: {
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token',
+      },
+    });
 
-    await expect(changePassword('Currentpass1', 'Currentpass1')).rejects.toMatchObject({
-      kind: 'invalid-password',
+    await expect(
+      verifyOneTimePassword({
+        email: 'user@example.com',
+        session: 'otp-session',
+        code: '12345678',
+      }),
+    ).resolves.toEqual({
+      accessToken: 'access-token',
+      refreshToken: 'refresh-token',
+    });
+    expect(mockRequest).toHaveBeenCalledWith(expect.any(String), {
+      input: {
+        email: 'user@example.com',
+        session: 'otp-session',
+        code: '12345678',
+      },
+    });
+  });
+
+  it('verifyOneTimePassword maps expired codes to code-mismatch', async () => {
+    mockRequest.mockRejectedValue(makeClientError('ExpiredCodeException'));
+
+    await expect(
+      verifyOneTimePassword({
+        email: 'user@example.com',
+        session: 'otp-session',
+        code: '12345678',
+      }),
+    ).rejects.toMatchObject({
+      kind: 'code-mismatch',
+      reason: 'expired',
     });
   });
 

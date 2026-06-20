@@ -50,6 +50,7 @@ resource "aws_iam_user_policy" "vps_api" {
         Effect = "Allow"
         Action = [
           "cognito-idp:AdminGetUser",
+          "cognito-idp:AdminDeleteUser",
           "cognito-idp:ListUsers",
         ]
         Resource = aws_cognito_user_pool.main.arn

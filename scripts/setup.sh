@@ -6,8 +6,6 @@
 set -euo pipefail
 
 COMPOSE_FILE="apps/compose.yml"
-SEED_DIR="apps/cognito-local/seed"
-DB_DIR="apps/cognito-local/db"
 
 if [[ ! -f "$COMPOSE_FILE" ]]; then
   echo "Error: Run this script from the repository root." >&2
@@ -16,22 +14,14 @@ fi
 
 echo "=== Walking Dog Development Environment Setup ==="
 
-# 1. Initialize cognito-local DB from seed files
+# 1. Start infrastructure services
 echo ""
-echo "[1/5] Initializing cognito-local database from seed..."
-mkdir -p "$DB_DIR"
-cp "$SEED_DIR"/local_2yovNmW0.json "$DB_DIR"/local_2yovNmW0.json
-cp "$SEED_DIR"/clients.json "$DB_DIR"/clients.json
-echo "  Done."
+echo "[1/4] Starting infrastructure services..."
+docker compose -f "$COMPOSE_FILE" up -d postgres dynamodb-local minio elasticmq
 
-# 2. Start infrastructure services
+# 2. Wait for PostgreSQL, then run migrations
 echo ""
-echo "[2/5] Starting infrastructure services..."
-docker compose -f "$COMPOSE_FILE" up -d postgres dynamodb-local minio elasticmq cognito-local
-
-# 3. Wait for PostgreSQL, then run migrations
-echo ""
-echo "[3/5] Waiting for PostgreSQL..."
+echo "[2/4] Waiting for PostgreSQL..."
 for i in $(seq 1 30); do
   if docker compose -f "$COMPOSE_FILE" exec -T postgres pg_isready -U walking_dog > /dev/null 2>&1; then
     echo "  PostgreSQL is ready."
@@ -48,9 +38,9 @@ echo "  Running database migrations..."
 docker compose -f "$COMPOSE_FILE" run --rm api cargo run -p migration
 echo "  Migrations complete."
 
-# 4. Create DynamoDB tables and S3 buckets
+# 3. Create DynamoDB tables and S3 buckets
 echo ""
-echo "[4/5] Creating AWS local resources..."
+echo "[3/4] Creating AWS local resources..."
 
 echo "  Waiting for DynamoDB Local..."
 for i in $(seq 1 30); do
@@ -124,20 +114,18 @@ echo "  S3 bucket dog-photos ensured."
 # SQS queues are declared in apps/elasticmq/elasticmq.conf and created
 # automatically when the elasticmq container starts. No setup needed here.
 
-# 5. Start all services
+# 4. Start all services
 echo ""
-echo "[5/5] Starting all services..."
+echo "[4/4] Starting all services..."
 docker compose -f "$COMPOSE_FILE" up -d
 
 echo ""
 echo "=== Setup Complete ==="
 echo "API:            http://localhost:3000"
 echo "GraphQL:        http://localhost:3000/graphql"
-echo "Cognito Local:  http://localhost:9229"
 echo "PostgreSQL:     localhost:5432"
 echo "DynamoDB Local: http://localhost:8000"
 echo "MinIO(S3):      http://localhost:9000"
 echo "MinIO Console:  http://localhost:9001"
 echo ""
-echo "User Pool ID:   local_2yovNmW0"
-echo "Client ID:      418806fx3afm9cp1mdhxwpxw3"
+echo "Cognito:        configure apps/api/.env.local with real AWS Cognito values"

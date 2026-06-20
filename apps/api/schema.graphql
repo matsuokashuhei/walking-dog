@@ -42,39 +42,11 @@ type ChangeEmailOutput {
 	success: Boolean!
 }
 
-input ChangePasswordInput {
-	oldPassword: String!
-	newPassword: String!
-}
-
-type ChangePasswordOutput {
-	success: Boolean!
-}
-
 input ConfirmEmailChangeInput {
 	code: String!
 }
 
 type ConfirmEmailChangeOutput {
-	success: Boolean!
-}
-
-input ConfirmForgotPasswordInput {
-	email: String!
-	code: String!
-	newPassword: String!
-}
-
-type ConfirmForgotPasswordOutput {
-	success: Boolean!
-}
-
-input ConfirmSignUpInput {
-	email: String!
-	code: String!
-}
-
-type ConfirmSignUpOutput {
 	success: Boolean!
 }
 
@@ -134,14 +106,6 @@ enum EventType {
 	GREET
 }
 
-input ForgotPasswordInput {
-	email: String!
-}
-
-type ForgotPasswordOutput {
-	success: Boolean!
-}
-
 enum Gender {
 	MALE
 	FEMALE
@@ -153,16 +117,12 @@ scalar Latitude
 scalar Longitude
 
 type Mutation {
-	signUp(input: SignUpInput!): SignUpOutput!
-	confirmSignUp(input: ConfirmSignUpInput!): ConfirmSignUpOutput!
-	forgotPassword(input: ForgotPasswordInput!): ForgotPasswordOutput!
-	confirmForgotPassword(input: ConfirmForgotPasswordInput!): ConfirmForgotPasswordOutput!
-	signIn(input: SignInInput!): SignInOutput!
+	requestOneTimePassword(input: RequestOneTimePasswordInput!): OneTimePasswordChallenge!
+	verifyOneTimePassword(input: VerifyOneTimePasswordInput!): VerifyOneTimePasswordOutput!
 	refreshToken(input: RefreshTokenInput!): RefreshTokenOutput!
 	signOut: SignOutOutput!
 	changeEmail(input: ChangeEmailInput!): ChangeEmailOutput!
 	confirmEmailChange(input: ConfirmEmailChangeInput!): ConfirmEmailChangeOutput!
-	changePassword(input: ChangePasswordInput!): ChangePasswordOutput!
 	addDog(input: AddDogInput!): Dog!
 	updateDog(input: UpdateDogInput!): Dog!
 	removeDog(input: RemoveDogInput!): Dog!
@@ -186,6 +146,11 @@ Format: %Y-%m-%d
 * `2000-02-24`
 """
 scalar NaiveDate
+
+type OneTimePasswordChallenge {
+	email: String!
+	session: String!
+}
 
 """
 Information about pagination in a connection
@@ -229,32 +194,17 @@ input RemoveDogInput {
 	id: UUID!
 }
 
+input RequestOneTimePasswordInput {
+	email: String!
+}
+
 input SetGoalInput {
 	dogId: UUID!
 	walkAmount: WalkAmountInput!
 	effectiveFrom: NaiveDate!
 }
 
-input SignInInput {
-	email: String!
-	password: String!
-}
-
-type SignInOutput {
-	accessToken: String!
-	refreshToken: String!
-}
-
 type SignOutOutput {
-	success: Boolean!
-}
-
-input SignUpInput {
-	email: String!
-	password: String!
-}
-
-type SignUpOutput {
 	success: Boolean!
 }
 
@@ -335,6 +285,17 @@ type User {
 	updatedAt: DateTime!
 	dogs: [Dog!]!
 	walks(after: String, before: String, first: Int, last: Int): WalkConnection!
+}
+
+input VerifyOneTimePasswordInput {
+	email: String!
+	session: String!
+	code: String!
+}
+
+type VerifyOneTimePasswordOutput {
+	accessToken: String!
+	refreshToken: String!
 }
 
 type Walk {

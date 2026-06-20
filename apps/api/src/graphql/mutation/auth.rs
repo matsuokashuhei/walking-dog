@@ -6,71 +6,45 @@ use crate::entity::user;
 use crate::graphql::AuthAccessToken;
 use crate::graphql::error::AppError;
 use crate::graphql::{error::AuthError, guard::AuthGuard};
-use crate::service::auth::{AuthTokenPair, SharedAuthGateway};
+use crate::service::auth::{
+    AuthTokenPair, OneTimePasswordChallenge as AuthOneTimePasswordChallenge, SharedAuthGateway,
+};
 
 #[derive(Default, Debug)]
 pub struct AuthMutation;
 
 #[Object]
 impl AuthMutation {
-    async fn sign_up(&self, ctx: &Context<'_>, input: SignUpInput) -> Result<SignUpOutput> {
+    async fn request_one_time_password(
+        &self,
+        ctx: &Context<'_>,
+        input: RequestOneTimePasswordInput,
+    ) -> Result<OneTimePasswordChallenge> {
         let auth_gateway = ctx.data::<SharedAuthGateway>().unwrap();
         let output = auth_gateway
-            .sign_up(input.email.clone(), input.password)
+            .request_one_time_password(input.email)
             .await
             .map_err(AuthError::from)?;
-        let db = ctx.data::<DatabaseConnection>().unwrap();
-        let user = user::ActiveModel {
-            cognito_sub: Set(output.user_sub),
-            ..Default::default()
-        };
-        user.insert(db).await?;
-        Ok(SignUpOutput { success: true })
+        if let Some(cognito_sub) = output.created_user_sub.clone() {
+            let db = ctx.data::<DatabaseConnection>().unwrap();
+            let user = user::ActiveModel {
+                cognito_sub: Set(cognito_sub),
+                name: Set(None),
+                ..Default::default()
+            };
+            user.insert(db).await?;
+        }
+        Ok(output.challenge.into())
     }
 
-    async fn confirm_sign_up(
+    async fn verify_one_time_password(
         &self,
         ctx: &Context<'_>,
-        input: ConfirmSignUpInput,
-    ) -> Result<ConfirmSignUpOutput> {
-        let auth_gateway = ctx.data::<SharedAuthGateway>().unwrap();
-        auth_gateway
-            .confirm_sign_up(input.email, input.code)
-            .await
-            .map_err(AuthError::from)?;
-        Ok(ConfirmSignUpOutput { success: true })
-    }
-
-    async fn forgot_password(
-        &self,
-        ctx: &Context<'_>,
-        input: ForgotPasswordInput,
-    ) -> Result<ForgotPasswordOutput> {
-        let auth_gateway = ctx.data::<SharedAuthGateway>().unwrap();
-        auth_gateway
-            .forgot_password(input.email)
-            .await
-            .map_err(AuthError::from)?;
-        Ok(ForgotPasswordOutput { success: true })
-    }
-
-    async fn confirm_forgot_password(
-        &self,
-        ctx: &Context<'_>,
-        input: ConfirmForgotPasswordInput,
-    ) -> Result<ConfirmForgotPasswordOutput> {
-        let auth_gateway = ctx.data::<SharedAuthGateway>().unwrap();
-        auth_gateway
-            .confirm_forgot_password(input.email, input.code, input.new_password)
-            .await
-            .map_err(AuthError::from)?;
-        Ok(ConfirmForgotPasswordOutput { success: true })
-    }
-
-    async fn sign_in(&self, ctx: &Context<'_>, input: SignInInput) -> Result<SignInOutput> {
+        input: VerifyOneTimePasswordInput,
+    ) -> Result<VerifyOneTimePasswordOutput> {
         let auth_gateway = ctx.data::<SharedAuthGateway>().unwrap();
         let output = auth_gateway
-            .sign_in(input.email, input.password)
+            .verify_one_time_password(input.email, input.session, input.code)
             .await
             .map_err(AuthError::from)?;
         Ok(output.into())
@@ -135,31 +109,6 @@ impl AuthMutation {
             .map_err(AuthError::from)?;
         Ok(ConfirmEmailChangeOutput { success: true })
     }
-
-    #[graphql(guard = "AuthGuard")]
-    async fn change_password(
-        &self,
-        ctx: &Context<'_>,
-        input: ChangePasswordInput,
-    ) -> Result<ChangePasswordOutput> {
-        let auth_gateway = ctx.data::<SharedAuthGateway>().unwrap();
-        let authorization = ctx
-            .data::<AuthAccessToken>()
-            .map_err(|_| AppError::Unauthorized)?;
-        auth_gateway
-            .change_password(
-                authorization.token(),
-                input.old_password,
-                input.new_password,
-            )
-            .await
-            .map_err(AuthError::from)?;
-        auth_gateway
-            .sign_out(authorization.token())
-            .await
-            .map_err(AuthError::from)?;
-        Ok(ChangePasswordOutput { success: true })
-    }
 }
 
 #[derive(SimpleObject)]
@@ -168,64 +117,41 @@ pub struct SignOutOutput {
 }
 
 #[derive(Clone, Debug, InputObject)]
-pub struct SignUpInput {
+pub struct RequestOneTimePasswordInput {
     email: String,
-    password: String,
 }
 
 #[derive(SimpleObject)]
-pub struct SignUpOutput {
-    success: bool,
+pub struct OneTimePasswordChallenge {
+    email: String,
+    session: String,
+}
+
+impl From<AuthOneTimePasswordChallenge> for OneTimePasswordChallenge {
+    fn from(challenge: AuthOneTimePasswordChallenge) -> Self {
+        Self {
+            email: challenge.email,
+            session: challenge.session,
+        }
+    }
 }
 
 #[derive(Clone, Debug, InputObject)]
-pub struct ConfirmSignUpInput {
+pub struct VerifyOneTimePasswordInput {
     email: String,
+    session: String,
     code: String,
 }
 
 #[derive(SimpleObject)]
-pub struct ConfirmSignUpOutput {
-    success: bool,
-}
-
-#[derive(Clone, Debug, InputObject)]
-pub struct ForgotPasswordInput {
-    email: String,
-}
-
-#[derive(SimpleObject)]
-pub struct ForgotPasswordOutput {
-    success: bool,
-}
-
-#[derive(Clone, Debug, InputObject)]
-pub struct ConfirmForgotPasswordInput {
-    email: String,
-    code: String,
-    new_password: String,
-}
-
-#[derive(SimpleObject)]
-pub struct ConfirmForgotPasswordOutput {
-    success: bool,
-}
-
-#[derive(Clone, Debug, InputObject)]
-pub struct SignInInput {
-    email: String,
-    password: String,
-}
-
-#[derive(SimpleObject)]
-pub struct SignInOutput {
+pub struct VerifyOneTimePasswordOutput {
     access_token: String,
     refresh_token: String,
 }
 
-impl From<AuthTokenPair> for SignInOutput {
+impl From<AuthTokenPair> for VerifyOneTimePasswordOutput {
     fn from(output: AuthTokenPair) -> Self {
-        SignInOutput {
+        Self {
             access_token: output.access_token,
             refresh_token: output.refresh_token,
         }
@@ -269,16 +195,5 @@ pub struct ConfirmEmailChangeInput {
 
 #[derive(SimpleObject)]
 pub struct ConfirmEmailChangeOutput {
-    success: bool,
-}
-
-#[derive(Clone, Debug, InputObject)]
-pub struct ChangePasswordInput {
-    old_password: String,
-    new_password: String,
-}
-
-#[derive(SimpleObject)]
-pub struct ChangePasswordOutput {
     success: bool,
 }

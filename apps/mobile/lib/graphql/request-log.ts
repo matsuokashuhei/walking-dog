@@ -27,6 +27,10 @@ function isSensitiveVariableKey(key: string): boolean {
   const normalizedKey = key.toLowerCase().replace(/[^a-z0-9]/g, '');
   return (
     normalizedKey.includes('password') ||
+    normalizedKey.includes('onetimepassword') ||
+    normalizedKey === 'session' ||
+    normalizedKey === 'code' ||
+    normalizedKey.endsWith('code') ||
     normalizedKey === 'accesstoken' ||
     normalizedKey === 'refreshtoken'
   );

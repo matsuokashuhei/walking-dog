@@ -44,12 +44,6 @@ export default function UserScreen() {
                 leading={<IconSymbol name="gearshape.fill" size={18} color={theme.interactive} />}
                 label={t('settings.openSettings')}
                 onPress={() => router.push('/settings')}
-              />
-              <GroupedRow
-                leading={<IconSymbol name="key.fill" size={18} color={theme.interactive} />}
-                label={t('settings.changePassword')}
-                onPress={() => router.push('/user/change-password')}
-                testID="user-change-password-row"
                 separator={false}
               />
             </GroupedCard>

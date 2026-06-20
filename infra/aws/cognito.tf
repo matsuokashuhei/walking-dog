@@ -1,17 +1,9 @@
 resource "aws_cognito_user_pool" "main" {
   name = "${var.project_name}-${var.environment}"
 
-  username_attributes      = ["email", "phone_number"]
-  auto_verified_attributes = ["email", "phone_number"]
-
-  password_policy {
-    minimum_length                   = 8
-    require_uppercase                = true
-    require_lowercase                = true
-    require_numbers                  = true
-    require_symbols                  = false
-    temporary_password_validity_days = 7
-  }
+  username_attributes      = ["email"]
+  auto_verified_attributes = ["email"]
+  user_pool_tier           = "ESSENTIALS"
 
   schema {
     name                = "name"
@@ -37,24 +29,13 @@ resource "aws_cognito_user_pool" "main" {
     }
   }
 
-  schema {
-    name                = "phone_number"
-    attribute_data_type = "String"
-    mutable             = true
-    required            = false
-
-    string_attribute_constraints {
-      min_length = 0
-      max_length = 2048
-    }
-  }
-
   mfa_configuration = "OFF"
 
-  sms_configuration {
-    external_id    = "${var.project_name}-${var.environment}-cognito"
-    sns_caller_arn = aws_iam_role.cognito_sns.arn
-    sns_region     = var.aws_region
+  sign_in_policy {
+    # Cognito currently rejects CreateUserPool/UpdateUserPool with EMAIL_OTP
+    # as the only first factor because the service always has a password policy.
+    # The app client and API expose only passwordless EMAIL_OTP.
+    allowed_first_auth_factors = ["EMAIL_OTP", "PASSWORD"]
   }
 
   email_configuration {
@@ -69,17 +50,6 @@ resource "aws_cognito_user_pool" "main" {
 
   admin_create_user_config {
     allow_admin_create_user_only = false
-  }
-
-  account_recovery_setting {
-    recovery_mechanism {
-      name     = "verified_email"
-      priority = 1
-    }
-    recovery_mechanism {
-      name     = "verified_phone_number"
-      priority = 2
-    }
   }
 
   tags = {
@@ -158,8 +128,7 @@ resource "aws_cognito_user_pool_client" "app" {
   generate_secret = false
 
   explicit_auth_flows = [
-    "ALLOW_USER_PASSWORD_AUTH",
-    "ALLOW_USER_SRP_AUTH",
+    "ALLOW_USER_AUTH",
   ]
 
   refresh_token_rotation {

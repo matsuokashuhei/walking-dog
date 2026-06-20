@@ -69,9 +69,13 @@ function buildSteps(name) {
   if (name === 'auth-onboarding') {
     return smoke.concat([
       {
-        name: 'sign-up-contract',
-        query: 'mutation HarnessSignUp($input: SignUpInput!) { signUp(input: $input) { success } }',
-        variables: { input: { email: `harness-${Date.now()}@example.com`, password: 'HarnessPassw0rd!' } },
+        name: 'request-one-time-password-contract',
+        query: 'mutation HarnessRequestOneTimePassword($input: RequestOneTimePasswordInput!) { requestOneTimePassword(input: $input) { email session } }',
+        variables: {
+          input: {
+            email: `harness-${Date.now()}@example.com`,
+          },
+        },
       },
     ]);
   }

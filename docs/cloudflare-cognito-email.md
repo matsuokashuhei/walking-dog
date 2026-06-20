@@ -55,7 +55,7 @@ The resulting role is `AWSServiceRoleForAmazonCognitoIdpEmailService` and lets C
 ## Verification
 
 1. Send a test email from the SES console using `no-reply@walking-dog.cacheandbuffer.com`.
-2. Sign up through the GraphQL `signUp` mutation.
+2. Request an email code through the GraphQL `requestOneTimePassword` mutation.
 3. Confirm that the email arrives from `no-reply@walking-dog.cacheandbuffer.com`.
-4. Use the received code with `confirmSignUp`.
+4. Use the received code and returned `session` with `verifyOneTimePassword`.
 5. Repeat for email change flows (`changeEmail` / `confirmEmailChange`).

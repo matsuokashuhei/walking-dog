@@ -70,13 +70,38 @@ impl ErrorExtensions for AuthError {
         Error::new(self.to_string()).extend_with(|_, e| match self {
             AuthError::Provider(error_value) => {
                 error!("Auth provider error: {:?}", error_value);
-                let code = match error_value.operation() {
-                    AuthOperation::RefreshToken => 401,
-                    _ => 422,
-                };
+                let code = auth_error_status_code(error_value.operation());
                 e.set("code", code);
                 e.set("message", error_value.provider_message());
             }
         })
+    }
+}
+
+fn auth_error_status_code(operation: AuthOperation) -> i32 {
+    match operation {
+        AuthOperation::RequestOneTimePassword
+        | AuthOperation::SignIn
+        | AuthOperation::AdminGetUser
+        | AuthOperation::AdminDeleteUser
+        | AuthOperation::VerifyOneTimePassword
+        | AuthOperation::RefreshToken
+        | AuthOperation::SignOut
+        | AuthOperation::UpdateUserAttributes
+        | AuthOperation::VerifyUserAttribute => 401,
+        _ => 422,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn one_time_password_failures_are_authentication_errors() {
+        assert_eq!(
+            auth_error_status_code(AuthOperation::VerifyOneTimePassword),
+            401
+        );
     }
 }

@@ -13,18 +13,38 @@ and per-worktree ports.
 
 ## Local API Authentication
 
-Local API auth uses the real AWS Cognito user pool. Configure `apps/api/.env.local`
-with the same values used by the deployed environment:
+Local API auth uses a dedicated real AWS Cognito user pool for the local
+environment. Configure `apps/api/.env.local` with the Terraform local Cognito
+outputs:
 
 ```bash
 AWS_REGION=ap-northeast-1
-AWS_COGNITO_USER_POOL_ID=<real-user-pool-id>
-AWS_COGNITO_CLIENT_ID=<real-app-client-id>
+AWS_COGNITO_USER_POOL_ID=<local_cognito_user_pool_id>
+AWS_COGNITO_CLIENT_ID=<local_cognito_client_id>
 ```
 
-Sign-up and sign-in send real Cognito email one-time passwords. The API doesn't
-support a Cognito endpoint override. Authenticated harness journeys must use a
-real Cognito access token.
+Fetch the values after applying `infra/aws`:
+
+```bash
+docker run --rm \
+  -v "$PWD/infra/aws:/workspace" \
+  -v "$HOME/.aws:/root/.aws:ro" \
+  -e AWS_PROFILE=personal \
+  -w /workspace \
+  hashicorp/terraform:1.14 output -raw local_cognito_user_pool_id
+
+docker run --rm \
+  -v "$PWD/infra/aws:/workspace" \
+  -v "$HOME/.aws:/root/.aws:ro" \
+  -e AWS_PROFILE=personal \
+  -w /workspace \
+  hashicorp/terraform:1.14 output -raw local_cognito_client_id
+```
+
+Sign-up and sign-in send real Cognito email one-time passwords from the local
+user pool. The API doesn't support a Cognito endpoint override. Authenticated
+harness journeys must use a real Cognito access token from the same local user
+pool configured in `apps/api/.env.local`.
 
 ## Health Check
 

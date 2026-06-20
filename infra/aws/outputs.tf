@@ -20,6 +20,21 @@ output "cognito_domain" {
   value = "${aws_cognito_user_pool_domain.main.domain}.auth.${var.aws_region}.amazoncognito.com"
 }
 
+output "local_cognito_user_pool_id" {
+  description = "AWS Cognito user pool ID dedicated to local API and mobile harness authentication."
+  value       = aws_cognito_user_pool.local.id
+}
+
+output "local_cognito_user_pool_arn" {
+  description = "AWS Cognito user pool ARN dedicated to local API and mobile harness authentication."
+  value       = aws_cognito_user_pool.local.arn
+}
+
+output "local_cognito_client_id" {
+  description = "AWS Cognito app client ID dedicated to local API and mobile harness authentication."
+  value       = aws_cognito_user_pool_client.local_app.id
+}
+
 output "ses_cognito_domain_identity_arn" {
   description = "Amazon SES domain identity ARN used by Cognito when cognito_use_ses_email is true."
   value       = aws_ses_domain_identity.cognito.arn

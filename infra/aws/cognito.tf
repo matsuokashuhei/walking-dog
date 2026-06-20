@@ -160,3 +160,91 @@ resource "aws_cognito_user_pool_client" "app" {
     aws_cognito_identity_provider.google,
   ]
 }
+
+# --- Local Cognito User Pool ---
+
+resource "aws_cognito_user_pool" "local" {
+  name = "${var.project_name}-local"
+
+  username_attributes      = ["email"]
+  auto_verified_attributes = ["email"]
+  user_pool_tier           = "ESSENTIALS"
+
+  schema {
+    name                = "name"
+    attribute_data_type = "String"
+    mutable             = true
+    required            = false
+
+    string_attribute_constraints {
+      min_length = 0
+      max_length = 2048
+    }
+  }
+
+  schema {
+    name                = "email"
+    attribute_data_type = "String"
+    mutable             = true
+    required            = true
+
+    string_attribute_constraints {
+      min_length = 0
+      max_length = 2048
+    }
+  }
+
+  mfa_configuration = "OFF"
+
+  sign_in_policy {
+    # Cognito currently rejects CreateUserPool/UpdateUserPool with EMAIL_OTP
+    # as the only first factor because the service always has a password policy.
+    # The app client and API expose only passwordless EMAIL_OTP.
+    allowed_first_auth_factors = ["EMAIL_OTP", "PASSWORD"]
+  }
+
+  email_configuration {
+    email_sending_account = var.cognito_use_ses_email ? "DEVELOPER" : "COGNITO_DEFAULT"
+    from_email_address    = var.cognito_use_ses_email ? local.cognito_email_from : null
+    source_arn            = var.cognito_use_ses_email ? aws_ses_domain_identity.cognito.arn : null
+  }
+
+  verification_message_template {
+    default_email_option = "CONFIRM_WITH_CODE"
+  }
+
+  admin_create_user_config {
+    allow_admin_create_user_only = false
+  }
+
+  tags = {
+    Environment = "local"
+    Project     = var.project_name
+  }
+}
+
+resource "aws_cognito_user_pool_client" "local_app" {
+  name         = "${var.project_name}-local-app"
+  user_pool_id = aws_cognito_user_pool.local.id
+
+  generate_secret = false
+
+  explicit_auth_flows = [
+    "ALLOW_USER_AUTH",
+  ]
+
+  refresh_token_rotation {
+    feature                    = "ENABLED"
+    retry_grace_period_seconds = 10
+  }
+
+  access_token_validity  = 1
+  id_token_validity      = 1
+  refresh_token_validity = 3650
+
+  token_validity_units {
+    access_token  = "days"
+    id_token      = "days"
+    refresh_token = "days"
+  }
+}

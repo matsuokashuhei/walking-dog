@@ -6,9 +6,7 @@ use crate::entity::user;
 use crate::graphql::AuthAccessToken;
 use crate::graphql::error::AppError;
 use crate::graphql::{error::AuthError, guard::AuthGuard};
-use crate::service::auth::{
-    AuthTokenPair, OneTimePasswordChallenge as AuthOneTimePasswordChallenge, SharedAuthGateway,
-};
+use crate::service::auth::{AuthTokenPair, OneTimePasswordChallenge, SharedAuthGateway};
 
 #[derive(Default, Debug)]
 pub struct AuthMutation;
@@ -19,7 +17,7 @@ impl AuthMutation {
         &self,
         ctx: &Context<'_>,
         input: RequestOneTimePasswordInput,
-    ) -> Result<OneTimePasswordChallenge> {
+    ) -> Result<RequestOneTimePasswordOutput> {
         let auth_gateway = ctx.data::<SharedAuthGateway>().unwrap();
         let output = auth_gateway
             .request_one_time_password(input.email)
@@ -122,13 +120,13 @@ pub struct RequestOneTimePasswordInput {
 }
 
 #[derive(SimpleObject)]
-pub struct OneTimePasswordChallenge {
+pub struct RequestOneTimePasswordOutput {
     email: String,
     session: String,
 }
 
-impl From<AuthOneTimePasswordChallenge> for OneTimePasswordChallenge {
-    fn from(challenge: AuthOneTimePasswordChallenge) -> Self {
+impl From<OneTimePasswordChallenge> for RequestOneTimePasswordOutput {
+    fn from(challenge: OneTimePasswordChallenge) -> Self {
         Self {
             email: challenge.email,
             session: challenge.session,

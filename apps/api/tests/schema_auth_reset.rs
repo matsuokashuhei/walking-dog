@@ -9,7 +9,7 @@ fn schema_exposes_passwordless_auth_mutations() {
     let sdl = schema.sdl();
 
     assert!(sdl.contains(
-        "requestOneTimePassword(input: RequestOneTimePasswordInput!): OneTimePasswordChallenge!"
+        "requestOneTimePassword(input: RequestOneTimePasswordInput!): RequestOneTimePasswordOutput!"
     ));
     assert!(sdl.contains(
         "verifyOneTimePassword(input: VerifyOneTimePasswordInput!): VerifyOneTimePasswordOutput!"

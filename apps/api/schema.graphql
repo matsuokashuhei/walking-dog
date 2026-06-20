@@ -117,7 +117,7 @@ scalar Latitude
 scalar Longitude
 
 type Mutation {
-	requestOneTimePassword(input: RequestOneTimePasswordInput!): OneTimePasswordChallenge!
+	requestOneTimePassword(input: RequestOneTimePasswordInput!): RequestOneTimePasswordOutput!
 	verifyOneTimePassword(input: VerifyOneTimePasswordInput!): VerifyOneTimePasswordOutput!
 	refreshToken(input: RefreshTokenInput!): RefreshTokenOutput!
 	signOut: SignOutOutput!
@@ -147,7 +147,7 @@ Format: %Y-%m-%d
 """
 scalar NaiveDate
 
-type OneTimePasswordChallenge {
+type RequestOneTimePasswordOutput {
 	email: String!
 	session: String!
 }

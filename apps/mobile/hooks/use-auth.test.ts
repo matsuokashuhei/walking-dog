@@ -4,6 +4,8 @@ import type * as AuthApiModule from '@/lib/auth/api';
 import type * as AuthStoreModule from '@/stores/auth-store';
 
 jest.mock('@/lib/auth/api', () => ({
+  changeEmail: jest.fn(),
+  confirmEmailChange: jest.fn(),
   refreshToken: jest.fn(),
   requestOneTimePassword: jest.fn(),
   signOut: jest.fn(),
@@ -104,5 +106,35 @@ describe('use-auth', () => {
 
     expect(mockAuthApi.signOut).toHaveBeenCalledWith('my-token');
     expect(mockClearAuth).toHaveBeenCalled();
+  });
+
+  it('changeEmail returns the email change challenge without changing auth tokens', async () => {
+    mockAuthApi.changeEmail.mockResolvedValue({
+      email: 'new-mio@walk.app',
+      codeLength: 6,
+    });
+
+    const { result } = renderHook(() => useAuth());
+
+    await expect(result.current.changeEmail('new-mio@walk.app')).resolves.toEqual({
+      email: 'new-mio@walk.app',
+      codeLength: 6,
+    });
+    expect(mockAuthApi.changeEmail).toHaveBeenCalledWith('new-mio@walk.app');
+    expect(mockSetAuth).not.toHaveBeenCalled();
+  });
+
+  it('confirmEmailChange returns the confirmed email without changing auth tokens', async () => {
+    mockAuthApi.confirmEmailChange.mockResolvedValue({
+      email: 'new-mio@walk.app',
+    });
+
+    const { result } = renderHook(() => useAuth());
+
+    await expect(result.current.confirmEmailChange('123456')).resolves.toEqual({
+      email: 'new-mio@walk.app',
+    });
+    expect(mockAuthApi.confirmEmailChange).toHaveBeenCalledWith('123456');
+    expect(mockSetAuth).not.toHaveBeenCalled();
   });
 });

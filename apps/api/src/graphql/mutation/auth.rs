@@ -6,7 +6,10 @@ use crate::entity::user;
 use crate::graphql::AuthAccessToken;
 use crate::graphql::error::AppError;
 use crate::graphql::{error::AuthError, guard::AuthGuard};
-use crate::service::auth::{AuthTokenPair, OneTimePasswordChallenge, SharedAuthGateway};
+use crate::service::auth::{
+    AuthTokenPair, EmailChangeChallenge, EmailChangeConfirmation, OneTimePasswordChallenge,
+    SharedAuthGateway,
+};
 
 #[derive(Default, Debug)]
 pub struct AuthMutation;
@@ -84,11 +87,11 @@ impl AuthMutation {
         let authorization = ctx
             .data::<AuthAccessToken>()
             .map_err(|_| AppError::Unauthorized)?;
-        auth_gateway
+        let output = auth_gateway
             .change_email(authorization.token(), input.new_email)
             .await
             .map_err(AuthError::from)?;
-        Ok(ChangeEmailOutput { success: true })
+        Ok(output.into())
     }
 
     #[graphql(guard = "AuthGuard")]
@@ -101,11 +104,11 @@ impl AuthMutation {
         let authorization = ctx
             .data::<AuthAccessToken>()
             .map_err(|_| AppError::Unauthorized)?;
-        auth_gateway
+        let output = auth_gateway
             .confirm_email_change(authorization.token(), input.code)
             .await
             .map_err(AuthError::from)?;
-        Ok(ConfirmEmailChangeOutput { success: true })
+        Ok(output.into())
     }
 }
 
@@ -185,7 +188,17 @@ pub struct ChangeEmailInput {
 
 #[derive(SimpleObject)]
 pub struct ChangeEmailOutput {
-    success: bool,
+    email: String,
+    code_length: i32,
+}
+
+impl From<EmailChangeChallenge> for ChangeEmailOutput {
+    fn from(output: EmailChangeChallenge) -> Self {
+        Self {
+            email: output.email,
+            code_length: output.code_length,
+        }
+    }
 }
 
 #[derive(Clone, Debug, InputObject)]
@@ -195,5 +208,13 @@ pub struct ConfirmEmailChangeInput {
 
 #[derive(SimpleObject)]
 pub struct ConfirmEmailChangeOutput {
-    success: bool,
+    email: String,
+}
+
+impl From<EmailChangeConfirmation> for ConfirmEmailChangeOutput {
+    fn from(output: EmailChangeConfirmation) -> Self {
+        Self {
+            email: output.email,
+        }
+    }
 }

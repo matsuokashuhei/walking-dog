@@ -4,6 +4,7 @@ export const USER_PROFILE_QUERY = gql`
   query UserProfile($first: Int) {
     user {
       id
+      email
       name
       avatar
       createdAt

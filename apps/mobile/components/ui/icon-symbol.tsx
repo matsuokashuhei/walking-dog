@@ -23,6 +23,7 @@ const MAPPING = {
   'bell.fill': 'notifications',
   'moon.fill': 'dark-mode',
   'gearshape.fill': 'settings',
+  'envelope.fill': 'email',
   'key.fill': 'vpn-key',
   'doc.text': 'description',
   'lock.fill': 'lock',

@@ -39,7 +39,8 @@ input ChangeEmailInput {
 }
 
 type ChangeEmailOutput {
-	success: Boolean!
+	email: String!
+	codeLength: Int!
 }
 
 input ConfirmEmailChangeInput {
@@ -47,7 +48,7 @@ input ConfirmEmailChangeInput {
 }
 
 type ConfirmEmailChangeOutput {
-	success: Boolean!
+	email: String!
 }
 
 type Coordinate {
@@ -284,6 +285,7 @@ type User {
 	avatar: Url
 	createdAt: DateTime!
 	updatedAt: DateTime!
+	email: String!
 	dogs: [Dog!]!
 	walks(after: String, before: String, first: Int, last: Int): WalkConnection!
 }

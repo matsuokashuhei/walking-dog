@@ -4,6 +4,7 @@ export const USER_QUERY = gql`
   query User {
     user {
       id
+      email
       name
       avatar
       createdAt

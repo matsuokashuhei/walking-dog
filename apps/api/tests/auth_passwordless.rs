@@ -14,13 +14,17 @@ use walking_dog::{
     entity::user,
     graphql::{AuthAccessToken, attach_request_context, mutation::Mutation, query::Query},
     service::auth::{
-        AuthGateway, AuthGatewayError, AuthTokenPair, OneTimePasswordChallenge,
-        RequestOneTimePasswordResult, SharedAuthGateway,
+        AuthGateway, AuthGatewayError, AuthTokenPair, EmailChangeChallenge,
+        EmailChangeConfirmation, OneTimePasswordChallenge, RequestOneTimePasswordResult,
+        SharedAuthGateway,
     },
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum AuthCall {
+    CurrentEmail {
+        access_token: String,
+    },
     RequestOneTimePassword {
         email: String,
     },
@@ -29,16 +33,32 @@ enum AuthCall {
         session: String,
         code: String,
     },
+    ChangeEmail {
+        access_token: String,
+        new_email: String,
+    },
+    ConfirmEmailChange {
+        access_token: String,
+        code: String,
+    },
 }
 
 #[derive(Default)]
 struct RecordingAuthGateway {
     calls: Arc<Mutex<Vec<AuthCall>>>,
     created_user_sub: Option<String>,
+    current_email: String,
 }
 
 #[async_trait]
 impl AuthGateway for RecordingAuthGateway {
+    async fn current_email(&self, access_token: &str) -> Result<String, AuthGatewayError> {
+        self.calls.lock().unwrap().push(AuthCall::CurrentEmail {
+            access_token: access_token.to_owned(),
+        });
+        Ok(self.current_email.clone())
+    }
+
     async fn request_one_time_password(
         &self,
         email: String,
@@ -92,18 +112,34 @@ impl AuthGateway for RecordingAuthGateway {
 
     async fn change_email(
         &self,
-        _access_token: &str,
-        _new_email: String,
-    ) -> Result<(), AuthGatewayError> {
-        unimplemented!("passwordless tests should not change email")
+        access_token: &str,
+        new_email: String,
+    ) -> Result<EmailChangeChallenge, AuthGatewayError> {
+        self.calls.lock().unwrap().push(AuthCall::ChangeEmail {
+            access_token: access_token.to_owned(),
+            new_email: new_email.clone(),
+        });
+        Ok(EmailChangeChallenge {
+            email: new_email,
+            code_length: 6,
+        })
     }
 
     async fn confirm_email_change(
         &self,
-        _access_token: &str,
-        _code: String,
-    ) -> Result<(), AuthGatewayError> {
-        unimplemented!("passwordless tests should not confirm email changes")
+        access_token: &str,
+        code: String,
+    ) -> Result<EmailChangeConfirmation, AuthGatewayError> {
+        self.calls
+            .lock()
+            .unwrap()
+            .push(AuthCall::ConfirmEmailChange {
+                access_token: access_token.to_owned(),
+                code,
+            });
+        Ok(EmailChangeConfirmation {
+            email: self.current_email.clone(),
+        })
     }
 }
 
@@ -133,6 +169,14 @@ fn user_model() -> user::Model {
         created_at: fixed_time(),
         updated_at: fixed_time(),
     }
+}
+
+fn authenticated_request(query: &str) -> Request {
+    attach_request_context(
+        Request::new(query),
+        Some(user_model()),
+        Some(AuthAccessToken::new("access-token")),
+    )
 }
 
 #[tokio::test]
@@ -296,6 +340,136 @@ async fn verify_one_time_password_returns_tokens() {
         vec![AuthCall::VerifyOneTimePassword {
             email: "mio@example.com".to_owned(),
             session: "otp-session".to_owned(),
+            code: "123456".to_owned(),
+        }]
+    );
+}
+
+#[tokio::test]
+async fn user_query_resolves_current_login_email_from_auth_gateway() {
+    let gateway = RecordingAuthGateway {
+        current_email: "mio@walk.app".to_owned(),
+        ..Default::default()
+    };
+    let calls = gateway.calls.clone();
+    let schema = Schema::build(Query::default(), Mutation::default(), EmptySubscription)
+        .data(Arc::new(gateway) as SharedAuthGateway)
+        .finish();
+    let request = authenticated_request(
+        r#"
+        query User {
+          user {
+            id
+            email
+          }
+        }
+        "#,
+    );
+
+    let response = schema.execute(request).await;
+
+    assert!(response.errors.is_empty(), "{:?}", response.errors);
+    assert_eq!(
+        response.data.into_json().unwrap(),
+        json!({
+            "user": {
+                "id": "019e0dc4-066b-7a22-b755-969ee6beb5e9",
+                "email": "mio@walk.app"
+            }
+        })
+    );
+    assert_eq!(
+        *calls.lock().unwrap(),
+        vec![AuthCall::CurrentEmail {
+            access_token: "access-token".to_owned(),
+        }]
+    );
+}
+
+#[tokio::test]
+async fn change_email_returns_confirmation_destination_and_code_length() {
+    let gateway = RecordingAuthGateway::default();
+    let calls = gateway.calls.clone();
+    let schema = Schema::build(Query::default(), Mutation::default(), EmptySubscription)
+        .data(Arc::new(gateway) as SharedAuthGateway)
+        .finish();
+    let request = authenticated_request(
+        r#"
+        mutation ChangeEmail($input: ChangeEmailInput!) {
+          changeEmail(input: $input) {
+            email
+            codeLength
+          }
+        }
+        "#,
+    )
+    .variables(Variables::from_json(json!({
+        "input": {
+            "newEmail": "new-mio@walk.app"
+        }
+    })));
+
+    let response = schema.execute(request).await;
+
+    assert!(response.errors.is_empty(), "{:?}", response.errors);
+    assert_eq!(
+        response.data.into_json().unwrap(),
+        json!({
+            "changeEmail": {
+                "email": "new-mio@walk.app",
+                "codeLength": 6
+            }
+        })
+    );
+    assert_eq!(
+        *calls.lock().unwrap(),
+        vec![AuthCall::ChangeEmail {
+            access_token: "access-token".to_owned(),
+            new_email: "new-mio@walk.app".to_owned(),
+        }]
+    );
+}
+
+#[tokio::test]
+async fn confirm_email_change_returns_confirmed_login_email() {
+    let gateway = RecordingAuthGateway {
+        current_email: "new-mio@walk.app".to_owned(),
+        ..Default::default()
+    };
+    let calls = gateway.calls.clone();
+    let schema = Schema::build(Query::default(), Mutation::default(), EmptySubscription)
+        .data(Arc::new(gateway) as SharedAuthGateway)
+        .finish();
+    let request = authenticated_request(
+        r#"
+        mutation ConfirmEmailChange($input: ConfirmEmailChangeInput!) {
+          confirmEmailChange(input: $input) {
+            email
+          }
+        }
+        "#,
+    )
+    .variables(Variables::from_json(json!({
+        "input": {
+            "code": "123456"
+        }
+    })));
+
+    let response = schema.execute(request).await;
+
+    assert!(response.errors.is_empty(), "{:?}", response.errors);
+    assert_eq!(
+        response.data.into_json().unwrap(),
+        json!({
+            "confirmEmailChange": {
+                "email": "new-mio@walk.app"
+            }
+        })
+    );
+    assert_eq!(
+        *calls.lock().unwrap(),
+        vec![AuthCall::ConfirmEmailChange {
+            access_token: "access-token".to_owned(),
             code: "123456".to_owned(),
         }]
     );

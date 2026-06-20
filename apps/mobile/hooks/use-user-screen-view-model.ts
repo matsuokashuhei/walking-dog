@@ -35,6 +35,7 @@ interface UserBaseViewModel {
 export interface UserReadyViewModel extends UserBaseViewModel {
   status: 'ready';
   displayName: string;
+  email: string;
   avatarUrl: string | null;
   initial: string;
   walkingSince: string;
@@ -80,6 +81,7 @@ export function buildUserScreenViewModel(
 
   return {
     displayName,
+    email: data.user.email,
     avatarUrl: data.user.avatar ?? data.user.avatarUrl ?? null,
     initial,
     walkingSince: t('user.walkingSince', {

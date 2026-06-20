@@ -20,7 +20,8 @@ env:
 - tapOn:
     id: auth-email
 - inputText: ${E2E_EMAIL}
-- tapOn: Continue with email
+- tapOn:
+    id: auth-submit-email
 - extendedWaitUntil:
     visible: One-time password
     timeout: 15000

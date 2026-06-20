@@ -21,6 +21,7 @@ const t = (key: string, values?: Record<string, unknown>): string => {
 const userData: UserProfileData = {
   user: {
     id: 'user-1',
+    email: 'mio@walk.app',
     name: 'Mio Tanaka',
     avatar: null,
     avatarUrl: null,
@@ -66,6 +67,7 @@ describe('buildUserScreenViewModel', () => {
     );
 
     expect(vm.displayName).toBe('Mio Tanaka');
+    expect(vm.email).toBe('mio@walk.app');
     expect(vm.initial).toBe('M');
     expect(vm.walkingSince).toBe('Walking since March 2024');
     expect(vm.metrics).toEqual([

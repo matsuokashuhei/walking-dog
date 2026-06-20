@@ -26,6 +26,9 @@ export function UserSummary({ user, footer }: UserSummaryProps) {
         <Text style={[styles.name, { color: theme.onSurface }]} numberOfLines={1}>
           {user.displayName}
         </Text>
+        <Text style={[styles.email, { color: theme.onSurfaceVariant }]} numberOfLines={1}>
+          {user.email}
+        </Text>
         <Text style={[styles.since, { color: theme.onSurfaceVariant }]}>
           {user.walkingSince}
         </Text>
@@ -115,6 +118,10 @@ const styles = StyleSheet.create({
     marginTop: spacing.step12,
   },
   since: {
+    ...typography.footnote,
+    marginTop: spacing.xs,
+  },
+  email: {
     ...typography.footnote,
     marginTop: spacing.xs,
   },

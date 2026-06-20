@@ -14,6 +14,8 @@ test('authenticated API journeys fail fast when token is missing', () => {
 
   assert.match(source, /requiresAuth:\s*true/);
   assert.match(source, /HARNESS_ACCESS_TOKEN/);
+  assert.match(source, /real AWS Cognito access token/);
+  assert.doesNotMatch(source, new RegExp(`local${'-'}auth`));
 });
 
 test('auth-onboarding API journey starts unified email one-time password auth', () => {

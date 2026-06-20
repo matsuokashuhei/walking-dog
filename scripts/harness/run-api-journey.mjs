@@ -22,7 +22,7 @@ if (!journey || !JOURNEYS.has(journey)) {
 
 const steps = buildSteps(journey);
 if (steps.some((step) => step.requiresAuth) && !process.env.HARNESS_ACCESS_TOKEN) {
-  console.error(`Journey ${journey} requires HARNESS_ACCESS_TOKEN. Mint one with scripts/harness/local-auth.mjs and export it before running this journey.`);
+  console.error(`Journey ${journey} requires HARNESS_ACCESS_TOKEN. Set it to a real AWS Cognito access token before running this journey.`);
   process.exit(2);
 }
 

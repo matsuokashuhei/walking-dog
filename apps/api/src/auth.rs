@@ -36,19 +36,11 @@ pub async fn autenticate_user(
         warn!("No kid found in token header");
         return Ok(next.run(request).await);
     };
-    let jwks_url = if let Ok(endpoint) = std::env::var("AWS_COGNITO_ENDPOINT") {
-        format!(
-            "{endpoint}/{user_pool_id}/.well-known/jwks.json",
-            endpoint = endpoint,
-            user_pool_id = std::env::var("AWS_COGNITO_USER_POOL_ID").unwrap()
-        )
-    } else {
-        format!(
-            "https://cognito-idp.{region}.amazonaws.com/{user_pool_id}/.well-known/jwks.json",
-            region = std::env::var("AWS_REGION").unwrap(),
-            user_pool_id = std::env::var("AWS_COGNITO_USER_POOL_ID").unwrap()
-        )
-    };
+    let jwks_url = format!(
+        "https://cognito-idp.{region}.amazonaws.com/{user_pool_id}/.well-known/jwks.json",
+        region = std::env::var("AWS_REGION").unwrap(),
+        user_pool_id = std::env::var("AWS_COGNITO_USER_POOL_ID").unwrap()
+    );
     let Ok(response) = reqwest::get(&jwks_url).await else {
         warn!("Failed to fetch JWKS");
         return Ok(next.run(request).await);

@@ -22,32 +22,9 @@ AWS_COGNITO_USER_POOL_ID=<real-user-pool-id>
 AWS_COGNITO_CLIENT_ID=<real-app-client-id>
 ```
 
-Do not set `AWS_COGNITO_ENDPOINT` for normal local app runs. Sign-up and sign-in
-send real Cognito email one-time passwords.
-
-## Harness Auth Issuer
-
-Run a harness issuer when you need a signed local token without bypassing JWT
-verification for protected API journeys. This issuer is not a replacement for
-Cognito sign-up, sign-in, or email one-time password verification.
-
-```bash
-AWS_COGNITO_USER_POOL_ID=local_6fbc20 \
-AWS_COGNITO_CLIENT_ID=walking-dog-harness \
-node scripts/harness/local-auth.mjs
-```
-
-Mint a token:
-
-```bash
-curl -fsS http://localhost:9229/token \
-  -H 'content-type: application/json' \
-  -d '{"sub":"00000000-0000-7000-8000-000000000001"}'
-```
-
-Only point a test-only API process at this issuer with
-`AWS_COGNITO_ENDPOINT=http://localhost:9229` and the same
-`AWS_COGNITO_USER_POOL_ID`. Do not use that endpoint for mobile auth flows.
+Sign-up and sign-in send real Cognito email one-time passwords. The API doesn't
+support a Cognito endpoint override. Authenticated harness journeys must use a
+real Cognito access token.
 
 ## Health Check
 
@@ -103,7 +80,7 @@ The local simulator build points at `http://localhost:3000`.
 ## API Journey Harness
 
 ```bash
-export HARNESS_ACCESS_TOKEN="<token from harness auth issuer or real Cognito sign-in>"
+export HARNESS_ACCESS_TOKEN="<real Cognito access token>"
 node scripts/harness/run-api-journey.mjs walk-lifecycle
 ```
 

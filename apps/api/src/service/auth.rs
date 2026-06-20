@@ -14,7 +14,6 @@ use aws_sdk_cognitoidentityprovider::{
     types::{AttributeType, AuthFlowType, ChallengeNameType, UserStatusType},
 };
 use std::{fmt, sync::Arc};
-use tracing::warn;
 
 pub type SharedAuthGateway = Arc<dyn AuthGateway>;
 
@@ -49,28 +48,16 @@ pub struct CognitoAuthGateway {
     client: Client,
     user_pool_id: String,
     client_id: String,
-    skip_global_sign_out: bool,
 }
 
 impl CognitoAuthGateway {
     pub fn from_env(client: Client) -> anyhow::Result<Self> {
-        let cognito_endpoint = std::env::var("AWS_COGNITO_ENDPOINT").ok();
         Ok(Self {
             client,
             user_pool_id: std::env::var("AWS_COGNITO_USER_POOL_ID")?,
             client_id: std::env::var("AWS_COGNITO_CLIENT_ID")?,
-            skip_global_sign_out: cognito_endpoint
-                .as_deref()
-                .is_some_and(is_loopback_cognito_endpoint),
         })
     }
-}
-
-fn is_loopback_cognito_endpoint(endpoint: &str) -> bool {
-    let Ok(url) = url::Url::parse(endpoint) else {
-        return false;
-    };
-    matches!(url.host_str(), Some("localhost" | "127.0.0.1" | "::1"))
 }
 
 #[derive(Debug, Clone)]
@@ -204,13 +191,6 @@ impl AuthGateway for CognitoAuthGateway {
     }
 
     async fn sign_out(&self, access_token: &str) -> Result<(), AuthGatewayError> {
-        if self.skip_global_sign_out {
-            warn!(
-                "Skipping Cognito GlobalSignOut because the configured local Cognito endpoint does not implement it"
-            );
-            return Ok(());
-        }
-
         self.client
             .global_sign_out()
             .access_token(access_token)

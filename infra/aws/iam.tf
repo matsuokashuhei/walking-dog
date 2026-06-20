@@ -1,48 +1,3 @@
-# --- Cognito SMS Role (SNS for phone verification) ---
-
-resource "aws_iam_role" "cognito_sns" {
-  name = "${var.project_name}-${var.environment}-cognito-sns"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "cognito-idp.amazonaws.com"
-        }
-        Condition = {
-          StringEquals = {
-            "sts:ExternalId" = "${var.project_name}-${var.environment}-cognito"
-          }
-        }
-      }
-    ]
-  })
-
-  tags = {
-    Environment = var.environment
-    Project     = var.project_name
-  }
-}
-
-resource "aws_iam_role_policy" "cognito_sns" {
-  name = "${var.project_name}-${var.environment}-cognito-sns"
-  role = aws_iam_role.cognito_sns.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect   = "Allow"
-        Action   = "sns:Publish"
-        Resource = "*"
-      }
-    ]
-  })
-}
-
 /*
 # --- ECS Execution Role (ECR pull, CloudWatch Logs) ---
 
@@ -131,6 +86,7 @@ resource "aws_iam_role_policy" "ecs_task" {
         Effect = "Allow"
         Action = [
           "cognito-idp:AdminGetUser",
+          "cognito-idp:AdminDeleteUser",
           "cognito-idp:ListUsers",
         ]
         Resource = aws_cognito_user_pool.main.arn

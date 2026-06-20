@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 import { TextInput } from './TextInput';
 
 jest.mock('@/hooks/use-color-scheme', () => ({
@@ -46,6 +47,17 @@ describe('TextInput', () => {
       <TextInput label="Email" labelPosition="inline" separator testID="email-row" />,
     );
     expect(screen.getByTestId('email-row-separator')).toBeTruthy();
+  });
+
+  it('inline variant highlights the row while focused', () => {
+    render(
+      <TextInput label="Email" labelPosition="inline" testID="email-row" />,
+    );
+
+    fireEvent(screen.getByLabelText('Email'), 'focus');
+
+    const rowStyle = StyleSheet.flatten(screen.getByTestId('email-row-container').props.style);
+    expect(rowStyle.borderColor).not.toBe('transparent');
   });
 
   it('inline variant does not render separator when separator prop is false', () => {

@@ -4,13 +4,10 @@ import type * as AuthApiModule from '@/lib/auth/api';
 import type * as AuthStoreModule from '@/stores/auth-store';
 
 jest.mock('@/lib/auth/api', () => ({
-  changePassword: jest.fn(),
-  confirmForgotPassword: jest.fn(),
-  confirmSignUp: jest.fn(),
-  forgotPassword: jest.fn(),
-  signIn: jest.fn(),
+  refreshToken: jest.fn(),
+  requestOneTimePassword: jest.fn(),
   signOut: jest.fn(),
-  signUp: jest.fn(),
+  verifyOneTimePassword: jest.fn(),
 }));
 jest.mock('@/stores/auth-store', () => ({
   useAuthStore: jest.fn(),
@@ -38,15 +35,44 @@ describe('use-auth', () => {
     });
   });
 
-  it('signIn calls authApi then sets auth', async () => {
-    mockAuthApi.signIn.mockResolvedValue({ accessToken: 'access', refreshToken: 'refresh' });
+  it('requestOneTimePassword returns a one-time password challenge without setting auth', async () => {
+    mockAuthApi.requestOneTimePassword.mockResolvedValue({
+      email: 'user@example.com',
+      session: 'otp-session',
+      codeLength: 8,
+    });
+
+    const { result } = renderHook(() => useAuth());
+    await expect(result.current.requestOneTimePassword('user@example.com')).resolves.toEqual({
+      email: 'user@example.com',
+      session: 'otp-session',
+      codeLength: 8,
+    });
+
+    expect(mockAuthApi.requestOneTimePassword).toHaveBeenCalledWith('user@example.com');
+    expect(mockSetAuth).not.toHaveBeenCalled();
+  });
+
+  it('verifyOneTimePassword stores returned tokens', async () => {
+    mockAuthApi.verifyOneTimePassword.mockResolvedValue({
+      accessToken: 'access',
+      refreshToken: 'refresh',
+    });
 
     const { result } = renderHook(() => useAuth());
     await act(async () => {
-      await result.current.signIn('user@example.com', 'password');
+      await result.current.verifyOneTimePassword({
+        email: 'user@example.com',
+        session: 'otp-session',
+        code: '12345678',
+      });
     });
 
-    expect(mockAuthApi.signIn).toHaveBeenCalledWith('user@example.com', 'password');
+    expect(mockAuthApi.verifyOneTimePassword).toHaveBeenCalledWith({
+      email: 'user@example.com',
+      session: 'otp-session',
+      code: '12345678',
+    });
     expect(mockSetAuth).toHaveBeenCalledWith('access', 'refresh');
   });
 
@@ -78,65 +104,5 @@ describe('use-auth', () => {
 
     expect(mockAuthApi.signOut).toHaveBeenCalledWith('my-token');
     expect(mockClearAuth).toHaveBeenCalled();
-  });
-
-  it('forgotPassword delegates to authApi', async () => {
-    mockAuthApi.forgotPassword.mockResolvedValue(true);
-
-    const { result } = renderHook(() => useAuth());
-    await act(async () => {
-      await result.current.forgotPassword('user@example.com');
-    });
-
-    expect(mockAuthApi.forgotPassword).toHaveBeenCalledWith('user@example.com');
-  });
-
-  it('confirmForgotPassword delegates to authApi', async () => {
-    mockAuthApi.confirmForgotPassword.mockResolvedValue(true);
-
-    const { result } = renderHook(() => useAuth());
-    await act(async () => {
-      await result.current.confirmForgotPassword('user@example.com', '123456', 'Newpass1');
-    });
-
-    expect(mockAuthApi.confirmForgotPassword).toHaveBeenCalledWith(
-      'user@example.com',
-      '123456',
-      'Newpass1',
-    );
-  });
-
-  it('changePassword delegates to authApi then clears local auth', async () => {
-    mockAuthApi.changePassword.mockResolvedValue(true);
-    mockUseAuthStore.mockReturnValue({
-      isAuthenticated: true,
-      isLoading: false,
-      accessToken: 'my-token',
-      setAuth: mockSetAuth,
-      clearAuth: mockClearAuth,
-      initialize: jest.fn(),
-    });
-
-    const { result } = renderHook(() => useAuth());
-    await act(async () => {
-      await result.current.changePassword('Currentpass1', 'Newpass1');
-    });
-
-    expect(mockAuthApi.changePassword).toHaveBeenCalledWith('Currentpass1', 'Newpass1');
-    expect(mockAuthApi.signOut).not.toHaveBeenCalled();
-    expect(mockClearAuth).toHaveBeenCalled();
-  });
-
-  it('changePassword leaves local auth intact when the API fails', async () => {
-    mockAuthApi.changePassword.mockRejectedValue({ kind: 'invalid-credentials' });
-
-    const { result } = renderHook(() => useAuth());
-    await act(async () => {
-      await expect(
-        result.current.changePassword('Wrongpass1', 'Newpass1')
-      ).rejects.toMatchObject({ kind: 'invalid-credentials' });
-    });
-
-    expect(mockClearAuth).not.toHaveBeenCalled();
   });
 });

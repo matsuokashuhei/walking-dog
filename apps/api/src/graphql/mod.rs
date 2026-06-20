@@ -80,11 +80,7 @@ async fn build_database_connection() -> sea_orm::DatabaseConnection {
 }
 
 async fn build_cognitoidentityprovider_client() -> aws_sdk_cognitoidentityprovider::Client {
-    let config_loader = aws_config::from_env();
-    let config = match env::var("AWS_COGNITO_ENDPOINT") {
-        Ok(endpoint) => config_loader.endpoint_url(endpoint).load().await,
-        Err(_) => config_loader.load().await,
-    };
+    let config = aws_config::from_env().load().await;
     aws_sdk_cognitoidentityprovider::Client::new(&config)
 }
 

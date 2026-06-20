@@ -22,7 +22,7 @@ if (!journey || !JOURNEYS.has(journey)) {
 
 const steps = buildSteps(journey);
 if (steps.some((step) => step.requiresAuth) && !process.env.HARNESS_ACCESS_TOKEN) {
-  console.error(`Journey ${journey} requires HARNESS_ACCESS_TOKEN. Mint one with scripts/harness/local-auth.mjs and export it before running this journey.`);
+  console.error(`Journey ${journey} requires HARNESS_ACCESS_TOKEN. Set it to a real AWS Cognito access token before running this journey.`);
   process.exit(2);
 }
 
@@ -69,9 +69,13 @@ function buildSteps(name) {
   if (name === 'auth-onboarding') {
     return smoke.concat([
       {
-        name: 'sign-up-contract',
-        query: 'mutation HarnessSignUp($input: SignUpInput!) { signUp(input: $input) { success } }',
-        variables: { input: { email: `harness-${Date.now()}@example.com`, password: 'HarnessPassw0rd!' } },
+        name: 'request-one-time-password-contract',
+        query: 'mutation HarnessRequestOneTimePassword($input: RequestOneTimePasswordInput!) { requestOneTimePassword(input: $input) { email session } }',
+        variables: {
+          input: {
+            email: `harness-${Date.now()}@example.com`,
+          },
+        },
       },
     ]);
   }

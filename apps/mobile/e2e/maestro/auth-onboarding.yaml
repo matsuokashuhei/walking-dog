@@ -1,8 +1,9 @@
 # Harness preconditions:
 # - App is installed as com.walkingdog.app and points to the intended API.
 # - Simulator language is English.
-# - Cognito-local or dev Cognito can create the email below.
-# - If confirmation is required, the harness exposes the verification code.
+# - The API is configured with real AWS Cognito EMAIL_OTP.
+# - Read the OTP from the email delivered during this run and pass it as:
+#   E2E_CONFIRMATION_CODE=<code> maestro test apps/mobile/e2e/maestro/auth-onboarding.yaml
 appId: com.walkingdog.app
 name: Auth Onboarding
 tags:
@@ -10,76 +11,27 @@ tags:
   - auth
   - journey
 env:
-  E2E_NAME: Harness Owner
   E2E_EMAIL: harness-auth@example.com
-  E2E_PASSWORD: Password123
-  E2E_NEW_PASSWORD: Newpass1
-  E2E_CONFIRMATION_CODE: "123456"
+  E2E_CONFIRMATION_CODE: ""
 ---
 - launchApp:
     clearState: true
 - assertVisible: Walking Dog
-- tapOn: Create an account
-- assertVisible: Create Account
 - tapOn:
-    id: register-displayName
-- inputText: ${E2E_NAME}
-- tapOn:
-    id: register-email
+    id: auth-email
 - inputText: ${E2E_EMAIL}
-- tapOn:
-    id: register-password
-- inputText: ${E2E_PASSWORD}
-- tapOn: Continue
-- runFlow:
-    when:
-      visible: Email Verification
-    commands:
-      - tapOn: "1"
-      - tapOn: "2"
-      - tapOn: "3"
-      - tapOn: "4"
-      - tapOn: "5"
-      - tapOn: "6"
-      - tapOn: Confirm
+- tapOn: Continue with email
 - extendedWaitUntil:
-    visible: Welcome back
+    visible: One-time password
     timeout: 15000
 - tapOn:
-    id: login-email
-- inputText: ${E2E_EMAIL}
-- tapOn:
-    id: login-password
-- inputText: ${E2E_PASSWORD}
-- tapOn: Sign in
+    id: one-time-password-input
+- inputText: ${E2E_CONFIRMATION_CODE}
 - waitForAnimationToEnd:
     timeout: 5000
-- runFlow:
-    when:
-      visible: Save Password?
-    commands:
-      - tapOn: Not Now
 - extendedWaitUntil:
     visible: No dogs yet
     timeout: 15000
 - assertVisible: Walk
 - assertVisible: Me
-- tapOn: Me
-- tapOn:
-    id: user-change-password-row
-- assertVisible: Change password
-- tapOn:
-    id: change-password-current
-- inputText: ${E2E_PASSWORD}
-- tapOn:
-    id: change-password-new
-- inputText: ${E2E_NEW_PASSWORD}
-- tapOn:
-    id: change-password-confirm
-- inputText: ${E2E_NEW_PASSWORD}
-- tapOn:
-    id: change-password-submit
-- extendedWaitUntil:
-    visible: Welcome back
-    timeout: 15000
 - takeScreenshot: harness-auth-onboarding

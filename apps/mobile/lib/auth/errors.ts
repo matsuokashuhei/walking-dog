@@ -4,7 +4,6 @@ import { extractGraphQLErrorMessage, isNetworkError } from '../graphql/errors';
 type AuthErrorKind =
   | 'invalid-credentials'
   | 'user-exists'
-  | 'invalid-password'
   | 'code-mismatch'
   | 'network'
   | 'unknown';
@@ -12,7 +11,6 @@ type AuthErrorKind =
 export type AuthError =
   | { kind: 'invalid-credentials'; message?: string }
   | { kind: 'user-exists'; message?: string }
-  | { kind: 'invalid-password'; message?: string }
   | { kind: 'code-mismatch'; reason: 'invalid' | 'expired'; message?: string }
   | { kind: 'network'; message?: string }
   | { kind: 'unknown'; message?: string };
@@ -20,7 +18,6 @@ export type AuthError =
 const AUTH_ERROR_KINDS: AuthErrorKind[] = [
   'invalid-credentials',
   'user-exists',
-  'invalid-password',
   'code-mismatch',
   'network',
   'unknown',
@@ -73,16 +70,6 @@ export function toAuthError(error: unknown): AuthError {
 
   if (includesAny(normalizedMessage, ['USER_EXISTS', 'USERNAMEEXISTSEXCEPTION'])) {
     return { kind: 'user-exists', message };
-  }
-
-  if (
-    includesAny(normalizedMessage, [
-      'INVALID_PASSWORD',
-      'INVALIDPASSWORDEXCEPTION',
-      'PASSWORDHISTORYPOLICYVIOLATIONEXCEPTION',
-    ])
-  ) {
-    return { kind: 'invalid-password', message };
   }
 
   if (includesAny(normalizedMessage, ['EXPIRED_CODE', 'EXPIREDCODEEXCEPTION'])) {

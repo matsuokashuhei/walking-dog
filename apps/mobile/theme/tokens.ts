@@ -77,6 +77,7 @@ export type MaterialTokens = typeof materials;
 // preserve layout geometry across the 40+ existing call sites; Precise extras
 // (step6, step10, step12, step14, step20, step44, step60) are additive.
 export const spacing = {
+  none: 0,
   xs: 4,
   sm: 8,
   md: 16,
@@ -310,6 +311,14 @@ export const components = {
     borderWidth: 1,
     inputPadding: 0,
     inlineLabelWidth: 70,
+  },
+  oneTimePassword: {
+    length: 8,
+    cellWidth: 36,
+    cellHeight: 56,
+    cellBorderWidth: 1,
+    focusedCellBorderWidth: 2,
+    cellGap: 6,
   },
   birthdayPicker: {
     columnMaxHeight: 180,

@@ -11,27 +11,40 @@ node scripts/harness/dev-stack.mjs up
 The script writes `.harness-runs/dev-stack/env.json` with the compose project name
 and per-worktree ports.
 
-## Local Auth Issuer
+## Local API Authentication
 
-Run a harness issuer when you need a signed local token without bypassing JWT
-verification:
-
-```bash
-AWS_COGNITO_USER_POOL_ID=local_6fbc20 \
-AWS_COGNITO_CLIENT_ID=walking-dog-harness \
-node scripts/harness/local-auth.mjs
-```
-
-Mint a token:
+Local API auth uses a dedicated real AWS Cognito user pool for the local
+environment. Configure `apps/api/.env.local` with the Terraform local Cognito
+outputs:
 
 ```bash
-curl -fsS http://localhost:9229/token \
-  -H 'content-type: application/json' \
-  -d '{"sub":"00000000-0000-7000-8000-000000000001"}'
+AWS_REGION=ap-northeast-1
+AWS_COGNITO_USER_POOL_ID=<local_cognito_user_pool_id>
+AWS_COGNITO_CLIENT_ID=<local_cognito_client_id>
 ```
 
-Point the API at this issuer with `AWS_COGNITO_ENDPOINT=http://localhost:9229`
-and the same `AWS_COGNITO_USER_POOL_ID`.
+Fetch the values after applying `infra/aws`:
+
+```bash
+docker run --rm \
+  -v "$PWD/infra/aws:/workspace" \
+  -v "$HOME/.aws:/root/.aws:ro" \
+  -e AWS_PROFILE=personal \
+  -w /workspace \
+  hashicorp/terraform:1.14 output -raw local_cognito_user_pool_id
+
+docker run --rm \
+  -v "$PWD/infra/aws:/workspace" \
+  -v "$HOME/.aws:/root/.aws:ro" \
+  -e AWS_PROFILE=personal \
+  -w /workspace \
+  hashicorp/terraform:1.14 output -raw local_cognito_client_id
+```
+
+Sign-up and sign-in send real Cognito email one-time passwords from the local
+user pool. The API doesn't support a Cognito endpoint override. Authenticated
+harness journeys must use a real Cognito access token from the same local user
+pool configured in `apps/api/.env.local`.
 
 ## Health Check
 
@@ -87,7 +100,7 @@ The local simulator build points at `http://localhost:3000`.
 ## API Journey Harness
 
 ```bash
-export HARNESS_ACCESS_TOKEN="<token from local auth issuer or signIn>"
+export HARNESS_ACCESS_TOKEN="<real Cognito access token>"
 node scripts/harness/run-api-journey.mjs walk-lifecycle
 ```
 
@@ -107,8 +120,11 @@ Preconditions:
 
 Run one journey:
 
+For auth onboarding, request an AWS Cognito email one-time password and pass the
+received code into the run:
+
 ```bash
-maestro test apps/mobile/e2e/maestro/auth-onboarding.yaml
+E2E_CONFIRMATION_CODE=<code> maestro test apps/mobile/e2e/maestro/auth-onboarding.yaml
 ```
 
 Run all current skeletons:

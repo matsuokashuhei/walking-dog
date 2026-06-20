@@ -36,19 +36,11 @@ pub async fn autenticate_user(
         warn!("No kid found in token header");
         return Ok(next.run(request).await);
     };
-    let jwks_url = if let Ok(endpoint) = std::env::var("AWS_COGNITO_ENDPOINT") {
-        format!(
-            "{endpoint}/{user_pool_id}/.well-known/jwks.json",
-            endpoint = endpoint,
-            user_pool_id = std::env::var("AWS_COGNITO_USER_POOL_ID").unwrap()
-        )
-    } else {
-        format!(
-            "https://cognito-idp.{region}.amazonaws.com/{user_pool_id}/.well-known/jwks.json",
-            region = std::env::var("AWS_REGION").unwrap(),
-            user_pool_id = std::env::var("AWS_COGNITO_USER_POOL_ID").unwrap()
-        )
-    };
+    let jwks_url = format!(
+        "https://cognito-idp.{region}.amazonaws.com/{user_pool_id}/.well-known/jwks.json",
+        region = std::env::var("AWS_REGION").unwrap(),
+        user_pool_id = std::env::var("AWS_COGNITO_USER_POOL_ID").unwrap()
+    );
     let Ok(response) = reqwest::get(&jwks_url).await else {
         warn!("Failed to fetch JWKS");
         return Ok(next.run(request).await);
@@ -87,7 +79,7 @@ pub async fn autenticate_user(
         Ok(Some(user)) => Some(user),
         Ok(None) => {
             // Cognito 検証は通ったが DB に対応行が無い既存ユーザーはここで JIT 作成する。
-            // 既存の signUp resolver と同じ shape (cognito_sub のみ) で追加し、
+            // 統合OTPの新規ユーザー作成と同じ shape (cognito_sub のみ) で追加し、
             // 名前は updateUser で後付けする運用に合わせる。
             warn!(cognito_sub = %cognito_sub, "User not found in DB; auto-provisioning");
             let active = user::ActiveModel {

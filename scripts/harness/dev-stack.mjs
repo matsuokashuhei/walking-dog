@@ -20,7 +20,7 @@ function main() {
   }
 
   const argsByCommand = {
-    up: ['up', '-d', 'postgres', 'dynamodb-local', 'minio', 'minio-init', 'elasticmq', 'cognito-local', 'api', 'track-point-worker'],
+    up: ['up', '-d', 'postgres', 'dynamodb-local', 'minio', 'minio-init', 'elasticmq', 'api', 'track-point-worker'],
     down: ['down'],
     status: ['ps'],
     logs: ['logs', '--tail=200'],
@@ -58,7 +58,6 @@ function makePorts(path) {
     minioConsole: 9001 + offset,
     elasticmq: 9324 + offset,
     elasticmqUi: 9325 + offset,
-    cognito: 9229 + offset,
   };
 }
 
@@ -77,7 +76,6 @@ function composeEnv() {
     WD_MINIO_CONSOLE_PORT: String(ports.minioConsole),
     WD_ELASTICMQ_PORT: String(ports.elasticmq),
     WD_ELASTICMQ_UI_PORT: String(ports.elasticmqUi),
-    WD_COGNITO_PORT: String(ports.cognito),
   };
 }
 

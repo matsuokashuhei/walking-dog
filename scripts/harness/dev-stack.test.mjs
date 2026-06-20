@@ -13,7 +13,6 @@ test('compose ports are parameterized for per-worktree harness isolation', () =>
     'WD_MINIO_CONSOLE_PORT',
     'WD_ELASTICMQ_PORT',
     'WD_ELASTICMQ_UI_PORT',
-    'WD_COGNITO_PORT',
   ]) {
     assert.match(compose, new RegExp(`\\$\\{${variable}:-\\d+\\}`));
   }
@@ -23,4 +22,13 @@ test('dev-stack does not use compose override files for port replacement', () =>
   const source = readFileSync('scripts/harness/dev-stack.mjs', 'utf8');
 
   assert.doesNotMatch(source, /compose\.override\.ya?ml/);
+});
+
+test('dev-stack no longer starts cognito-local', () => {
+  const compose = readFileSync('apps/compose.yml', 'utf8');
+  const source = readFileSync('scripts/harness/dev-stack.mjs', 'utf8');
+
+  assert.doesNotMatch(compose, /cognito-local/);
+  assert.doesNotMatch(source, /cognito-local/);
+  assert.doesNotMatch(source, /WD_COGNITO_PORT/);
 });

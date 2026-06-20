@@ -105,6 +105,9 @@ describe('logReproducibleRequest', () => {
           refresh_token: 'snake-refresh-secret',
           accessToken: 'access-secret',
           'access-token': 'kebab-access-secret',
+          session: 'session-secret',
+          code: 'code-secret',
+          oneTimePasswordCode: 'otp-code-secret',
           password: 'password-secret',
           oldPassword: 'old-password-secret',
         },
@@ -118,12 +121,18 @@ describe('logReproducibleRequest', () => {
     expect(output).not.toContain('snake-refresh-secret');
     expect(output).not.toContain('access-secret');
     expect(output).not.toContain('kebab-access-secret');
+    expect(output).not.toContain('session-secret');
+    expect(output).not.toContain('code-secret');
+    expect(output).not.toContain('otp-code-secret');
     expect(output).not.toContain('password-secret');
     expect(output).not.toContain('old-password-secret');
     expect(output).toContain('"refreshToken": "[REDACTED]"');
     expect(output).toContain('"refresh_token": "[REDACTED]"');
     expect(output).toContain('"accessToken": "[REDACTED]"');
     expect(output).toContain('"access-token": "[REDACTED]"');
+    expect(output).toContain('"session": "[REDACTED]"');
+    expect(output).toContain('"code": "[REDACTED]"');
+    expect(output).toContain('"oneTimePasswordCode": "[REDACTED]"');
     expect(output).toContain('"password": "[REDACTED]"');
     expect(output).toContain('"oldPassword": "[REDACTED]"');
   });

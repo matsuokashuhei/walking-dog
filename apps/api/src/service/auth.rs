@@ -3,43 +3,38 @@ use aws_sdk_cognitoidentityprovider::{
     Client,
     error::ProvideErrorMetadata,
     operation::{
-        change_password::ChangePasswordError, confirm_forgot_password::ConfirmForgotPasswordError,
-        confirm_sign_up::ConfirmSignUpError, forgot_password::ForgotPasswordError,
+        admin_delete_user::AdminDeleteUserError, admin_get_user::AdminGetUserError,
+        confirm_sign_up::ConfirmSignUpError,
         get_tokens_from_refresh_token::GetTokensFromRefreshTokenError,
         global_sign_out::GlobalSignOutError, initiate_auth::InitiateAuthError,
-        sign_up::SignUpError, update_user_attributes::UpdateUserAttributesError,
+        respond_to_auth_challenge::RespondToAuthChallengeError, sign_up::SignUpError,
+        update_user_attributes::UpdateUserAttributesError,
         verify_user_attribute::VerifyUserAttributeError,
     },
-    types::{AttributeType, AuthFlowType},
+    types::{AttributeType, AuthFlowType, ChallengeNameType, UserStatusType},
 };
 use std::{fmt, sync::Arc};
-use tracing::warn;
 
 pub type SharedAuthGateway = Arc<dyn AuthGateway>;
 
+const SIGN_UP_CONFIRMATION_CODE_LENGTH: i32 = 6;
+const SIGN_IN_ONE_TIME_PASSWORD_CODE_LENGTH: i32 = 8;
+
 #[async_trait]
 pub trait AuthGateway: Send + Sync + 'static {
-    async fn sign_up(
+    async fn request_one_time_password(
         &self,
         email: String,
-        password: String,
-    ) -> Result<SignUpResult, AuthGatewayError>;
-    async fn confirm_sign_up(&self, email: String, code: String) -> Result<(), AuthGatewayError>;
-    async fn sign_in(
+    ) -> Result<RequestOneTimePasswordResult, AuthGatewayError>;
+    async fn verify_one_time_password(
         &self,
         email: String,
-        password: String,
+        session: String,
+        code: String,
     ) -> Result<AuthTokenPair, AuthGatewayError>;
     async fn refresh_token(&self, refresh_token: String)
     -> Result<AuthTokenPair, AuthGatewayError>;
     async fn sign_out(&self, access_token: &str) -> Result<(), AuthGatewayError>;
-    async fn forgot_password(&self, email: String) -> Result<(), AuthGatewayError>;
-    async fn confirm_forgot_password(
-        &self,
-        email: String,
-        code: String,
-        new_password: String,
-    ) -> Result<(), AuthGatewayError>;
     async fn change_email(
         &self,
         access_token: &str,
@@ -50,94 +45,132 @@ pub trait AuthGateway: Send + Sync + 'static {
         access_token: &str,
         code: String,
     ) -> Result<(), AuthGatewayError>;
-    async fn change_password(
-        &self,
-        access_token: &str,
-        old_password: String,
-        new_password: String,
-    ) -> Result<(), AuthGatewayError>;
 }
 
 pub struct CognitoAuthGateway {
     client: Client,
+    user_pool_id: String,
     client_id: String,
-    skip_global_sign_out: bool,
 }
 
 impl CognitoAuthGateway {
     pub fn from_env(client: Client) -> anyhow::Result<Self> {
-        let cognito_endpoint = std::env::var("AWS_COGNITO_ENDPOINT").ok();
         Ok(Self {
             client,
+            user_pool_id: std::env::var("AWS_COGNITO_USER_POOL_ID")?,
             client_id: std::env::var("AWS_COGNITO_CLIENT_ID")?,
-            skip_global_sign_out: cognito_endpoint
-                .as_deref()
-                .is_some_and(is_local_cognito_endpoint),
         })
     }
 }
 
-fn is_local_cognito_endpoint(endpoint: &str) -> bool {
-    endpoint.contains("cognito-local")
-        || endpoint.contains("localhost")
-        || endpoint.contains("127.0.0.1")
+#[derive(Debug, Clone)]
+struct CognitoUserState {
+    enabled: bool,
+    status: UserStatusType,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum RequestOneTimePasswordAction {
+    StartSignUp,
+    DeleteAndStartSignUp,
+    StartSignIn,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum VerifyOneTimePasswordAction {
+    ConfirmSignUpAndSignIn,
+    RespondToEmailOtp,
+}
+
+fn normalize_email(email: String) -> String {
+    email.trim().to_owned()
+}
+
+fn request_one_time_password_action(
+    state: Option<&CognitoUserState>,
+) -> Result<RequestOneTimePasswordAction, AuthGatewayError> {
+    let Some(state) = state else {
+        return Ok(RequestOneTimePasswordAction::StartSignUp);
+    };
+
+    ensure_user_can_authenticate(AuthOperation::RequestOneTimePassword, state)?;
+    match &state.status {
+        UserStatusType::Unconfirmed => Ok(RequestOneTimePasswordAction::DeleteAndStartSignUp),
+        UserStatusType::Confirmed => Ok(RequestOneTimePasswordAction::StartSignIn),
+        status => Err(AuthGatewayError::unsupported_cognito_user_status(
+            AuthOperation::RequestOneTimePassword,
+            status,
+        )),
+    }
+}
+
+fn verify_one_time_password_action(
+    state: &CognitoUserState,
+) -> Result<VerifyOneTimePasswordAction, AuthGatewayError> {
+    ensure_user_can_authenticate(AuthOperation::VerifyOneTimePassword, state)?;
+    match &state.status {
+        UserStatusType::Unconfirmed => Ok(VerifyOneTimePasswordAction::ConfirmSignUpAndSignIn),
+        UserStatusType::Confirmed => Ok(VerifyOneTimePasswordAction::RespondToEmailOtp),
+        status => Err(AuthGatewayError::unsupported_cognito_user_status(
+            AuthOperation::VerifyOneTimePassword,
+            status,
+        )),
+    }
+}
+
+fn ensure_user_can_authenticate(
+    operation: AuthOperation,
+    state: &CognitoUserState,
+) -> Result<(), AuthGatewayError> {
+    if !state.enabled {
+        return Err(AuthGatewayError::disabled_cognito_user(operation));
+    }
+    Ok(())
 }
 
 #[async_trait]
 impl AuthGateway for CognitoAuthGateway {
-    async fn sign_up(
+    async fn request_one_time_password(
         &self,
         email: String,
-        password: String,
-    ) -> Result<SignUpResult, AuthGatewayError> {
-        let output = self
-            .client
-            .sign_up()
-            .client_id(&self.client_id)
-            .username(email)
-            .password(password)
-            .send()
-            .await
-            .map_err(|error| AuthGatewayError::from_sign_up_error(error.into_service_error()))?;
+    ) -> Result<RequestOneTimePasswordResult, AuthGatewayError> {
+        let email = normalize_email(email);
+        let state = self.cognito_user_state(&email).await?;
 
-        Ok(SignUpResult {
-            user_sub: output.user_sub,
-        })
+        match request_one_time_password_action(state.as_ref())? {
+            RequestOneTimePasswordAction::StartSignUp => self.start_sign_up_challenge(email).await,
+            RequestOneTimePasswordAction::DeleteAndStartSignUp => {
+                self.delete_cognito_user(&email).await?;
+                self.start_sign_up_challenge(email).await
+            }
+            RequestOneTimePasswordAction::StartSignIn => {
+                let challenge = self.start_sign_in_challenge(email).await?;
+                Ok(RequestOneTimePasswordResult {
+                    created_user_sub: None,
+                    challenge,
+                })
+            }
+        }
     }
 
-    async fn confirm_sign_up(&self, email: String, code: String) -> Result<(), AuthGatewayError> {
-        self.client
-            .confirm_sign_up()
-            .client_id(&self.client_id)
-            .username(email)
-            .confirmation_code(code)
-            .send()
-            .await
-            .map_err(|error| {
-                AuthGatewayError::from_confirm_sign_up_error(error.into_service_error())
-            })?;
-        Ok(())
-    }
-
-    async fn sign_in(
+    async fn verify_one_time_password(
         &self,
         email: String,
-        password: String,
+        session: String,
+        code: String,
     ) -> Result<AuthTokenPair, AuthGatewayError> {
-        let output = self
-            .client
-            .initiate_auth()
-            .client_id(&self.client_id)
-            .auth_flow(AuthFlowType::UserPasswordAuth)
-            .auth_parameters("USERNAME", email)
-            .auth_parameters("PASSWORD", password)
-            .send()
-            .await
-            .map_err(|error| AuthGatewayError::from_sign_in_error(error.into_service_error()))?;
-        AuthTokenPair::from_auth_result(
-            AuthOperation::SignIn,
-            output.authentication_result.as_ref(),
-        )
+        let email = normalize_email(email);
+        let state = self.cognito_user_state(&email).await?.ok_or_else(|| {
+            AuthGatewayError::missing_cognito_user(AuthOperation::VerifyOneTimePassword)
+        })?;
+        match verify_one_time_password_action(&state)? {
+            VerifyOneTimePasswordAction::ConfirmSignUpAndSignIn => {
+                self.confirm_sign_up_and_sign_in(email, session, code).await
+            }
+            VerifyOneTimePasswordAction::RespondToEmailOtp => {
+                self.respond_to_email_otp(email, session, code).await
+            }
+        }
     }
 
     async fn refresh_token(
@@ -161,52 +194,12 @@ impl AuthGateway for CognitoAuthGateway {
     }
 
     async fn sign_out(&self, access_token: &str) -> Result<(), AuthGatewayError> {
-        if self.skip_global_sign_out {
-            warn!(
-                "Skipping Cognito GlobalSignOut because the configured local Cognito endpoint does not implement it"
-            );
-            return Ok(());
-        }
-
         self.client
             .global_sign_out()
             .access_token(access_token)
             .send()
             .await
             .map_err(|error| AuthGatewayError::from_sign_out_error(error.into_service_error()))?;
-        Ok(())
-    }
-
-    async fn forgot_password(&self, email: String) -> Result<(), AuthGatewayError> {
-        self.client
-            .forgot_password()
-            .client_id(&self.client_id)
-            .username(email)
-            .send()
-            .await
-            .map_err(|error| {
-                AuthGatewayError::from_forgot_password_error(error.into_service_error())
-            })?;
-        Ok(())
-    }
-
-    async fn confirm_forgot_password(
-        &self,
-        email: String,
-        code: String,
-        new_password: String,
-    ) -> Result<(), AuthGatewayError> {
-        self.client
-            .confirm_forgot_password()
-            .client_id(&self.client_id)
-            .username(email)
-            .confirmation_code(code)
-            .password(new_password)
-            .send()
-            .await
-            .map_err(|error| {
-                AuthGatewayError::from_confirm_forgot_password_error(error.into_service_error())
-            })?;
         Ok(())
     }
 
@@ -250,30 +243,209 @@ impl AuthGateway for CognitoAuthGateway {
             })?;
         Ok(())
     }
+}
 
-    async fn change_password(
+impl CognitoAuthGateway {
+    async fn cognito_user_state(
         &self,
-        access_token: &str,
-        old_password: String,
-        new_password: String,
-    ) -> Result<(), AuthGatewayError> {
+        email: &str,
+    ) -> Result<Option<CognitoUserState>, AuthGatewayError> {
+        let output = match self
+            .client
+            .admin_get_user()
+            .user_pool_id(&self.user_pool_id)
+            .username(email)
+            .send()
+            .await
+        {
+            Ok(output) => output,
+            Err(error) => {
+                let error = error.into_service_error();
+                if matches!(error, AdminGetUserError::UserNotFoundException(_)) {
+                    return Ok(None);
+                }
+                return Err(AuthGatewayError::from_admin_get_user_error(error));
+            }
+        };
+        let status = output.user_status.clone().ok_or_else(|| {
+            AuthGatewayError::missing_provider_token(
+                AuthOperation::RequestOneTimePassword,
+                "user status",
+            )
+        })?;
+        Ok(Some(CognitoUserState {
+            enabled: output.enabled,
+            status,
+        }))
+    }
+
+    async fn delete_cognito_user(&self, email: &str) -> Result<(), AuthGatewayError> {
         self.client
-            .change_password()
-            .previous_password(old_password)
-            .proposed_password(new_password)
-            .access_token(access_token)
+            .admin_delete_user()
+            .user_pool_id(&self.user_pool_id)
+            .username(email)
             .send()
             .await
             .map_err(|error| {
-                AuthGatewayError::from_change_password_error(error.into_service_error())
+                AuthGatewayError::from_admin_delete_user_error(error.into_service_error())
             })?;
         Ok(())
+    }
+
+    async fn start_sign_up_challenge(
+        &self,
+        email: String,
+    ) -> Result<RequestOneTimePasswordResult, AuthGatewayError> {
+        let output = self
+            .client
+            .sign_up()
+            .client_id(&self.client_id)
+            .username(email.clone())
+            .user_attributes(
+                AttributeType::builder()
+                    .name("email")
+                    .value(email.clone())
+                    .build()
+                    .expect("email user attribute is valid"),
+            )
+            .send()
+            .await
+            .map_err(|error| AuthGatewayError::from_sign_up_error(error.into_service_error()))?;
+        let session = output
+            .session
+            .clone()
+            .filter(|session| !session.is_empty())
+            .ok_or_else(|| AuthGatewayError::missing_provider_session(AuthOperation::SignUp))?;
+
+        Ok(RequestOneTimePasswordResult {
+            created_user_sub: Some(output.user_sub),
+            challenge: OneTimePasswordChallenge {
+                email,
+                session,
+                code_length: SIGN_UP_CONFIRMATION_CODE_LENGTH,
+            },
+        })
+    }
+
+    async fn start_sign_in_challenge(
+        &self,
+        email: String,
+    ) -> Result<OneTimePasswordChallenge, AuthGatewayError> {
+        let output = self
+            .client
+            .initiate_auth()
+            .client_id(&self.client_id)
+            .auth_flow(AuthFlowType::UserAuth)
+            .auth_parameters("USERNAME", email.clone())
+            .auth_parameters("PREFERRED_CHALLENGE", "EMAIL_OTP")
+            .send()
+            .await
+            .map_err(|error| AuthGatewayError::from_sign_in_error(error.into_service_error()))?;
+        if !matches!(output.challenge_name, Some(ChallengeNameType::EmailOtp)) {
+            return Err(AuthGatewayError::unexpected_provider_challenge(
+                AuthOperation::SignIn,
+                output.challenge_name.as_ref(),
+            ));
+        }
+        let session = output
+            .session
+            .clone()
+            .filter(|session| !session.is_empty())
+            .ok_or_else(|| AuthGatewayError::missing_provider_session(AuthOperation::SignIn))?;
+        Ok(OneTimePasswordChallenge {
+            email,
+            session,
+            code_length: SIGN_IN_ONE_TIME_PASSWORD_CODE_LENGTH,
+        })
+    }
+
+    async fn confirm_sign_up_and_sign_in(
+        &self,
+        email: String,
+        session: String,
+        code: String,
+    ) -> Result<AuthTokenPair, AuthGatewayError> {
+        let output = self
+            .client
+            .confirm_sign_up()
+            .client_id(&self.client_id)
+            .username(email.clone())
+            .confirmation_code(code)
+            .session(session)
+            .send()
+            .await
+            .map_err(|error| {
+                AuthGatewayError::from_verify_one_time_password_confirm_error(
+                    error.into_service_error(),
+                )
+            })?;
+        let confirmed_session = output
+            .session
+            .clone()
+            .filter(|session| !session.is_empty())
+            .ok_or_else(|| {
+                AuthGatewayError::missing_provider_session(AuthOperation::VerifyOneTimePassword)
+            })?;
+        let output = self
+            .client
+            .initiate_auth()
+            .client_id(&self.client_id)
+            .auth_flow(AuthFlowType::UserAuth)
+            .auth_parameters("USERNAME", email)
+            .auth_parameters("PREFERRED_CHALLENGE", "EMAIL_OTP")
+            .session(confirmed_session)
+            .send()
+            .await
+            .map_err(|error| {
+                AuthGatewayError::from_verify_one_time_password_sign_in_error(
+                    error.into_service_error(),
+                )
+            })?;
+        AuthTokenPair::from_auth_result(
+            AuthOperation::VerifyOneTimePassword,
+            output.authentication_result.as_ref(),
+        )
+    }
+
+    async fn respond_to_email_otp(
+        &self,
+        email: String,
+        session: String,
+        code: String,
+    ) -> Result<AuthTokenPair, AuthGatewayError> {
+        let output = self
+            .client
+            .respond_to_auth_challenge()
+            .client_id(&self.client_id)
+            .challenge_name(ChallengeNameType::EmailOtp)
+            .challenge_responses("USERNAME", email)
+            .challenge_responses("EMAIL_OTP_CODE", code)
+            .session(session)
+            .send()
+            .await
+            .map_err(|error| {
+                AuthGatewayError::from_verify_one_time_password_challenge_error(
+                    error.into_service_error(),
+                )
+            })?;
+        AuthTokenPair::from_auth_result(
+            AuthOperation::VerifyOneTimePassword,
+            output.authentication_result.as_ref(),
+        )
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct SignUpResult {
-    pub user_sub: String,
+pub struct RequestOneTimePasswordResult {
+    pub created_user_sub: Option<String>,
+    pub challenge: OneTimePasswordChallenge,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OneTimePasswordChallenge {
+    pub email: String,
+    pub session: String,
+    pub code_length: i32,
 }
 
 #[derive(Debug, Clone)]
@@ -310,31 +482,31 @@ impl AuthTokenPair {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AuthOperation {
+    RequestOneTimePassword,
     SignUp,
-    ConfirmSignUp,
     SignIn,
+    AdminGetUser,
+    AdminDeleteUser,
+    VerifyOneTimePassword,
     RefreshToken,
     SignOut,
-    ForgotPassword,
-    ConfirmForgotPassword,
     UpdateUserAttributes,
     VerifyUserAttribute,
-    ChangePassword,
 }
 
 impl fmt::Display for AuthOperation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
+            AuthOperation::RequestOneTimePassword => "Request one-time password",
             AuthOperation::SignUp => "Sign up",
-            AuthOperation::ConfirmSignUp => "Confirm sign up",
             AuthOperation::SignIn => "Sign in",
+            AuthOperation::AdminGetUser => "Admin get user",
+            AuthOperation::AdminDeleteUser => "Admin delete user",
+            AuthOperation::VerifyOneTimePassword => "Verify one-time password",
             AuthOperation::RefreshToken => "Refresh token",
             AuthOperation::SignOut => "Sign out",
-            AuthOperation::ForgotPassword => "Forgot password",
-            AuthOperation::ConfirmForgotPassword => "Confirm forgot password",
             AuthOperation::UpdateUserAttributes => "Update user attributes",
             AuthOperation::VerifyUserAttribute => "Verify user attribute",
-            AuthOperation::ChangePassword => "Change password",
         })
     }
 }
@@ -362,6 +534,43 @@ impl AuthGatewayError {
         }
     }
 
+    fn missing_provider_session(operation: AuthOperation) -> Self {
+        Self::missing_provider_token(operation, "session")
+    }
+
+    fn unexpected_provider_challenge(
+        operation: AuthOperation,
+        challenge_name: Option<&ChallengeNameType>,
+    ) -> Self {
+        Self {
+            operation,
+            message: format!(
+                "Cognito {operation} response returned unexpected challenge {challenge_name:?}"
+            ),
+        }
+    }
+
+    fn missing_cognito_user(operation: AuthOperation) -> Self {
+        Self {
+            operation,
+            message: "Cognito user does not exist".to_owned(),
+        }
+    }
+
+    fn disabled_cognito_user(operation: AuthOperation) -> Self {
+        Self {
+            operation,
+            message: "Cognito user is disabled".to_owned(),
+        }
+    }
+
+    fn unsupported_cognito_user_status(operation: AuthOperation, status: &UserStatusType) -> Self {
+        Self {
+            operation,
+            message: format!("Cognito user status {status:?} cannot use email one-time password"),
+        }
+    }
+
     fn from_provider_error(
         operation: AuthOperation,
         error: impl ProvideErrorMetadata + fmt::Display,
@@ -377,12 +586,28 @@ impl AuthGatewayError {
         Self::from_provider_error(AuthOperation::SignUp, error)
     }
 
-    fn from_confirm_sign_up_error(error: ConfirmSignUpError) -> Self {
-        Self::from_provider_error(AuthOperation::ConfirmSignUp, error)
-    }
-
     fn from_sign_in_error(error: InitiateAuthError) -> Self {
         Self::from_provider_error(AuthOperation::SignIn, error)
+    }
+
+    fn from_admin_get_user_error(error: AdminGetUserError) -> Self {
+        Self::from_provider_error(AuthOperation::AdminGetUser, error)
+    }
+
+    fn from_admin_delete_user_error(error: AdminDeleteUserError) -> Self {
+        Self::from_provider_error(AuthOperation::AdminDeleteUser, error)
+    }
+
+    fn from_verify_one_time_password_confirm_error(error: ConfirmSignUpError) -> Self {
+        Self::from_provider_error(AuthOperation::VerifyOneTimePassword, error)
+    }
+
+    fn from_verify_one_time_password_sign_in_error(error: InitiateAuthError) -> Self {
+        Self::from_provider_error(AuthOperation::VerifyOneTimePassword, error)
+    }
+
+    fn from_verify_one_time_password_challenge_error(error: RespondToAuthChallengeError) -> Self {
+        Self::from_provider_error(AuthOperation::VerifyOneTimePassword, error)
     }
 
     fn from_refresh_token_error(error: GetTokensFromRefreshTokenError) -> Self {
@@ -393,24 +618,12 @@ impl AuthGatewayError {
         Self::from_provider_error(AuthOperation::SignOut, error)
     }
 
-    fn from_forgot_password_error(error: ForgotPasswordError) -> Self {
-        Self::from_provider_error(AuthOperation::ForgotPassword, error)
-    }
-
-    fn from_confirm_forgot_password_error(error: ConfirmForgotPasswordError) -> Self {
-        Self::from_provider_error(AuthOperation::ConfirmForgotPassword, error)
-    }
-
     fn from_update_user_attributes_error(error: UpdateUserAttributesError) -> Self {
         Self::from_provider_error(AuthOperation::UpdateUserAttributes, error)
     }
 
     fn from_verify_user_attribute_error(error: VerifyUserAttributeError) -> Self {
         Self::from_provider_error(AuthOperation::VerifyUserAttribute, error)
-    }
-
-    fn from_change_password_error(error: ChangePasswordError) -> Self {
-        Self::from_provider_error(AuthOperation::ChangePassword, error)
     }
 }
 
@@ -431,6 +644,69 @@ mod tests {
             builder = builder.refresh_token(refresh_token);
         }
         builder.build()
+    }
+
+    fn cognito_user_state(status: UserStatusType) -> CognitoUserState {
+        CognitoUserState {
+            enabled: true,
+            status,
+        }
+    }
+
+    #[test]
+    fn request_one_time_password_action_starts_sign_up_when_user_is_missing() {
+        let action = request_one_time_password_action(None).unwrap();
+
+        assert_eq!(action, RequestOneTimePasswordAction::StartSignUp);
+    }
+
+    #[test]
+    fn request_one_time_password_action_starts_sign_in_for_confirmed_user() {
+        let state = cognito_user_state(UserStatusType::Confirmed);
+
+        let action = request_one_time_password_action(Some(&state)).unwrap();
+
+        assert_eq!(action, RequestOneTimePasswordAction::StartSignIn);
+    }
+
+    #[test]
+    fn request_one_time_password_action_recreates_unconfirmed_user() {
+        let state = cognito_user_state(UserStatusType::Unconfirmed);
+
+        let action = request_one_time_password_action(Some(&state)).unwrap();
+
+        assert_eq!(action, RequestOneTimePasswordAction::DeleteAndStartSignUp);
+    }
+
+    #[test]
+    fn verify_one_time_password_action_confirms_unconfirmed_user() {
+        let state = cognito_user_state(UserStatusType::Unconfirmed);
+
+        let action = verify_one_time_password_action(&state).unwrap();
+
+        assert_eq!(action, VerifyOneTimePasswordAction::ConfirmSignUpAndSignIn);
+    }
+
+    #[test]
+    fn verify_one_time_password_action_responds_to_confirmed_user_challenge() {
+        let state = cognito_user_state(UserStatusType::Confirmed);
+
+        let action = verify_one_time_password_action(&state).unwrap();
+
+        assert_eq!(action, VerifyOneTimePasswordAction::RespondToEmailOtp);
+    }
+
+    #[test]
+    fn one_time_password_action_rejects_disabled_users() {
+        let state = CognitoUserState {
+            enabled: false,
+            status: UserStatusType::Confirmed,
+        };
+
+        let error = request_one_time_password_action(Some(&state)).unwrap_err();
+
+        assert_eq!(error.operation(), AuthOperation::RequestOneTimePassword);
+        assert_eq!(error.provider_message(), "Cognito user is disabled");
     }
 
     #[test]

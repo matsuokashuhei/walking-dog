@@ -1,15 +1,15 @@
-# Maestro E2E テスト
+# Maestro E2E tests
 
-このディレクトリには、iOS Simulator で実行する Maestro flow を置いています。
-基本の確認は `auth-onboarding.yaml` です。アカウント作成、メール確認、ログイン、パスワード変更までを通します。
+This directory contains Maestro flows for iOS Simulator. The main auth journey is
+`auth-onboarding.yaml`, which covers the unified email OneTimePassword flow.
 
-## 前提
+## Prerequisites
 
-- Maestro CLI がインストール済みであること。
-- Xcode Simulator が利用でき、`iPhone 17 Pro` を起動できること。
-- Simulator の言語が英語であること。Maestro flow は英語 UI text を selector に使います。
-- `apps/mobile` の依存関係がインストール済みであること。
-- API と Cognito-local を含む harness dev stack が起動していること。
+- Maestro CLI is installed.
+- Xcode Simulator is available and `iPhone 17 Pro` can be started.
+- Simulator language is English. Maestro selectors use English UI text.
+- `apps/mobile` dependencies are installed.
+- The harness dev stack API is running and configured for real AWS Cognito EMAIL_OTP.
 
 ```bash
 cd apps/mobile
@@ -18,17 +18,18 @@ cd ../..
 node scripts/harness/dev-stack.mjs up
 ```
 
-dev stack の API port は worktree ごとに変わります。起動後に次のファイルで確認できます。
+The API port is worktree-specific. After starting the dev stack, read it from:
 
 ```bash
 cat .harness-runs/dev-stack/env.json
 ```
 
-## アプリを Simulator に入れる
+## Install the app on Simulator
 
-`auth-onboarding.yaml` は `launchApp.clearState: true` を使います。Debug/dev-client build だと clear state 後に Expo Dev Launcher が開くことがあるため、Maestro では Release build を使います。
+`auth-onboarding.yaml` uses `launchApp.clearState: true`. Debug/dev-client builds can
+open Expo Dev Launcher after clearing state, so Maestro should use a Release build.
 
-repo root から API port を読んでから、`apps/mobile` で build します。
+From the repo root, read the API port, then build from `apps/mobile`:
 
 ```bash
 export WD_API_PORT="$(node -p "require('./.harness-runs/dev-stack/env.json').ports.api")"
@@ -41,25 +42,32 @@ EXPO_PUBLIC_API_URL="http://127.0.0.1:${WD_API_PORT}" \
 npx expo run:ios --configuration Release --device "iPhone 17 Pro"
 ```
 
-build が完了すると `com.walkingdog.app` が Simulator にインストールされます。Expo/Metro のログ表示は残したまま、別 terminal で Maestro を実行します。
+After the build, `com.walkingdog.app` is installed on Simulator. Keep the
+Expo/Metro terminal open and run Maestro from another terminal.
 
-## Maestro を実行する
+## Run Maestro
 
-repo root から実行します。
+Real AWS Cognito sends a dynamic email code. Request the code in the app, read it
+from the delivered email, and pass it to Maestro as `E2E_CONFIRMATION_CODE`.
 
 ```bash
+E2E_EMAIL="owner@example.com" \
+E2E_CONFIRMATION_CODE="<code>" \
 maestro test apps/mobile/e2e/maestro/auth-onboarding.yaml
 ```
 
-すべての flow をまとめて実行する場合:
+To run every flow:
 
 ```bash
 maestro test apps/mobile/e2e/maestro/*.yaml
 ```
 
-`auth-onboarding.yaml` 以外の flow は、認証済み owner、登録済み dog、位置情報や写真権限などの seed/harness 状態を前提にしています。各 YAML 先頭の `Harness preconditions` を満たしてから実行してください。
+Flows other than `auth-onboarding.yaml` may require an authenticated owner,
+registered dog, location permission, photo permission, or other seeded harness state.
+Read each YAML file's `Harness preconditions` before running it.
 
-Java runtime が見つからない場合は、Maestro 実行時に `JAVA_HOME` と `PATH` を指定します。Homebrew の OpenJDK を使う例:
+If Java runtime is not found, pass `JAVA_HOME` and `PATH` to Maestro. Example with
+Homebrew OpenJDK:
 
 ```bash
 JAVA_HOME=/opt/homebrew/opt/openjdk \
@@ -67,19 +75,25 @@ PATH=/opt/homebrew/opt/openjdk/bin:$PATH \
 maestro test apps/mobile/e2e/maestro/auth-onboarding.yaml
 ```
 
-## 終了後の片付け
+## Cleanup
 
-Expo/Metro の terminal は `Ctrl-C` で止めます。harness dev stack も不要なら停止します。
+Stop the Expo/Metro terminal with `Ctrl-C`. Stop the harness dev stack if it is no
+longer needed.
 
 ```bash
 node scripts/harness/dev-stack.mjs down
 ```
 
-`takeScreenshot` を含む flow は、実行した current directory に `harness-*.png` を生成します。証跡として使う場合だけ残し、通常は commit しません。
+Flows with `takeScreenshot` generate `harness-*.png` in the current directory.
+Keep them only when they are needed as evidence.
 
-## よくある失敗
+## Common failures
 
-- `Create an account` が見つからない: Debug build の clear state で Expo Dev Launcher が開いている可能性があります。Release build で入れ直してください。
-- API に接続できない: `.harness-runs/dev-stack/env.json` の `ports.api` と `EXPO_PUBLIC_API_URL` が一致しているか確認してください。
-- text selector が見つからない: Simulator の言語が英語か、対象 flow の seed data が存在するか確認してください。
-- パスワード関連で失敗する: `E2E_PASSWORD` / `E2E_NEW_PASSWORD` は Cognito policy を満たす値にします。現在の auth flow は `Password123` と `Newpass1` を使います。
+- `Walking Dog` is not visible: a Debug build may have opened Expo Dev Launcher after
+  `clearState`. Reinstall a Release build.
+- API connection fails: verify `.harness-runs/dev-stack/env.json` `ports.api` matches
+  `EXPO_PUBLIC_API_URL`.
+- Text selector is not found: verify Simulator language is English and the required
+  harness state exists.
+- OneTimePassword verification fails: use the latest email code from the same run and
+  pass it as `E2E_CONFIRMATION_CODE`.

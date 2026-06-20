@@ -16,85 +16,30 @@
   "auth": {
     "login": {
       "title": "Walking Dog",
-      "heading": "Welcome back",
-      "subtitle": "Sign in to keep walking with your companion.",
+      "heading": "Continue with email",
+      "subtitle": "We'll send a one-time code if this email can use Walking Dog.",
       "email": "Email",
-      "password": "Password",
-      "submit": "Sign in",
-      "register": "Create Account",
-      "forgotPassword": "Forgot password?",
-      "or": "or",
-      "continueWithApple": "Continue with Apple",
-      "newHere": "New here?",
-      "createAccountLink": "Create an account",
-      "comingSoonApple": "Apple Sign-In is coming soon.",
+      "submit": "Continue with email",
       "error": {
-        "invalidCredentials": "Invalid email or password",
-        "generic": "Login failed"
+        "invalidCredentials": "Could not send a code to that email",
+        "generic": "Could not send a code"
       }
     },
-    "register": {
-      "title": "Create Account",
-      "subtitle": "A few quick details and you'll be walking in a minute.",
-      "displayName": "Your name",
-      "email": "Email",
-      "password": "Password",
-      "passwordError": "Use at least 8 characters with uppercase, lowercase, and a number.",
-      "submit": "Continue",
-      "loginLink": "Already have an account? Login",
-      "back": "Back",
-      "dogProfileHint": "You can add your dog's profile on the next step. We'll remember paw-size, pace, and photo.",
+    "legal": {
       "agreePrefix": "By continuing you agree to the ",
       "terms": "Terms",
       "agreeAnd": " and ",
       "privacyPolicy": "Privacy Policy",
-      "agreeSuffix": ".",
-      "error": {
-        "userExists": "This email is already registered",
-        "invalidPassword": "Password does not meet requirements",
-        "generic": "Failed to create account"
-      }
+      "agreeSuffix": "."
     },
-    "confirm": {
-      "title": "Email Verification",
-      "description": "We sent a confirmation code to {{email}}",
-      "code": "Confirmation Code",
-      "digitLabel": "Digit {{position}}",
-      "submit": "Confirm",
-      "resend": "Resend Code",
-      "verificationArchive": "Secure verification archive",
+    "oneTimePassword": {
+      "label": "One-time password",
+      "description": "Enter the {{count}}-digit code sent to {{email}}.",
+      "verifying": "Checking code...",
       "error": {
-        "invalidCode": "Invalid confirmation code",
-        "expiredCode": "Confirmation code has expired",
-        "generic": "Verification failed"
-      }
-    },
-    "reset": {
-      "secureRecovery": "Secure account recovery",
-      "requestTitle": "Reset your password",
-      "requestDescription": "Enter the email you use for Walking Dog. We'll send a verification code to help you get back to your walks.",
-      "email": "Email",
-      "emailHint": "Use the email address connected to your Walking Dog account.",
-      "sendCode": "Send reset code",
-      "confirmTitle": "Check your email",
-      "confirmDescription": "We sent a code to {{email}}. Enter it below and choose a new password.",
-      "code": "Verification code",
-      "digitLabel": "Digit {{position}}",
-      "newPassword": "New password",
-      "confirmPassword": "Confirm",
-      "passwordHint": "Use at least 8 characters with uppercase, lowercase, and a number.",
-      "submit": "Reset password",
-      "resend": "Resend code",
-      "doneTitle": "Password reset",
-      "doneDescription": "Your password has been updated. Sign in again to keep walking with your companion.",
-      "backToSignIn": "Back to Sign in",
-      "error": {
-        "request": "Could not send a reset code",
-        "invalidCode": "Invalid reset code",
-        "expiredCode": "Reset code has expired",
-        "invalidPassword": "Password does not meet requirements",
-        "passwordMismatch": "Passwords do not match",
-        "generic": "Password reset failed"
+        "invalidCode": "Invalid code",
+        "expiredCode": "Code expired",
+        "generic": "Could not verify code"
       }
     },
     "error": {
@@ -340,7 +285,6 @@
     "notifications": "Notifications",
     "notificationsValue": "On",
     "openSettings": "Settings",
-    "changePassword": "Change password",
     "terms": "Terms of Service",
     "privacy": "Privacy Policy",
     "about": "About",
@@ -371,20 +315,6 @@
     "photoPermissionDenied": "Photo access denied",
     "photoPermissionMessage": "Allow photo access to update your user picture.",
     "saveError": "Failed to save user. Please try again."
-  },
-  "userChangePassword": {
-    "title": "Change password",
-    "currentPassword": "Current password",
-    "newPassword": "New password",
-    "confirmPassword": "Confirm password",
-    "passwordHint": "Use at least 8 characters with uppercase, lowercase, and a number.",
-    "submit": "Update password",
-    "error": {
-      "currentPassword": "Current password is incorrect",
-      "invalidPassword": "Password does not meet requirements",
-      "passwordMismatch": "Passwords do not match",
-      "generic": "Password change failed"
-    }
   },
   "nativePermissions": {
     "locationWhenInUse": "Walking Dog uses your location to record walk routes.",

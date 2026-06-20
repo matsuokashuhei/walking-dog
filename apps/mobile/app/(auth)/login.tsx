@@ -1,16 +1,59 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  Keyboard,
+  Platform,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AppMark } from '@/components/auth/AppMark';
-import { LoginForm } from '@/components/auth/LoginForm';
+import { EmailAuthForm } from '@/components/auth/EmailAuthForm';
 import { useColors } from '@/hooks/use-colors';
-import { components, spacing, typography } from '@/theme/tokens';
+import { spacing, typography } from '@/theme/tokens';
 
-// ログイン画面は認証フォームだけを担当し、成功後の遷移はルートの認証ガードに任せます。
+// 認証画面はメールOTPフォームだけを担当し、成功後の遷移はルートの認証ガードに任せます。
 export default function LoginScreen() {
-  const router = useRouter();
   const { t } = useTranslation();
   const theme = useColors();
+  const { height: windowHeight } = useWindowDimensions();
+  const formRef = useRef<View>(null);
+  const [keyboardTop, setKeyboardTop] = useState<number | null>(null);
+  const [formFrame, setFormFrame] = useState({ y: 0, height: 0 });
+
+  const measureForm = useCallback(() => {
+    requestAnimationFrame(() => {
+      formRef.current?.measureInWindow((_x, y, _width, height) => {
+        setFormFrame({ y, height });
+      });
+    });
+  }, []);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillChangeFrame' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSubscription = Keyboard.addListener(showEvent, (event) => {
+      measureForm();
+      setKeyboardTop(event.endCoordinates.screenY);
+    });
+    const hideSubscription = Keyboard.addListener(hideEvent, () => {
+      setKeyboardTop(null);
+    });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, [measureForm]);
+
+  const formBottom = formFrame.y + formFrame.height;
+  const keyboardGap = spacing.md;
+  const keyboardOverlap = Math.max(
+    0,
+    formBottom + keyboardGap - (keyboardTop ?? windowHeight),
+  );
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -24,26 +67,21 @@ export default function LoginScreen() {
             {t('auth.login.subtitle')}
           </Text>
         </View>
-        <LoginForm
-          onSuccess={() => {
-            // 認証後の遷移は _layout.tsx の NavigationGuard が一元管理します。
-          }}
-          onForgotPassword={() => router.push('/(auth)/reset-password')}
-        />
+        <View
+          ref={formRef}
+          onLayout={measureForm}
+          style={[
+            styles.form,
+            { transform: [{ translateY: -keyboardOverlap }] },
+          ]}
+        >
+          <EmailAuthForm
+            onSuccess={() => {
+              // 認証後の遷移は _layout.tsx の NavigationGuard が一元管理します。
+            }}
+          />
+        </View>
       </View>
-      <Pressable
-        onPress={() => router.push('/(auth)/register')}
-        accessibilityRole="link"
-        accessibilityLabel={t('auth.login.createAccountLink')}
-        style={styles.footer}
-      >
-        <Text style={[styles.footerText, { color: theme.onSurfaceVariant }]}>
-          {t('auth.login.newHere')}{' '}
-          <Text style={[styles.footerLink, { color: theme.interactive }]}>
-            {t('auth.login.createAccountLink')}
-          </Text>
-        </Text>
-      </Pressable>
     </View>
   );
 }
@@ -68,15 +106,7 @@ const styles = StyleSheet.create({
   sub: {
     ...typography.subheadline,
   },
-  footer: {
-    alignItems: 'center',
-    paddingBottom: spacing.step60 - spacing.step10,
-    paddingTop: spacing.md,
-  },
-  footerText: {
-    ...typography.subheadline,
-  },
-  footerLink: {
-    fontWeight: components.button.fontPrimary.fontWeight,
+  form: {
+    width: '100%',
   },
 });

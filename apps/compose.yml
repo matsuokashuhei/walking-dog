@@ -133,22 +133,6 @@ services:
       elasticmq:
         condition: service_healthy
 
-  schemaspy:
-    image: schemaspy/schemaspy
-    depends_on:
-      postgres:
-        condition: service_healthy
-    volumes:
-      - ./schemaspy/schemaspy.properties:/schemaspy.properties
-      - ./schemaspy/output:/output
-
-  web:
-    image: nginx
-    ports:
-      - "1433:80"
-    volumes:
-      - ./schemaspy/output:/usr/share/nginx/html
-
 volumes:
   postgres_data:
   dynamodb_data:

@@ -39,12 +39,14 @@ describe('use-auth', () => {
     mockAuthApi.requestOneTimePassword.mockResolvedValue({
       email: 'user@example.com',
       session: 'otp-session',
+      codeLength: 8,
     });
 
     const { result } = renderHook(() => useAuth());
     await expect(result.current.requestOneTimePassword('user@example.com')).resolves.toEqual({
       email: 'user@example.com',
       session: 'otp-session',
+      codeLength: 8,
     });
 
     expect(mockAuthApi.requestOneTimePassword).toHaveBeenCalledWith('user@example.com');

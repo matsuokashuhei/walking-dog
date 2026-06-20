@@ -147,11 +147,6 @@ Format: %Y-%m-%d
 """
 scalar NaiveDate
 
-type RequestOneTimePasswordOutput {
-	email: String!
-	session: String!
-}
-
 """
 Information about pagination in a connection
 """
@@ -196,6 +191,12 @@ input RemoveDogInput {
 
 input RequestOneTimePasswordInput {
 	email: String!
+}
+
+type RequestOneTimePasswordOutput {
+	email: String!
+	session: String!
+	codeLength: Int!
 }
 
 input SetGoalInput {

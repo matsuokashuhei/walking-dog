@@ -17,7 +17,7 @@
     "login": {
       "title": "Walking Dog",
       "heading": "Continue with email",
-      "subtitle": "We'll send an 8-digit code if this email can use Walking Dog.",
+      "subtitle": "We'll send a one-time code if this email can use Walking Dog.",
       "email": "Email",
       "submit": "Continue with email",
       "error": {
@@ -34,7 +34,7 @@
     },
     "oneTimePassword": {
       "label": "One-time password",
-      "description": "Enter the 8-digit code sent to {{email}}.",
+      "description": "Enter the {{count}}-digit code sent to {{email}}.",
       "verifying": "Checking code...",
       "error": {
         "invalidCode": "Invalid code",

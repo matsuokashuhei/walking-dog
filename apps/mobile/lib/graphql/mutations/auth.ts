@@ -5,6 +5,7 @@ export const REQUEST_ONE_TIME_PASSWORD_MUTATION = gql`
     requestOneTimePassword(input: $input) {
       email
       session
+      codeLength
     }
   }
 `;

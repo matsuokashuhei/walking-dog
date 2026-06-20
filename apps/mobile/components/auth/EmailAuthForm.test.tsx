@@ -34,6 +34,7 @@ describe('EmailAuthForm', () => {
     mockRequestOneTimePassword.mockResolvedValue({
       email: 'test@example.com',
       session: 'otp-session',
+      codeLength: 8,
     });
     render(<EmailAuthForm onSuccess={jest.fn()} />);
 
@@ -51,6 +52,7 @@ describe('EmailAuthForm', () => {
     mockRequestOneTimePassword.mockResolvedValue({
       email: 'test@example.com',
       session: 'otp-session',
+      codeLength: 8,
     });
     mockVerifyOneTimePassword.mockResolvedValue(undefined);
     render(<EmailAuthForm onSuccess={onSuccess} />);
@@ -73,10 +75,37 @@ describe('EmailAuthForm', () => {
     expect(onSuccess).toHaveBeenCalledTimes(1);
   });
 
+  it('uses six digits when the backend returns a six-digit challenge', async () => {
+    mockRequestOneTimePassword.mockResolvedValue({
+      email: 'test@example.com',
+      session: 'otp-session',
+      codeLength: 6,
+    });
+    mockVerifyOneTimePassword.mockResolvedValue(undefined);
+    render(<EmailAuthForm onSuccess={jest.fn()} />);
+
+    fireEvent.changeText(screen.getByLabelText('Email'), 'test@example.com');
+    fireEvent.press(screen.getByRole('button', { name: 'Continue with email' }));
+    await screen.findByLabelText('One-time password');
+
+    expect(screen.getByText('Enter the 6-digit code sent to test@example.com.')).toBeTruthy();
+
+    fireEvent.changeText(screen.getByLabelText('One-time password'), '12345678');
+
+    await waitFor(() => {
+      expect(mockVerifyOneTimePassword).toHaveBeenCalledWith({
+        email: 'test@example.com',
+        session: 'otp-session',
+        code: '123456',
+      });
+    });
+  });
+
   it('shows invalid code errors and allows retry', async () => {
     mockRequestOneTimePassword.mockResolvedValue({
       email: 'test@example.com',
       session: 'otp-session',
+      codeLength: 8,
     });
     mockVerifyOneTimePassword
       .mockRejectedValueOnce({ kind: 'code-mismatch', reason: 'invalid' })

@@ -54,6 +54,7 @@ impl AuthGateway for RecordingAuthGateway {
             challenge: OneTimePasswordChallenge {
                 email,
                 session: "otp-session".to_owned(),
+                code_length: 8,
             },
         })
     }
@@ -172,6 +173,7 @@ async fn request_one_time_password_starts_challenge_and_stores_new_user_without_
           requestOneTimePassword(input: $input) {
             email
             session
+            codeLength
           }
         }
         "#,
@@ -190,7 +192,8 @@ async fn request_one_time_password_starts_challenge_and_stores_new_user_without_
         json!({
             "requestOneTimePassword": {
                 "email": "mio@example.com",
-                "session": "otp-session"
+                "session": "otp-session",
+                "codeLength": 8
             }
         })
     );
@@ -219,6 +222,7 @@ async fn request_one_time_password_skips_user_insert_for_existing_cognito_user()
           requestOneTimePassword(input: $input) {
             email
             session
+            codeLength
           }
         }
         "#,
@@ -237,7 +241,8 @@ async fn request_one_time_password_skips_user_insert_for_existing_cognito_user()
         json!({
             "requestOneTimePassword": {
                 "email": "mio@example.com",
-                "session": "otp-session"
+                "session": "otp-session",
+                "codeLength": 8
             }
         })
     );

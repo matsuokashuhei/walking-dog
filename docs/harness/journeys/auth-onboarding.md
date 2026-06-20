@@ -25,7 +25,7 @@ email is not registered.
 - The UI does not ask the owner to choose sign-in versus account creation.
 - Terms and privacy links open the configured `/terms` and `/policy` URLs.
 - Email one-time password accepts the operator-provided AWS Cognito code.
-- Completing the 8-digit one-time password automatically verifies without a
+- Completing the one-time password automatically verifies without a
   separate confirm button.
 - Successful verification stores tokens through secure storage, not AsyncStorage.
 - Authenticated navigation shows Dogs, Walk, and Me tabs.

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -33,14 +34,36 @@ export function TextInput({
   labelPosition = 'top',
   separator = false,
   testID,
+  onBlur,
+  onFocus,
   ...props
 }: TextInputProps) {
   const theme = useColors();
+  const [isFocused, setIsFocused] = useState(false);
+
+  function handleFocus(event: Parameters<NonNullable<RNTextInputProps['onFocus']>>[0]) {
+    setIsFocused(true);
+    onFocus?.(event);
+  }
+
+  function handleBlur(event: Parameters<NonNullable<RNTextInputProps['onBlur']>>[0]) {
+    setIsFocused(false);
+    onBlur?.(event);
+  }
 
   if (labelPosition === 'inline') {
     return (
       <>
-        <View style={inlineStyles.row}>
+        <View
+          testID={testID ? `${testID}-container` : undefined}
+          style={[
+            inlineStyles.row,
+            {
+              backgroundColor: isFocused ? theme.surfaceContainer : 'transparent',
+              borderColor: isFocused ? theme.interactive : 'transparent',
+            },
+          ]}
+        >
           <Text style={[inlineStyles.label, { color: theme.onSurfaceVariant }]}>
             {label}
           </Text>
@@ -49,6 +72,8 @@ export function TextInput({
             placeholderTextColor={theme.onSurfaceVariant}
             accessibilityLabel={label}
             testID={testID}
+            onBlur={handleBlur}
+            onFocus={handleFocus}
             {...props}
           />
         </View>
@@ -79,13 +104,15 @@ export function TextInput({
           {
             backgroundColor: theme.surface,
             color: theme.onSurface,
-            borderColor: error ? theme.error : theme.border,
+            borderColor: error ? theme.error : isFocused ? theme.interactive : theme.border,
           },
           style,
         ]}
         placeholderTextColor={theme.onSurfaceVariant}
         accessibilityLabel={label}
         testID={testID}
+        onBlur={handleBlur}
+        onFocus={handleFocus}
         {...props}
       />
       {error ? (
@@ -124,6 +151,8 @@ const inlineStyles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.step14,
     minHeight: components.row.minHeight,
+    borderWidth: components.textInput.borderWidth,
+    borderRadius: radius.lg,
   },
   label: {
     ...typography.subheadline,

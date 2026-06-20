@@ -33,12 +33,14 @@ describe('auth api', () => {
       requestOneTimePassword: {
         email: 'user@example.com',
         session: 'otp-session',
+        codeLength: 8,
       },
     });
 
     await expect(requestOneTimePassword('user@example.com')).resolves.toEqual({
       email: 'user@example.com',
       session: 'otp-session',
+      codeLength: 8,
     });
     expect(mockRequest).toHaveBeenCalledWith(expect.any(String), {
       input: { email: 'user@example.com' },

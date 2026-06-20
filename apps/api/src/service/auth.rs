@@ -17,6 +17,9 @@ use std::{fmt, sync::Arc};
 
 pub type SharedAuthGateway = Arc<dyn AuthGateway>;
 
+const SIGN_UP_CONFIRMATION_CODE_LENGTH: i32 = 6;
+const SIGN_IN_ONE_TIME_PASSWORD_CODE_LENGTH: i32 = 8;
+
 #[async_trait]
 pub trait AuthGateway: Send + Sync + 'static {
     async fn request_one_time_password(
@@ -316,7 +319,11 @@ impl CognitoAuthGateway {
 
         Ok(RequestOneTimePasswordResult {
             created_user_sub: Some(output.user_sub),
-            challenge: OneTimePasswordChallenge { email, session },
+            challenge: OneTimePasswordChallenge {
+                email,
+                session,
+                code_length: SIGN_UP_CONFIRMATION_CODE_LENGTH,
+            },
         })
     }
 
@@ -345,7 +352,11 @@ impl CognitoAuthGateway {
             .clone()
             .filter(|session| !session.is_empty())
             .ok_or_else(|| AuthGatewayError::missing_provider_session(AuthOperation::SignIn))?;
-        Ok(OneTimePasswordChallenge { email, session })
+        Ok(OneTimePasswordChallenge {
+            email,
+            session,
+            code_length: SIGN_IN_ONE_TIME_PASSWORD_CODE_LENGTH,
+        })
     }
 
     async fn confirm_sign_up_and_sign_in(
@@ -434,6 +445,7 @@ pub struct RequestOneTimePasswordResult {
 pub struct OneTimePasswordChallenge {
     pub email: String,
     pub session: String,
+    pub code_length: i32,
 }
 
 #[derive(Debug, Clone)]

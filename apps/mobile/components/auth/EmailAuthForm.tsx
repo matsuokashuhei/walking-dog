@@ -66,7 +66,11 @@ export function EmailAuthForm({ onSuccess }: EmailAuthFormProps) {
     setError('');
     setVerifyLoading(true);
     try {
-      await verifyOneTimePassword({ ...challenge, code: nextCode });
+      await verifyOneTimePassword({
+        email: challenge.email,
+        session: challenge.session,
+        code: nextCode,
+      });
       onSuccess();
     } catch (err: unknown) {
       const authError = toAuthError(err);
@@ -100,12 +104,16 @@ export function EmailAuthForm({ onSuccess }: EmailAuthFormProps) {
       {challenge ? (
         <>
           <Text style={[styles.description, { color: theme.onSurfaceVariant }]}>
-            {t('auth.oneTimePassword.description', { email: challenge.email })}
+            {t('auth.oneTimePassword.description', {
+              count: challenge.codeLength,
+              email: challenge.email,
+            })}
           </Text>
           <OneTimePasswordInput
             value={code}
             onChange={setCode}
             onComplete={handleComplete}
+            length={challenge.codeLength}
             disabled={verifyLoading}
           />
         </>

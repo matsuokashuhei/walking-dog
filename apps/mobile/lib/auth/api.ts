@@ -10,9 +10,12 @@ import { toAuthError } from './errors';
 export interface OneTimePasswordChallenge {
   email: string;
   session: string;
+  codeLength: number;
 }
 
-export interface VerifyOneTimePasswordInput extends OneTimePasswordChallenge {
+export interface VerifyOneTimePasswordInput {
+  email: string;
+  session: string;
   code: string;
 }
 

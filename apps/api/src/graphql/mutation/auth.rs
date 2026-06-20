@@ -123,6 +123,7 @@ pub struct RequestOneTimePasswordInput {
 pub struct RequestOneTimePasswordOutput {
     email: String,
     session: String,
+    code_length: i32,
 }
 
 impl From<OneTimePasswordChallenge> for RequestOneTimePasswordOutput {
@@ -130,6 +131,7 @@ impl From<OneTimePasswordChallenge> for RequestOneTimePasswordOutput {
         Self {
             email: challenge.email,
             session: challenge.session,
+            code_length: challenge.code_length,
         }
     }
 }

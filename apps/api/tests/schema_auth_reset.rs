@@ -11,6 +11,7 @@ fn schema_exposes_passwordless_auth_mutations() {
     assert!(sdl.contains(
         "requestOneTimePassword(input: RequestOneTimePasswordInput!): RequestOneTimePasswordOutput!"
     ));
+    assert!(sdl.contains("codeLength: Int!"));
     assert!(sdl.contains(
         "verifyOneTimePassword(input: VerifyOneTimePasswordInput!): VerifyOneTimePasswordOutput!"
     ));

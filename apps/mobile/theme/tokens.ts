@@ -317,6 +317,7 @@ export const components = {
     cellWidth: 36,
     cellHeight: 56,
     cellBorderWidth: 1,
+    focusedCellBorderWidth: 2,
     cellGap: 6,
   },
   birthdayPicker: {

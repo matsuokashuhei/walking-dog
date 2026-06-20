@@ -17,7 +17,7 @@
     "login": {
       "title": "Walking Dog",
       "heading": "メールで続ける",
-      "subtitle": "利用できるメールに8桁の確認コードを送ります。",
+      "subtitle": "利用できるメールにワンタイムコードを送ります。",
       "email": "メール",
       "submit": "メールで続ける",
       "error": {
@@ -34,7 +34,7 @@
     },
     "oneTimePassword": {
       "label": "One-time password",
-      "description": "{{email}} に送信した8桁のコードを入力してください。",
+      "description": "{{email}} に送信した{{count}}桁のコードを入力してください。",
       "verifying": "コードを確認中...",
       "error": {
         "invalidCode": "コードが正しくありません",

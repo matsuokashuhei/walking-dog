@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -14,40 +14,43 @@ interface OneTimePasswordInputProps {
   value: string;
   onChange: (value: string) => void;
   onComplete: (code: string) => void;
+  length: number;
   disabled?: boolean;
 }
 
-function normalizeOneTimePassword(value: string): string {
-  return value.replace(/[^0-9]/g, '').slice(0, components.oneTimePassword.length);
+function normalizeOneTimePassword(value: string, length: number): string {
+  return value.replace(/[^0-9]/g, '').slice(0, length);
 }
 
 export function OneTimePasswordInput({
   value,
   onChange,
   onComplete,
+  length,
   disabled = false,
 }: OneTimePasswordInputProps) {
   const { t } = useTranslation();
   const theme = useColors();
   const inputRef = useRef<TextInputHandle | null>(null);
   const lastCompletedCodeRef = useRef<string | null>(null);
+  const [isFocused, setIsFocused] = useState(false);
 
   useEffect(() => {
-    if (value.length < components.oneTimePassword.length) {
+    if (value.length < length) {
       lastCompletedCodeRef.current = null;
     }
-  }, [value]);
+  }, [length, value]);
 
   function handleChangeText(nextValue: string) {
     if (disabled) return;
 
-    const normalized = normalizeOneTimePassword(nextValue);
+    const normalized = normalizeOneTimePassword(nextValue, length);
     if (normalized !== value) {
       onChange(normalized);
     }
 
     if (
-      normalized.length === components.oneTimePassword.length &&
+      normalized.length === length &&
       lastCompletedCodeRef.current !== normalized
     ) {
       lastCompletedCodeRef.current = normalized;
@@ -55,10 +58,8 @@ export function OneTimePasswordInput({
     }
   }
 
-  const cells = Array.from(
-    { length: components.oneTimePassword.length },
-    (_, index) => value[index] ?? '',
-  );
+  const activeIndex = Math.min(value.length, Math.max(length - 1, 0));
+  const cells = Array.from({ length }, (_, index) => value[index] ?? '');
 
   return (
     <View style={styles.container}>
@@ -71,12 +72,18 @@ export function OneTimePasswordInput({
         {cells.map((digit, index) => (
           <View
             key={index}
-            testID={digit ? undefined : 'one-time-password-empty-cell'}
+            testID={`one-time-password-cell-${index}`}
             style={[
               styles.cell,
               {
                 backgroundColor: theme.surface,
-                borderColor: digit ? theme.interactive : theme.border,
+                borderColor: digit || (isFocused && index === activeIndex)
+                  ? theme.interactive
+                  : theme.border,
+                borderWidth:
+                  isFocused && index === activeIndex
+                    ? components.oneTimePassword.focusedCellBorderWidth
+                    : components.oneTimePassword.cellBorderWidth,
               },
             ]}
           >
@@ -90,11 +97,13 @@ export function OneTimePasswordInput({
         ref={inputRef}
         value={value}
         onChangeText={handleChangeText}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
         editable={!disabled}
         keyboardType="number-pad"
         textContentType="oneTimeCode"
         autoComplete="one-time-code"
-        maxLength={components.oneTimePassword.length}
+        maxLength={length}
         caretHidden
         selectionColor="transparent"
         accessibilityLabel={t('auth.oneTimePassword.label')}
@@ -122,7 +131,6 @@ const styles = StyleSheet.create({
     width: components.oneTimePassword.cellWidth,
     height: components.oneTimePassword.cellHeight,
     borderRadius: radius.md,
-    borderWidth: components.oneTimePassword.cellBorderWidth,
     alignItems: 'center',
     justifyContent: 'center',
   },

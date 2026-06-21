@@ -16,14 +16,23 @@
   "auth": {
     "login": {
       "title": "Walking Dog",
-      "heading": "メールで続ける",
-      "subtitle": "利用できるメールにワンタイムコードを送ります。",
+      "heading": "おかえりなさい",
+      "subtitle": "愛犬との散歩を続けるためにログインします。",
       "email": "メール",
       "submit": "メールで続ける",
+      "primaryAction": "ログイン",
+      "signupPrompt": "はじめてですか？",
+      "signupAction": "アカウントを作成",
       "error": {
         "invalidCredentials": "このメールにコードを送れませんでした",
         "generic": "コードを送信できませんでした"
       }
+    },
+    "signup": {
+      "heading": "愛犬との散歩を始めましょう。",
+      "subtitle": "アカウントを作成すれば、すぐに散歩を始められます。",
+      "supporting": "犬のプロフィールは次のステップで追加できます。ペース、目標、写真を記録します。",
+      "submit": "続ける"
     },
     "legal": {
       "agreePrefix": "続けることで、",

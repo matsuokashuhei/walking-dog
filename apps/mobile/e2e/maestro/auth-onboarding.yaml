@@ -17,6 +17,9 @@ env:
 - launchApp:
     clearState: true
 - assertVisible: Walking Dog
+- assertVisible: Welcome back
+- tapOn: Create an account
+- assertVisible: Let's meet your dog.
 - tapOn:
     id: auth-email
 - inputText: ${E2E_EMAIL}

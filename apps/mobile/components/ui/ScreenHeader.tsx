@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
 import { layout, spacing, typography } from '@/theme/tokens';
-import { IconSymbol } from './icon-symbol';
+import { BackButton } from './BackButton';
 
 export interface ScreenHeaderProps {
   /** 表示タイトル。i18n 済みの文字列を渡す。 */
@@ -93,35 +93,41 @@ export function ScreenHeader({
         ]}
       >
         {action ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={action.label}
-            accessibilityState={{ disabled: isDisabled }}
-            disabled={isDisabled}
-            hitSlop={spacing.step12}
-            onPress={action.onPress}
-            style={[
-              styles.actionButton,
-              side === 'left' ? styles.leftActionButton : styles.rightActionButton,
-            ]}
-          >
-            {action.icon ? (
-              <IconSymbol
-                name={action.icon}
-                size={typography.body.fontSize}
-                color={actionColor}
-              />
-            ) : null}
-            <Text
+          action.icon === 'chevron.backward' ? (
+            <BackButton
+              label={action.label}
+              onPress={action.onPress}
+              color={actionColor}
+              disabled={isDisabled}
               style={[
-                styles.actionLabel,
-                isStrong ? styles.strongActionLabel : null,
-                { color: actionColor },
+                styles.actionButton,
+                side === 'left' ? styles.leftActionButton : styles.rightActionButton,
+              ]}
+            />
+          ) : (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={action.label}
+              accessibilityState={{ disabled: isDisabled }}
+              disabled={isDisabled}
+              hitSlop={spacing.step12}
+              onPress={action.onPress}
+              style={[
+                styles.actionButton,
+                side === 'left' ? styles.leftActionButton : styles.rightActionButton,
               ]}
             >
-              {action.label}
-            </Text>
-          </Pressable>
+              <Text
+                style={[
+                  styles.actionLabel,
+                  isStrong ? styles.strongActionLabel : null,
+                  { color: actionColor },
+                ]}
+              >
+                {action.label}
+              </Text>
+            </Pressable>
+          )
         ) : null}
       </View>
     );

@@ -1,8 +1,7 @@
 import { Stack, useRouter } from 'expo-router';
-import { Pressable, Text, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { BackButton } from '@/components/ui/BackButton';
 import { useColors } from '@/hooks/use-colors';
-import { spacing, typography } from '@/theme/tokens';
 
 // 散歩詳細 Stack は独自の戻るボタンを使い、タブ内の履歴から自然に戻します。
 export default function WalksLayout() {
@@ -18,27 +17,13 @@ export default function WalksLayout() {
           title: t('walk.detail.title'),
           headerStyle: { backgroundColor: theme.background },
           headerLeft: () => (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t('common.back')}
+            <BackButton
               onPress={() => router.back()}
-              hitSlop={12}
-            >
-              <Text style={[styles.backButton, { color: theme.onSurface }]}>
-                {'‹'}
-              </Text>
-            </Pressable>
+              color={theme.interactive}
+            />
           ),
         }}
       />
     </Stack>
   );
 }
-
-const styles = StyleSheet.create({
-  backButton: {
-    fontSize: typography.numericBig.fontSize,
-    lineHeight: spacing.step44 - spacing.sm,
-    paddingRight: spacing.sm,
-  },
-});

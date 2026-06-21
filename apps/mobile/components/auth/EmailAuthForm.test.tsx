@@ -47,6 +47,23 @@ describe('EmailAuthForm', () => {
     expect(screen.getByLabelText('One-time password')).toBeTruthy();
   });
 
+  it('uses a custom submit label while preserving the one-time password request', async () => {
+    mockRequestOneTimePassword.mockResolvedValue({
+      email: 'test@example.com',
+      session: 'otp-session',
+      codeLength: 8,
+    });
+    render(<EmailAuthForm onSuccess={jest.fn()} submitLabel="Sign in" />);
+
+    fireEvent.changeText(screen.getByLabelText('Email'), ' test@example.com ');
+    fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
+
+    await waitFor(() => {
+      expect(mockRequestOneTimePassword).toHaveBeenCalledWith('test@example.com');
+    });
+    expect(screen.getByLabelText('One-time password')).toBeTruthy();
+  });
+
   it('verifies a pasted eight-digit code once and calls onSuccess', async () => {
     const onSuccess = jest.fn();
     mockRequestOneTimePassword.mockResolvedValue({

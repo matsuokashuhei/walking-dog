@@ -16,14 +16,23 @@
   "auth": {
     "login": {
       "title": "Walking Dog",
-      "heading": "Continue with email",
-      "subtitle": "We'll send a one-time code if this email can use Walking Dog.",
+      "heading": "Welcome back",
+      "subtitle": "Sign in to keep walking with your dog.",
       "email": "Email",
       "submit": "Continue with email",
+      "primaryAction": "Sign in",
+      "signupPrompt": "New here?",
+      "signupAction": "Create an account",
       "error": {
         "invalidCredentials": "Could not send a code to that email",
         "generic": "Could not send a code"
       }
+    },
+    "signup": {
+      "heading": "Let's meet your dog.",
+      "subtitle": "Create your account and you'll be walking in a minute.",
+      "supporting": "You can add your dog's profile on the next step. We'll remember pace, goals, and photos.",
+      "submit": "Continue"
     },
     "legal": {
       "agreePrefix": "By continuing you agree to the ",

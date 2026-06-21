@@ -14,15 +14,19 @@
 
 ## Scope
 
-A new or returning owner enters email, verifies the email one-time password,
+A new or returning owner lands on a sign-in screen, can choose the sign-up
+screen when they are new, enters email, verifies the email one-time password,
 and reaches the authenticated app with the expected Dogs, Walk, and Me
-surfaces. The backend creates a Cognito and `users` row automatically when the
-email is not registered.
+surfaces. The backend continues to create a Cognito and `users` row
+automatically when the email is not registered.
 
 ## Acceptance Criteria
 
 - Authentication requires email only.
-- The UI does not ask the owner to choose sign-in versus account creation.
+- The initial auth UI separates sign-in and sign-up screens so owners can choose
+  the path that matches their intent.
+- Sign-up uses the same email one-time password flow and does not ask for name,
+  password, dog profile, or other new account fields.
 - Terms and privacy links open the configured `/terms` and `/policy` URLs.
 - Email one-time password accepts the operator-provided AWS Cognito code.
 - Completing the one-time password automatically verifies without a

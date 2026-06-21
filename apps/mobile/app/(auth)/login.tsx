@@ -1,112 +1,62 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  Keyboard,
-  Platform,
-  StyleSheet,
-  Text,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { AppMark } from '@/components/auth/AppMark';
+import { AuthScreenLayout } from '@/components/auth/AuthScreenLayout';
 import { EmailAuthForm } from '@/components/auth/EmailAuthForm';
 import { useColors } from '@/hooks/use-colors';
-import { spacing, typography } from '@/theme/tokens';
+import { components, spacing, typography } from '@/theme/tokens';
 
 // 認証画面はメールOTPフォームだけを担当し、成功後の遷移はルートの認証ガードに任せます。
 export default function LoginScreen() {
   const { t } = useTranslation();
   const theme = useColors();
-  const { height: windowHeight } = useWindowDimensions();
-  const formRef = useRef<View>(null);
-  const [keyboardTop, setKeyboardTop] = useState<number | null>(null);
-  const [formFrame, setFormFrame] = useState({ y: 0, height: 0 });
-
-  const measureForm = useCallback(() => {
-    requestAnimationFrame(() => {
-      formRef.current?.measureInWindow((_x, y, _width, height) => {
-        setFormFrame({ y, height });
-      });
-    });
-  }, []);
-
-  useEffect(() => {
-    const showEvent = Platform.OS === 'ios' ? 'keyboardWillChangeFrame' : 'keyboardDidShow';
-    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-
-    const showSubscription = Keyboard.addListener(showEvent, (event) => {
-      measureForm();
-      setKeyboardTop(event.endCoordinates.screenY);
-    });
-    const hideSubscription = Keyboard.addListener(hideEvent, () => {
-      setKeyboardTop(null);
-    });
-
-    return () => {
-      showSubscription.remove();
-      hideSubscription.remove();
-    };
-  }, [measureForm]);
-
-  const formBottom = formFrame.y + formFrame.height;
-  const keyboardGap = spacing.md;
-  const keyboardOverlap = Math.max(
-    0,
-    formBottom + keyboardGap - (keyboardTop ?? windowHeight),
-  );
+  const router = useRouter();
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={styles.content}>
-        <View style={styles.hero}>
-          <AppMark />
-          <Text style={[styles.heading, { color: theme.onSurface }]}>
-            {t('auth.login.heading')}
+    <AuthScreenLayout
+      heading={t('auth.login.heading')}
+      subtitle={t('auth.login.subtitle')}
+      showAppMark
+      footer={
+        <View style={styles.footerRow}>
+          <Text style={[styles.footerText, { color: theme.onSurfaceVariant }]}>
+            {t('auth.login.signupPrompt')}
           </Text>
-          <Text style={[styles.sub, { color: theme.onSurfaceVariant }]}>
-            {t('auth.login.subtitle')}
-          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('auth.login.signupAction')}
+            onPress={() => router.push('/(auth)/signup')}
+          >
+            <Text style={[styles.footerLink, { color: theme.interactive }]}>
+              {t('auth.login.signupAction')}
+            </Text>
+          </Pressable>
         </View>
-        <View
-          ref={formRef}
-          onLayout={measureForm}
-          style={[
-            styles.form,
-            { transform: [{ translateY: -keyboardOverlap }] },
-          ]}
-        >
-          <EmailAuthForm
-            onSuccess={() => {
-              // 認証後の遷移は _layout.tsx の NavigationGuard が一元管理します。
-            }}
-          />
-        </View>
-      </View>
-    </View>
+      }
+    >
+      <EmailAuthForm
+        submitLabel={t('auth.login.primaryAction')}
+        onSuccess={() => {
+          // 認証後の遷移は _layout.tsx の NavigationGuard が一元管理します。
+        }}
+      />
+    </AuthScreenLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingHorizontal: spacing.xl,
-  },
-  content: {
-    flex: 1,
+  footerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    flexWrap: 'wrap',
     justifyContent: 'center',
   },
-  hero: {
-    marginBottom: spacing.xl,
+  footerText: {
+    ...typography.footnote,
   },
-  heading: {
-    ...typography.largeTitle,
-    marginTop: spacing.lg,
-    marginBottom: spacing.xs,
-  },
-  sub: {
-    ...typography.subheadline,
-  },
-  form: {
-    width: '100%',
+  footerLink: {
+    ...typography.footnote,
+    fontWeight: components.button.fontGhost.fontWeight,
   },
 });

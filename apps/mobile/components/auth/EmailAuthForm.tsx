@@ -15,9 +15,15 @@ import { spacing, typography } from '@/theme/tokens';
 
 interface EmailAuthFormProps {
   onSuccess: () => void;
+  submitLabel?: string;
+  supportingText?: string;
 }
 
-export function EmailAuthForm({ onSuccess }: EmailAuthFormProps) {
+export function EmailAuthForm({
+  onSuccess,
+  submitLabel,
+  supportingText,
+}: EmailAuthFormProps) {
   const { requestOneTimePassword, verifyOneTimePassword } = useAuth();
   const { t } = useTranslation();
   const theme = useColors();
@@ -135,6 +141,12 @@ export function EmailAuthForm({ onSuccess }: EmailAuthFormProps) {
         </GroupedCard>
       )}
 
+      {!challenge && supportingText ? (
+        <Text style={[styles.supporting, { color: theme.onSurfaceVariant }]}>
+          {supportingText}
+        </Text>
+      ) : null}
+
       {verifyLoading ? (
         <Text style={[styles.status, { color: theme.onSurfaceVariant }]}>
           {t('auth.oneTimePassword.verifying')}
@@ -147,7 +159,7 @@ export function EmailAuthForm({ onSuccess }: EmailAuthFormProps) {
 
       {!challenge ? (
         <Button
-          label={t('auth.login.submit')}
+          label={submitLabel ?? t('auth.login.submit')}
           testID="auth-submit-email"
           onPress={handleSubmit}
           loading={requestLoading}
@@ -189,6 +201,12 @@ const styles = StyleSheet.create({
     ...typography.caption,
     marginBottom: spacing.sm,
     textAlign: 'center',
+  },
+  supporting: {
+    ...typography.footnote,
+    marginHorizontal: spacing.xs,
+    marginTop: spacing.sm,
+    marginBottom: spacing.lg,
   },
   error: {
     ...typography.caption,

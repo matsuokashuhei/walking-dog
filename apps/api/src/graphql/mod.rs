@@ -117,13 +117,24 @@ async fn build_sqs_client() -> aws_sdk_sqs::Client {
 
 async fn build_s3_client() -> aws_sdk_s3::Client {
     let config = aws_config::from_env().load().await;
-    if let Ok(endpoint) = env::var("AWS_S3_ENDPOINT") {
-        let mut s3_config = aws_sdk_s3::config::Builder::from(&config);
-        s3_config = s3_config.endpoint_url(endpoint).force_path_style(true);
-        aws_sdk_s3::Client::from_conf(s3_config.build())
-    } else {
-        aws_sdk_s3::Client::new(&config)
+    aws_sdk_s3::Client::from_conf(build_s3_config(&config, env::var("AWS_S3_ENDPOINT").ok()))
+}
+
+fn build_s3_config(config: &aws_config::SdkConfig, endpoint: Option<String>) -> aws_sdk_s3::Config {
+    let mut s3_config = aws_sdk_s3::config::Builder::from(config);
+    if let Some(endpoint) = endpoint {
+        s3_config = s3_config
+            .endpoint_url(endpoint)
+            .force_path_style(true)
+            .credentials_provider(aws_sdk_s3::config::Credentials::new(
+                "minioadmin",
+                "minioadmin",
+                None,
+                None,
+                "local-minio",
+            ));
     }
+    s3_config.build()
 }
 
 async fn build_storage_gateway() -> SharedStorageGateway {
@@ -140,4 +151,63 @@ async fn build_track_point_enqueuer() -> Result<Arc<TrackPointEnqueuer>> {
         sqs_client,
         track_point_queue_url,
     )?))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use aws_sdk_s3::presigning::PresigningConfig;
+    use std::time::Duration;
+
+    async fn test_base_aws_config() -> aws_config::SdkConfig {
+        aws_config::from_env()
+            .region(aws_sdk_s3::config::Region::new("ap-northeast-1"))
+            .credentials_provider(aws_sdk_s3::config::Credentials::new(
+                "sso-access-key",
+                "sso-secret-key",
+                Some("sso-session-token".to_owned()),
+                None,
+                "test",
+            ))
+            .load()
+            .await
+    }
+
+    async fn presigned_get_object_uri(client: &aws_sdk_s3::Client) -> String {
+        client
+            .get_object()
+            .bucket("avatars")
+            .key("dog.jpg")
+            .presigned(PresigningConfig::expires_in(Duration::from_secs(60)).unwrap())
+            .await
+            .unwrap()
+            .uri()
+            .to_string()
+    }
+
+    #[tokio::test]
+    async fn s3_endpoint_uses_minio_credentials() {
+        let base_config = test_base_aws_config().await;
+        let s3_config = build_s3_config(&base_config, Some("http://minio:9000".to_owned()));
+        let client = aws_sdk_s3::Client::from_conf(s3_config);
+
+        let uri = presigned_get_object_uri(&client).await;
+
+        assert!(uri.contains("X-Amz-Credential=minioadmin%2F"));
+        assert!(!uri.contains("sso-access-key"));
+        assert!(!uri.contains("X-Amz-Security-Token"));
+    }
+
+    #[tokio::test]
+    async fn s3_without_endpoint_uses_base_aws_credentials() {
+        let base_config = test_base_aws_config().await;
+        let s3_config = build_s3_config(&base_config, None);
+        let client = aws_sdk_s3::Client::from_conf(s3_config);
+
+        let uri = presigned_get_object_uri(&client).await;
+
+        assert!(uri.contains("X-Amz-Credential=sso-access-key%2F"));
+        assert!(!uri.contains("minioadmin"));
+        assert!(uri.contains("X-Amz-Security-Token=sso-session-token"));
+    }
 }

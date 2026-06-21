@@ -11,6 +11,14 @@ export default function SignUpScreen() {
   const { t } = useTranslation();
   const theme = useColors();
   const router = useRouter();
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+
+    router.replace('/(auth)/login');
+  };
 
   return (
     <AuthScreenLayout
@@ -20,7 +28,7 @@ export default function SignUpScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t('common.action.back')}
-          onPress={() => router.replace('/(auth)/login')}
+          onPress={handleBack}
         >
           <Text style={[styles.back, { color: theme.interactive }]}>
             {t('common.action.back')}

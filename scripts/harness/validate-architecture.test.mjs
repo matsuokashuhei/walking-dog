@@ -41,6 +41,23 @@ test('validateArchitecture rejects API and Mobile walk goal range drift', (t) =>
   assert.match(result.messages.join('\n'), /walk goal minute bounds drift/);
 });
 
+test('validateArchitecture rejects track point worker env config wrappers', (t) => {
+  const root = mkdtempSync(join(tmpdir(), 'wd-architecture-'));
+  writeFixture(root, {
+    'apps/api/src/bin/track_point_worker.rs': [
+      'struct WorkerRuntimeConfig { worker_concurrency: usize }',
+      'fn positive_usize_env_value(value: Option<&str>, default: usize) -> usize { default }',
+    ].join('\n'),
+    'apps/api/src/service/dog_walk_goal.rs': 'pub const MIN_DAILY_GOAL_MINUTES: i32 = 0;\npub const MAX_DAILY_GOAL_MINUTES: i32 = 120;\n',
+    'apps/mobile/constants/walk.ts': 'export const MIN_DAILY_GOAL_MINUTES = 0;\nexport const MAX_DAILY_GOAL_MINUTES = 120;\n',
+  });
+
+  const result = validateArchitecture({ root });
+
+  assert.equal(result.ok, false);
+  assert.match(result.messages.join('\n'), /track point worker env config/);
+});
+
 test('validateArchitecture accepts clean resolver boundaries and matching walk goal bounds', (t) => {
   const root = mkdtempSync(join(tmpdir(), 'wd-architecture-'));
   writeFixture(root, {

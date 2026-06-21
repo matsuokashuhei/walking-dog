@@ -19,3 +19,7 @@ Date: 2026-06-13.
 - Do not hide failures in harness work. If a journey cannot be proven because seed
   data, GPS replay, camera fixtures, or logging is missing, record that as the
   next harness gap.
+- Sakura's track point worker env tuning should stay boring: read an env var when
+  present, otherwise use the default, and pass the value straight to
+  `ConsumerOptions`. Avoid wrapper config structs and custom validation fallback
+  helpers unless the worker gains a real shared configuration boundary.

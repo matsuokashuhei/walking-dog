@@ -16,6 +16,14 @@ const RESOLVER_DIRS = [
   'apps/api/src/graphql/object',
 ];
 
+const TRACK_POINT_WORKER_PATH = 'apps/api/src/bin/track_point_worker.rs';
+const FORBIDDEN_TRACK_POINT_WORKER_ENV_CONFIG_PATTERNS = [
+  /\bstruct\s+WorkerRuntimeConfig\b/,
+  /\bimpl\s+WorkerRuntimeConfig\b/,
+  /\bfn\s+[a-z0-9_]*env[a-z0-9_]*value\b/,
+  /\bwarn_invalid_env_value\b/,
+];
+
 export function validateArchitecture({ root = process.cwd() } = {}) {
   const messages = [];
 
@@ -34,6 +42,7 @@ export function validateArchitecture({ root = process.cwd() } = {}) {
 
   validateMobileNavigationImports(root, messages);
   validateWalkGoalBounds(root, messages);
+  validateTrackPointWorkerEnvConfig(root, messages);
 
   return { ok: messages.length === 0, messages };
 }
@@ -72,6 +81,20 @@ function validateWalkGoalBounds(root, messages) {
   }
   if (apiMin !== mobileMin || apiMax !== mobileMax) {
     messages.push(`walk goal minute bounds drift: API ${apiMin}-${apiMax}, Mobile ${mobileMin}-${mobileMax}`);
+  }
+}
+
+function validateTrackPointWorkerEnvConfig(root, messages) {
+  const workerPath = join(root, TRACK_POINT_WORKER_PATH);
+  if (!fileExists(workerPath)) {
+    return;
+  }
+
+  const content = stripRustTestModules(readText(workerPath));
+  if (FORBIDDEN_TRACK_POINT_WORKER_ENV_CONFIG_PATTERNS.some((pattern) => pattern.test(content))) {
+    messages.push(
+      `${TRACK_POINT_WORKER_PATH}: track point worker env config should read env/defaults directly at the ConsumerOptions call site; avoid wrapper structs and custom validation fallback helpers`,
+    );
   }
 }
 

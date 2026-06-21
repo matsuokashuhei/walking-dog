@@ -8,8 +8,8 @@ import { DogHero } from '@/components/dogs/DogHero';
 import { GoalProgressCard } from '@/components/dogs/GoalProgressCard';
 import { DogStatsCard } from '@/components/dogs/DogStatsCard';
 import { DogWalksList } from '@/components/dogs/DogWalksList';
+import { BackButton } from '@/components/ui/BackButton';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
-import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useColors } from '@/hooks/use-colors';
 import { layout, spacing, typography } from '@/theme/tokens';
 
@@ -116,20 +116,14 @@ export default function DogDetailScreen() {
           testID="dog-detail-header-action-row"
           style={styles.headerActionRow}
         >
-          <Pressable
-            accessibilityRole="button"
+          <BackButton
             accessibilityLabel={t('dogs.detail.back')}
-            hitSlop={spacing.step12}
+            label={t('dogs.detail.back')}
             onPress={handleBack}
+            color={OVERLAY_TEXT}
+            labelStyle={styles.headerText}
             style={styles.headerLeft}
-          >
-            <IconSymbol
-              name="chevron.backward"
-              size={typography.body.fontSize}
-              color={OVERLAY_TEXT}
-            />
-            <Text style={styles.headerText}>{t('dogs.detail.back')}</Text>
-          </Pressable>
+          />
 
           <Pressable
             accessibilityRole="button"

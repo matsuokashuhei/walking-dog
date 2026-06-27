@@ -9,6 +9,12 @@ cargo install cargo-watch sea-orm-cli@^2.0.0-rc evcxr_repl
 rustup component add clippy rustfmt
 EOT
 
+FROM dev AS sonar
+RUN <<EOT
+cargo install cargo-llvm-cov
+rustup component add llvm-tools-preview
+EOT
+
 FROM base AS builder
 WORKDIR /apps/api
 COPY . .

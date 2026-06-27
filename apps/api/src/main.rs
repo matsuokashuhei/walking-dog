@@ -1,6 +1,6 @@
 #![recursion_limit = "256"]
 
-use std::net::SocketAddr;
+use std::{net::SocketAddr, process::ExitCode};
 
 use async_graphql::{EmptySubscription, Schema, http::GraphiQLSource};
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
@@ -24,13 +24,24 @@ use walking_dog::{
     auth,
     entity::user,
     graphql::{self, mutation, query::Query},
+    observability,
 };
 
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
-    tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::INFO)
-        .init();
+async fn main() -> ExitCode {
+    let _sentry = observability::init();
+
+    match run().await {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(error) => {
+            let error_ref: &(dyn std::error::Error + 'static) = error.as_ref();
+            tracing::error!(error = error_ref, "api exited with error");
+            ExitCode::FAILURE
+        }
+    }
+}
+
+async fn run() -> anyhow::Result<()> {
     run_migrations().await?;
     let schema = graphql::build_schema().await?;
     let app = Router::new()

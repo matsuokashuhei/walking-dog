@@ -1,9 +1,10 @@
-use std::{env, time::Duration};
+use std::{env, process::ExitCode, time::Duration};
 
 use anyhow::Result;
 use sqs_consumer::{Consumer, ConsumerOptions, TracingListener};
 use tokio::task::JoinSet;
 use walking_dog::{
+    observability,
     queue::track_point::{TrackPointBatchHandler, TrackPointBatchWriter},
     service::track_point::DynamoDbTrackPointRepository,
 };
@@ -16,11 +17,20 @@ const DEFAULT_HANDLER_TIMEOUT_SECONDS: u64 = 50;
 const DEFAULT_POLLING_WAIT_SECONDS: u64 = 60;
 
 #[tokio::main]
-async fn main() -> Result<()> {
-    tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::INFO)
-        .init();
+async fn main() -> ExitCode {
+    let _sentry = observability::init();
 
+    match run().await {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(error) => {
+            let error_ref: &(dyn std::error::Error + 'static) = error.as_ref();
+            tracing::error!(error = error_ref, "track point worker exited with error");
+            ExitCode::FAILURE
+        }
+    }
+}
+
+async fn run() -> Result<()> {
     let sqs_client = build_sqs_client().await;
     let dynamodb_client = build_dynamodb_client().await;
     let queue_url = env::var("AWS_SQS_QUEUE_URL_TRACK_POINT")?;

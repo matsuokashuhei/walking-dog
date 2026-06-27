@@ -101,12 +101,15 @@ vi .env
 | `ECR_IMAGE` | `terraform output ecr_repository_url` + `:latest` |
 | `AVATAR_CDN_URL` | `terraform output -raw cloudfront_avatars_url` |
 | `PHOTO_CDN_URL` | `terraform output -raw cloudfront_photos_url` |
+| `SENTRY_DSN` | Sentry project の Client Keys (DSN)。空なら Sentry 送信なし |
 
-その他（`AWS_DYNAMODB_TABLE_TRACK_POINT`, `AWS_SQS_QUEUE_URL_TRACK_POINT`, `AWS_S3_BUCKET_AVATAR`, `AWS_S3_BUCKET_PHOTO`, `COGNITO_USER_POOL_ID`, `COGNITO_CLIENT_ID`, `TRACK_POINT_WORKER_CONCURRENCY`, `TRACK_POINT_WORKER_POLLING_WAIT_SECONDS`）は `.env.example` の値をそのまま使う。
+その他（`AWS_DYNAMODB_TABLE_TRACK_POINT`, `AWS_SQS_QUEUE_URL_TRACK_POINT`, `AWS_S3_BUCKET_AVATAR`, `AWS_S3_BUCKET_PHOTO`, `COGNITO_USER_POOL_ID`, `COGNITO_CLIENT_ID`, `SENTRY_ENVIRONMENT`, `TRACK_POINT_WORKER_CONCURRENCY`, `TRACK_POINT_WORKER_POLLING_WAIT_SECONDS`）は `.env.example` の値をそのまま使う。
 
 `AVATAR_CDN_URL` / `PHOTO_CDN_URL` は API が GraphQL の `avatar` / `photoUrl` フィールドを組み立てるときに S3 オブジェクトキーの前に付ける CloudFront のベース URL。`.env.example` のデフォルト値で動くが、distribution を作り直した場合は `terraform output -raw cloudfront_avatars_url` / `cloudfront_photos_url` の値に差し替える。
 
 `TRACK_POINT_WORKER_CONCURRENCY=1` と `TRACK_POINT_WORKER_POLLING_WAIT_SECONDS=60` は Sakura テスト環境のアイドル時 SQS 使用量を抑えるための推奨値。worker は 20 秒の SQS long polling の後、空受信なら 60 秒待ってから再ポーリングするため、アイドル時は約 1,080 requests/day、約 32,400 requests/month になる。散歩検証で低レイテンシが必要なときだけ、一時的に値を上げる。
+
+`SENTRY_DSN` を設定すると、API と worker の `tracing::ERROR` イベントが Sentry issue として送信される。`SENTRY_DSN` が空または未設定の場合、Sentry 送信は無効になる。Sakura は dev 環境として運用しているため、`SENTRY_ENVIRONMENT=development` のままにする。
 
 ### 4. 初回デプロイ
 
@@ -184,6 +187,8 @@ docker compose exec walker env | grep <VAR_NAME>  # worker 側も確認
 ```
 
 例: `AWS_SQS_QUEUE_URL_TRACK_POINT` や `PHOTO_CDN_URL` を追加したとき、`docker compose restart` だけでは `env_file` を再読込しない環境があるため、`deploy.sh` 経由での `--force-recreate` を前提にする。
+
+`SENTRY_DSN` を追加・変更した場合も同じ手順で `./deploy.sh` を実行し、`api` と `walker` の両方に反映されたことを確認する。
 
 ## トラブルシューティング
 

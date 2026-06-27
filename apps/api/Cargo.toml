@@ -21,6 +21,7 @@ async-trait = "0.1.89"
 tokio = { version = "1.52.3", features = ["macros", "rt-multi-thread", "sync", "time"] }
 tracing = { version = "0.1.44" }
 tracing-subscriber = { version = "0.3.23" }
+sentry = { version = "0.48.3", features = ["tracing"] }
 aws-config = { version = "1.8.17", features = ["behavior-version-latest"] }
 aws-sdk-dynamodb = "1.113.0"
 aws-sdk-s3 = { version = "1.134.0", features = ["behavior-version-latest"] }

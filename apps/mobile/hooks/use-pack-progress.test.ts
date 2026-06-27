@@ -165,6 +165,22 @@ describe('aggregatePackProgress', () => {
     expect(result.perDog['old-dog']).toBeUndefined();
   });
 
+  it('uses walk dogs with default goals when no current pack dogs are loaded', () => {
+    const walks: Walk[] = [
+      makeWalk('w1', ['coco'], new Date(2026, 3, 19, 8, 0).toISOString(), 1000, 25 * 60),
+    ];
+
+    const result = aggregatePackProgress(walks, [], now);
+
+    expect(result.todayKm).toBeCloseTo(1, 5);
+    expect(result.todayMinutes).toBe(25);
+    expect(result.goalProgressMinutes).toBe(25);
+    expect(result.goalMinutes).toBe(30);
+    expect(result.progressPct).toBe(83);
+    expect(result.perDog.coco.goalMinutes).toBe(30);
+    expect(result.perDog.coco.totalWalks).toBe(1);
+  });
+
   it('streak counts consecutive days ending today', () => {
     const walks: Walk[] = [
       makeWalk('w1', ['coco'], new Date(2026, 3, 19, 8).toISOString(), 500),

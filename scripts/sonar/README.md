@@ -75,6 +75,7 @@ scripts/sonar/run-analysis.sh
 
 The script builds the API `sonar` Docker image stage so `cargo-llvm-cov` and
 `llvm-tools-preview` stay out of the normal API development image.
+The scanner uses `infra/sonarqube/sonar-project.properties`.
 
 The analysis writes report paths under `.sonar/reports/`:
 

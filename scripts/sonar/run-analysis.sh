@@ -131,4 +131,5 @@ docker run \
   -e "SONAR_TOKEN=$SONAR_TOKEN" \
   -v "$root:/usr/src" \
   -v "$cache_dir:/opt/sonar-scanner/.sonar/cache" \
-  sonarsource/sonar-scanner-cli
+  sonarsource/sonar-scanner-cli \
+  -Dproject.settings=infra/sonarqube/sonar-project.properties

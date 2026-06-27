@@ -32,17 +32,26 @@ copy_sonar_scripts() {
 
 test_sonar_project_disables_scm_for_worktree_containers() {
   local properties
-  properties="$(cat "$repo_root/sonar-project.properties")"
+  properties="$(cat "$repo_root/infra/sonarqube/sonar-project.properties")"
 
   [[ "$properties" == *"sonar.scm.disabled=true"* ]] || fail "expected sonar.scm.disabled=true for Docker scanner runs from git worktrees"
 }
 
 test_sonar_project_indexes_api_test_files_for_clippy_reports() {
   local properties
-  properties="$(cat "$repo_root/sonar-project.properties")"
+  properties="$(cat "$repo_root/infra/sonarqube/sonar-project.properties")"
 
   [[ "$properties" == *"sonar.tests=apps/api/tests,apps/mobile"* ]] || fail "expected sonar.tests to include apps/api/tests for normalized Clippy diagnostics"
   [[ "$properties" == *"apps/api/tests/**/*.rs"* ]] || fail "expected Rust integration tests to be included as Sonar test files"
+}
+
+test_run_analysis_uses_infra_project_settings() {
+  local script
+  script="$(cat "$repo_root/scripts/sonar/run-analysis.sh")"
+
+  [[ -f "$repo_root/infra/sonarqube/sonar-project.properties" ]] || fail "expected Sonar project settings under infra/sonarqube"
+  [[ ! -f "$repo_root/sonar-project.properties" ]] || fail "root sonar-project.properties should not be used"
+  [[ "$script" == *"-Dproject.settings=infra/sonarqube/sonar-project.properties"* ]] || fail "run-analysis should point scanner at infra/sonarqube/sonar-project.properties"
 }
 
 test_sonarqube_compose_binds_to_loopback() {
@@ -294,6 +303,7 @@ test_limits_cargo_llvm_cov_to_test_targets() {
 
 test_sonar_project_disables_scm_for_worktree_containers
 test_sonar_project_indexes_api_test_files_for_clippy_reports
+test_run_analysis_uses_infra_project_settings
 test_sonarqube_compose_binds_to_loopback
 test_readme_lists_bash_validation_commands
 test_normalizes_clippy_paths_for_sonar_sources

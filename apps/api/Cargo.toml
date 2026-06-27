@@ -27,7 +27,7 @@ aws-sdk-dynamodb = "1.113.0"
 aws-sdk-s3 = { version = "1.134.0", features = ["behavior-version-latest"] }
 aws-sdk-sqs = "1.100.0"
 aws-sdk-cognitoidentityprovider = "1.118.0"
-chrono = { version = "0.4.44", default-features = false, features = ["serde", "std"] }
+chrono = { version = "0.4.45", default-features = false, features = ["serde", "std"] }
 anyhow = "1.0.102"
 uuid = { version = "1.23.2", features = ["serde", "v7"] }
 jsonwebtoken = { version = "10.3.0", features = ["aws_lc_rs"] }

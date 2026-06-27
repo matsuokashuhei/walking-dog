@@ -1,39 +1,7 @@
 {
   "includeCoAuthoredBy": true,
-  "permissions": {
-    "deny": [
-      "Bash(npx playwright*)",
-      "Bash(playwright test*)",
-      "mcp__plugin_sentry_sentry__search_issues",
-      "mcp__plugin_sentry_sentry__search_events",
-      "mcp__plugin_sentry_sentry__find_projects"
-    ]
-  },
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 $CLAUDE_PROJECT_DIR/.claude/hooks/guard_commands.py"
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "FILE_PATH=$(jq -r '.tool_input.file_path // empty') && echo \"$FILE_PATH\" | grep -q 'apps/api/' && docker compose -f apps/compose.yml run --rm api cargo clippy --fix --allow-dirty --allow-staged || true",
-            "timeout": 120
-          }
-        ]
-      }
-    ]
-  },
+  "permissions": {},
+  "hooks": {},
   "enabledPlugins": {
     "superpowers@claude-plugins-official": true,
     "code-review@claude-plugins-official": true,

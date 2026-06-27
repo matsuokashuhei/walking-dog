@@ -60,6 +60,28 @@ describe('TextInput', () => {
     expect(rowStyle.borderColor).not.toBe('transparent');
   });
 
+  it('forwards focus and blur events while updating focused state', () => {
+    const onFocus = jest.fn();
+    const onBlur = jest.fn();
+    render(
+      <TextInput
+        label="Email"
+        labelPosition="inline"
+        testID="email-row"
+        onBlur={onBlur}
+        onFocus={onFocus}
+      />,
+    );
+
+    const input = screen.getByLabelText('Email');
+
+    fireEvent(input, 'focus');
+    fireEvent(input, 'blur');
+
+    expect(onFocus).toHaveBeenCalledTimes(1);
+    expect(onBlur).toHaveBeenCalledTimes(1);
+  });
+
   it('inline variant does not render separator when separator prop is false', () => {
     render(
       <TextInput label="Password" labelPosition="inline" testID="pwd-row" />,

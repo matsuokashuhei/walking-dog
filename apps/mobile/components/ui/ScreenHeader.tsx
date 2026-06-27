@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
-import { layout, spacing, typography } from '@/theme/tokens';
+import { layout, spacing, typography, type ColorTokens } from '@/theme/tokens';
 import { BackButton } from './BackButton';
 
 export interface ScreenHeaderProps {
@@ -53,13 +53,13 @@ interface ResolvedScreenHeaderAction extends ScreenHeaderAction {
 
 type ActionSide = 'left' | 'right';
 
-export function ScreenHeader({
+export const ScreenHeader = ({
   title,
   variant = 'largeTitle',
   leftAction,
   rightAction,
   testID,
-}: ScreenHeaderProps) {
+}: ScreenHeaderProps) => {
   const router = useRouter();
   const { t } = useTranslation();
   const theme = useColors();
@@ -73,76 +73,17 @@ export function ScreenHeader({
       : leftAction;
   const resolvedRightAction = rightAction;
 
-  const renderActionSlot = (
-    action: ResolvedScreenHeaderAction | undefined,
-    side: ActionSide,
-    inline: boolean,
-    slotTestID?: string,
-  ) => {
-    const isDisabled = action?.disabled === true;
-    const isStrong = action?.strong === true && !isDisabled;
-    const actionColor = isDisabled ? theme.textDisabled : theme.interactive;
-
-    return (
-      <View
-        testID={slotTestID}
-        style={[
-          styles.actionSlot,
-          inline ? styles.inlineActionSlot : null,
-          side === 'left' ? styles.leftSlot : styles.rightSlot,
-        ]}
-      >
-        {action ? (
-          action.icon === 'chevron.backward' ? (
-            <BackButton
-              label={action.label}
-              onPress={action.onPress}
-              color={actionColor}
-              disabled={isDisabled}
-              style={[
-                styles.actionButton,
-                side === 'left' ? styles.leftActionButton : styles.rightActionButton,
-              ]}
-            />
-          ) : (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={action.label}
-              accessibilityState={{ disabled: isDisabled }}
-              disabled={isDisabled}
-              hitSlop={spacing.step12}
-              onPress={action.onPress}
-              style={[
-                styles.actionButton,
-                side === 'left' ? styles.leftActionButton : styles.rightActionButton,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.actionLabel,
-                  isStrong ? styles.strongActionLabel : null,
-                  { color: actionColor },
-                ]}
-              >
-                {action.label}
-              </Text>
-            </Pressable>
-          )
-        ) : null}
-      </View>
-    );
-  };
-
   if (variant === 'inline') {
     return (
       <View testID={testID}>
         <View testID={derivedTestID(testID, 'action-row')} style={styles.inlineRow}>
-          {renderActionSlot(
-            resolvedLeftAction,
-            'left',
-            true,
-            slotTestID(testID, 'left'),
-          )}
+          <ScreenHeaderActionSlot
+            action={resolvedLeftAction}
+            inline
+            side="left"
+            slotTestID={slotTestID(testID, 'left')}
+            theme={theme}
+          />
           <Text
             accessibilityRole="header"
             numberOfLines={1}
@@ -150,12 +91,13 @@ export function ScreenHeader({
           >
             {title}
           </Text>
-          {renderActionSlot(
-            resolvedRightAction,
-            'right',
-            true,
-            slotTestID(testID, 'right'),
-          )}
+          <ScreenHeaderActionSlot
+            action={resolvedRightAction}
+            inline
+            side="right"
+            slotTestID={slotTestID(testID, 'right')}
+            theme={theme}
+          />
         </View>
       </View>
     );
@@ -167,18 +109,20 @@ export function ScreenHeader({
         testID={derivedTestID(testID, 'action-row')}
         style={styles.largeTitleActionRow}
       >
-        {renderActionSlot(
-          resolvedLeftAction,
-          'left',
-          false,
-          slotTestID(testID, 'left'),
-        )}
-        {renderActionSlot(
-          resolvedRightAction,
-          'right',
-          false,
-          slotTestID(testID, 'right'),
-        )}
+        <ScreenHeaderActionSlot
+          action={resolvedLeftAction}
+          inline={false}
+          side="left"
+          slotTestID={slotTestID(testID, 'left')}
+          theme={theme}
+        />
+        <ScreenHeaderActionSlot
+          action={resolvedRightAction}
+          inline={false}
+          side="right"
+          slotTestID={slotTestID(testID, 'right')}
+          theme={theme}
+        />
       </View>
       <View
         testID={derivedTestID(testID, 'large-title-row')}
@@ -194,6 +138,94 @@ export function ScreenHeader({
       </View>
     </View>
   );
+};
+
+interface ScreenHeaderActionSlotProps {
+  action: ResolvedScreenHeaderAction | undefined;
+  side: ActionSide;
+  inline: boolean;
+  slotTestID?: string;
+  theme: ColorTokens;
+}
+
+const ScreenHeaderActionSlot = ({
+  action,
+  side,
+  inline,
+  slotTestID,
+  theme,
+}: ScreenHeaderActionSlotProps) => (
+  <View
+    testID={slotTestID}
+    style={[
+      styles.actionSlot,
+      inline ? styles.inlineActionSlot : null,
+      actionSlotAlignmentStyle(side),
+    ]}
+  >
+    {action ? (
+      <ScreenHeaderActionButton action={action} side={side} theme={theme} />
+    ) : null}
+  </View>
+);
+
+interface ScreenHeaderActionButtonProps {
+  action: ResolvedScreenHeaderAction;
+  side: ActionSide;
+  theme: ColorTokens;
+}
+
+const ScreenHeaderActionButton = ({
+  action,
+  side,
+  theme,
+}: ScreenHeaderActionButtonProps) => {
+  const isDisabled = action.disabled === true;
+  const isStrong = action.strong === true && !isDisabled;
+  const actionColor = isDisabled ? theme.textDisabled : theme.interactive;
+  const buttonStyle = [styles.actionButton, actionButtonAlignmentStyle(side)];
+
+  if (action.icon === 'chevron.backward') {
+    return (
+      <BackButton
+        label={action.label}
+        onPress={action.onPress}
+        color={actionColor}
+        disabled={isDisabled}
+        style={buttonStyle}
+      />
+    );
+  }
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={action.label}
+      accessibilityState={{ disabled: isDisabled }}
+      disabled={isDisabled}
+      hitSlop={spacing.step12}
+      onPress={action.onPress}
+      style={buttonStyle}
+    >
+      <Text
+        style={[
+          styles.actionLabel,
+          isStrong ? styles.strongActionLabel : null,
+          { color: actionColor },
+        ]}
+      >
+        {action.label}
+      </Text>
+    </Pressable>
+  );
+};
+
+function actionSlotAlignmentStyle(side: ActionSide) {
+  return side === 'left' ? styles.leftSlot : styles.rightSlot;
+}
+
+function actionButtonAlignmentStyle(side: ActionSide) {
+  return side === 'left' ? styles.leftActionButton : styles.rightActionButton;
 }
 
 function slotTestID(testID: string | undefined, side: ActionSide): string | undefined {

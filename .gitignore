@@ -34,6 +34,11 @@ apm_modules/
 # Mac
 *.DS_Store
 
+# Local SonarQube analysis
+.sonar/
+.scannerwork/
+scripts/sonar/local.env
+
 # AI Agents and Skills
 .claude/agents/code-architect.md
 .claude/agents/code-explorer.md

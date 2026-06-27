@@ -20,6 +20,7 @@
     "hooks:install": "git -C ../.. config core.hooksPath .githooks",
     "typecheck": "tsc --noEmit",
     "test": "jest",
+    "test:coverage": "jest --coverage --runInBand --forceExit --coverageReporters=lcov --coverageReporters=json-summary --coverageReporters=text",
     "test:watch": "jest --watch",
     "android": "expo run:android",
     "ios": "expo run:ios"

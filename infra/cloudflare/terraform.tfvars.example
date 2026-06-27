@@ -1,0 +1,9 @@
+cloudflare_zone_id = "replace-with-cacheandbuffer-zone-id"
+
+ses_domain_verification_token = "replace-with-amazon-ses-domain-verification-token"
+
+ses_dkim_tokens = [
+  "replace-with-first-dkim-token",
+  "replace-with-second-dkim-token",
+  "replace-with-third-dkim-token",
+]

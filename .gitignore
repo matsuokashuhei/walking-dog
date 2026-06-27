@@ -8,6 +8,9 @@ apps/api/.env.production
 *.tfstate
 *.tfstate.backup
 .terraform.lock.hcl
+!infra/cloudflare/.terraform.lock.hcl
+infra/cloudflare/.env.local
+infra/cloudflare/terraform.tfvars
 infra/**/lambda/*.zip
 infra/sakura/.env
 

@@ -1,5 +1,5 @@
 # Harness preconditions:
-# - Owner is authenticated.
+# - Owner is authenticated by saved app auth state; do not clear app state.
 # - A dog named Harness Goal Dog exists and opens from the Dogs list.
 # - Goal controls are visible in edit mode and simulator language is English.
 appId: com.walkingdog.app

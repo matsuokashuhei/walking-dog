@@ -1,7 +1,8 @@
 # Maestro E2E tests
 
 This directory contains Maestro flows for iOS Simulator. The main auth journey is
-`auth-onboarding.yaml`, which covers the unified email OneTimePassword flow.
+`auth-onboarding.yaml`, which verifies that a simulator with saved Cognito auth
+state can launch directly into the authenticated app.
 
 ## Prerequisites
 
@@ -9,7 +10,10 @@ This directory contains Maestro flows for iOS Simulator. The main auth journey i
 - Xcode Simulator is available and `iPhone 17 Pro` can be started.
 - Simulator language is English. Maestro selectors use English UI text.
 - `apps/mobile` dependencies are installed.
-- The harness dev stack API is running and configured for real AWS Cognito EMAIL_OTP.
+- The harness dev stack API is running with the same Cognito configuration used
+  when the simulator logged in.
+- The simulator already has a valid Cognito access token and refresh token saved
+  by normal app login.
 
 ```bash
 cd apps/mobile
@@ -26,8 +30,8 @@ cat .harness-runs/dev-stack/env.json
 
 ## Install the app on Simulator
 
-`auth-onboarding.yaml` uses `launchApp.clearState: true`. Debug/dev-client builds can
-open Expo Dev Launcher after clearing state, so Maestro should use a Release build.
+Maestro flows preserve app state so they can reuse the saved Cognito auth state.
+Use a Release build for the installed app that Maestro launches.
 
 From the repo root, read the API port, then build from `apps/mobile`:
 
@@ -42,17 +46,17 @@ EXPO_PUBLIC_API_URL="http://127.0.0.1:${WD_API_PORT}" \
 npx expo run:ios --configuration Release --device "iPhone 17 Pro"
 ```
 
-After the build, `com.walkingdog.app` is installed on Simulator. Keep the
-Expo/Metro terminal open and run Maestro from another terminal.
+After the build, `com.walkingdog.app` is installed on Simulator. Open the app once
+and complete the normal Cognito email one-time password login manually. Do not
+uninstall the app or clear app state after login. Keep the Expo/Metro terminal
+open and run Maestro from another terminal.
 
 ## Run Maestro
 
-Real AWS Cognito sends a dynamic email code. Request the code in the app, read it
-from the delivered email, and pass it to Maestro as `E2E_CONFIRMATION_CODE`.
+The flows assume the simulator is already logged in. They intentionally do not
+request or enter an email one-time password.
 
 ```bash
-E2E_EMAIL="owner@example.com" \
-E2E_CONFIRMATION_CODE="<code>" \
 maestro test apps/mobile/e2e/maestro/auth-onboarding.yaml
 ```
 
@@ -89,11 +93,10 @@ Keep them only when they are needed as evidence.
 
 ## Common failures
 
-- `Walking Dog` is not visible: a Debug build may have opened Expo Dev Launcher after
-  `clearState`. Reinstall a Release build.
+- The wrong app opens: reinstall a Release build for `com.walkingdog.app`.
 - API connection fails: verify `.harness-runs/dev-stack/env.json` `ports.api` matches
   `EXPO_PUBLIC_API_URL`.
+- The app shows the auth screen: saved Cognito auth state is missing or expired.
+  Log in manually once, then rerun Maestro without clearing state.
 - Text selector is not found: verify Simulator language is English and the required
   harness state exists.
-- OneTimePassword verification fails: use the latest email code from the same run and
-  pass it as `E2E_CONFIRMATION_CODE`.

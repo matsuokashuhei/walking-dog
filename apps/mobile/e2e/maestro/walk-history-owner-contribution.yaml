@@ -1,5 +1,5 @@
 # Harness preconditions:
-# - Owner is authenticated.
+# - Owner is authenticated by saved app auth state; do not clear app state.
 # - Seed data includes at least one completed walk for Harness History Dog.
 # - The completed walk includes duration, distance, points, and at least one event.
 appId: com.walkingdog.app

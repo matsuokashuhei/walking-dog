@@ -110,5 +110,6 @@ npm run test:coverage
 maestro test apps/mobile/e2e/maestro/*.yaml
 ```
 
-If an E2E flow requires `E2E_CONFIRMATION_CODE` and the value is unavailable, stop
-without creating a PR and report the missing prerequisite.
+Maestro flows expect the simulator to keep saved Cognito auth state from a normal
+app login. If the simulator is not logged in, stop without creating a PR and report
+the missing prerequisite.

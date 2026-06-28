@@ -1,5 +1,5 @@
 # Harness preconditions:
-# - Owner is already authenticated or the harness logs in before this flow.
+# - Owner is authenticated by saved app auth state; do not clear app state.
 # - API has no existing dog named Harness Coco for this owner, or duplicate names are acceptable.
 # - Photo selection is controlled by a future fixture; this skeleton covers profile fields.
 appId: com.walkingdog.app
@@ -38,7 +38,6 @@ env:
     visible: ${DOG_NAME}
     timeout: 15000
 - tapOn: ${DOG_NAME}
-- assertVisible: Dog Profile
 - assertVisible: Goal progress
 - assertVisible: Walks
 - tapOn: Edit

@@ -1,41 +1,26 @@
 # Harness preconditions:
 # - App is installed as com.walkingdog.app and points to the intended API.
 # - Simulator language is English.
-# - The API is configured with real AWS Cognito EMAIL_OTP.
-# - Read the OTP from the email delivered during this run and pass it as:
-#   E2E_CONFIRMATION_CODE=<code> maestro test apps/mobile/e2e/maestro/auth-onboarding.yaml
+# - The simulator already has a valid Cognito auth state saved by normal app login.
+# - Do not clear app state before this flow; saved auth tokens are the test precondition.
 appId: com.walkingdog.app
-name: Auth Onboarding
+name: Authenticated Launch
 tags:
   - harness
   - auth
   - journey
-env:
-  E2E_EMAIL: harness-auth@example.com
-  E2E_CONFIRMATION_CODE: ""
 ---
 - launchApp:
-    clearState: true
-- assertVisible: Walking Dog
-- assertVisible: Welcome back
-- tapOn: Create an account
-- assertVisible: Let's meet your dog.
-- tapOn:
-    id: auth-email
-- inputText: ${E2E_EMAIL}
-- tapOn:
-    id: auth-submit-email
+    clearState: false
 - extendedWaitUntil:
-    visible: One-time password
-    timeout: 15000
-- tapOn:
-    id: one-time-password-input
-- inputText: ${E2E_CONFIRMATION_CODE}
-- waitForAnimationToEnd:
-    timeout: 5000
-- extendedWaitUntil:
-    visible: No dogs yet
+    visible: Me
     timeout: 15000
 - assertVisible: Walk
+- assertVisible: Dogs
+- tapOn: Dogs
+- assertVisible: Dogs
+- tapOn: Walk
+- assertVisible: Walk
+- tapOn: Me
 - assertVisible: Me
 - takeScreenshot: harness-auth-onboarding

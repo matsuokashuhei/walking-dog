@@ -1,5 +1,5 @@
 # Harness preconditions:
-# - Owner is authenticated.
+# - Owner is authenticated by saved app auth state; do not clear app state.
 # - A dog named Harness Event Dog exists and a walk can be started.
 # - Camera permission and photo capture are controlled by the harness.
 # - Local storage service is running when photo upload is exercised.

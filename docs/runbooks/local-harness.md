@@ -114,17 +114,20 @@ Preconditions:
 - The iOS app is installed with bundle id `com.walkingdog.app`.
 - The app is built for the intended API URL.
 - The simulator language is English for the current skeleton selectors.
+- The simulator already has a valid Cognito auth state saved by normal app login.
 - Seed data exists for flows that assume an authenticated owner and dogs.
 - Location, camera, and photo permissions are controlled by the harness before
   walk and photo flows.
 
 Run one journey:
 
-For auth onboarding, request an AWS Cognito email one-time password and pass the
-received code into the run:
+Maestro flows preserve app state and use the saved Cognito auth state. Before the
+first run on a fresh simulator or install, open the app and complete the normal
+email one-time password login manually. Do not clear app state before running
+Maestro.
 
 ```bash
-E2E_CONFIRMATION_CODE=<code> maestro test apps/mobile/e2e/maestro/auth-onboarding.yaml
+maestro test apps/mobile/e2e/maestro/auth-onboarding.yaml
 ```
 
 Run all current skeletons:

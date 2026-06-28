@@ -1,208 +1,186 @@
-import { useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
+import { StyleSheet, Text, type StyleProp, type TextStyle } from 'react-native';
 import {
-  StyleSheet,
-  Text,
-  TextInput as RNTextInput,
-  View,
-  type StyleProp,
-  type TextInputProps as RNTextInputProps,
-  type TextStyle,
-} from 'react-native';
+  Host,
+  TextInput as ExpoTextInput,
+  useNativeState,
+  type TextInputProps as ExpoTextInputProps,
+} from '@expo/ui';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useColors } from '@/hooks/use-colors';
-import { components, spacing, radius, typography, type ColorTokens } from '@/theme/tokens';
+import { components, radius, spacing, typography } from '@/theme/tokens';
+import { NativeFieldGroupContext } from './NativeFieldGroup';
 
 type LabelPosition = 'top' | 'inline';
+type ExpoFontWeight = NonNullable<ExpoTextInputProps['textStyle']>['fontWeight'];
 
-interface TextInputProps extends Omit<RNTextInputProps, 'style'> {
+const EXPO_FONT_WEIGHTS = new Set<ExpoFontWeight>([
+  'normal',
+  'bold',
+  '100',
+  '200',
+  '300',
+  '400',
+  '500',
+  '600',
+  '700',
+  '800',
+  '900',
+]);
+
+interface TextInputProps
+  extends Omit<
+    ExpoTextInputProps,
+    'onBlur' | 'onFocus' | 'placeholder' | 'style' | 'textStyle' | 'value'
+  > {
   label: string;
   error?: string;
-  style?: StyleProp<TextStyle>;
-  /**
-   * `top` (default) — UPPERCASE caption label above an outlined 52-px field.
-   * `inline` — iOS-settings-style row with label on the left and the field on
-   * the right, meant to sit inside a `GroupedCard`.
-   */
   labelPosition?: LabelPosition;
-  /** Inline-only: draw a hairline separator below the row (for stacked GroupedCard rows). */
+  placeholder?: string;
+  /** Native FieldGroup owns row separators; kept only for call-site compatibility. */
   separator?: boolean;
+  style?: StyleProp<TextStyle>;
+  textStyle?: ExpoTextInputProps['textStyle'];
+  value?: string;
+  onBlur?: () => void;
+  onFocus?: () => void;
 }
-
-type TextInputFocusEvent = Parameters<NonNullable<RNTextInputProps['onFocus']>>[0];
-type TextInputBlurEvent = Parameters<NonNullable<RNTextInputProps['onBlur']>>[0];
 
 export const TextInput = ({
   label,
   error,
-  style,
   labelPosition = 'top',
-  separator = false,
+  placeholder,
+  separator: _separator = false,
   testID,
   onBlur,
   onFocus,
+  onChangeText,
+  style,
+  textStyle,
+  value = '',
   ...props
 }: TextInputProps) => {
   const theme = useColors();
-  const { isFocused, handleBlur, handleFocus } = useTextInputFocusHandlers({
-    onBlur,
-    onFocus,
-  });
+  const colorScheme = useColorScheme();
+  const inNativeFieldGroup = useContext(NativeFieldGroupContext);
+  const [isFocused, setIsFocused] = useState(false);
+  const [nativeSeed, setNativeSeed] = useState({ value, version: 0 });
+  const lastInputValueRef = useRef(value);
+  const resolvedPlaceholder = placeholder ?? label;
 
-  return labelPosition === 'inline' ? (
-    <InlineTextInput
-      error={error}
-      inputProps={props}
-      isFocused={isFocused}
-      label={label}
-      onBlur={handleBlur}
+  useEffect(() => {
+    if (value !== lastInputValueRef.current) {
+      lastInputValueRef.current = value;
+      setNativeSeed((current) =>
+        current.value === value
+          ? current
+          : { value, version: current.version + 1 },
+      );
+    }
+  }, [value]);
+
+  function handleChangeText(nextValue: string) {
+    lastInputValueRef.current = nextValue;
+    onChangeText?.(nextValue);
+  }
+
+  function handleFocus() {
+    setIsFocused(true);
+    onFocus?.();
+  }
+
+  function handleBlur() {
+    setIsFocused(false);
+    onBlur?.();
+  }
+
+  const input = (
+    <NativeExpoTextInput
+      key={nativeSeed.version}
+      initialValue={nativeSeed.value}
+      onChangeText={handleChangeText}
+      placeholder={resolvedPlaceholder}
+      placeholderTextColor={theme.onSurfaceVariant}
       onFocus={handleFocus}
-      separator={separator}
-      style={style}
-      testID={testID}
-      theme={theme}
-    />
-  ) : (
-    <TopTextInput
-      error={error}
-      inputProps={props}
-      isFocused={isFocused}
-      label={label}
       onBlur={handleBlur}
-      onFocus={handleFocus}
-      style={style}
       testID={testID}
-      theme={theme}
+      style={{
+        ...nativeInputBoxStyle({ error, isFocused, labelPosition, theme }),
+      }}
+      textStyle={{
+        ...typography.body,
+        color: theme.onSurface,
+        ...(textStyle ?? {}),
+        ...flattenTextStyle(style),
+      }}
+      {...props}
     />
+  );
+
+  if (inNativeFieldGroup && !error) {
+    return input;
+  }
+
+  return (
+    <>
+      <Host
+        colorScheme={colorScheme}
+        matchContents={{ vertical: true }}
+        style={styles.host}
+        testID={testID ? `${testID}-container` : undefined}
+      >
+        {input}
+      </Host>
+      {error ? (
+        <Text style={[styles.error, { color: theme.error }]}>{error}</Text>
+      ) : null}
+    </>
   );
 };
 
-interface UseTextInputFocusHandlersProps {
-  onBlur?: RNTextInputProps['onBlur'];
-  onFocus?: RNTextInputProps['onFocus'];
+function NativeExpoTextInput({
+  initialValue,
+  ...props
+}: Omit<ExpoTextInputProps, 'value'> & { initialValue: string }) {
+  const nativeValue = useNativeState(initialValue);
+  return <ExpoTextInput value={nativeValue} {...props} />;
 }
 
-function useTextInputFocusHandlers({
-  onBlur,
-  onFocus,
-}: UseTextInputFocusHandlersProps) {
-  const [isFocused, setIsFocused] = useState(false);
-
-  function handleFocus(event: TextInputFocusEvent) {
-    setIsFocused(true);
-    onFocus?.(event);
-  }
-
-  function handleBlur(event: TextInputBlurEvent) {
-    setIsFocused(false);
-    onBlur?.(event);
-  }
-
-  return { isFocused, handleBlur, handleFocus };
-}
-
-interface TextInputVariantProps {
+function nativeInputBoxStyle({
+  error,
+  isFocused,
+  labelPosition,
+  theme,
+}: {
   error?: string;
-  inputProps: RNTextInputProps;
   isFocused: boolean;
-  label: string;
-  onBlur: NonNullable<RNTextInputProps['onBlur']>;
-  onFocus: NonNullable<RNTextInputProps['onFocus']>;
-  style?: StyleProp<TextStyle>;
-  testID?: string;
-  theme: ColorTokens;
+  labelPosition: LabelPosition;
+  theme: ReturnType<typeof useColors>;
+}): ExpoTextInputProps['style'] {
+  if (labelPosition === 'inline') {
+    return {
+      width: '100%',
+      height: components.row.minHeight,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.step14,
+      backgroundColor: isFocused ? theme.surfaceContainer : 'transparent',
+      borderWidth: components.textInput.borderWidth,
+      borderColor: isFocused ? theme.interactive : 'transparent',
+      borderRadius: radius.lg,
+    };
+  }
+
+  return {
+    width: '100%',
+    height: components.textInput.height,
+    paddingHorizontal: spacing.md,
+    backgroundColor: theme.surface,
+    borderWidth: components.textInput.borderWidth,
+    borderColor: inputBorderColor({ error, isFocused, theme }),
+    borderRadius: radius.lg,
+  };
 }
-
-interface InlineTextInputProps extends TextInputVariantProps {
-  separator: boolean;
-}
-
-const InlineTextInput = ({
-  error,
-  inputProps,
-  isFocused,
-  label,
-  onBlur,
-  onFocus,
-  separator,
-  style,
-  testID,
-  theme,
-}: InlineTextInputProps) => (
-  <>
-    <View
-      testID={testID ? `${testID}-container` : undefined}
-      style={[
-        inlineStyles.row,
-        {
-          backgroundColor: isFocused ? theme.surfaceContainer : 'transparent',
-          borderColor: isFocused ? theme.interactive : 'transparent',
-        },
-      ]}
-    >
-      <Text style={[inlineStyles.label, { color: theme.onSurfaceVariant }]}>
-        {label}
-      </Text>
-      <RNTextInput
-        style={[inlineStyles.input, { color: theme.onSurface }, style]}
-        placeholderTextColor={theme.onSurfaceVariant}
-        accessibilityLabel={label}
-        testID={testID}
-        onBlur={onBlur}
-        onFocus={onFocus}
-        {...inputProps}
-      />
-    </View>
-    {separator ? (
-      <View
-        testID={testID ? `${testID}-separator` : undefined}
-        style={[inlineStyles.separator, { backgroundColor: theme.border }]}
-      />
-    ) : null}
-    {error ? (
-      <Text style={[inlineStyles.error, { color: theme.error }]}>{error}</Text>
-    ) : null}
-  </>
-);
-
-const TopTextInput = ({
-  error,
-  inputProps,
-  isFocused,
-  label,
-  onBlur,
-  onFocus,
-  style,
-  testID,
-  theme,
-}: TextInputVariantProps) => (
-  <View style={styles.container}>
-    <Text
-      style={[styles.label, { color: theme.onSurface }]}
-      accessibilityRole="none"
-    >
-      {label}
-    </Text>
-    <RNTextInput
-      style={[
-        styles.input,
-        {
-          backgroundColor: theme.surface,
-          color: theme.onSurface,
-          borderColor: inputBorderColor({ error, isFocused, theme }),
-        },
-        style,
-      ]}
-      placeholderTextColor={theme.onSurfaceVariant}
-      accessibilityLabel={label}
-      testID={testID}
-      onBlur={onBlur}
-      onFocus={onFocus}
-      {...inputProps}
-    />
-    {error ? (
-      <Text style={[styles.error, { color: theme.error }]}>{error}</Text>
-    ) : null}
-  </View>
-);
 
 function inputBorderColor({
   error,
@@ -211,7 +189,7 @@ function inputBorderColor({
 }: {
   error?: string;
   isFocused: boolean;
-  theme: ColorTokens;
+  theme: ReturnType<typeof useColors>;
 }) {
   if (error) {
     return theme.error;
@@ -219,50 +197,32 @@ function inputBorderColor({
   return isFocused ? theme.interactive : theme.border;
 }
 
-const styles = StyleSheet.create({
-  container: {
-    marginBottom: spacing.md,
-  },
-  label: {
-    ...typography.metricLabel,
-    marginBottom: spacing.sm,
-  },
-  input: {
-    height: components.textInput.height,
-    borderWidth: components.textInput.borderWidth,
-    borderRadius: radius.lg,
-    paddingHorizontal: spacing.md,
-    ...typography.body,
-  },
-  error: {
-    ...typography.caption,
-    marginTop: spacing.xs,
-  },
-});
+function flattenTextStyle(style: StyleProp<TextStyle>): ExpoTextInputProps['textStyle'] {
+  const flat = StyleSheet.flatten(style);
+  if (!flat) return {};
+  return {
+    color: typeof flat.color === 'string' ? flat.color : undefined,
+    fontFamily: flat.fontFamily,
+    fontSize: flat.fontSize,
+    fontWeight: toExpoFontWeight(flat.fontWeight),
+    letterSpacing: flat.letterSpacing,
+    lineHeight: flat.lineHeight,
+    textAlign:
+      flat.textAlign === 'left' || flat.textAlign === 'right' || flat.textAlign === 'center'
+        ? flat.textAlign
+        : undefined,
+  };
+}
 
-const inlineStyles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: components.row.gap,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.step14,
-    minHeight: components.row.minHeight,
-    borderWidth: components.textInput.borderWidth,
-    borderRadius: radius.lg,
-  },
-  label: {
-    ...typography.subheadline,
-    width: components.textInput.inlineLabelWidth,
-  },
-  input: {
-    flex: 1,
-    ...typography.body,
-    padding: components.textInput.inputPadding,
-  },
-  separator: {
-    height: StyleSheet.hairlineWidth,
-    marginLeft: spacing.md,
+function toExpoFontWeight(fontWeight: TextStyle['fontWeight']): ExpoFontWeight | undefined {
+  return typeof fontWeight === 'string' && EXPO_FONT_WEIGHTS.has(fontWeight as ExpoFontWeight)
+    ? (fontWeight as ExpoFontWeight)
+    : undefined;
+}
+
+const styles = StyleSheet.create({
+  host: {
+    width: '100%',
   },
   error: {
     ...typography.caption,

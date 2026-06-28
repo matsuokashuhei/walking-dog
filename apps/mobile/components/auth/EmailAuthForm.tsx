@@ -3,7 +3,7 @@ import { Linking, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/Button';
-import { GroupedCard } from '@/components/ui/GroupedCard';
+import { NativeFieldSection } from '@/components/ui/NativeFieldGroup';
 import { OneTimePasswordInput } from '@/components/auth/OneTimePasswordInput';
 import { TextInput } from '@/components/ui/TextInput';
 import { emailKeyboardType } from '@/components/auth/emailKeyboard';
@@ -124,7 +124,7 @@ export function EmailAuthForm({
           />
         </>
       ) : (
-        <GroupedCard>
+        <NativeFieldSection>
           <TextInput
             label={t('auth.login.email')}
             labelPosition="inline"
@@ -134,11 +134,9 @@ export function EmailAuthForm({
             keyboardType={emailKeyboardType}
             autoCapitalize="none"
             autoCorrect={false}
-            spellCheck={false}
             autoComplete="email"
-            textContentType="emailAddress"
           />
-        </GroupedCard>
+        </NativeFieldSection>
       )}
 
       {!challenge && supportingText ? (

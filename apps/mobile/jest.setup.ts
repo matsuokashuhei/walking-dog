@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 jest.mock(
   '@react-native-async-storage/async-storage',
   () => ({
@@ -45,6 +47,141 @@ jest.mock('react-native-reanimated', () => {
     FadeIn: new AnimationBuilderMock(),
     FadeOut: new AnimationBuilderMock(),
     LinearTransition: new AnimationBuilderMock(),
+  };
+});
+
+jest.mock('@expo/ui', () => {
+  const React = require('react');
+  const {
+    Pressable,
+    Text: RNText,
+    TextInput: RNTextInput,
+    View,
+  } = require('react-native');
+
+  const Host = ({
+    children,
+    style,
+    testID,
+    ...props
+  }: {
+    children?: ReactNode;
+    style?: unknown;
+    testID?: string;
+    [key: string]: unknown;
+  }) => React.createElement(View, { style, testID, ...props }, children);
+
+  const RNHostView = ({
+    children,
+    style,
+    testID,
+  }: {
+    children?: ReactNode;
+    style?: unknown;
+    testID?: string;
+  }) => React.createElement(View, { style, testID }, children);
+
+  const FieldGroup = ({
+    children,
+    style,
+    testID,
+  }: {
+    children?: ReactNode;
+    style?: unknown;
+    testID?: string;
+  }) => React.createElement(View, { style, testID }, children);
+  FieldGroup.Section = ({ children, title }: { children?: ReactNode; title?: string }) => (
+    React.createElement(
+      View,
+      null,
+      title ? React.createElement(RNText, null, title) : null,
+      children,
+    )
+  );
+
+  const Row = ({
+    children,
+    disabled,
+    onPress,
+    style,
+    testID,
+  }: {
+    children?: ReactNode;
+    disabled?: boolean;
+    onPress?: () => void;
+    style?: unknown;
+    testID?: string;
+  }) => React.createElement(Pressable, { disabled, onPress, style, testID }, children);
+
+  const Spacer = () => React.createElement(View, { testID: 'native-spacer' });
+
+  const Text = ({
+    children,
+    numberOfLines,
+    textStyle,
+  }: {
+    children?: ReactNode;
+    numberOfLines?: number;
+    textStyle?: unknown;
+  }) => React.createElement(RNText, { numberOfLines, style: textStyle }, children);
+
+  const TextInput = ({
+    onBlur,
+    onChangeText,
+    onFocus,
+    placeholder,
+    placeholderTextColor,
+    style,
+    testID,
+    textStyle,
+    value,
+    ...props
+  }: {
+    onBlur?: () => void;
+    onChangeText?: (value: string) => void;
+    onFocus?: () => void;
+    placeholder?: string;
+    placeholderTextColor?: string;
+    style?: unknown;
+    testID?: string;
+    textStyle?: unknown;
+    value?: { value: string } | string;
+    [key: string]: unknown;
+  }) => {
+    const currentValue = typeof value === 'object' && value !== null ? value.value : value;
+    return React.createElement(RNTextInput, {
+      onBlur,
+      onChangeText: (nextValue: string) => {
+          if (typeof value === 'object' && value !== null) {
+            value.value = nextValue;
+          }
+          onChangeText?.(nextValue);
+        },
+      onFocus,
+      placeholder,
+      placeholderTextColor,
+      ...props,
+      style: [style, textStyle],
+      testID,
+      value: currentValue,
+    });
+  };
+
+  const Icon = ({ name, testID }: { name?: unknown; testID?: string }) => (
+    React.createElement(RNText, { testID }, typeof name === 'string' ? name : 'icon')
+  );
+  Icon.select = (spec: { ios: unknown }) => spec.ios;
+
+  return {
+    FieldGroup,
+    Host,
+    Icon,
+    RNHostView,
+    Row,
+    Spacer,
+    Text,
+    TextInput,
+    useNativeState: (initialValue: string) => ({ value: initialValue }),
   };
 });
 

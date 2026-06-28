@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { GroupedCard } from '@/components/ui/GroupedCard';
+import { NativeFieldSection } from '@/components/ui/NativeFieldGroup';
 import { TextInput } from '@/components/ui/TextInput';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
@@ -91,17 +91,17 @@ function UserEditContent({ me }: { me: User }) {
           displayName={name}
           onChange={setAvatarFile}
         />
-        <GroupedCard elevated={false}>
+        <NativeFieldSection>
           <TextInput
             label={t('userEdit.name')}
             labelPosition="inline"
             value={name}
             onChangeText={setName}
             autoCapitalize="words"
-            textContentType="name"
+            autoComplete="name"
             returnKeyType="done"
           />
-        </GroupedCard>
+        </NativeFieldSection>
       </ScrollView>
     </SafeAreaView>
   );

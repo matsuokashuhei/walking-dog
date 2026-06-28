@@ -2,9 +2,7 @@ import { ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { GroupedCard } from '@/components/ui/GroupedCard';
-import { GroupedRow } from '@/components/ui/GroupedRow';
-import { IconSymbol } from '@/components/ui/icon-symbol';
+import { NativeFieldRow, NativeFieldSection } from '@/components/ui/NativeFieldGroup';
 import { useColors } from '@/hooks/use-colors';
 import { spacing } from '@/theme/tokens';
 import { useUserScreenViewModel } from '@/hooks/use-user-screen-view-model';
@@ -40,23 +38,23 @@ export default function UserScreen() {
           user={vm}
           footer={
             <>
-              <GroupedCard elevated={false} style={styles.accountActionsCard}>
-                <GroupedRow
-                  leading={<IconSymbol name="envelope.fill" size={18} color={theme.interactive} />}
+              <NativeFieldSection style={styles.accountActionsCard}>
+                <NativeFieldRow
+                  icon="email"
+                  iconColor={theme.interactive}
                   label={t('user.account.changeEmail')}
                   testID="account-change-email"
                   onPress={() => router.push('/settings/email')}
-                  separator={false}
                 />
-              </GroupedCard>
-              <GroupedCard elevated={false} style={styles.settingsLinkCard}>
-                <GroupedRow
-                  leading={<IconSymbol name="gearshape.fill" size={18} color={theme.interactive} />}
+              </NativeFieldSection>
+              <NativeFieldSection style={styles.settingsLinkCard}>
+                <NativeFieldRow
+                  icon="settings"
+                  iconColor={theme.interactive}
                   label={t('settings.openSettings')}
                   onPress={() => router.push('/settings')}
-                  separator={false}
                 />
-              </GroupedCard>
+              </NativeFieldSection>
             </>
           }
         />

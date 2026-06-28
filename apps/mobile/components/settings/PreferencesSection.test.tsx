@@ -72,20 +72,20 @@ describe('PreferencesSection', () => {
 
   it('opens the language ActionSheet and applies the selection', () => {
     render(<PreferencesSection />);
-    fireEvent.press(screen.getByRole('button', { name: 'Language' }));
+    fireEvent.press(screen.getByText('Language'));
     expect(ActionSheetIOS.showActionSheetWithOptions).toHaveBeenCalled();
     expect(mockSetLanguage).toHaveBeenCalledWith('en');
   });
 
   it('opens the units ActionSheet and applies mile', () => {
     render(<PreferencesSection />);
-    fireEvent.press(screen.getByRole('button', { name: 'Units' }));
+    fireEvent.press(screen.getByText('Units'));
     expect(mockSetUnits).toHaveBeenCalledWith('mile');
   });
 
   it('opens the appearance ActionSheet and applies the theme', () => {
     render(<PreferencesSection />);
-    fireEvent.press(screen.getByRole('button', { name: 'Appearance' }));
+    fireEvent.press(screen.getByText('Appearance'));
     expect(mockSetTheme).toHaveBeenCalledWith('dark');
   });
 });

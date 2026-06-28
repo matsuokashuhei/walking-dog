@@ -19,11 +19,10 @@ describe('EmailAuthForm', () => {
   it('renders one email field before requesting a code', () => {
     render(<EmailAuthForm onSuccess={jest.fn()} />);
 
-    const emailInput = screen.getByLabelText('Email');
+    const emailInput = screen.getByPlaceholderText('Email');
     expect(emailInput).toBeTruthy();
     expect(emailInput.props.keyboardType).toBe(emailKeyboardType);
     expect(emailInput.props.autoCorrect).toBe(false);
-    expect(emailInput.props.spellCheck).toBe(false);
     expect(screen.queryByLabelText('Your name')).toBeNull();
     expect(screen.queryByLabelText('Password')).toBeNull();
     expect(screen.queryByText('Create an account')).toBeNull();
@@ -38,7 +37,7 @@ describe('EmailAuthForm', () => {
     });
     render(<EmailAuthForm onSuccess={jest.fn()} />);
 
-    fireEvent.changeText(screen.getByLabelText('Email'), 'test@example.com');
+    fireEvent.changeText(screen.getByPlaceholderText('Email'), 'test@example.com');
     fireEvent.press(screen.getByRole('button', { name: 'Continue with email' }));
 
     await waitFor(() => {
@@ -55,7 +54,7 @@ describe('EmailAuthForm', () => {
     });
     render(<EmailAuthForm onSuccess={jest.fn()} submitLabel="Sign in" />);
 
-    fireEvent.changeText(screen.getByLabelText('Email'), ' test@example.com ');
+    fireEvent.changeText(screen.getByPlaceholderText('Email'), ' test@example.com ');
     fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
 
     await waitFor(() => {
@@ -74,7 +73,7 @@ describe('EmailAuthForm', () => {
     mockVerifyOneTimePassword.mockResolvedValue(undefined);
     render(<EmailAuthForm onSuccess={onSuccess} />);
 
-    fireEvent.changeText(screen.getByLabelText('Email'), 'test@example.com');
+    fireEvent.changeText(screen.getByPlaceholderText('Email'), 'test@example.com');
     fireEvent.press(screen.getByRole('button', { name: 'Continue with email' }));
     await screen.findByLabelText('One-time password');
 
@@ -101,7 +100,7 @@ describe('EmailAuthForm', () => {
     mockVerifyOneTimePassword.mockResolvedValue(undefined);
     render(<EmailAuthForm onSuccess={jest.fn()} />);
 
-    fireEvent.changeText(screen.getByLabelText('Email'), 'test@example.com');
+    fireEvent.changeText(screen.getByPlaceholderText('Email'), 'test@example.com');
     fireEvent.press(screen.getByRole('button', { name: 'Continue with email' }));
     await screen.findByLabelText('One-time password');
 
@@ -129,7 +128,7 @@ describe('EmailAuthForm', () => {
       .mockResolvedValueOnce(undefined);
     render(<EmailAuthForm onSuccess={jest.fn()} />);
 
-    fireEvent.changeText(screen.getByLabelText('Email'), 'test@example.com');
+    fireEvent.changeText(screen.getByPlaceholderText('Email'), 'test@example.com');
     fireEvent.press(screen.getByRole('button', { name: 'Continue with email' }));
     await screen.findByLabelText('One-time password');
 

@@ -104,10 +104,10 @@ describe('UserScreen', () => {
     fireEvent.press(screen.getByRole('button', { name: 'Edit' }));
     expect(mockPush).toHaveBeenCalledWith('/user/edit');
 
-    fireEvent.press(screen.getByRole('button', { name: 'Settings' }));
+    fireEvent.press(screen.getByText('Settings'));
     expect(mockPush).toHaveBeenCalledWith('/settings');
 
-    fireEvent.press(screen.getByRole('button', { name: 'Change email' }));
+    fireEvent.press(screen.getByText('Change email'));
     expect(mockPush).toHaveBeenCalledWith('/settings/email');
 
     expect(screen.queryByRole('button', { name: 'Change password' })).toBeNull();

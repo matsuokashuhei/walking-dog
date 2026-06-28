@@ -7,7 +7,7 @@ import {
   isDogFormValid,
   type DogFormValues,
 } from './DogForm';
-import { spacing } from '@/theme/tokens';
+import { components, spacing } from '@/theme/tokens';
 
 jest.mock('@/components/ui/icon-symbol', () => ({
   IconSymbol: () => null,
@@ -69,11 +69,23 @@ describe('DogForm', () => {
 
   it('renders name/breed fields and the selected gender value', () => {
     setup();
-    expect(screen.getByLabelText('Name')).toBeTruthy();
-    expect(screen.getByLabelText('Breed')).toBeTruthy();
+    expect(screen.getByPlaceholderText('Name')).toBeTruthy();
+    expect(screen.getByPlaceholderText('Breed')).toBeTruthy();
     expect(screen.getByText('Gender')).toBeTruthy();
     expect(screen.getByText('Select gender')).toBeTruthy();
     expect(screen.queryByTestId('dog-gender-segmented-control')).toBeNull();
+  });
+
+  it('sizes the native profile field section so all rows are initially visible', () => {
+    setup();
+    expect(screen.getByTestId('dog-profile-fields-host').props.style).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ height: expect.any(Number) }),
+        expect.objectContaining({
+          height: components.textInput.height * 2 + components.row.minHeight * 2 + spacing.step60 * 2,
+        }),
+      ]),
+    );
   });
 
   it('renders the goal section with the default daily time goal', () => {
@@ -173,7 +185,7 @@ describe('DogForm', () => {
 
   it('renders birthday in the profile group without an empty-state value', () => {
     setup();
-    expect(screen.getByRole('button', { name: 'Birthday' })).toBeTruthy();
+    expect(screen.getByText('Birthday')).toBeTruthy();
     expect(screen.queryByText('Add birthday')).toBeNull();
   });
 
@@ -184,19 +196,19 @@ describe('DogForm', () => {
 
   it('calls onChange with patched values when name changes', () => {
     const { onChange } = setup(makeValues({ breed: 'Poodle', gender: 'male' }));
-    fireEvent.changeText(screen.getByLabelText('Name'), 'Hana');
+    fireEvent.changeText(screen.getByPlaceholderText('Name'), 'Hana');
     expect(onChange).toHaveBeenCalledWith(makeValues({ name: 'Hana', breed: 'Poodle', gender: 'male' }));
   });
 
   it('calls onChange with patched values when breed changes', () => {
     const { onChange } = setup(makeValues({ name: 'Hana', gender: 'male' }));
-    fireEvent.changeText(screen.getByLabelText('Breed'), 'Poodle');
+    fireEvent.changeText(screen.getByPlaceholderText('Breed'), 'Poodle');
     expect(onChange).toHaveBeenCalledWith(makeValues({ name: 'Hana', breed: 'Poodle', gender: 'male' }));
   });
 
   it('opens the gender ActionSheet and calls onChange with patched values', () => {
     const { onChange } = setup(makeValues({ name: 'Hana', breed: 'Poodle' }));
-    fireEvent.press(screen.getByRole('button', { name: 'Gender' }));
+    fireEvent.press(screen.getByText('Gender'));
     expect(ActionSheetIOS.showActionSheetWithOptions).toHaveBeenCalledWith(
       {
         options: ['Male', 'Female', 'Other', 'Cancel'],
@@ -209,7 +221,7 @@ describe('DogForm', () => {
 
   it('opens the birthday picker modal from the birthday row', () => {
     setup();
-    fireEvent.press(screen.getByRole('button', { name: 'Birthday' }));
+    fireEvent.press(screen.getByText('Birthday'));
     expect(screen.getByText('Year')).toBeTruthy();
     expect(screen.getByText('Month')).toBeTruthy();
     expect(screen.getByText('Day')).toBeTruthy();
@@ -222,7 +234,7 @@ describe('DogForm', () => {
 
   it('stages birthday changes until Save is pressed', () => {
     const { onChange } = setup(makeValues({ name: 'Hana', gender: 'male' }));
-    fireEvent.press(screen.getByRole('button', { name: 'Birthday' }));
+    fireEvent.press(screen.getByText('Birthday'));
     fireEvent.press(screen.getByTestId('birthday-year-2021'));
     expect(onChange).not.toHaveBeenCalled();
     fireEvent.press(screen.getByRole('button', { name: 'Save' }));
@@ -231,7 +243,7 @@ describe('DogForm', () => {
 
   it('discards staged birthday changes when Cancel is pressed', () => {
     const { onChange } = setup(makeValues({ name: 'Hana', gender: 'male' }));
-    fireEvent.press(screen.getByRole('button', { name: 'Birthday' }));
+    fireEvent.press(screen.getByText('Birthday'));
     fireEvent.press(screen.getByTestId('birthday-year-2021'));
     fireEvent.press(screen.getByRole('button', { name: 'Cancel' }));
     expect(onChange).not.toHaveBeenCalled();
@@ -241,7 +253,7 @@ describe('DogForm', () => {
     const { onChange } = setup(
       makeValues({ name: 'Hana', gender: 'male', birthdayYear: '2021', birthdayMonth: '6', birthdayDay: '15' }),
     );
-    fireEvent.press(screen.getByRole('button', { name: 'Birthday' }));
+    fireEvent.press(screen.getByText('Birthday'));
     fireEvent.press(screen.getByTestId('birthday-year-unknown'));
     expect(onChange).not.toHaveBeenCalled();
     fireEvent.press(screen.getByRole('button', { name: 'Save' }));
@@ -252,7 +264,7 @@ describe('DogForm', () => {
     const { onChange } = setup(
       makeValues({ name: 'Hana', gender: 'male', birthdayYear: '2021', birthdayMonth: '6', birthdayDay: '15' }),
     );
-    fireEvent.press(screen.getByRole('button', { name: 'Birthday' }));
+    fireEvent.press(screen.getByText('Birthday'));
     fireEvent.press(screen.getByTestId('birthday-month-unknown'));
     fireEvent.press(screen.getByRole('button', { name: 'Save' }));
     expect(onChange).toHaveBeenCalledWith(makeValues({ name: 'Hana', gender: 'male', birthdayYear: '2021' }));
@@ -260,7 +272,7 @@ describe('DogForm', () => {
 
   it('requires year before month and month before day can be selected', () => {
     setup();
-    fireEvent.press(screen.getByRole('button', { name: 'Birthday' }));
+    fireEvent.press(screen.getByText('Birthday'));
     expect(screen.getByTestId('birthday-month-1').props.accessibilityState.disabled).toBe(true);
     expect(screen.getByTestId('birthday-day-1').props.accessibilityState.disabled).toBe(true);
     fireEvent.press(screen.getByTestId('birthday-year-2021'));

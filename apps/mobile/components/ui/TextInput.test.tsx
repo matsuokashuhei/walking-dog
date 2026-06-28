@@ -7,15 +7,22 @@ jest.mock('@/hooks/use-color-scheme', () => ({
 }));
 
 describe('TextInput', () => {
-  it('renders the label', () => {
+  it('uses the label as the default placeholder without rendering visible label text', () => {
     render(<TextInput label="Email" />);
-    expect(screen.getByText('Email')).toBeTruthy();
+    expect(screen.getByPlaceholderText('Email')).toBeTruthy();
+    expect(screen.queryByText('Email')).toBeNull();
+  });
+
+  it('prefers an explicit placeholder over the label', () => {
+    render(<TextInput label="Email" placeholder="you@example.com" />);
+    expect(screen.getByPlaceholderText('you@example.com')).toBeTruthy();
+    expect(screen.queryByPlaceholderText('Email')).toBeNull();
   });
 
   it('calls onChangeText when the user types', () => {
     const onChangeText = jest.fn();
     render(<TextInput label="Email" onChangeText={onChangeText} />);
-    fireEvent.changeText(screen.getByLabelText('Email'), 'foo@example.com');
+    fireEvent.changeText(screen.getByPlaceholderText('Email'), 'foo@example.com');
     expect(onChangeText).toHaveBeenCalledWith('foo@example.com');
   });
 
@@ -31,22 +38,30 @@ describe('TextInput', () => {
 
   it('passes value prop through to the native input', () => {
     render(<TextInput label="Email" value="initial" />);
-    expect(screen.getByLabelText('Email').props.value).toBe('initial');
+    expect(screen.getByPlaceholderText('Email').props.value).toBe('initial');
   });
 
-  it('renders inline labelPosition with label and input accessible', () => {
+  it('re-seeds the native input when the parent value changes externally', () => {
+    const { rerender } = render(<TextInput label="Email" value="initial" />);
+
+    rerender(<TextInput label="Email" value="reset@example.com" />);
+
+    expect(screen.getByPlaceholderText('Email').props.value).toBe('reset@example.com');
+  });
+
+  it('renders inline labelPosition without a visible label and with an input placeholder', () => {
     render(
       <TextInput label="Email" labelPosition="inline" value="coco@walk.app" />,
     );
-    expect(screen.getByText('Email')).toBeTruthy();
-    expect(screen.getByLabelText('Email').props.value).toBe('coco@walk.app');
+    expect(screen.queryByText('Email')).toBeNull();
+    expect(screen.getByPlaceholderText('Email').props.value).toBe('coco@walk.app');
   });
 
-  it('inline variant renders separator when separator prop is true', () => {
+  it('does not render a manual separator when separator prop is true', () => {
     render(
       <TextInput label="Email" labelPosition="inline" separator testID="email-row" />,
     );
-    expect(screen.getByTestId('email-row-separator')).toBeTruthy();
+    expect(screen.queryByTestId('email-row-separator')).toBeNull();
   });
 
   it('inline variant highlights the row while focused', () => {
@@ -54,7 +69,7 @@ describe('TextInput', () => {
       <TextInput label="Email" labelPosition="inline" testID="email-row" />,
     );
 
-    fireEvent(screen.getByLabelText('Email'), 'focus');
+    fireEvent(screen.getByPlaceholderText('Email'), 'focus');
 
     const rowStyle = StyleSheet.flatten(screen.getByTestId('email-row-container').props.style);
     expect(rowStyle.borderColor).not.toBe('transparent');
@@ -73,7 +88,7 @@ describe('TextInput', () => {
       />,
     );
 
-    const input = screen.getByLabelText('Email');
+    const input = screen.getByPlaceholderText('Email');
 
     fireEvent(input, 'focus');
     fireEvent(input, 'blur');
@@ -82,7 +97,7 @@ describe('TextInput', () => {
     expect(onBlur).toHaveBeenCalledTimes(1);
   });
 
-  it('inline variant does not render separator when separator prop is false', () => {
+  it('does not render a manual separator when separator prop is false', () => {
     render(
       <TextInput label="Password" labelPosition="inline" testID="pwd-row" />,
     );

@@ -174,10 +174,7 @@ export function DogForm({ values, onChange, showDailyGoal = true }: DogFormProps
 
   return (
     <View style={styles.container}>
-      <NativeFieldSection
-        style={styles.profileFieldSection}
-        testID="dog-profile-fields"
-      >
+      <NativeFieldSection testID="dog-profile-fields">
         <TextInput
           label={t('dogs.form.name')}
           labelPosition="inline"
@@ -639,9 +636,6 @@ const styles = StyleSheet.create({
   goalSliderHost: {
     height: GOAL_SLIDER_HEIGHT,
     width: '100%',
-  },
-  profileFieldSection: {
-    height: components.textInput.height * 2 + components.row.minHeight * 2 + spacing.step60 * 2,
   },
   goalLimits: {
     flexDirection: 'row',

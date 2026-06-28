@@ -415,7 +415,7 @@ Expo Router の leaf route は 14 個あるが、以下 2 route は画面を描�
 | `ScreenHeader` | large title / inline header、戻る、保存、編集、追加など |
 | `BackButton` | 戻る導線 |
 | `GroupedCard` | 統計、地図、散歩履歴などの汎用カード surface |
-| `NativeFieldSection` | `@expo/ui` FieldGroup ベースのフォーム / 設定セクション |
+| `NativeFieldSection` | `@expo/ui` TextInput / Row を画面スクロール内に並べる静的フォーム / 設定セクション |
 | `NativeFieldRow` | `@expo/ui` Row + Icon ベースの設定行、アカウント導線、値付き行 |
 | `TextInput` | `@expo/ui` TextInput ベースの入力欄。label は visible label ではなく placeholder として表示する |
 | `Button` | primary / secondary / ghost / destructive などの汎用ボタン |
@@ -434,6 +434,7 @@ Expo Router の leaf route は 14 個あるが、以下 2 route は画面を描�
 - Me タブはプロフィールと散歩貢献を主表示し、表示設定や法務リンクは `/settings` に置く。
 - map 主役の画面は `ScreenHeader` で上を押し下げず、マップ全面 + overlay 構成を維持する。
 - 入力・設定 UI は grouped row 形式と `ActionSheetIOS` ベースの選択を第一候補にする。
+- 入力セクション内に独立したスクロール領域を作らず、画面単位の `ScrollView` にスクロール範囲を集約する。
 - スタイルを変更する場合は `apps/mobile/theme/tokens.ts` の token を使い、magic number を増やさない。
 - UI 整理の判断は product axes で説明する:
   - Dog experience: 犬同士の出会い、犬との関係性を深めるか

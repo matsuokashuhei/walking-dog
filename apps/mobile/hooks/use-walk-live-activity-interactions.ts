@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useCommitWalkEvent } from '@/hooks/use-commit-walk-event';
 import { useWalkEventRecorder } from '@/hooks/use-walk-event-recorder';
 import { useWalkSession } from '@/hooks/use-walk-session';
+import { runDetached } from '@/lib/run-detached';
 import { handleWalkActivityTarget } from '@/lib/walk/live-activity-interactions';
 import { useWalkStore } from '@/stores/walk-store';
 import type { WalkActivityEventType } from '@/types/graphql';
@@ -60,10 +61,13 @@ export function useWalkLiveActivityInteractions() {
 
   useEffect(() => {
     const subscription = addUserInteractionListener((event) => {
-      void handleWalkActivityTarget(event.target, {
-        recordEvent: recordActivityEvent,
-        finishWalk,
-      });
+      runDetached(
+        handleWalkActivityTarget(event.target, {
+          recordEvent: recordActivityEvent,
+          finishWalk,
+        }),
+        'walk.liveActivity.target',
+      );
     });
 
     return () => subscription.remove();

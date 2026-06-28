@@ -16,6 +16,7 @@ import { useColors } from '@/hooks/use-colors';
 import { useInvalidateUserQueries } from '@/hooks/use-invalidate-user-queries';
 import { useMe } from '@/hooks/use-me';
 import { toAuthError } from '@/lib/auth/errors';
+import { runDetached } from '@/lib/run-detached';
 import { spacing, typography } from '@/theme/tokens';
 import type { EmailChangeChallenge } from '@/lib/auth/api';
 
@@ -29,7 +30,7 @@ export default function EmailSettingsScreen() {
       <ErrorScreen
         message={t('user.loadError')}
         onRetry={() => {
-          void refetch();
+          runDetached(refetch(), 'settings.email.refetch');
         }}
       />
     );

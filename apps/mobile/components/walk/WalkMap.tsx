@@ -6,6 +6,7 @@ import MapView, { Marker, Polyline, type Region } from 'react-native-maps';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
 import { useWalkStore } from '@/stores/walk-store';
+import { runDetached } from '@/lib/run-detached';
 import { MAP_EVENT_EMOJIS } from '@/lib/walk/events';
 import { TOKYO_STATION_COORDINATE } from '@/lib/walk/constants';
 import { radius, spacing, typography } from '@/theme/tokens';
@@ -76,9 +77,7 @@ function usePreviewCurrentLocationRegion(enabled: boolean): Region | undefined {
       );
     }
 
-    void resolveCurrentLocationRegion().catch((error) => {
-      console.error('[walk.map.currentLocation] failed', error);
-    });
+    runDetached(resolveCurrentLocationRegion(), 'walk.map.currentLocation');
 
     return () => {
       isActive = false;

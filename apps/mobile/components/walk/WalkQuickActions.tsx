@@ -7,6 +7,7 @@ import { elevation, radius, spacing, typography } from '@/theme/tokens';
 import { useWalkStore } from '@/stores/walk-store';
 import { useMutationWithAlert } from '@/hooks/use-mutation-with-alert';
 import { useRecordWalkEvent } from '@/hooks/use-walk-event-mutations';
+import { runDetached } from '@/lib/run-detached';
 import { UI_EVENT_EMOJIS } from '@/lib/walk/events';
 import type { Dog } from '@/types/graphql';
 
@@ -46,7 +47,7 @@ export function WalkQuickActions({ dogs }: WalkQuickActionsProps) {
       if (!event) return;
 
       addEvent(event);
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      runDetached(Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light), 'walk.haptics.impact');
     },
     [walkId, latestPoint, recordWalkEvent, addEvent, runWithAlert],
   );
@@ -131,7 +132,8 @@ function Pill({ label, onPress, disabled, bg, border, color, accessibilityLabel,
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ disabled }}
       onPress={() => {
-        void onPress();
+        const result = onPress();
+        if (result) runDetached(result, 'walk.quickAction.press');
       }}
       style={({ pressed }) => [
         styles.pill,

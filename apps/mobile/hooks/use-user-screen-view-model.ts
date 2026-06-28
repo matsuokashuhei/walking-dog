@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { runDetached } from '@/lib/run-detached';
 import { formatDistance, formatDistanceParts, formatDuration } from '@/lib/walk/format';
 import { useUserProfile, type UserProfileData } from './use-user-profile';
 
@@ -55,7 +56,7 @@ export function useUserScreenViewModel(): UserViewModel {
   const { data, isLoading, error, refetch } = useUserProfile();
 
   const handleRetry = useCallback(() => {
-    void refetch();
+    runDetached(refetch(), 'user.screen.refetch');
   }, [refetch]);
 
   if (isLoading) return { status: 'loading', handleRetry };

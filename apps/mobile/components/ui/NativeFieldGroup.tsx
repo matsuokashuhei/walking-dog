@@ -1,7 +1,12 @@
-import { Children, createContext, type ReactNode } from 'react';
-import type { StyleProp, ViewStyle } from 'react-native';
+import { Children, createContext, Fragment, isValidElement, type ReactNode } from 'react';
 import {
-  FieldGroup,
+  StyleSheet,
+  Text as RNText,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
+import {
   Host,
   Icon,
   Row,
@@ -11,7 +16,7 @@ import {
 } from '@expo/ui';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useColors } from '@/hooks/use-colors';
-import { components, spacing, typography } from '@/theme/tokens';
+import { components, elevation, radius, spacing, typography } from '@/theme/tokens';
 
 export const NativeFieldGroupContext = createContext(false);
 
@@ -80,36 +85,45 @@ interface NativeFieldRowProps {
 }
 
 export function NativeFieldSection({ children, style, testID, title }: NativeFieldSectionProps) {
-  const colorScheme = useColorScheme();
   const theme = useColors();
-  const estimatedHeight = getFieldSectionHeight(children, title);
+  const rows = Children.toArray(children).filter(Boolean);
 
   return (
-    <NativeFieldGroupContext.Provider value>
-      <Host
-        colorScheme={colorScheme}
-        style={[styles.host, { height: estimatedHeight }, style]}
-        testID={testID ? `${testID}-host` : undefined}
-        useViewportSizeMeasurement
+    <View style={[styles.section, style]}>
+      {title ? (
+        <RNText style={[styles.title, { color: theme.onSurfaceVariant }]}>
+          {title}
+        </RNText>
+      ) : null}
+      <View
+        style={[
+          styles.card,
+          { backgroundColor: theme.surface },
+          elevation.low,
+        ]}
+        testID={testID}
       >
-        <FieldGroup
-          testID={testID}
-          style={{ backgroundColor: theme.background }}
-        >
-          <FieldGroup.Section title={title}>{children}</FieldGroup.Section>
-        </FieldGroup>
-      </Host>
-    </NativeFieldGroupContext.Provider>
+        {rows.map((child, index) => (
+          <Fragment key={getRowKey(child, index)}>
+            {child}
+            {index < rows.length - 1 ? (
+              <View
+                style={[styles.separator, { backgroundColor: theme.border }]}
+                testID={testID ? `${testID}-separator-${index}` : undefined}
+              />
+            ) : null}
+          </Fragment>
+        ))}
+      </View>
+    </View>
   );
 }
 
-function getFieldSectionHeight(children: ReactNode, title?: string): number {
-  const rowCount = Children.toArray(children).filter(Boolean).length;
-  const headerHeight = title ? spacing.xl : spacing.md;
-  return Math.max(
-    components.row.minHeight,
-    rowCount * components.row.minHeight + headerHeight + spacing.md,
-  );
+function getRowKey(child: ReactNode, index: number): string {
+  if (isValidElement(child) && child.key != null) {
+    return String(child.key);
+  }
+  return `row-${index}`;
 }
 
 export function NativeFieldRow({
@@ -123,63 +137,90 @@ export function NativeFieldRow({
   testID,
   value,
 }: NativeFieldRowProps) {
+  const colorScheme = useColorScheme();
   const theme = useColors();
   const renderChevron = showChevron ?? typeof onPress === 'function';
 
   return (
-    <Row
-      alignment="center"
-      disabled={disabled}
-      onPress={disabled ? undefined : onPress}
-      spacing={components.row.gap}
-      style={styles.row}
-      testID={testID}
+    <Host
+      colorScheme={colorScheme}
+      matchContents={{ vertical: true }}
+      style={styles.rowHost}
+      testID={testID ? `${testID}-host` : undefined}
     >
-      {icon ? (
-        <Icon
-          name={NATIVE_FIELD_ICONS[icon]}
-          size={typography.body.fontSize}
-          color={iconColor ?? theme.interactive}
-        />
-      ) : null}
-      <Text
-        numberOfLines={1}
-        textStyle={{
-          ...typography.body,
-          color: labelColor ?? theme.onSurface,
-        }}
+      <Row
+        alignment="center"
+        disabled={disabled}
+        onPress={disabled ? undefined : onPress}
+        spacing={components.row.gap}
+        style={styles.row}
+        testID={testID}
       >
-        {label}
-      </Text>
-      <Spacer flexible />
-      {value ? (
+        {icon ? (
+          <Icon
+            name={NATIVE_FIELD_ICONS[icon]}
+            size={typography.body.fontSize}
+            color={iconColor ?? theme.interactive}
+          />
+        ) : null}
         <Text
           numberOfLines={1}
           textStyle={{
-            ...typography.subheadline,
-            color: theme.onSurfaceVariant,
+            ...typography.body,
+            color: labelColor ?? theme.onSurface,
           }}
         >
-          {value}
+          {label}
         </Text>
-      ) : null}
-      {renderChevron ? (
-        <Icon
-          name={NATIVE_FIELD_ICONS.chevronRight}
-          size={typography.body.fontSize}
-          color={theme.textDisabled}
-        />
-      ) : null}
-    </Row>
+        <Spacer flexible />
+        {value ? (
+          <Text
+            numberOfLines={1}
+            textStyle={{
+              ...typography.subheadline,
+              color: theme.onSurfaceVariant,
+            }}
+          >
+            {value}
+          </Text>
+        ) : null}
+        {renderChevron ? (
+          <Icon
+            name={NATIVE_FIELD_ICONS.chevronRight}
+            size={typography.body.fontSize}
+            color={theme.textDisabled}
+          />
+        ) : null}
+      </Row>
+    </Host>
   );
 }
 
-const styles = {
-  host: {
+const styles = StyleSheet.create({
+  section: {
     width: '100%' as const,
   },
+  title: {
+    ...typography.metricLabel,
+    fontWeight: typography.headline.fontWeight,
+    paddingHorizontal: spacing.xs,
+    marginBottom: spacing.step10,
+  },
+  card: {
+    width: '100%',
+    borderRadius: radius.xl,
+    overflow: 'hidden',
+  },
+  separator: {
+    height: StyleSheet.hairlineWidth,
+    marginLeft: components.row.paddingH,
+  },
+  rowHost: {
+    width: '100%',
+  },
   row: {
+    minHeight: components.row.minHeight,
     paddingHorizontal: components.row.paddingH,
     paddingVertical: components.row.paddingV,
   },
-};
+});

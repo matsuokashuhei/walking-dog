@@ -3,6 +3,7 @@ import { useMutationWithAlert } from '@/hooks/use-mutation-with-alert';
 import { usePhotoUpload, PhotoUploadError } from '@/hooks/use-photo-upload';
 import { useRecordWalkEvent } from '@/hooks/use-walk-event-mutations';
 import { useFlushWalkEventOutbox } from '@/hooks/use-flush-walk-event-outbox';
+import { runDetached } from '@/lib/run-detached';
 import { enqueuePendingEvent } from '@/lib/walk/event-outbox';
 import type { WalkActivityEventType, WalkEvent } from '@/types/graphql';
 
@@ -61,9 +62,7 @@ export function useWalkEventRecorder({
 
   // レコーダー起動時に、過去のオフライン操作で溜まったイベントを再送します。
   useEffect(() => {
-    void flushOutbox().catch(() => {
-      /* ベストエフォートのため、次回の記録成功時に再試行します。 */
-    });
+    runDetached(flushOutbox(), 'walk.outbox.flushOnRecorderStart');
   }, [flushOutbox]);
 
   // 通常イベントは失敗時に outbox へ積み、オンライン復帰後に再送できるようにします。
@@ -113,9 +112,7 @@ export function useWalkEventRecorder({
       }
 
       // 成功時に、以前の失敗で残っているイベントも可能な範囲で再送します。
-      void flushOutbox().catch(() => {
-        /* ベストエフォートのため握りつぶします。 */
-      });
+      runDetached(flushOutbox(), 'walk.outbox.flushAfterRecord');
       return result;
     },
     [walkId, latestPoint, recordWalkEvent, runWithAlert, source, flushOutbox],

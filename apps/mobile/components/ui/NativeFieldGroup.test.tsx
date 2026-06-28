@@ -2,20 +2,20 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import { NativeFieldSection, NativeFieldRow } from './NativeFieldGroup';
 
 describe('NativeFieldGroup', () => {
-  it('wraps rows in a hosted field section', () => {
+  it('renders rows in a static field section without a hosted scroll container', () => {
     render(
       <NativeFieldSection testID="profile-section">
         <NativeFieldRow label="Name" value="Mio" />
       </NativeFieldSection>,
     );
 
-    expect(screen.getByTestId('profile-section-host')).toBeTruthy();
+    expect(screen.queryByTestId('profile-section-host')).toBeNull();
     expect(screen.getByTestId('profile-section')).toBeTruthy();
     expect(screen.getByText('Name')).toBeTruthy();
     expect(screen.getByText('Mio')).toBeTruthy();
   });
 
-  it('gives the native field group a viewport height based on row count', () => {
+  it('renders the section title and separators in the static field section', () => {
     render(
       <NativeFieldSection testID="profile-section" title="Profile">
         <NativeFieldRow label="Name" />
@@ -23,25 +23,20 @@ describe('NativeFieldGroup', () => {
       </NativeFieldSection>,
     );
 
-    const hostStyle = screen.getByTestId('profile-section-host').props.style;
-    expect(hostStyle).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ width: '100%' }),
-        expect.objectContaining({ height: expect.any(Number) }),
-      ]),
-    );
+    expect(screen.getByText('Profile')).toBeTruthy();
+    expect(screen.getByTestId('profile-section-separator-0')).toBeTruthy();
   });
 
-  it('hosts the native field group with viewport measurement instead of content matching', () => {
+  it('hosts each native row with content matching instead of viewport measurement', () => {
     render(
       <NativeFieldSection testID="profile-section">
-        <NativeFieldRow label="Name" />
+        <NativeFieldRow label="Name" testID="name-row" />
       </NativeFieldSection>,
     );
 
-    const hostProps = screen.getByTestId('profile-section-host').props;
-    expect(hostProps.useViewportSizeMeasurement).toBe(true);
-    expect(hostProps.matchContents).toBeUndefined();
+    const rowHostProps = screen.getByTestId('name-row-host').props;
+    expect(rowHostProps.matchContents).toEqual({ vertical: true });
+    expect(rowHostProps.useViewportSizeMeasurement).toBeUndefined();
   });
 
   it('fires row actions from the native row surface', () => {

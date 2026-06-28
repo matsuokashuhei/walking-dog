@@ -4,6 +4,7 @@ import { useDog } from '@/hooks/use-dog';
 import { aggregatePackProgress } from '@/hooks/use-pack-progress';
 import type { GoalCycleDays } from '@/constants/walk';
 import { useMyWalks } from '@/hooks/use-walks';
+import { runDetached } from '@/lib/run-detached';
 import type { Dog, DogWithStats, Walk } from '@/types/graphql';
 
 // 犬の誕生日から、詳細画面に出す短い年齢表示を作ります。
@@ -82,7 +83,9 @@ export function useDogDetailViewModel(): DogDetailViewModel {
   );
 
   const retryWalks = useCallback(() => {
-    void refetchWalks?.();
+    if (refetchWalks) {
+      runDetached(refetchWalks(), 'dog.detail.walks.refetch');
+    }
   }, [refetchWalks]);
 
   // 詳細表示に必要なデータが揃うまで、画面側へ loading として返します。

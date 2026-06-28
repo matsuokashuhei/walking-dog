@@ -7,7 +7,7 @@ import {
   isDogFormValid,
   type DogFormValues,
 } from './DogForm';
-import { components, spacing } from '@/theme/tokens';
+import { spacing } from '@/theme/tokens';
 
 jest.mock('@/components/ui/icon-symbol', () => ({
   IconSymbol: () => null,
@@ -76,16 +76,10 @@ describe('DogForm', () => {
     expect(screen.queryByTestId('dog-gender-segmented-control')).toBeNull();
   });
 
-  it('sizes the native profile field section so all rows are initially visible', () => {
+  it('keeps the profile fields in the screen scroll flow instead of a nested host', () => {
     setup();
-    expect(screen.getByTestId('dog-profile-fields-host').props.style).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ height: expect.any(Number) }),
-        expect.objectContaining({
-          height: components.textInput.height * 2 + components.row.minHeight * 2 + spacing.step60 * 2,
-        }),
-      ]),
-    );
+    expect(screen.getByTestId('dog-profile-fields')).toBeTruthy();
+    expect(screen.queryByTestId('dog-profile-fields-host')).toBeNull();
   });
 
   it('renders the goal section with the default daily time goal', () => {

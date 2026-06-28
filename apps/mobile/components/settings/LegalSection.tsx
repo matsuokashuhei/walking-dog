@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { NativeFieldRow, NativeFieldSection } from '@/components/ui/NativeFieldGroup';
 import { useColors } from '@/hooks/use-colors';
 import { PRIVACY_POLICY_URL, TERMS_URL } from '@/lib/legal-urls';
+import { runDetached } from '@/lib/run-detached';
 import { spacing } from '@/theme/tokens';
 
 export function LegalSection() {
@@ -12,11 +13,11 @@ export function LegalSection() {
   const version = Constants.expoConfig?.version ?? '1.0.0';
 
   function openTerms() {
-    void Linking.openURL(TERMS_URL);
+    runDetached(Linking.openURL(TERMS_URL), 'settings.legal.openTerms');
   }
 
   function openPrivacy() {
-    void Linking.openURL(PRIVACY_POLICY_URL);
+    runDetached(Linking.openURL(PRIVACY_POLICY_URL), 'settings.legal.openPrivacy');
   }
 
   return (

@@ -13,6 +13,7 @@ import { useMe } from '@/hooks/use-me';
 import { useUpdateUser } from '@/hooks/use-user-mutations';
 import { useMutationWithAlert } from '@/hooks/use-mutation-with-alert';
 import { useColors } from '@/hooks/use-colors';
+import { runDetached } from '@/lib/run-detached';
 import { spacing } from '@/theme/tokens';
 import type { UploadFile } from '@/lib/graphql/client';
 import type { User } from '@/types/graphql';
@@ -27,7 +28,7 @@ export default function UserEditScreen() {
       <ErrorScreen
         message={t('user.loadError')}
         onRetry={() => {
-          void refetch();
+          runDetached(refetch(), 'user.edit.refetch');
         }}
       />
     );

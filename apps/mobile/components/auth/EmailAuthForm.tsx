@@ -11,6 +11,7 @@ import { useColors } from '@/hooks/use-colors';
 import { toAuthError } from '@/lib/auth/errors';
 import type { OneTimePasswordChallenge } from '@/lib/auth/api';
 import { PRIVACY_POLICY_URL, TERMS_URL } from '@/lib/legal-urls';
+import { runDetached } from '@/lib/run-detached';
 import { spacing, typography } from '@/theme/tokens';
 
 interface EmailAuthFormProps {
@@ -102,7 +103,7 @@ export function EmailAuthForm({
   }
 
   function openLegalUrl(url: string) {
-    void Linking.openURL(url);
+    runDetached(Linking.openURL(url), 'auth.legal.openUrl');
   }
 
   return (

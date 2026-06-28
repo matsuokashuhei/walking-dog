@@ -1,0 +1,7 @@
+{
+  "name": "Walking Dog Precise Native Rebuild",
+  "id": "walking-dog-precise-native-rebuild",
+  "api": "1.0.0",
+  "main": "code.js",
+  "editorType": ["figma"]
+}

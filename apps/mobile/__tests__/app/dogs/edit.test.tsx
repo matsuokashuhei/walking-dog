@@ -1,8 +1,9 @@
-import { Alert } from 'react-native';
+import { Alert, StyleSheet } from 'react-native';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import * as ImagePicker from 'expo-image-picker';
 import EditDogScreen from '../../../app/dogs/[id]/edit';
 import type { DogWithStats } from '@/types/graphql';
+import { colors, dogContactChrome } from '@/theme/tokens';
 
 const mockBack = jest.fn();
 const mockReplace = jest.fn();
@@ -22,11 +23,28 @@ jest.mock('expo-image', () => ({
   Image: 'Image',
 }));
 
+jest.mock('expo-blur', () => {
+  const { View } = jest.requireActual('react-native');
+  return {
+    BlurView: ({ children, ...props }: { children: React.ReactNode }) => (
+      <View {...props}>{children}</View>
+    ),
+  };
+});
+
 jest.mock('expo-image-picker', () => ({
   PermissionStatus: { GRANTED: 'granted' },
   requestMediaLibraryPermissionsAsync: jest.fn(),
   launchImageLibraryAsync: jest.fn(),
 }));
+
+jest.mock('@/components/ui/icon-symbol', () => {
+  const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
+
+  return {
+    IconSymbol: ({ name }: { name: string }) => <Text>{name}</Text>,
+  };
+});
 
 const mockRequestMediaLibraryPermissionsAsync =
   ImagePicker.requestMediaLibraryPermissionsAsync as jest.MockedFunction<
@@ -92,12 +110,24 @@ describe('EditDogScreen', () => {
     });
   });
 
-  it('renders the inline ScreenHeader title and common actions', () => {
+  it('renders contacts-style cancel and save icon buttons', () => {
     render(<EditDogScreen />);
 
-    expect(screen.getByRole('header', { name: 'Edit dog' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy();
+    expect(screen.queryByRole('header', { name: 'Edit dog' })).toBeNull();
+    expect(screen.queryByText('Cancel')).toBeNull();
+    expect(screen.queryByText('Save')).toBeNull();
+    expect(screen.getByText('xmark')).toBeTruthy();
+    expect(screen.getByText('checkmark')).toBeTruthy();
+
+    const cancelStyle = StyleSheet.flatten(screen.getByTestId('dog-edit-cancel-button').props.style);
+    const saveStyle = StyleSheet.flatten(screen.getByTestId('dog-edit-save-button').props.style);
+    expect(cancelStyle.width).toBe(dogContactChrome.circleSize);
+    expect(cancelStyle.backgroundColor).toBe(colors.light.background);
+    expect(cancelStyle.borderColor).toBe(colors.light.border);
+    expect(saveStyle.height).toBe(dogContactChrome.circleSize);
+    expect(saveStyle.backgroundColor).toBe(colors.light.background);
   });
 
   it('uses the ScreenHeader cancel action to go back', () => {
@@ -169,7 +199,12 @@ describe('EditDogScreen', () => {
   it('renders a remove dog button for the current dog', () => {
     render(<EditDogScreen />);
 
-    expect(screen.getByRole('button', { name: 'Remove Buddy' })).toBeTruthy();
+    const remove = screen.getByRole('button', { name: 'Remove Buddy' });
+    const removeStyle = StyleSheet.flatten(remove.props.style);
+
+    expect(remove).toBeTruthy();
+    expect(removeStyle.borderRadius).toBe(dogContactChrome.deleteButtonRadius);
+    expect(removeStyle.backgroundColor).not.toBe('transparent');
   });
 
   it('shows a confirmation alert before removing the dog', () => {

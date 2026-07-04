@@ -339,3 +339,24 @@ export const components = {
 } as const;
 
 export type ComponentTokens = typeof components;
+
+export const dogContactChrome = {
+  circleSize: 52,
+  circleRadius: 26,
+  pillMinWidth: 75,
+  pillHeight: 52,
+  pillRadius: 27,
+  pillPaddingH: 20,
+  iconSize: 28,
+  labelFont: {
+    fontSize: 20,
+    fontWeight: '700' as const,
+    lineHeight: 24,
+  },
+  blurIntensity: 72,
+  disabledOpacity: 0.45,
+  deleteButtonMinHeight: 58,
+  deleteButtonRadius: 24,
+} as const;
+
+export type DogContactChromeTokens = typeof dogContactChrome;

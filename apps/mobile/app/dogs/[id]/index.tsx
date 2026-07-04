@@ -1,28 +1,17 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useDogDetailViewModel } from '@/hooks/use-dog-detail-view-model';
 import { WEEKLY_GOAL_CYCLE_DAYS } from '@/constants/walk';
 import { DogHero } from '@/components/dogs/DogHero';
+import { DogContactChromeButton } from '@/components/dogs/DogContactChromeButton';
 import { GoalProgressCard } from '@/components/dogs/GoalProgressCard';
 import { DogStatsCard } from '@/components/dogs/DogStatsCard';
 import { DogWalksList } from '@/components/dogs/DogWalksList';
-import { BackButton } from '@/components/ui/BackButton';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { useColors } from '@/hooks/use-colors';
-import { layout, spacing, typography } from '@/theme/tokens';
-
-// Hardcoded for legibility over arbitrary user photos; this chrome must stay
-// pure white regardless of the active color scheme.
-const OVERLAY_TEXT = '#FFFFFF';
-const OVERLAY_SHADOW_OFFSET_X = 0;
-const OVERLAY_SHADOW_OFFSET_Y = 1;
-const OVERLAY_TEXT_SHADOW = {
-  textShadowColor: 'rgba(0,0,0,0.3)',
-  textShadowOffset: { width: OVERLAY_SHADOW_OFFSET_X, height: OVERLAY_SHADOW_OFFSET_Y },
-  textShadowRadius: spacing.xs,
-} as const;
+import { dogContactChrome, spacing, typography } from '@/theme/tokens';
 
 // Lifts the name block into the hero's 60pt bottom fade without changing DogHero.
 const NAME_OVERLAP = 50;
@@ -116,29 +105,27 @@ export default function DogDetailScreen() {
           testID="dog-detail-header-action-row"
           style={styles.headerActionRow}
         >
-          <BackButton
+          <DogContactChromeButton
+            shape="circle"
             accessibilityLabel={t('dogs.detail.back')}
             label={t('dogs.detail.back')}
             onPress={handleBack}
-            color={OVERLAY_TEXT}
-            labelStyle={styles.headerText}
-            style={styles.headerLeft}
+            iconName="chevron.backward"
+            testID="dog-detail-back-button"
           />
 
-          <Pressable
-            accessibilityRole="button"
+          <DogContactChromeButton
+            shape="pill"
             accessibilityLabel={t('dogs.detail.edit')}
-            hitSlop={spacing.step12}
+            label={t('dogs.detail.edit')}
             onPress={() =>
               router.push({
                 pathname: '/dogs/[id]/edit',
                 params: { id: vm.dog.id },
               })
             }
-            style={styles.headerRight}
-          >
-            <Text style={styles.headerText}>{t('dogs.detail.edit')}</Text>
-          </Pressable>
+            testID="dog-detail-edit-button"
+          />
         </View>
       </View>
     </View>
@@ -175,28 +162,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: SCREEN_EDGE,
     right: SCREEN_EDGE,
-    height: layout.navBar,
+    height: dogContactChrome.circleSize,
   },
   headerActionRow: {
-    height: layout.navBar,
+    height: dogContactChrome.circleSize,
     paddingHorizontal: spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-  },
-  headerLeft: {
-    minHeight: layout.navBar,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.step6,
-  },
-  headerRight: {
-    minHeight: layout.navBar,
-    justifyContent: 'center',
-  },
-  headerText: {
-    ...typography.body,
-    ...OVERLAY_TEXT_SHADOW,
-    color: OVERLAY_TEXT,
   },
 });

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Maestro E2E"
+  short_description: "Run mobile Maestro E2E flows"
+  default_prompt: "Use $maestro-e2e before running or debugging mobile Maestro E2E flows in this repo."

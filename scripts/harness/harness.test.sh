@@ -1,0 +1,231 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+tmpdirs=()
+
+make_tmpdir() {
+  local var_name="$1" created_tmpdir
+  created_tmpdir="$(mktemp -d)"
+  tmpdirs+=("$created_tmpdir")
+  printf -v "$var_name" '%s' "$created_tmpdir"
+}
+
+cleanup_tmpdirs() {
+  ((${#tmpdirs[@]} == 0)) || rm -rf "${tmpdirs[@]}"
+}
+
+trap cleanup_tmpdirs EXIT
+
+fail() {
+  echo "not ok - $1" >&2
+  exit 1
+}
+
+assert_contains() {
+  local haystack="$1" needle="$2" message="$3"
+  [[ "$haystack" == *"$needle"* ]] || fail "$message"
+}
+
+assert_not_contains() {
+  local haystack="$1" needle="$2" message="$3"
+  [[ "$haystack" != *"$needle"* ]] || fail "$message"
+}
+
+write_file() {
+  local root="$1" path="$2" content="$3"
+  mkdir -p "$(dirname "$root/$path")"
+  printf '%s' "$content" > "$root/$path"
+}
+
+write_complete_knowledge_fixture() {
+  local root="$1" axis_content
+  axis_content=$'# Journey\n犬の体験\nデータによる散歩の最大化\n飼い主の貢献心\n'
+
+  write_file "$root" "AGENTS.md" $'# Agents\n- [Harness](docs/harness/README.md)\n- [Quality](docs/harness/quality-score.md)\n'
+  write_file "$root" "CLAUDE.md" $'# Compatibility\n\nSee [AGENTS.md](AGENTS.md).\n'
+  write_file "$root" "docs/harness/README.md" $'# Harness\n'
+  write_file "$root" "docs/product/principles.md" $'# Product\n'
+  write_file "$root" "docs/harness/domain-rules.md" $'# Domain\n'
+  write_file "$root" "docs/architecture/harness-first-development.md" $'# Architecture\n'
+  write_file "$root" "docs/runbooks/local-harness.md" $'# Runbook\n'
+  write_file "$root" "docs/harness/quality-score.md" $'# Quality Score\n'
+  write_file "$root" "docs/harness/lessons-learned.md" $'# Lessons Learned\n'
+  write_file "$root" "docs/harness/journeys/auth-onboarding.md" "$axis_content"
+  write_file "$root" "docs/harness/journeys/dog-profile.md" "$axis_content"
+  write_file "$root" "docs/harness/journeys/walk-goal.md" "$axis_content"
+  write_file "$root" "docs/harness/journeys/walk-lifecycle.md" "$axis_content"
+  write_file "$root" "docs/harness/journeys/walk-events-photo.md" "$axis_content"
+  write_file "$root" "docs/harness/journeys/walk-history-owner-contribution.md" "$axis_content"
+}
+
+run_script_expect_status() {
+  local expected_status="$1"
+  shift
+  local output status
+  set +e
+  output="$("$@" 2>&1)"
+  status="$?"
+  set -e
+  [[ "$status" -eq "$expected_status" ]] || fail "expected status $expected_status from $*; got $status output=$output"
+  printf '%s' "$output"
+}
+
+test_validate_knowledge_reports_missing_local_markdown_links() {
+  local tmpdir output
+  make_tmpdir tmpdir
+  write_file "$tmpdir" "AGENTS.md" $'# Agents\n\n- [Missing](docs/missing.md)\n'
+  write_file "$tmpdir" "docs/harness/index.md" $'# Harness\n'
+  write_file "$tmpdir" "docs/harness/journeys/walk-lifecycle.md" $'# Walk Lifecycle\n- 犬の体験: yes\n- データによる散歩の最大化: yes\n- 飼い主の貢献心: yes\n'
+
+  output="$(run_script_expect_status 1 "$repo_root/scripts/harness/validate-knowledge.sh" "$tmpdir")"
+
+  assert_contains "$output" "missing local link" "expected missing local link message"
+  assert_contains "$output" "docs/missing.md" "expected missing markdown target in output"
+}
+
+test_validate_knowledge_accepts_complete_fixture() {
+  local tmpdir output
+  make_tmpdir tmpdir
+  write_complete_knowledge_fixture "$tmpdir"
+
+  output="$(run_script_expect_status 0 "$repo_root/scripts/harness/validate-knowledge.sh" "$tmpdir")"
+
+  [[ -z "$output" ]] || fail "expected no output from passing knowledge validation; got $output"
+}
+
+test_validate_architecture_rejects_aws_sdk_in_resolvers() {
+  local tmpdir output
+  make_tmpdir tmpdir
+  write_file "$tmpdir" "apps/api/src/graphql/mutation/dog.rs" $'use aws_sdk_s3::Client;\n'
+  write_file "$tmpdir" "apps/api/src/service/dog_walk_goal.rs" $'pub const MIN_DAILY_GOAL_MINUTES: i32 = 0;\npub const MAX_DAILY_GOAL_MINUTES: i32 = 120;\n'
+  write_file "$tmpdir" "apps/mobile/constants/walk.ts" $'export const MIN_DAILY_GOAL_MINUTES = 0;\nexport const MAX_DAILY_GOAL_MINUTES = 120;\n'
+
+  output="$(run_script_expect_status 1 "$repo_root/scripts/harness/validate-architecture.sh" "$tmpdir")"
+
+  assert_contains "$output" "GraphQL resolver boundary" "expected resolver boundary violation"
+}
+
+test_validate_architecture_rejects_walk_goal_range_drift() {
+  local tmpdir output
+  make_tmpdir tmpdir
+  write_file "$tmpdir" "apps/api/src/service/dog_walk_goal.rs" $'pub const MIN_DAILY_GOAL_MINUTES: i32 = 0;\npub const MAX_DAILY_GOAL_MINUTES: i32 = 120;\n'
+  write_file "$tmpdir" "apps/mobile/constants/walk.ts" $'export const MIN_DAILY_GOAL_MINUTES = 5;\nexport const MAX_DAILY_GOAL_MINUTES = 120;\n'
+
+  output="$(run_script_expect_status 1 "$repo_root/scripts/harness/validate-architecture.sh" "$tmpdir")"
+
+  assert_contains "$output" "walk goal minute bounds drift" "expected walk goal drift violation"
+}
+
+test_validate_architecture_rejects_track_point_worker_wrappers() {
+  local tmpdir output
+  make_tmpdir tmpdir
+  write_file "$tmpdir" "apps/api/src/bin/track_point_worker.rs" $'struct WorkerRuntimeConfig { worker_concurrency: usize }\nfn positive_usize_env_value(value: Option<&str>, default: usize) -> usize { default }\n'
+  write_file "$tmpdir" "apps/api/src/service/dog_walk_goal.rs" $'pub const MIN_DAILY_GOAL_MINUTES: i32 = 0;\npub const MAX_DAILY_GOAL_MINUTES: i32 = 120;\n'
+  write_file "$tmpdir" "apps/mobile/constants/walk.ts" $'export const MIN_DAILY_GOAL_MINUTES = 0;\nexport const MAX_DAILY_GOAL_MINUTES = 120;\n'
+
+  output="$(run_script_expect_status 1 "$repo_root/scripts/harness/validate-architecture.sh" "$tmpdir")"
+
+  assert_contains "$output" "track point worker env config" "expected track point worker violation"
+}
+
+test_validate_architecture_accepts_clean_fixture() {
+  local tmpdir output
+  make_tmpdir tmpdir
+  write_file "$tmpdir" "apps/api/src/graphql/mutation/dog.rs" $'use crate::service::dog;\n'
+  write_file "$tmpdir" "apps/api/src/service/dog_walk_goal.rs" $'pub const MIN_DAILY_GOAL_MINUTES: i32 = 0;\npub const MAX_DAILY_GOAL_MINUTES: i32 = 120;\n'
+  write_file "$tmpdir" "apps/mobile/constants/walk.ts" $'export const MIN_DAILY_GOAL_MINUTES = 0;\nexport const MAX_DAILY_GOAL_MINUTES = 120;\n'
+
+  output="$(run_script_expect_status 0 "$repo_root/scripts/harness/validate-architecture.sh" "$tmpdir")"
+
+  [[ -z "$output" ]] || fail "expected no output from passing architecture validation; got $output"
+}
+
+test_score_quality_flags_stale_plans_and_missing_docs() {
+  local tmpdir output
+  make_tmpdir tmpdir
+  mkdir -p "$tmpdir/docs/superpowers/plans"
+  write_file "$tmpdir" "docs/superpowers/plans/2025-01-01-old.md" $'# Old\n'
+
+  output="$(HARNESS_TODAY=2026-06-13T00:00:00Z run_script_expect_status 1 "$repo_root/scripts/harness/score-quality.sh" "$tmpdir")"
+
+  assert_contains "$output" "missing required quality document" "expected missing quality doc message"
+  assert_contains "$output" "old active plan" "expected stale plan message"
+}
+
+test_compose_ports_are_parameterized_for_worktree_isolation() {
+  local compose
+  compose="$(cat "$repo_root/apps/compose.yml")"
+
+  for variable in \
+    WD_API_PORT \
+    WD_POSTGRES_PORT \
+    WD_DYNAMODB_PORT \
+    WD_MINIO_PORT \
+    WD_MINIO_CONSOLE_PORT \
+    WD_ELASTICMQ_PORT \
+    WD_ELASTICMQ_UI_PORT; do
+    [[ "$compose" =~ \$\{${variable}:-[0-9]+\} ]] || fail "expected compose to parameterize $variable"
+  done
+}
+
+test_dev_stack_does_not_use_compose_override_files() {
+  local source
+  source="$(cat "$repo_root/scripts/harness/dev-stack.sh")"
+
+  assert_not_contains "$source" "compose.override.yml" "dev-stack should not use compose override yml"
+  assert_not_contains "$source" "compose.override.yaml" "dev-stack should not use compose override yaml"
+}
+
+test_run_api_journey_uses_current_user_query() {
+  local source
+  source="$(cat "$repo_root/scripts/harness/run-api-journey.sh")"
+
+  assert_contains "$source" "'{ user { id } }'" "expected walk-lifecycle user query"
+  assert_not_contains "$source" "{ me { id } }" "did not expect old me query"
+}
+
+test_authenticated_api_journeys_fail_fast_without_token() {
+  local source output
+  source="$(cat "$repo_root/scripts/harness/run-api-journey.sh")"
+
+  assert_contains "$source" "requires_auth=true" "expected authenticated journey marker"
+  assert_contains "$source" "HARNESS_ACCESS_TOKEN" "expected token guard"
+  assert_contains "$source" "real AWS Cognito access token" "expected real Cognito guidance"
+  assert_not_contains "$source" "local-auth" "did not expect local auth fallback"
+
+  output="$(run_script_expect_status 2 "$repo_root/scripts/harness/run-api-journey.sh" walk-lifecycle)"
+  assert_contains "$output" "requires HARNESS_ACCESS_TOKEN" "expected missing token to fail fast"
+}
+
+test_auth_onboarding_starts_unified_email_one_time_password_auth() {
+  local source
+  source="$(cat "$repo_root/scripts/harness/run-api-journey.sh")"
+
+  assert_contains "$source" 'mutation HarnessRequestOneTimePassword($input: RequestOneTimePasswordInput!)' "expected OTP mutation"
+  assert_contains "$source" 'requestOneTimePassword(input: $input)' "expected requestOneTimePassword call"
+  assert_contains "$source" "session" "expected session in contract"
+  assert_not_contains "$source" "displayName" "did not expect displayName"
+  assert_not_contains "$source" "purpose" "did not expect purpose"
+  assert_not_contains "$source" "password:" "did not expect password"
+}
+
+test_harness_has_no_node_scripts_or_invocations() {
+  local matches pattern
+  matches="$(find "$repo_root/scripts/harness" -maxdepth 1 \( -name '*.mjs' -o -name '*.test.mjs' \) -print)"
+  [[ -z "$matches" ]] || fail "expected no harness .mjs files; found $matches"
+
+  pattern="node scripts/"'harness|scripts/'"harness/"'[a-z-]+\.mjs|node -'"p"
+  matches="$(cd "$repo_root" && rg -n "$pattern" .github AGENTS.md CLAUDE.md docs scripts infra apps/mobile/e2e/maestro || true)"
+  [[ -z "$matches" ]] || fail "expected no Node harness references; found $matches"
+}
+
+main() {
+  local test_name
+  for test_name in $(declare -F | awk '{print $3}' | grep '^test_'); do
+    "$test_name"
+    echo "ok - $test_name"
+  done
+}
+
+main "$@"

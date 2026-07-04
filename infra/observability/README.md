@@ -5,7 +5,7 @@ This directory owns the local logs, metrics, and traces surface that Codex can q
 The current harness records API journey request/response artifacts in `.harness-runs/journeys/` and exposes them through:
 
 ```bash
-node scripts/harness/query-observability.mjs <walk-id-or-operation>
+scripts/harness/query-observability.sh <walk-id-or-operation>
 ```
 
 Target end state:

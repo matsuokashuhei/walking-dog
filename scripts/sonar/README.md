@@ -90,7 +90,7 @@ The daily Codex automation must also run the existing harness and E2E gates befo
 opening a draft PR:
 
 ```bash
-node scripts/harness/validate-all.mjs
+scripts/harness/validate-all.sh
 ```
 
 ```bash

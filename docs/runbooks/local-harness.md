@@ -1,11 +1,12 @@
 # Local Harness Runbook
 
 Run commands from the repository root unless a command says otherwise.
+Harness shell scripts require `jq`.
 
 ## Start Per-Worktree Dev Stack
 
 ```bash
-node scripts/harness/dev-stack.mjs up
+scripts/harness/dev-stack.sh up
 ```
 
 The script writes `.harness-runs/dev-stack/env.json` with the compose project name
@@ -101,7 +102,7 @@ The local simulator build points at `http://localhost:3000`.
 
 ```bash
 export HARNESS_ACCESS_TOKEN="<real Cognito access token>"
-node scripts/harness/run-api-journey.mjs walk-lifecycle
+scripts/harness/run-api-journey.sh walk-lifecycle
 ```
 
 Evidence is written under `.harness-runs/journeys/`.

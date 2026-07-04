@@ -30,6 +30,17 @@ copy_sonar_scripts() {
   cp "$repo_root/scripts/sonar/normalize-clippy-report.sh" "$target_root/scripts/sonar/normalize-clippy-report.sh"
 }
 
+write_harness_gate_stub() {
+  local target_root="$1" body="$2"
+  mkdir -p "$target_root/scripts/harness"
+  {
+    printf '%s\n' '#!/usr/bin/env bash'
+    printf '%s\n' 'set -Eeuo pipefail'
+    printf '%s\n' "$body"
+  } > "$target_root/scripts/harness/validate-all.sh"
+  chmod +x "$target_root/scripts/harness/validate-all.sh"
+}
+
 test_sonar_project_disables_scm_for_worktree_containers() {
   local properties
   properties="$(cat "$repo_root/infra/sonarqube/sonar-project.properties")"
@@ -98,15 +109,13 @@ SONAR_HOST_URL=http://localhost:9000
 SONAR_TOKEN=test-token
 EOF
 
-  cat > "$tmpdir/bin/node" <<'EOF'
-#!/usr/bin/env bash
+  write_harness_gate_stub "$tmpdir" '
 if [[ "${SONAR_HOST_URL:-}" == "http://localhost:9000" && "${SONAR_TOKEN:-}" == "test-token" ]]; then
   exit 42
 fi
 echo "unexpected sonar env: SONAR_HOST_URL=${SONAR_HOST_URL:-} SONAR_TOKEN=${SONAR_TOKEN:-}" >&2
 exit 43
-EOF
-  chmod +x "$tmpdir/bin/node"
+'
 
   set +e
   output="$(
@@ -132,15 +141,13 @@ SONAR_HOST_URL=http://localhost:9000
 SONAR_TOKEN=test-token
 EOF
 
-  cat > "$tmpdir/bin/node" <<'EOF'
-#!/usr/bin/env bash
+  write_harness_gate_stub "$tmpdir" '
 if [[ "$PWD" == "$EXPECTED_REPO_ROOT" && "${SONAR_HOST_URL:-}" == "http://localhost:9000" && "${SONAR_TOKEN:-}" == "test-token" ]]; then
   exit 42
 fi
 echo "unexpected cwd/env: PWD=$PWD EXPECTED_REPO_ROOT=${EXPECTED_REPO_ROOT:-} SONAR_HOST_URL=${SONAR_HOST_URL:-} SONAR_TOKEN=${SONAR_TOKEN:-}" >&2
 exit 43
-EOF
-  chmod +x "$tmpdir/bin/node"
+'
 
   set +e
   output="$(
@@ -164,11 +171,7 @@ SONAR_HOST_URL=http://localhost:9000
 SONAR_TOKEN=test-token
 EOF
 
-  cat > "$tmpdir/bin/node" <<'EOF'
-#!/usr/bin/env bash
-exit 0
-EOF
-  chmod +x "$tmpdir/bin/node"
+  write_harness_gate_stub "$tmpdir" 'exit 0'
 
   cat > "$tmpdir/bin/npm" <<'EOF'
 #!/usr/bin/env bash

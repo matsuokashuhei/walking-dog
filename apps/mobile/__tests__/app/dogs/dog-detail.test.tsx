@@ -3,7 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import DogDetailScreen from '../../../app/dogs/[id]/index';
 import type { DogWithStats, Walk } from '@/types/graphql';
-import { spacing } from '@/theme/tokens';
+import { colors, dogContactChrome, spacing } from '@/theme/tokens';
 
 const mockPush = jest.fn();
 const mockReplace = jest.fn();
@@ -20,9 +20,30 @@ jest.mock('expo-router', () => ({
   }),
 }));
 
+jest.mock('@/hooks/use-color-scheme', () => ({
+  useColorScheme: () => 'light',
+}));
+
 jest.mock('expo-image', () => ({
   Image: 'Image',
 }));
+
+jest.mock('expo-blur', () => {
+  const { View } = jest.requireActual('react-native');
+  return {
+    BlurView: ({ children, ...props }: { children: React.ReactNode }) => (
+      <View {...props}>{children}</View>
+    ),
+  };
+});
+
+jest.mock('@/components/ui/icon-symbol', () => {
+  const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
+
+  return {
+    IconSymbol: ({ name }: { name: string }) => <Text>{name}</Text>,
+  };
+});
 
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 44, bottom: 34, left: 0, right: 0 }),
@@ -105,7 +126,7 @@ describe('DogDetailScreen', () => {
     mockWalks = [];
   });
 
-  it('renders the large title screen header with dog title and back action', () => {
+  it('renders the contacts-style header with dog title and icon-only back action', () => {
     renderWithProviders(<DogDetailScreen />);
 
     expect(screen.getByTestId('dog-detail-header')).toBeTruthy();
@@ -113,6 +134,13 @@ describe('DogDetailScreen', () => {
     expect(screen.getByTestId('dog-detail-header-large-title-row')).toBeTruthy();
     expect(screen.getAllByText('Buddy')).toHaveLength(1);
     expect(screen.getByLabelText('Dogs')).toBeTruthy();
+    expect(screen.getByText('chevron.backward')).toBeTruthy();
+    expect(screen.queryByText('Dogs')).toBeNull();
+    const backStyle = StyleSheet.flatten(screen.getByTestId('dog-detail-back-button').props.style);
+    expect(backStyle.width).toBe(dogContactChrome.circleSize);
+    expect(backStyle.height).toBe(dogContactChrome.circleSize);
+    expect(backStyle.backgroundColor).toBe(colors.light.background);
+    expect(backStyle.borderColor).toBe(colors.light.border);
   });
 
   it('renders edit button exactly once in screen header for a loaded dog', () => {
@@ -120,6 +148,10 @@ describe('DogDetailScreen', () => {
     // Regression guard: Edit must appear exactly once (no duplicate from
     // a stray Stack header reintroduction).
     expect(screen.getAllByText('Edit')).toHaveLength(1);
+    const editStyle = StyleSheet.flatten(screen.getByTestId('dog-detail-edit-button').props.style);
+    expect(editStyle.minWidth).toBe(dogContactChrome.pillMinWidth);
+    expect(editStyle.borderRadius).toBe(dogContactChrome.pillRadius);
+    expect(editStyle.backgroundColor).toBe(colors.light.background);
   });
 
   it('navigates to edit screen when edit button is pressed', () => {

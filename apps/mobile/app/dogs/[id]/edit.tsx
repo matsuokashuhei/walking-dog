@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -16,14 +16,14 @@ import {
   type DogFormValues,
 } from '@/components/dogs/DogForm';
 import { DogAvatarEditor } from '@/components/dogs/DogAvatarEditor';
+import { DogContactChromeButton } from '@/components/dogs/DogContactChromeButton';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
-import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { DAILY_GOAL_CYCLE_DAYS, DEFAULT_DAILY_GOAL_MINUTES } from '@/constants/walk';
 import { useColors } from '@/hooks/use-colors';
-import { components, spacing } from '@/theme/tokens';
+import { components, dogContactChrome, spacing } from '@/theme/tokens';
 import type { UploadFile } from '@/lib/graphql/client';
 
-// 犬編集画面 — inline ScreenHeader でフォームの Cancel/Save を提供します。
+// 犬編集画面 — Contacts 風 chrome でフォームの Cancel/Save を提供します。
 // dog データのロード待ちは外側、form state 初期化は内側コンポーネントに分離して
 // React Hooks ルールを守りつつ initial values を一発で確定する。
 export default function EditDogScreen() {
@@ -126,17 +126,25 @@ function EditDogContent({ id, dogName, initialValues, currentAvatar }: EditDogCo
 
   return (
     <SafeAreaView edges={['top']} style={[styles.safeArea, { backgroundColor: theme.background }]}>
-      <ScreenHeader
-        variant="inline"
-        title={t('dogs.edit.title')}
-        leftAction={{ label: t('common.action.cancel'), onPress: () => router.back() }}
-        rightAction={{
-          label: t('common.action.save'),
-          onPress: handleSave,
-          strong: true,
-          disabled: !canSave,
-        }}
-      />
+      <View testID="dog-edit-header" style={styles.header}>
+        <DogContactChromeButton
+          shape="circle"
+          label={t('common.action.cancel')}
+          accessibilityLabel={t('common.action.cancel')}
+          iconName="xmark"
+          onPress={() => router.back()}
+          testID="dog-edit-cancel-button"
+        />
+        <DogContactChromeButton
+          shape="circle"
+          label={t('common.action.save')}
+          accessibilityLabel={t('common.action.save')}
+          iconName="checkmark"
+          onPress={handleSave}
+          disabled={!canSave}
+          testID="dog-edit-save-button"
+        />
+      </View>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
@@ -147,7 +155,7 @@ function EditDogContent({ id, dogName, initialValues, currentAvatar }: EditDogCo
           accessibilityRole="button"
           accessibilityLabel={t('dogs.edit.remove', { name: dogName })}
           onPress={openRemoveConfirm}
-          style={styles.removeButton}
+          style={[styles.removeButton, { backgroundColor: theme.surface }]}
         >
           <Text style={[styles.removeButtonText, { color: theme.error }]}>
             {t('dogs.edit.remove', { name: dogName })}
@@ -160,13 +168,20 @@ function EditDogContent({ id, dogName, initialValues, currentAvatar }: EditDogCo
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
+  header: {
+    height: dogContactChrome.circleSize,
+    paddingHorizontal: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   scrollContent: { flexGrow: 1, padding: spacing.lg },
   removeButton: {
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: components.row.minHeight,
+    minHeight: dogContactChrome.deleteButtonMinHeight,
     marginTop: spacing.lg,
-    backgroundColor: 'transparent',
+    borderRadius: dogContactChrome.deleteButtonRadius,
   },
   removeButtonText: {
     ...components.button.fontGhost,

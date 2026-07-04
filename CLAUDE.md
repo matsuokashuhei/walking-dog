@@ -34,7 +34,7 @@ Source of truth: [docs/product/principles.md](docs/product/principles.md)
 Before claiming work is ready, run:
 
 ```bash
-node scripts/harness/validate-all.mjs
+scripts/harness/validate-all.sh
 ```
 
 For API changes, also run the API tests from the current worktree. Prefer the
@@ -51,14 +51,14 @@ npm run lint
 ## Harness Commands
 
 ```bash
-node scripts/harness/validate-knowledge.mjs
-node scripts/harness/validate-architecture.mjs
-node scripts/harness/validate-all.mjs
-node scripts/harness/dev-stack.mjs up
-node scripts/harness/reset-local-data.mjs
-HARNESS_ACCESS_TOKEN=<token> node scripts/harness/run-api-journey.mjs walk-lifecycle
-node scripts/harness/query-observability.mjs
-node scripts/harness/score-quality.mjs
+scripts/harness/validate-knowledge.sh
+scripts/harness/validate-architecture.sh
+scripts/harness/validate-all.sh
+scripts/harness/dev-stack.sh up
+scripts/harness/reset-local-data.sh
+HARNESS_ACCESS_TOKEN=<token> scripts/harness/run-api-journey.sh walk-lifecycle
+scripts/harness/query-observability.sh
+scripts/harness/score-quality.sh
 ```
 
 ## Non-Negotiable Rules

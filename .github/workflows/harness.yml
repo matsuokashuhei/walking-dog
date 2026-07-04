@@ -28,4 +28,4 @@ jobs:
         run: node --test scripts/harness/*.test.mjs
 
       - name: Validate knowledge, architecture, and quality
-        run: node scripts/harness/validate-all.mjs
+        run: scripts/harness/validate-all.sh

@@ -74,7 +74,7 @@ cache_dir="$root/.sonar/cache"
 mkdir -p "$report_dir" "$cache_dir"
 raw_clippy_report="$report_dir/api-clippy.raw.json"
 
-node scripts/harness/validate-all.mjs
+scripts/harness/validate-all.sh
 docker build --target sonar -t apps-api-sonar -f apps/api/Dockerfile apps
 
 docker run \

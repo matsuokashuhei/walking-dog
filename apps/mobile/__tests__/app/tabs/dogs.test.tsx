@@ -5,6 +5,14 @@ jest.mock('@/hooks/use-color-scheme', () => ({
   useColorScheme: () => 'light',
 }));
 
+jest.mock('@/components/ui/icon-symbol', () => {
+  const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
+
+  return {
+    IconSymbol: ({ name }: { name: string }) => <Text>{name}</Text>,
+  };
+});
+
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: jest.fn() }),
 }));
@@ -74,8 +82,11 @@ describe('DogsScreen', () => {
     expect(screen.queryByText('Goal progress')).toBeNull();
   });
 
-  it('renders header + Add CTA', () => {
+  it('renders the header add action as an icon-only circular button', () => {
     render(<DogsScreen />);
-    expect(screen.getByRole('button', { name: '+ Add' })).toBeTruthy();
+
+    expect(screen.getByRole('button', { name: 'Add Dog' })).toBeTruthy();
+    expect(screen.getByText('plus')).toBeTruthy();
+    expect(screen.queryByText('+ Add')).toBeNull();
   });
 });

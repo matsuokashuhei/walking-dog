@@ -30,6 +30,7 @@ const MAPPING = {
   'info.circle': 'info',
   xmark: 'close',
   checkmark: 'check',
+  plus: 'add',
   'camera.fill': 'photo-camera',
 } satisfies Record<string, ComponentProps<typeof MaterialIcons>['name']>;
 

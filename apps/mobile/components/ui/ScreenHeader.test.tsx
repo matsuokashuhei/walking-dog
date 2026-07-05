@@ -1,7 +1,7 @@
 import { StyleSheet } from 'react-native';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { changeLanguage } from 'i18next';
-import { colors, layout, spacing, typography } from '@/theme/tokens';
+import { colors, components, layout, spacing, typography } from '@/theme/tokens';
 import { ScreenHeader } from './ScreenHeader';
 
 const mockBack = jest.fn();
@@ -131,6 +131,29 @@ describe('ScreenHeader', () => {
     expect(flattenStyle(label.props.style).fontWeight).toBe(
       typography.headline.fontWeight,
     );
+  });
+
+  it('renders an icon-only right action as a circular header button', () => {
+    const onPress = jest.fn();
+    render(
+      <ScreenHeader
+        title="Dogs"
+        rightAction={{ label: 'Add Dog', onPress, icon: 'plus' }}
+      />,
+    );
+
+    const button = screen.getByRole('button', { name: 'Add Dog' });
+    const buttonStyle = flattenStyle(button.props.style);
+
+    expect(screen.getByText('plus')).toBeTruthy();
+    expect(screen.queryByText('Add Dog')).toBeNull();
+    expect(buttonStyle.width).toBe(components.headerIconButton.size);
+    expect(buttonStyle.height).toBe(components.headerIconButton.size);
+    expect(buttonStyle.borderRadius).toBe(components.headerIconButton.radius);
+
+    fireEvent.press(button);
+
+    expect(onPress).toHaveBeenCalledTimes(1);
   });
 
   it('disables a disabled right action visually and semantically', () => {

@@ -169,6 +169,15 @@ test_compose_ports_are_parameterized_for_worktree_isolation() {
   done
 }
 
+test_api_ci_uses_dedicated_test_env_file() {
+  local compose workflow
+  compose="$(cat "$repo_root/apps/compose.yml")"
+  workflow="$(cat "$repo_root/.github/workflows/test-api.yml")"
+
+  assert_contains "$compose" '${WD_API_ENV_FILE:-api/.env.local}' "expected compose to default to local API env file"
+  assert_contains "$workflow" "WD_API_ENV_FILE: api/.env.test" "expected API CI to use the committed test env file"
+}
+
 test_dev_stack_does_not_use_compose_override_files() {
   local source
   source="$(cat "$repo_root/scripts/harness/dev-stack.sh")"

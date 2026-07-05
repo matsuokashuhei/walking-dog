@@ -17,6 +17,8 @@ jobs:
   test:
     name: Cargo Test
     runs-on: ubuntu-latest
+    env:
+      WD_API_ENV_FILE: api/.env.test
     steps:
       - name: Checkout
         uses: actions/checkout@v6

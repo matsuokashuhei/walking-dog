@@ -38,7 +38,7 @@ export interface ScreenHeaderProps {
   testID?: string;
 }
 
-export interface ScreenHeaderAction {
+interface ScreenHeaderAction {
   label: string;
   onPress: () => void;
   /** Emphasized font weight for primary CTAs like Save. default: false */

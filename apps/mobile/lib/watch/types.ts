@@ -5,14 +5,14 @@ export interface WatchCoordinate {
   lng: number;
 }
 
-export interface WatchWalkSnapshotDog {
+interface WatchWalkSnapshotDog {
   id: string;
   name: string;
   peeCount: number;
   pooCount: number;
 }
 
-export type WatchWalkSyncState = 'fresh' | 'stale' | 'offline';
+type WatchWalkSyncState = 'fresh' | 'stale' | 'offline';
 
 export interface WatchWalkSnapshot {
   isActive: boolean;

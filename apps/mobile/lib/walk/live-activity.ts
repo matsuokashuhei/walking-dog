@@ -5,7 +5,7 @@ export const WALK_ACTIVITY_NAME = 'WalkingDogWalkActivity';
 const WALK_ACTIVITY_TARGET_PREFIX = 'walk';
 export const WALK_ACTIVITY_FINISH_TARGET = `${WALK_ACTIVITY_TARGET_PREFIX}:finish`;
 
-export interface WalkActivityDogProps {
+interface WalkActivityDogProps {
   id: string;
   name: string;
   peeCount: number;
@@ -14,7 +14,7 @@ export interface WalkActivityDogProps {
   pooTarget: string;
 }
 
-export interface WalkActivityLabels {
+interface WalkActivityLabels {
   walking: string;
   distance: string;
   walk: string;

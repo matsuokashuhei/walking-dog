@@ -497,10 +497,6 @@ export function isDogFormValid(values: DogFormValues): boolean {
   return values.name.trim().length > 0 && values.gender.trim().length > 0;
 }
 
-export function clampDailyGoalMinutes(minutes: number): number {
-  return clampGoalMinutes(minutes, DAILY_GOAL_CYCLE_DAYS);
-}
-
 export function clampGoalMinutes(minutes: number, cycleDays: GoalCycleDays): number {
   const finiteMinutes = Number.isFinite(minutes) ? minutes : DEFAULT_DAILY_GOAL_MINUTES;
   const rounded =

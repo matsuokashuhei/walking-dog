@@ -35,23 +35,5 @@
     // Knip's Expo plugin assumes OTA updates are enabled when app.config.ts
     // does not explicitly disable them.
     "expo-updates"
-  ],
-  "ignoreIssues": {
-    // Existing production-code export baseline. This PR wires Knip into the
-    // harness without changing app/runtime source.
-    "components/dogs/DogForm.tsx": ["exports"],
-    "components/ui/ScreenHeader.tsx": ["types"],
-    "hooks/use-user-profile.ts": ["exports", "types"],
-    "hooks/use-user-screen-view-model.ts": ["types"],
-    "lib/walk/live-activity-controller.ts": ["exports"],
-    "lib/walk/live-activity.ts": ["types"],
-    "lib/watch/types.ts": ["types"],
-    "scripts/expo-xcodebuild-provisioning-hook.cjs": ["exports"],
-    "theme/tokens.ts": ["types"],
-    "types/graphql.ts": ["types"],
-
-    // These aliases intentionally point at one emoji table so map markers and
-    // UI controls cannot drift.
-    "lib/walk/events.ts": ["duplicates"]
-  }
+  ]
 }

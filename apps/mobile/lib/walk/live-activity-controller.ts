@@ -33,7 +33,7 @@ function isMissingLiveActivityError(error: unknown): boolean {
   );
 }
 
-export function walkRecordingActivityUrl(walkId: string): string {
+function walkRecordingActivityUrl(walkId: string): string {
   return `walking-dog://walk-recording?walkId=${encodeURIComponent(walkId)}`;
 }
 

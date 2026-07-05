@@ -6,13 +6,13 @@ import { useUserProfile, type UserProfileData } from './use-user-profile';
 type UserStatus = 'loading' | 'error' | 'ready';
 type Translate = (key: string, values?: Record<string, unknown>) => string;
 
-export interface UserMetricViewModel {
+interface UserMetricViewModel {
   key: 'walks' | 'distance' | 'totalTime' | 'dogs';
   value: string;
   label: string;
 }
 
-export interface UserWeekDayViewModel {
+interface UserWeekDayViewModel {
   key: string;
   label: string;
   distanceKm: number;
@@ -21,7 +21,7 @@ export interface UserWeekDayViewModel {
   isToday: boolean;
 }
 
-export interface UserWeekViewModel {
+interface UserWeekViewModel {
   title: string;
   totalLabel: string;
   days: UserWeekDayViewModel[];

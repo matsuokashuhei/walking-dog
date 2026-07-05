@@ -7,7 +7,7 @@ import { elevation, radius, spacing, typography } from '@/theme/tokens';
 import { useWalkStore } from '@/stores/walk-store';
 import { useMutationWithAlert } from '@/hooks/use-mutation-with-alert';
 import { useRecordWalkEvent } from '@/hooks/use-walk-event-mutations';
-import { UI_EVENT_EMOJIS } from '@/lib/walk/events';
+import { WALK_EVENT_EMOJIS } from '@/lib/walk/events';
 import type { Dog } from '@/types/graphql';
 
 interface WalkQuickActionsProps {
@@ -65,7 +65,7 @@ export function WalkQuickActions({ dogs }: WalkQuickActionsProps) {
       {isSingleDog ? (
         <>
           <Pill
-            label={`${UI_EVENT_EMOJIS.pee} ${t('walk.event.pee')}`}
+            label={`${WALK_EVENT_EMOJIS.pee} ${t('walk.event.pee')}`}
             onPress={() => handlePeeOrPoo('pee', dogs[0].id)}
             disabled={isDisabled}
             bg={theme.surface}
@@ -74,7 +74,7 @@ export function WalkQuickActions({ dogs }: WalkQuickActionsProps) {
             accessibilityLabel={`${dogs[0].name} ${t('walk.event.pee')}`}
           />
           <Pill
-            label={`${UI_EVENT_EMOJIS.poo} ${t('walk.event.poo')}`}
+            label={`${WALK_EVENT_EMOJIS.poo} ${t('walk.event.poo')}`}
             onPress={() => handlePeeOrPoo('poo', dogs[0].id)}
             disabled={isDisabled}
             bg={theme.surface}
@@ -87,7 +87,7 @@ export function WalkQuickActions({ dogs }: WalkQuickActionsProps) {
         dogs.flatMap((dog) => [
           <Pill
             key={`pee-${dog.id}`}
-            label={`${UI_EVENT_EMOJIS.pee} ${dog.name}`}
+            label={`${WALK_EVENT_EMOJIS.pee} ${dog.name}`}
             onPress={() => handlePeeOrPoo('pee', dog.id)}
             disabled={isDisabled}
             bg={theme.surface}
@@ -97,7 +97,7 @@ export function WalkQuickActions({ dogs }: WalkQuickActionsProps) {
           />,
           <Pill
             key={`poo-${dog.id}`}
-            label={`${UI_EVENT_EMOJIS.poo} ${dog.name}`}
+            label={`${WALK_EVENT_EMOJIS.poo} ${dog.name}`}
             onPress={() => handlePeeOrPoo('poo', dog.id)}
             disabled={isDisabled}
             bg={theme.surface}

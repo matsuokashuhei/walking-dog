@@ -10,7 +10,7 @@ import { components, radius, spacing, typography } from '@/theme/tokens';
 import { useWalk } from '@/hooks/use-walks';
 import { useWalkDetailViewModel } from '@/hooks/use-walk-detail-view-model';
 import { WalkEventTimeline } from '@/components/walk/WalkEventTimeline';
-import { MAP_EVENT_EMOJIS } from '@/lib/walk/events';
+import { WALK_EVENT_EMOJIS } from '@/lib/walk/events';
 import { useWalkStore } from '@/stores/walk-store';
 
 // 散歩詳細画面は保存済み散歩のルート、メトリクス、担当者、イベント履歴を表示します。
@@ -81,10 +81,10 @@ export default function WalkDetailScreen() {
                   key={e.id}
                   coordinate={{ latitude: e.lat!, longitude: e.lng! }}
                   accessibilityLabel={t('walk.detail.eventMarker', {
-                    emoji: MAP_EVENT_EMOJIS[e.eventType],
+                    emoji: WALK_EVENT_EMOJIS[e.eventType],
                   })}
                 >
-                  <Text style={styles.eventMarker}>{MAP_EVENT_EMOJIS[e.eventType]}</Text>
+                  <Text style={styles.eventMarker}>{WALK_EVENT_EMOJIS[e.eventType]}</Text>
                 </Marker>
               ))}
           </MapView>

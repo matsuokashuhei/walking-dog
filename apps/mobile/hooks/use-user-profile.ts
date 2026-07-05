@@ -6,7 +6,7 @@ import { mapApiUser } from '@/lib/graphql/adapters';
 import { useIsAuthenticated } from './use-is-authenticated';
 import type { UserProfileResponse, User } from '@/types/graphql';
 
-export interface UserProfileWalkSummary {
+interface UserProfileWalkSummary {
   id: string;
   startedAt: string;
   distanceM: number;
@@ -20,7 +20,7 @@ export interface UserProfileData {
   recentWalks: UserProfileWalkSummary[];
 }
 
-export function mapUserProfileResponse(response: UserProfileResponse): UserProfileData {
+function mapUserProfileResponse(response: UserProfileResponse): UserProfileData {
   return {
     user: mapApiUser(response.user),
     totalWalks: response.user.walks.totalCount,

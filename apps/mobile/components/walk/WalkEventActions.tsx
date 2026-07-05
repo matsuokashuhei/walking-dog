@@ -9,7 +9,7 @@ import { useMutationWithAlert } from '@/hooks/use-mutation-with-alert';
 import { useWalkEventRecorder } from '@/hooks/use-walk-event-recorder';
 import { useWalkStore } from '@/stores/walk-store';
 import { spacing } from '@/theme/tokens';
-import { EVENT_ORDER, UI_EVENT_EMOJIS, countEventsByType } from '@/lib/walk/events';
+import { EVENT_ORDER, WALK_EVENT_EMOJIS, countEventsByType } from '@/lib/walk/events';
 import { DogEventActionRow } from './DogEventActionRow';
 import { EventPill } from './EventPill';
 import type { Dog, WalkEventType } from '@/types/graphql';
@@ -126,7 +126,7 @@ export function WalkEventActions({ dogs }: WalkEventActionsProps) {
           <EventPill
             key={type}
             label={t(`walk.event.${type}`)}
-            emoji={UI_EVENT_EMOJIS[type]}
+            emoji={WALK_EVENT_EMOJIS[type]}
             count={counts[type]}
             disabled={isDisabled}
             onPress={() => fire(type, singleDogId)}

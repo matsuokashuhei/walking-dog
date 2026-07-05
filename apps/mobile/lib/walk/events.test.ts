@@ -1,7 +1,6 @@
 import {
   EVENT_ORDER,
-  MAP_EVENT_EMOJIS,
-  UI_EVENT_EMOJIS,
+  WALK_EVENT_EMOJIS,
   countEventsByType,
   countWalkActivityEvents,
   type CountableEvent,
@@ -13,31 +12,31 @@ describe('EVENT_ORDER', () => {
   });
 });
 
-describe('MAP_EVENT_EMOJIS (map markers)', () => {
+describe('WALK_EVENT_EMOJIS map marker values', () => {
   it('uses the droplet emoji for pee on map pins', () => {
-    expect(MAP_EVENT_EMOJIS.pee).toBe('💧');
+    expect(WALK_EVENT_EMOJIS.pee).toBe('💧');
   });
 
   it('maps poo to poop emoji', () => {
-    expect(MAP_EVENT_EMOJIS.poo).toBe('💩');
+    expect(WALK_EVENT_EMOJIS.poo).toBe('💩');
   });
 
   it('maps photo to camera emoji', () => {
-    expect(MAP_EVENT_EMOJIS.photo).toBe('📷');
+    expect(WALK_EVENT_EMOJIS.photo).toBe('📷');
   });
 });
 
-describe('UI_EVENT_EMOJIS (buttons, summary cards)', () => {
+describe('WALK_EVENT_EMOJIS UI values', () => {
   it('uses the droplet emoji for pee in UI surfaces', () => {
-    expect(UI_EVENT_EMOJIS.pee).toBe('💧');
+    expect(WALK_EVENT_EMOJIS.pee).toBe('💧');
   });
 
   it('maps poo to poop emoji', () => {
-    expect(UI_EVENT_EMOJIS.poo).toBe('💩');
+    expect(WALK_EVENT_EMOJIS.poo).toBe('💩');
   });
 
   it('maps photo to camera emoji', () => {
-    expect(UI_EVENT_EMOJIS.photo).toBe('📷');
+    expect(WALK_EVENT_EMOJIS.photo).toBe('📷');
   });
 });
 

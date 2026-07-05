@@ -33,6 +33,7 @@ impl DogMutation {
             gender,
             avatar,
             birthday,
+            walk_goal,
         } = input;
         let avatar = match avatar {
             Some(file) => Some(upload_dog_avatar(ctx, file).await?),
@@ -47,7 +48,9 @@ impl DogMutation {
                 gender: gender_to_type(gender),
                 avatar,
                 birthday: birthday.map(Into::into),
+                walk_goal: walk_goal.map(Into::into),
             },
+            chrono::Utc::now().date_naive(),
         )
         .await
         .map_err(AppError::from)?;
@@ -130,6 +133,7 @@ struct AddDogInput {
     gender: Gender,
     avatar: Option<Upload>,
     birthday: Option<BirthdayInput>,
+    walk_goal: Option<WalkAmountInput>,
 }
 
 #[derive(Debug, Clone, InputObject)]

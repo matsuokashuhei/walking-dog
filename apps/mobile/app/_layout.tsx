@@ -1,4 +1,5 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider, useRouter, useSegments } from 'expo-router';
+import { getFocusedRouteNameFromRoute } from 'expo-router/build/react-navigation/core';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
@@ -12,6 +13,23 @@ import { useAuthStore } from '@/stores/auth-store';
 import { useSettingsStore } from '@/stores/settings-store';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { ErrorScreen } from '@/components/ui/ErrorScreen';
+
+const ROOT_SCREEN_OPTIONS = { headerShown: false } as const;
+const DOG_NEW_ROOT_SCREEN_OPTIONS = {
+  ...ROOT_SCREEN_OPTIONS,
+  animation: 'slide_from_bottom',
+  animationDuration: 220,
+} as const;
+
+function dogsRootScreenOptions({
+  route,
+}: {
+  route: Parameters<typeof getFocusedRouteNameFromRoute>[0];
+}) {
+  return getFocusedRouteNameFromRoute(route) === 'new'
+    ? DOG_NEW_ROOT_SCREEN_OPTIONS
+    : ROOT_SCREEN_OPTIONS;
+}
 
 // 認証状態と現在の route group を見て、ログイン画面とアプリ本体の行き先を制御します。
 function NavigationGuard() {
@@ -68,7 +86,7 @@ function RootLayout() {
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-          <Stack.Screen name="dogs" options={{ headerShown: false }} />
+          <Stack.Screen name="dogs" options={dogsRootScreenOptions} />
           <Stack.Screen name="settings" options={{ headerShown: false }} />
           <Stack.Screen name="user" options={{ headerShown: false, animation: 'none' }} />
           <Stack.Screen name="walks" options={{ headerShown: false }} />

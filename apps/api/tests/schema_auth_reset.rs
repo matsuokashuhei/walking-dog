@@ -60,3 +60,18 @@ fn schema_exposes_email_change_without_legacy_success_flags() {
     assert!(!sdl.contains("type ChangeEmailOutput {\n\tsuccess: Boolean!"));
     assert!(!sdl.contains("type ConfirmEmailChangeOutput {\n\tsuccess: Boolean!"));
 }
+
+#[test]
+fn schema_allows_initial_walk_goal_when_adding_dog() {
+    let schema =
+        async_graphql::Schema::build(Query::default(), Mutation::default(), EmptySubscription)
+            .finish();
+    let sdl = schema.sdl();
+    let add_dog_input = sdl
+        .split("input AddDogInput {")
+        .nth(1)
+        .and_then(|tail| tail.split("\n}").next())
+        .expect("AddDogInput should be present in the GraphQL schema");
+
+    assert!(add_dog_input.contains("walkGoal: WalkAmountInput"));
+}

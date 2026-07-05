@@ -2,7 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createElement, type ReactNode } from 'react';
 import type * as ClientModule from '@/lib/graphql/client';
-import { useUpdateDog } from './use-dog-mutations';
+import { useCreateDog, useUpdateDog } from './use-dog-mutations';
 
 jest.mock('@/lib/graphql/client', () => ({
   authenticatedRequest: jest.fn(),
@@ -135,6 +135,84 @@ describe('useUpdateDog', () => {
           gender: 'FEMALE',
           birthday: null,
           walkGoal: { minutes: 420, cycleDays: 7 },
+          avatar: null,
+        },
+      },
+      { 'variables.input.avatar': avatarFile },
+    );
+    expect(mockAuthenticatedRequest).not.toHaveBeenCalled();
+    unmount();
+  });
+});
+
+describe('useCreateDog', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockAuthenticatedRequest.mockResolvedValue({ addDog: apiDog });
+    mockAuthenticatedMultipartRequest.mockResolvedValue({ addDog: apiDog });
+    mockInvalidateUserQueries.mockResolvedValue(undefined);
+  });
+
+  it('uses the JSON GraphQL request path with the initial walk goal when avatarFile is omitted', async () => {
+    const { result, unmount } = renderHook(() => useCreateDog(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        name: 'Buddy',
+        breed: 'Golden Retriever',
+        gender: 'female',
+        birthday: null,
+        walkGoal: { minutes: 60, cycleDays: 7 },
+      });
+    });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(mockAuthenticatedRequest).toHaveBeenCalledWith(expect.any(String), {
+      input: {
+        name: 'Buddy',
+        breed: 'Golden Retriever',
+        gender: 'FEMALE',
+        birthday: null,
+        walkGoal: { minutes: 60, cycleDays: 7 },
+      },
+    });
+    expect(mockAuthenticatedMultipartRequest).not.toHaveBeenCalled();
+    unmount();
+  });
+
+  it('uses the multipart GraphQL request path when avatarFile is provided', async () => {
+    const avatarFile = {
+      uri: 'file:///avatar.png',
+      name: 'avatar.png',
+      type: 'image/png',
+    };
+    const { result, unmount } = renderHook(() => useCreateDog(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        name: 'Buddy',
+        breed: 'Golden Retriever',
+        gender: 'male',
+        birthday: null,
+        walkGoal: { minutes: 30, cycleDays: 1 },
+        avatarFile,
+      });
+    });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(mockAuthenticatedMultipartRequest).toHaveBeenCalledWith(
+      expect.any(String),
+      {
+        input: {
+          name: 'Buddy',
+          breed: 'Golden Retriever',
+          gender: 'MALE',
+          birthday: null,
+          walkGoal: { minutes: 30, cycleDays: 1 },
           avatar: null,
         },
       },

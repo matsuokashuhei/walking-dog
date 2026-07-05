@@ -176,6 +176,7 @@ export interface CreateDogInput {
   breed?: string;
   gender?: string;
   birthday?: BirthdayInput | null;
+  walkGoal?: WalkAmount;
 }
 
 export interface UpdateDogInput {

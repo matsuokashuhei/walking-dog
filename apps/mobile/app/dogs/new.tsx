@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -7,15 +7,18 @@ import { useCreateDog } from '@/hooks/use-dog-mutations';
 import {
   DogForm,
   birthdayValuesToInput,
+  clampGoalMinutes,
   isDogFormValid,
   type DogFormValues,
 } from '@/components/dogs/DogForm';
-import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { DogAvatarEditor } from '@/components/dogs/DogAvatarEditor';
+import { DogContactChromeButton } from '@/components/dogs/DogContactChromeButton';
 import { DAILY_GOAL_CYCLE_DAYS, DEFAULT_DAILY_GOAL_MINUTES } from '@/constants/walk';
 import { useColors } from '@/hooks/use-colors';
-import { spacing } from '@/theme/tokens';
+import { dogContactChrome, spacing } from '@/theme/tokens';
+import type { UploadFile } from '@/lib/graphql/client';
 
-// 新規犬登録画面 — inline ScreenHeader でフォームの Cancel/Save を提供します。
+// 新規犬登録画面 — 編集画面と同じ Contacts 風 chrome で Cancel/Save を提供します。
 export default function NewDogScreen() {
   const { t } = useTranslation();
   const router = useRouter();
@@ -32,6 +35,7 @@ export default function NewDogScreen() {
     goalMinutes: DEFAULT_DAILY_GOAL_MINUTES,
     goalCycleDays: DAILY_GOAL_CYCLE_DAYS,
   });
+  const [avatarFile, setAvatarFile] = useState<UploadFile | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const canSave = isDogFormValid(values) && !submitting;
@@ -45,6 +49,11 @@ export default function NewDogScreen() {
         breed: values.breed.trim() || undefined,
         gender: values.gender.trim() || undefined,
         birthday: birthdayValuesToInput(values),
+        walkGoal: {
+          minutes: clampGoalMinutes(values.goalMinutes, values.goalCycleDays),
+          cycleDays: values.goalCycleDays,
+        },
+        ...(avatarFile ? { avatarFile } : {}),
       });
 
       router.dismiss();
@@ -56,22 +65,35 @@ export default function NewDogScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={[styles.safeArea, { backgroundColor: theme.background }]}>
-      <ScreenHeader
-        variant="inline"
-        title={t('dogs.new.title')}
-        leftAction={{ label: t('common.action.cancel'), onPress: () => router.back() }}
-        rightAction={{
-          label: t('common.action.save'),
-          onPress: handleSave,
-          strong: true,
-          disabled: !canSave,
-        }}
-      />
+      <View testID="dog-new-header" style={styles.header}>
+        <DogContactChromeButton
+          shape="circle"
+          label={t('common.action.cancel')}
+          accessibilityLabel={t('common.action.cancel')}
+          iconName="xmark"
+          onPress={() => router.back()}
+          testID="dog-new-cancel-button"
+        />
+        <DogContactChromeButton
+          shape="circle"
+          label={t('common.action.save')}
+          accessibilityLabel={t('common.action.save')}
+          iconName="checkmark"
+          onPress={handleSave}
+          disabled={!canSave}
+          testID="dog-new-save-button"
+        />
+      </View>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        <DogForm values={values} onChange={setValues} showDailyGoal={false} />
+        <DogAvatarEditor
+          value={null}
+          onChange={setAvatarFile}
+          dogName={values.name.trim() || undefined}
+        />
+        <DogForm values={values} onChange={setValues} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -79,5 +101,12 @@ export default function NewDogScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
+  header: {
+    height: dogContactChrome.circleSize,
+    paddingHorizontal: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   scrollContent: { flexGrow: 1, padding: spacing.lg },
 });

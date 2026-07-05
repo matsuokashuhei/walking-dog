@@ -6,7 +6,10 @@ import { Stack } from 'expo-router';
 export default function DogsLayout() {
   return (
     <Stack>
-      <Stack.Screen name="new" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="new"
+        options={{ headerShown: false, animation: 'slide_from_bottom', animationDuration: 220 }}
+      />
       <Stack.Screen name="[id]" options={{ headerShown: false }} />
     </Stack>
   );

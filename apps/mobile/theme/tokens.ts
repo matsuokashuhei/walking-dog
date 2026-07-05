@@ -260,6 +260,12 @@ export const components = {
     strokeWidth: 1.8,
     viewBox: 26,
   },
+  headerIconButton: {
+    size: 50,
+    radius: 25,
+    iconSize: 28,
+    disabledOpacity: 0.45,
+  },
   walkControls: {
     minimizeButtonSize: 32,
     minimizeIconSize: 18,

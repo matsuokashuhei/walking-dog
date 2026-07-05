@@ -1,9 +1,18 @@
+import type { ComponentProps } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
-import { layout, spacing, typography, type ColorTokens } from '@/theme/tokens';
+import {
+  components,
+  elevation,
+  layout,
+  spacing,
+  typography,
+  type ColorTokens,
+} from '@/theme/tokens';
 import { BackButton } from './BackButton';
+import { IconSymbol } from './icon-symbol';
 
 export interface ScreenHeaderProps {
   /** 表示タイトル。i18n 済みの文字列を渡す。 */
@@ -29,8 +38,9 @@ export interface ScreenHeaderProps {
 
   /**
    * - undefined / omitted: no button, frame still rendered.
-   * - object: explicit label and onPress. `strong: true` applies
-   *   `typography.headline.fontWeight`.
+   * - object: explicit label and onPress. `icon` renders an icon-only
+   *   circular action while preserving the label for accessibility.
+   *   `strong: true` applies `typography.headline.fontWeight`.
    */
   rightAction?: ScreenHeaderAction;
 
@@ -41,14 +51,18 @@ export interface ScreenHeaderProps {
 export interface ScreenHeaderAction {
   label: string;
   onPress: () => void;
+  /** Icon-only SF Symbol action. The label remains the accessibility label. */
+  icon?: ScreenHeaderActionIconName;
   /** Emphasized font weight for primary CTAs like Save. default: false */
   strong?: boolean;
   /** Disabled visual + accessibilityState.disabled. onPress is not called. */
   disabled?: boolean;
 }
 
+type ScreenHeaderActionIconName = ComponentProps<typeof IconSymbol>['name'];
+
 interface ResolvedScreenHeaderAction extends ScreenHeaderAction {
-  icon?: 'chevron.backward';
+  icon?: ScreenHeaderActionIconName;
 }
 
 type ActionSide = 'left' | 'right';
@@ -182,8 +196,20 @@ const ScreenHeaderActionButton = ({
 }: ScreenHeaderActionButtonProps) => {
   const isDisabled = action.disabled === true;
   const isStrong = action.strong === true && !isDisabled;
-  const actionColor = isDisabled ? theme.textDisabled : theme.interactive;
-  const buttonStyle = [styles.actionButton, actionButtonAlignmentStyle(side)];
+  const iconOnlyName = action.icon !== 'chevron.backward' ? action.icon : undefined;
+  const isIconOnly = iconOnlyName !== undefined;
+  const actionColor = isDisabled
+    ? theme.textDisabled
+    : isIconOnly
+      ? theme.onSurface
+      : theme.interactive;
+  const buttonStyle = [
+    styles.actionButton,
+    actionButtonAlignmentStyle(side),
+    isIconOnly ? styles.iconActionButton : null,
+    isIconOnly ? { backgroundColor: theme.surfaceContainer, borderColor: theme.border } : null,
+    isIconOnly && isDisabled ? styles.disabledIconActionButton : null,
+  ];
 
   if (action.icon === 'chevron.backward') {
     return (
@@ -194,6 +220,27 @@ const ScreenHeaderActionButton = ({
         disabled={isDisabled}
         style={buttonStyle}
       />
+    );
+  }
+
+  if (isIconOnly) {
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={action.label}
+        accessibilityState={{ disabled: isDisabled }}
+        disabled={isDisabled}
+        hitSlop={spacing.step12}
+        onPress={action.onPress}
+        style={buttonStyle}
+      >
+        <IconSymbol
+          name={iconOnlyName}
+          size={components.headerIconButton.iconSize}
+          color={actionColor}
+          weight="regular"
+        />
+      </Pressable>
     );
   }
 
@@ -290,6 +337,19 @@ const styles = StyleSheet.create({
   },
   rightActionButton: {
     justifyContent: 'flex-end',
+  },
+  iconActionButton: {
+    width: components.headerIconButton.size,
+    height: components.headerIconButton.size,
+    minWidth: components.headerIconButton.size,
+    minHeight: components.headerIconButton.size,
+    borderRadius: components.headerIconButton.radius,
+    borderWidth: StyleSheet.hairlineWidth,
+    justifyContent: 'center',
+    ...elevation.low,
+  },
+  disabledIconActionButton: {
+    opacity: components.headerIconButton.disabledOpacity,
   },
   actionLabel: {
     ...typography.body,

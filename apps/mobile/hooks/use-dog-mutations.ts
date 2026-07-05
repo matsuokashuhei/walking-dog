@@ -32,10 +32,37 @@ type UpdateDogMutationInput = UpdateDogInput & {
   avatarFile?: UploadFile;
 };
 
+type CreateDogMutationInput = CreateDogInput & {
+  avatarFile?: UploadFile;
+};
+
 type UpdateDogMutationVariables = {
   id: string;
   input: UpdateDogMutationInput;
 };
+
+function toCreateDogRequestInput(input: CreateDogMutationInput): {
+  name: string;
+  breed: string | undefined;
+  gender: 'MALE' | 'FEMALE' | 'OTHER';
+  birthday: CreateDogInput['birthday'];
+  walkGoal?: CreateDogInput['walkGoal'];
+} {
+  const requestInput: {
+    name: string;
+    breed: string | undefined;
+    gender: 'MALE' | 'FEMALE' | 'OTHER';
+    birthday: CreateDogInput['birthday'];
+    walkGoal?: CreateDogInput['walkGoal'];
+  } = {
+    name: input.name,
+    breed: input.breed,
+    gender: toApiGender(input.gender),
+    birthday: input.birthday,
+  };
+  if (input.walkGoal !== undefined) requestInput.walkGoal = input.walkGoal;
+  return requestInput;
+}
 
 function toUpdateDogRequestInput(
   id: string,
@@ -74,16 +101,23 @@ function toUpdateDogRequestInput(
 // 犬の作成後、ユーザー関連キャッシュを更新して一覧へ反映します。
 export function useCreateDog() {
   const invalidateUserQueries = useInvalidateUserQueries();
-  return useMutation<Dog, Error, CreateDogInput>({
+  return useMutation<Dog, Error, CreateDogMutationInput>({
     mutationFn: async (input) => {
-      const data = await authenticatedRequest<CreateDogResponse>(ADD_DOG_MUTATION, {
-        input: {
-          name: input.name,
-          breed: input.breed,
-          gender: toApiGender(input.gender),
-          birthday: input.birthday,
-        },
-      });
+      const requestInput = toCreateDogRequestInput(input);
+      const data = input.avatarFile
+        ? await authenticatedMultipartRequest<CreateDogResponse>(
+            ADD_DOG_MUTATION,
+            {
+              input: {
+                ...requestInput,
+                avatar: null,
+              },
+            },
+            { 'variables.input.avatar': input.avatarFile },
+          )
+        : await authenticatedRequest<CreateDogResponse>(ADD_DOG_MUTATION, {
+            input: requestInput,
+          });
       return mapApiDog(data.addDog);
     },
     onSuccess: invalidateUserQueries,

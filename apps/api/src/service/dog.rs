@@ -27,6 +27,7 @@ pub struct AddDogCommand {
     pub gender: GenderType,
     pub avatar: Option<String>,
     pub birthday: Option<birthday::Model>,
+    pub walk_goal: Option<walk_amount::Model>,
 }
 
 #[derive(Clone, Debug)]
@@ -45,10 +46,12 @@ pub async fn add_dog(
     db: &DatabaseConnection,
     user_id: Uuid,
     command: AddDogCommand,
+    today: chrono::NaiveDate,
 ) -> ServiceResult<dog::Model> {
     db.transaction::<_, dog::Model, ServiceError>(|txn| {
         let command = command.clone();
         Box::pin(async move {
+            let walk_goal = command.walk_goal.clone();
             let dog = command.into_active_model().insert(txn).await?;
             user_dog::ActiveModel {
                 user_id: Set(user_id),
@@ -57,6 +60,9 @@ pub async fn add_dog(
             }
             .insert(txn)
             .await?;
+            if let Some(walk_goal) = walk_goal {
+                dog_walk_goal::upsert_goal(txn, dog.id, walk_goal, today).await?;
+            }
 
             Ok(dog)
         })

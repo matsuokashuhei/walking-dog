@@ -78,4 +78,23 @@ describe('RootLayout', () => {
       options: { headerShown: false, animation: 'none' },
     });
   });
+
+  it('presents /dogs/new quickly from the bottom at the root stack boundary', () => {
+    render(<RootLayout />);
+
+    const dogsScreen = mockScreen.mock.calls
+      .map(([props]) => props as { name: string; options: unknown })
+      .find((props) => props.name === 'dogs');
+
+    expect(typeof dogsScreen?.options).toBe('function');
+    const options = dogsScreen?.options as (args: { route: unknown }) => unknown;
+    expect(options({ route: { params: { screen: 'new' } } })).toEqual({
+      headerShown: false,
+      animation: 'slide_from_bottom',
+      animationDuration: 220,
+    });
+    expect(options({ route: { params: { screen: '[id]' } } })).toEqual({
+      headerShown: false,
+    });
+  });
 });

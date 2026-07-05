@@ -4,6 +4,7 @@ input AddDogInput {
 	gender: Gender!
 	avatar: Upload
 	birthday: BirthdayInput
+	walkGoal: WalkAmountInput
 }
 
 input AddEventInput {

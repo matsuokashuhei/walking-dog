@@ -83,6 +83,10 @@ scripts/harness/score-quality.sh
   enabled. App clients must not include `ALLOW_REFRESH_TOKEN_AUTH`; API must
   reject Cognito refresh responses that omit access or refresh tokens.
 - Keep Mobile UI aligned with Expo/React Native rules in `apps/mobile/CLAUDE.md`.
+- For user-facing UI changes, create or present an HTML mockup, visual companion
+  screen, or equivalent visual artifact before producing the implementation plan.
+  Record the mockup artifact and user feedback outcome in the final plan. If the
+  user explicitly opts out, record that opt-out instead.
 - When a bug, review comment, stale doc, or confusing pattern appears, promote the
   learning into docs, a harness validator, a journey, or a project skill.
 

@@ -24,6 +24,7 @@ sed -n '1,100p' apps/mobile/e2e/maestro/<flow>.yaml
 2. Verify prerequisites that affect selectors and connectivity:
 
 - Maestro CLI is installed.
+- `jq` is installed for harness scripts and reading `.harness-runs/dev-stack/env.json`.
 - Xcode Simulator can start `iPhone 17 Pro`.
 - Simulator language is English because selectors use English UI text.
 - `apps/mobile` dependencies are installed.
@@ -41,13 +42,13 @@ cd ../..
 4. Start the harness dev stack when it is not already running:
 
 ```bash
-node scripts/harness/dev-stack.mjs up
+scripts/harness/dev-stack.sh up
 ```
 
 5. Read the worktree-specific API port:
 
 ```bash
-node -p "require('./.harness-runs/dev-stack/env.json').ports.api"
+jq -r '.ports.api' .harness-runs/dev-stack/env.json
 ```
 
 6. Install a Release build on the simulator with the working directory set to `apps/mobile`, substituting the literal API port from step 5. Codex shell calls do not preserve exports between separate commands, so do not rely on `WD_API_PORT` from a previous command unless using the same shell session:
@@ -99,10 +100,11 @@ Read each YAML's `Harness preconditions` comments before running it. Current flo
 
 ## Cleanup
 
-Stop the Expo/Metro terminal with `Ctrl-C`. Stop the harness dev stack if it is no longer needed:
+Stop the Expo/Metro terminal with `Ctrl-C`. Stop and remove the harness dev
+stack, including its named volumes, if it is no longer needed:
 
 ```bash
-node scripts/harness/dev-stack.mjs down
+scripts/harness/dev-stack.sh down
 ```
 
 ## Changing Flows

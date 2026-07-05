@@ -177,6 +177,13 @@ test_dev_stack_does_not_use_compose_override_files() {
   assert_not_contains "$source" "compose.override.yaml" "dev-stack should not use compose override yaml"
 }
 
+test_dev_stack_down_removes_named_volumes() {
+  local source
+  source="$(cat "$repo_root/scripts/harness/dev-stack.sh")"
+
+  assert_contains "$source" "compose_args=(down --volumes --remove-orphans)" "dev-stack down should remove harness volumes"
+}
+
 test_run_api_journey_uses_current_user_query() {
   local source
   source="$(cat "$repo_root/scripts/harness/run-api-journey.sh")"
@@ -255,7 +262,7 @@ test_harness_has_no_node_scripts_or_invocations() {
   [[ -z "$matches" ]] || fail "expected no harness .mjs files; found $matches"
 
   pattern="node scripts/"'harness|node --test scripts/'"harness|scripts/"'harness/[a-z-]+\.mjs|node -'"p"
-  matches="$(cd "$repo_root" && rg -n "$pattern" .github AGENTS.md CLAUDE.md docs scripts infra apps/mobile/e2e/maestro || true)"
+  matches="$(cd "$repo_root" && rg --hidden --no-ignore -n "$pattern" .codex .github AGENTS.md CLAUDE.md docs scripts infra apps/mobile/e2e/maestro || true)"
   [[ -z "$matches" ]] || fail "expected no Node harness references; found $matches"
 }
 

@@ -13,6 +13,16 @@ scripts/harness/dev-stack.sh up
 The script writes `.harness-runs/dev-stack/env.json` with the compose project name
 and per-worktree ports.
 
+Stop and remove the current worktree's harness containers, networks, and named
+volumes:
+
+```bash
+scripts/harness/dev-stack.sh down
+```
+
+This removes local Postgres, DynamoDB, MinIO, Cargo, and target-cache volumes for
+the harness Compose project.
+
 ## Local API Authentication
 
 Local API auth uses a dedicated real AWS Cognito user pool for the local

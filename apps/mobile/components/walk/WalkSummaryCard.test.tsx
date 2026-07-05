@@ -118,7 +118,7 @@ describe('WalkSummaryCard', () => {
     render(<WalkSummaryCard />);
     fireEvent.press(screen.getByRole('button', { name: 'Save walk' }));
     expect(mockReset).toHaveBeenCalledTimes(1);
-    expect(mockPush).toHaveBeenCalledWith('/walks/walk-1');
+    expect(mockPush).toHaveBeenCalledWith('/(tabs)/walk/walks/walk-1');
   });
 
   it('renders the Add note secondary action without crashing when no handler is wired', () => {

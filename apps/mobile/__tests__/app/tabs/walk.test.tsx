@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import WalkScreen from '../../../app/(tabs)/walk';
+import WalkScreen from '../../../app/(tabs)/walk/index';
 import type { Dog } from '@/types/graphql';
 
 jest.mock('@/hooks/use-color-scheme', () => ({ useColorScheme: () => 'light' }));

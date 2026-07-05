@@ -76,7 +76,7 @@ export function useDogDetailViewModel(): DogDetailViewModel {
 
   const handleOpenWalk = useCallback(
     (walkId: string) => {
-      router.push(`/walks/${walkId}`);
+      router.push(`/(tabs)/walk/walks/${walkId}`);
     },
     [router],
   );

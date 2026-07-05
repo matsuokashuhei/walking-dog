@@ -21,12 +21,12 @@ export function useDogsScreenViewModel(): DogsScreenViewModel {
   const pack = usePackProgress();
 
   const handleAddDog = useCallback(() => {
-    router.push('/dogs/new');
+    router.push('/(tabs)/dogs/new');
   }, [router]);
 
   const handleOpenDog = useCallback(
     (dogId: string) => {
-      router.push(`/dogs/${dogId}`);
+      router.push(`/(tabs)/dogs/${dogId}`);
     },
     [router],
   );

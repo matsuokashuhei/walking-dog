@@ -1,5 +1,5 @@
 import { render } from '@testing-library/react-native';
-import DogDetailLayout from '../../../app/dogs/[id]/_layout';
+import DogDetailLayout from '../../../app/(tabs)/dogs/[id]/_layout';
 
 const mockScreen = jest.fn((_props: unknown) => null);
 

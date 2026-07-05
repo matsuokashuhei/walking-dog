@@ -72,11 +72,11 @@ export function WalkSummaryCard() {
   const handleSave = () => {
     const id = walkId;
     reset();
-    if (id) router.push(`/walks/${id}`);
+    if (id) router.push(`/(tabs)/walk/walks/${id}`);
   };
 
   const handleViewEach = walkId
-    ? () => router.push(`/walks/${walkId}`)
+    ? () => router.push(`/(tabs)/walk/walks/${walkId}`)
     : undefined;
 
   return (

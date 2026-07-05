@@ -28,12 +28,12 @@ export default function UserScreen() {
   return (
     <SafeAreaView edges={['top']} style={[styles.safeArea, { backgroundColor: theme.background }]}>
       <ScreenHeader
-        title={t('settings.title')}
+        title={t('tabs.me')}
         rightAction={{
           label: t('user.edit'),
-          onPress: () => router.push('/user/edit'),
+          onPress: () => router.push('/(tabs)/user/edit'),
         }}
-        testID="settings-header"
+        testID="user-header"
       />
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         <UserSummary
@@ -45,7 +45,7 @@ export default function UserScreen() {
                   leading={<IconSymbol name="envelope.fill" size={18} color={theme.interactive} />}
                   label={t('user.account.changeEmail')}
                   testID="account-change-email"
-                  onPress={() => router.push('/settings/email')}
+                  onPress={() => router.push('/(tabs)/user/settings/email')}
                   separator={false}
                 />
               </GroupedCard>
@@ -53,7 +53,7 @@ export default function UserScreen() {
                 <GroupedRow
                   leading={<IconSymbol name="gearshape.fill" size={18} color={theme.interactive} />}
                   label={t('settings.openSettings')}
-                  onPress={() => router.push('/settings')}
+                  onPress={() => router.push('/(tabs)/user/settings')}
                   separator={false}
                 />
               </GroupedCard>

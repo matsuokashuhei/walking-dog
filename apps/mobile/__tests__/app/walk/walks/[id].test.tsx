@@ -34,7 +34,7 @@ jest.mock('@/hooks/use-walks', () => ({
 }));
 
 // eslint-disable-next-line import/first
-import WalkDetailScreen from '../../../app/walks/[id]';
+import WalkDetailScreen from '../../../../app/(tabs)/walk/walks/[id]';
 
 const mockReplace = router.replace as jest.Mock;
 
@@ -110,7 +110,7 @@ describe('WalkDetailScreen', () => {
     render(<WalkDetailScreen />);
 
     expect(mockReplace).toHaveBeenCalledWith({
-      pathname: '/walk-recording',
+      pathname: '/(tabs)/walk',
       params: { walkId: 'active-walk' },
     });
   });

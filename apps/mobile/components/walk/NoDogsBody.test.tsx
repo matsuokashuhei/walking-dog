@@ -20,9 +20,9 @@ describe('NoDogsBody', () => {
     expect(screen.getByRole('button', { name: 'Add your first dog' })).toBeTruthy();
   });
 
-  it('navigates to /dogs/new when CTA is pressed', () => {
+  it('navigates to /(tabs)/dogs/new when CTA is pressed', () => {
     render(<NoDogsBody />);
     fireEvent.press(screen.getByRole('button', { name: 'Add your first dog' }));
-    expect(mockPush).toHaveBeenCalledWith('/dogs/new');
+    expect(mockPush).toHaveBeenCalledWith('/(tabs)/dogs/new');
   });
 });

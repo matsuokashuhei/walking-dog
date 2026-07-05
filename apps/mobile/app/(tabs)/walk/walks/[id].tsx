@@ -27,7 +27,7 @@ export default function WalkDetailScreen() {
     if (phase !== 'recording' || !activeWalkId) return;
 
     router.replace({
-      pathname: '/walk-recording',
+      pathname: '/(tabs)/walk',
       params: { walkId: activeWalkId },
     });
   }, [activeWalkId, phase]);

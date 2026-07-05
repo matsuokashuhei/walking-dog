@@ -68,10 +68,6 @@ function RootLayout() {
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-          <Stack.Screen name="dogs" options={{ headerShown: false }} />
-          <Stack.Screen name="settings" options={{ headerShown: false }} />
-          <Stack.Screen name="user" options={{ headerShown: false }} />
-          <Stack.Screen name="walks" options={{ headerShown: false }} />
           <Stack.Screen
             name="walk-recording"
             options={{ headerShown: false, animation: 'fade', gestureEnabled: false }}

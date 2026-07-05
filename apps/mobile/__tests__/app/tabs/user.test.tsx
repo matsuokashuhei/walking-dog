@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import UserScreen from '../../../app/(tabs)/user';
+import UserScreen from '../../../app/(tabs)/user/index';
 
 const mockPush = jest.fn();
 const mockRetry = jest.fn();
@@ -22,22 +22,8 @@ jest.mock('expo-image', () => ({
   Image: 'Image',
 }));
 
-jest.mock('expo-constants', () => ({
-  default: {
-    expoConfig: { version: '1.0.0', extra: {} },
-  },
-}));
-
 jest.mock('@/hooks/use-user-screen-view-model', () => ({
   useUserScreenViewModel: () => mockUserViewModel,
-}));
-
-jest.mock('@/hooks/use-settings-screen-view-model', () => ({
-  useSettingsScreenViewModel: () => ({
-    status: 'ready',
-    handleRetry: mockRetry,
-    me: { name: 'Test User', displayName: 'Test User', avatar: null, avatarUrl: null },
-  }),
 }));
 
 jest.mock('@/components/ui/LoadingScreen', () => {
@@ -91,9 +77,9 @@ describe('UserScreen', () => {
     render(<UserScreen />);
 
     expect(screen.getByRole('header', { name: 'Me' })).toBeTruthy();
-    expect(screen.getByTestId('settings-header-large-title-row')).toBeTruthy();
-    expect(screen.getByTestId('settings-header-left-action-slot')).toBeTruthy();
-    expect(screen.getByTestId('settings-header-right-action-slot')).toBeTruthy();
+    expect(screen.getByTestId('user-header-large-title-row')).toBeTruthy();
+    expect(screen.getByTestId('user-header-left-action-slot')).toBeTruthy();
+    expect(screen.getByTestId('user-header-right-action-slot')).toBeTruthy();
     expect(screen.getByText('Mio Tanaka')).toBeTruthy();
     expect(screen.getByText('mio@walk.app')).toBeTruthy();
     expect(screen.getByText('Walking since March 2024')).toBeTruthy();
@@ -102,13 +88,13 @@ describe('UserScreen', () => {
     expect(screen.getByText('9.5 km total')).toBeTruthy();
 
     fireEvent.press(screen.getByRole('button', { name: 'Edit' }));
-    expect(mockPush).toHaveBeenCalledWith('/user/edit');
+    expect(mockPush).toHaveBeenCalledWith('/(tabs)/user/edit');
 
     fireEvent.press(screen.getByRole('button', { name: 'Settings' }));
-    expect(mockPush).toHaveBeenCalledWith('/settings');
+    expect(mockPush).toHaveBeenCalledWith('/(tabs)/user/settings');
 
     fireEvent.press(screen.getByRole('button', { name: 'Change email' }));
-    expect(mockPush).toHaveBeenCalledWith('/settings/email');
+    expect(mockPush).toHaveBeenCalledWith('/(tabs)/user/settings/email');
 
     expect(screen.queryByRole('button', { name: 'Change password' })).toBeNull();
   });

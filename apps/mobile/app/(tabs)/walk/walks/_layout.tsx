@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { BackButton } from '@/components/ui/BackButton';
 import { useColors } from '@/hooks/use-colors';
 
-// 散歩詳細 Stack は独自の戻るボタンを使い、タブ内の履歴から自然に戻します。
+// Saved walk detail belongs to the Walk tab stack.
 export default function WalksLayout() {
   const { t } = useTranslation();
   const router = useRouter();

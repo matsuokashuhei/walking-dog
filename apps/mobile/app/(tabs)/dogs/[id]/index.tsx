@@ -120,7 +120,7 @@ export default function DogDetailScreen() {
             label={t('dogs.detail.edit')}
             onPress={() =>
               router.push({
-                pathname: '/dogs/[id]/edit',
+                pathname: '/(tabs)/dogs/[id]/edit',
                 params: { id: vm.dog.id },
               })
             }

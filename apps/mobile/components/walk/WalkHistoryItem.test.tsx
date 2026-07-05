@@ -1,9 +1,11 @@
-import { render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen } from '@testing-library/react-native';
 import { WalkHistoryItem } from './WalkHistoryItem';
 import type { Walk } from '@/types/graphql';
 
+const mockPush = jest.fn();
+
 jest.mock('expo-router', () => ({
-  useRouter: () => ({ push: jest.fn() }),
+  useRouter: () => ({ push: mockPush }),
 }));
 
 jest.mock('expo-image', () => ({
@@ -21,6 +23,10 @@ const baseWalk: Walk = {
 };
 
 describe('WalkHistoryItem', () => {
+  beforeEach(() => {
+    mockPush.mockClear();
+  });
+
   it('renders walker display name when walker is present', () => {
     const walk: Walk = {
       ...baseWalk,
@@ -65,6 +71,14 @@ describe('WalkHistoryItem', () => {
     };
     render(<WalkHistoryItem walk={walk} />);
     expect(screen.getByText('Buddy, Max')).toBeTruthy();
+  });
+
+  it('opens the saved walk detail inside the Walk tab stack when pressed', () => {
+    render(<WalkHistoryItem walk={baseWalk} />);
+
+    fireEvent.press(screen.getByRole('button', { name: '4/1/2026 Buddy' }));
+
+    expect(mockPush).toHaveBeenCalledWith('/(tabs)/walk/walks/walk-1');
   });
 
   it('renders 0 distance and duration when values are null', () => {

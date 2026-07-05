@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router';
 
-// Settings 配下の画面は design.html の inline nav を画面内で描画します。
+// Settings screens draw inline chrome, not the default Stack header.
 export default function SettingsLayout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>

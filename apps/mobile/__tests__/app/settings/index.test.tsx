@@ -1,10 +1,9 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import SettingsScreen from '../../../app/settings';
+import SettingsScreen from '../../../app/(tabs)/user/settings/index';
 
 const mockPush = jest.fn();
 const mockBack = jest.fn();
 const mockRetry = jest.fn();
-let mockViewModel: unknown;
 let mockSettingsViewModel: unknown;
 
 jest.mock('expo-router', () => ({
@@ -38,10 +37,6 @@ jest.mock('@/components/ui/ErrorScreen', () => {
   };
 });
 
-jest.mock('@/hooks/use-user-screen-view-model', () => ({
-  useUserScreenViewModel: () => mockViewModel,
-}));
-
 jest.mock('@/hooks/use-settings-screen-view-model', () => ({
   useSettingsScreenViewModel: () => mockSettingsViewModel,
 }));
@@ -64,33 +59,6 @@ jest.mock('@/components/settings/SignOutRow', () => {
 describe('SettingsScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockViewModel = {
-      status: 'ready',
-      handleRetry: mockRetry,
-      displayName: 'Mio Tanaka',
-      avatarUrl: null,
-      initial: 'M',
-      walkingSince: 'Walking since March 2024',
-      metrics: [
-        { key: 'walks', value: '263', label: 'Walks' },
-        { key: 'distance', value: '412.8', label: 'km' },
-        { key: 'totalTime', value: '87h 0m', label: 'Total time' },
-        { key: 'dogs', value: '3', label: 'Dogs' },
-      ],
-      week: {
-        title: 'This week',
-        totalLabel: '9.5 km total',
-        days: [
-          { key: 'mon', label: 'Mon', distanceKm: 0.8, valueLabel: '0.8', progress: 0.33, isToday: false },
-          { key: 'tue', label: 'Tue', distanceKm: 1.2, valueLabel: '1.2', progress: 0.5, isToday: false },
-          { key: 'wed', label: 'Wed', distanceKm: 2.1, valueLabel: '2.1', progress: 0.88, isToday: false },
-          { key: 'thu', label: 'Thu', distanceKm: 0, valueLabel: '', progress: 0, isToday: false },
-          { key: 'fri', label: 'Fri', distanceKm: 1.6, valueLabel: '1.6', progress: 0.67, isToday: false },
-          { key: 'sat', label: 'Sat', distanceKm: 2.4, valueLabel: '2.4', progress: 1, isToday: true },
-          { key: 'sun', label: 'Sun', distanceKm: 1.4, valueLabel: '1.4', progress: 0.59, isToday: false },
-        ],
-      },
-    };
     mockSettingsViewModel = {
       status: 'ready',
       handleRetry: mockRetry,

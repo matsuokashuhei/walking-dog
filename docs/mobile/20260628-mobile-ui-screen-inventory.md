@@ -71,7 +71,7 @@ Expo Router の leaf route は 14 個あるが、以下 2 route は画面を描�
 
 ### 3. 愛犬一覧画面
 
-- **route**: `apps/mobile/app/(tabs)/dogs.tsx`
+- **route**: `apps/mobile/app/(tabs)/dogs/index.tsx`
 - **主要コンポーネント**: `ScreenHeader`, `FlatList`, `DogListItem`, `SectionHeader`, `EmptyState`, `LoadingScreen`
 - **役割**: 登録済み犬の一覧と犬追加導線
 
@@ -93,7 +93,7 @@ Expo Router の leaf route は 14 個あるが、以下 2 route は画面を描�
 
 ### 4. 散歩画面
 
-- **route**: `apps/mobile/app/(tabs)/walk.tsx`
+- **route**: `apps/mobile/app/(tabs)/walk/index.tsx`
 - **主要コンポーネント**: `WalkMapShell`, `WalkMap`, `WalkTopChip`, `WalkFloatingSheet`, `WalkReadySheetContent`, `WalkRecordingControlsOverlay`, `WalkSummaryCard`
 - **役割**: 散歩開始、記録中操作、散歩終了後サマリーを同じ route で扱う
 
@@ -189,7 +189,7 @@ Expo Router の leaf route は 14 個あるが、以下 2 route は画面を描�
 
 ### 5. マイページ画面
 
-- **route**: `apps/mobile/app/(tabs)/user.tsx`
+- **route**: `apps/mobile/app/(tabs)/user/index.tsx`
 - **主要コンポーネント**: `ScreenHeader`, `ScrollView`, `UserSummary`, `UserAvatar`, `GroupedCard`, `GroupedRow`
 - **役割**: ユーザー自身の散歩貢献とアカウント導線を表示する
 
@@ -216,7 +216,7 @@ Expo Router の leaf route は 14 個あるが、以下 2 route は画面を描�
 
 ### 6. 犬登録画面
 
-- **route**: `apps/mobile/app/dogs/new.tsx`
+- **route**: `apps/mobile/app/(tabs)/dogs/new.tsx`
 - **主要コンポーネント**: `ScreenHeader`, `ScrollView`, `DogForm`, `TextInput`
 - **役割**: 新しい犬の基本プロフィールを登録する
 
@@ -241,7 +241,7 @@ Expo Router の leaf route は 14 個あるが、以下 2 route は画面を描�
 
 ### 7. 犬詳細画面
 
-- **route**: `apps/mobile/app/dogs/[id]/index.tsx`
+- **route**: `apps/mobile/app/(tabs)/dogs/[id]/index.tsx`
 - **主要コンポーネント**: `DogHero`, `DogStatsCard`, `GoalProgressCard`, `DogWalksList`, `DogWalkRow`, `BackButton`
 - **役割**: 犬単体のプロフィール、目標進捗、散歩履歴を見る
 
@@ -274,7 +274,7 @@ Expo Router の leaf route は 14 個あるが、以下 2 route は画面を描�
 
 ### 8. 犬編集画面
 
-- **route**: `apps/mobile/app/dogs/[id]/edit.tsx`
+- **route**: `apps/mobile/app/(tabs)/dogs/[id]/edit.tsx`
 - **主要コンポーネント**: `ScreenHeader`, `DogAvatarEditor`, `DogForm`, `TextInput`, `SegmentedControl`, `@expo/ui/swift-ui` `Slider`
 - **役割**: 犬のプロフィール、写真、散歩目標を編集する
 
@@ -306,7 +306,7 @@ Expo Router の leaf route は 14 個あるが、以下 2 route は画面を描�
 
 ### 9. ユーザー編集画面
 
-- **route**: `apps/mobile/app/user/edit.tsx`
+- **route**: `apps/mobile/app/(tabs)/user/edit.tsx`
 - **主要コンポーネント**: `ScreenHeader`, `UserAvatarEditor`, `UserAvatar`, `GroupedCard`, `TextInput`
 - **役割**: ユーザー表示名と写真を編集する
 
@@ -327,7 +327,7 @@ Expo Router の leaf route は 14 個あるが、以下 2 route は画面を描�
 
 ### 10. 設定画面
 
-- **route**: `apps/mobile/app/settings/index.tsx`
+- **route**: `apps/mobile/app/(tabs)/user/settings/index.tsx`
 - **主要コンポーネント**: `ScreenHeader`, `PreferencesSection`, `LegalSection`, `SignOutRow`, `GroupedCard`, `GroupedRow`, `ConfirmDialog`
 - **役割**: 表示設定、法的リンク、サインアウト導線をまとめる
 
@@ -355,7 +355,7 @@ Expo Router の leaf route は 14 個あるが、以下 2 route は画面を描�
 
 ### 11. メール変更画面
 
-- **route**: `apps/mobile/app/settings/email.tsx`
+- **route**: `apps/mobile/app/(tabs)/user/settings/email.tsx`
 - **主要コンポーネント**: `ScreenHeader`, `GroupedCard`, `GroupedRow`, `TextInput`, `Button`, `OneTimePasswordInput`
 - **役割**: ログイン中ユーザーのメールアドレス変更
 
@@ -375,7 +375,7 @@ Expo Router の leaf route は 14 個あるが、以下 2 route は画面を描�
 
 ### 12. 散歩詳細画面
 
-- **route**: `apps/mobile/app/walks/[id].tsx`
+- **route**: `apps/mobile/app/(tabs)/walk/walks/[id].tsx`
 - **主要コンポーネント**: `MapView`, `Polyline`, `Marker`, `GroupedCard`, `WalkEventTimeline`, `Image`
 - **役割**: 保存済み散歩のルート、メトリクス、担当者、イベント履歴を表示する
 
@@ -430,7 +430,7 @@ Expo Router の leaf route は 14 個あるが、以下 2 route は画面を描�
 - Walk タブは通常記録中の UI 所有者。`/walk-recording` を記録 UI の所有者へ戻さない。
 - Walk タブの `ready` / `recording` / `finished` は同じ route 内の状態差分として扱う。
 - 犬詳細画面には削除導線を置かず、削除は犬編集画面へ集約されている。
-- Me タブはプロフィールと散歩貢献を主表示し、表示設定や法務リンクは `/settings` に置く。
+- Me タブはプロフィールと散歩貢献を主表示し、表示設定や法務リンクは `/(tabs)/user/settings` に置く。
 - map 主役の画面は `ScreenHeader` で上を押し下げず、マップ全面 + overlay 構成を維持する。
 - 入力・設定 UI は grouped row 形式と `ActionSheetIOS` ベースの選択を第一候補にする。
 - スタイルを変更する場合は `apps/mobile/theme/tokens.ts` の token を使い、magic number を増やさない。

@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import * as ImagePicker from 'expo-image-picker';
-import UserEditScreen from '../../../app/user/edit';
+import UserEditScreen from '../../../app/(tabs)/user/edit';
 
 const mockBack = jest.fn();
 const mockUpdateUser = jest.fn();

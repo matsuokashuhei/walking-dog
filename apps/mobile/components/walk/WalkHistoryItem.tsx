@@ -30,7 +30,7 @@ export function WalkHistoryItem({ walk }: WalkHistoryItemProps) {
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`${dateStr} ${dogNames}`}
-      onPress={() => router.push(`/walks/${walk.id}`)}
+      onPress={() => router.push(`/(tabs)/walk/walks/${walk.id}`)}
       style={[
         styles.container,
         {

@@ -1,7 +1,7 @@
 import { StyleSheet } from 'react-native';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import DogDetailScreen from '../../../app/dogs/[id]/index';
+import DogDetailScreen from '../../../app/(tabs)/dogs/[id]/index';
 import type { DogWithStats, Walk } from '@/types/graphql';
 import { colors, dogContactChrome, spacing } from '@/theme/tokens';
 
@@ -158,7 +158,7 @@ describe('DogDetailScreen', () => {
     renderWithProviders(<DogDetailScreen />);
     fireEvent.press(screen.getByLabelText('Edit'));
     expect(mockPush).toHaveBeenCalledWith({
-      pathname: '/dogs/[id]/edit',
+      pathname: '/(tabs)/dogs/[id]/edit',
       params: { id: 'dog-1' },
     });
   });

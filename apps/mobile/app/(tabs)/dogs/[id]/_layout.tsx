@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router';
 
-// 犬詳細配下の編集画面の Stack ヘッダー設定を集約します。
+// Dog detail owns its edit child while each screen draws its own inline chrome.
 export default function DogDetailLayout() {
   return (
     <Stack>

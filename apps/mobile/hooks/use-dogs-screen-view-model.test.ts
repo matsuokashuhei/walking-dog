@@ -121,8 +121,8 @@ describe('useDogsScreenViewModel', () => {
       result.current.handleOpenDog('dog-9');
     });
 
-    expect(mockPush).toHaveBeenNthCalledWith(1, '/dogs/new');
-    expect(mockPush).toHaveBeenNthCalledWith(2, '/dogs/dog-9');
+    expect(mockPush).toHaveBeenNthCalledWith(1, '/(tabs)/dogs/new');
+    expect(mockPush).toHaveBeenNthCalledWith(2, '/(tabs)/dogs/dog-9');
   });
 
   it('exposes a refresh handler backed by useMe.refetch', () => {

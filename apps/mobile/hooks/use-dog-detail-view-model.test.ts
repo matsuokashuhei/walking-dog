@@ -208,7 +208,7 @@ describe('useDogDetailViewModel', () => {
       vm.handleOpenWalk('walk-8');
     });
 
-    expect(mockPush).toHaveBeenNthCalledWith(1, '/walks/walk-8');
+    expect(mockPush).toHaveBeenNthCalledWith(1, '/(tabs)/walk/walks/walk-8');
     expect(mockPush).toHaveBeenCalledTimes(1);
   });
 

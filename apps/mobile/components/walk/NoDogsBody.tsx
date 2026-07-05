@@ -12,7 +12,7 @@ export function NoDogsBody() {
 
   const ctaLabel = t('walk.ready.noDogsCta');
   // 空状態からすぐ散歩準備へ戻れるよう、犬の新規登録へ送ります。
-  const handleAdd = () => router.push('/dogs/new');
+  const handleAdd = () => router.push('/(tabs)/dogs/new');
 
   return (
     <View style={styles.container}>

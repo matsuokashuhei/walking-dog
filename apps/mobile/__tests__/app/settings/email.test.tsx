@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
-import EmailSettingsScreen from '../../../app/settings/email';
+import EmailSettingsScreen from '../../../app/(tabs)/user/settings/email';
 
 const mockBack = jest.fn();
 const mockChangeEmail = jest.fn();

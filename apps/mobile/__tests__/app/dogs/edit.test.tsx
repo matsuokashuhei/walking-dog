@@ -1,7 +1,7 @@
 import { Alert, StyleSheet } from 'react-native';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import * as ImagePicker from 'expo-image-picker';
-import EditDogScreen from '../../../app/dogs/[id]/edit';
+import EditDogScreen from '../../../app/(tabs)/dogs/[id]/edit';
 import type { DogWithStats } from '@/types/graphql';
 import { colors, dogContactChrome } from '@/theme/tokens';
 

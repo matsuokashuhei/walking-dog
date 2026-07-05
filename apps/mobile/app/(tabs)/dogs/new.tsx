@@ -48,7 +48,7 @@ export default function NewDogScreen() {
       });
 
       router.dismiss();
-      router.push(`/dogs/${dog.id}`);
+      router.push(`/(tabs)/dogs/${dog.id}`);
     } finally {
       setSubmitting(false);
     }

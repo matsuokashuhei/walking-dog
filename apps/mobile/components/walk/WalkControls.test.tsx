@@ -1,5 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 import { WalkControls } from './WalkControls';
+import { components } from '@/theme/tokens';
 import type { Dog } from '@/types/graphql';
 
 jest.mock('@/hooks/use-color-scheme', () => ({
@@ -7,6 +9,28 @@ jest.mock('@/hooks/use-color-scheme', () => ({
 }));
 
 jest.mock('expo-image', () => ({ Image: 'Image' }));
+
+jest.mock('@react-native-community/slider', () => {
+  const { View } = jest.requireActual('react-native');
+  return {
+    __esModule: true,
+    default: ({
+      onValueChange,
+      onSlidingComplete,
+      ...props
+    }: {
+      onValueChange?: (value: number) => void;
+      onSlidingComplete?: (value: number) => void;
+    }) => (
+      <View
+        {...props}
+        accessibilityRole="adjustable"
+        onValueChange={onValueChange}
+        onSlidingComplete={onSlidingComplete}
+      />
+    ),
+  };
+});
 
 const mockWalkStoreState = {
   startedAt: null as Date | null,
@@ -69,9 +93,13 @@ describe('WalkControls', () => {
     expect(screen.getByText('LIVE')).toBeTruthy();
   });
 
-  it('renders the destructive End Walk button', () => {
+  it('renders native slide-to-end control without the Pause button', () => {
     render(<WalkControls dogs={[coco]} onStop={jest.fn()} isStopping={false} />);
-    expect(screen.getByRole('button', { name: 'End Walk' })).toBeTruthy();
+    expect(screen.getByTestId('walk-end-rn-slider')).toBeTruthy();
+    expect(screen.getByTestId('walk-end-slider-knob')).toBeTruthy();
+    expect(screen.getByText('End Walk')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Pause' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Resume' })).toBeNull();
   });
 
   it('renders a minimize button and calls onMinimize', () => {
@@ -92,8 +120,27 @@ describe('WalkControls', () => {
 
   it('disables End Walk when isStopping', () => {
     render(<WalkControls dogs={[coco]} onStop={jest.fn()} isStopping={true} />);
-    const button = screen.getByRole('button', { name: 'End Walk' });
-    expect(button.props.accessibilityState?.disabled).toBe(true);
+    const slider = screen.getByTestId('walk-end-rn-slider');
+    expect(slider.props.disabled).toBe(true);
+  });
+
+  it('uses a transparent RN slider thumb so the custom circular knob owns the visuals', () => {
+    render(<WalkControls dogs={[coco]} onStop={jest.fn()} isStopping={false} />);
+    const slider = screen.getByTestId('walk-end-rn-slider');
+    expect(slider.props.thumbSize).toBe(components.walkControls.endSlideKnobSize);
+    expect(slider.props.thumbTintColor).toBe('#00000000');
+    expect(slider.props.minimumTrackTintColor).toBe('#00000000');
+    expect(slider.props.maximumTrackTintColor).toBe('#00000000');
+  });
+
+  it('aligns the native slider thumb with the visible circular knob', () => {
+    render(<WalkControls dogs={[coco]} onStop={jest.fn()} isStopping={false} />);
+    const sliderStyle = StyleSheet.flatten(screen.getByTestId('walk-end-rn-slider').props.style);
+    const thumbCenter =
+      components.walkControls.endSlideKnobInset +
+      components.walkControls.endSlideKnobSize / 2;
+    expect(sliderStyle.left).toBe(thumbCenter);
+    expect(sliderStyle.right).toBe(thumbCenter);
   });
 
   it('renders single-dog identity with dog name and contextual walk label', () => {
@@ -112,11 +159,31 @@ describe('WalkControls', () => {
     expect(screen.getByText('Group walk · together')).toBeTruthy();
   });
 
-  it('Pause button toggles to Resume when pressed', () => {
-    render(<WalkControls dogs={[coco]} onStop={jest.fn()} isStopping={false} />);
-    const pause = screen.getByRole('button', { name: 'Pause' });
-    fireEvent.press(pause);
-    expect(screen.getByRole('button', { name: 'Resume' })).toBeTruthy();
+  it('ends the walk only after releasing the slide at the end', () => {
+    const onStop = jest.fn();
+    render(<WalkControls dogs={[coco]} onStop={onStop} isStopping={false} />);
+
+    const slider = screen.getByTestId('walk-end-rn-slider');
+    fireEvent(slider, 'onValueChange', 1);
+    expect(onStop).not.toHaveBeenCalled();
+
+    fireEvent(slider, 'onSlidingComplete', 1);
+
+    expect(onStop).toHaveBeenCalledTimes(1);
+  });
+
+  it('resets the end slider when a stop attempt returns to idle', () => {
+    const onStop = jest.fn();
+    const { rerender } = render(
+      <WalkControls dogs={[coco]} onStop={onStop} isStopping={false} />,
+    );
+
+    fireEvent(screen.getByTestId('walk-end-rn-slider'), 'onValueChange', 1);
+    fireEvent(screen.getByTestId('walk-end-rn-slider'), 'onSlidingComplete', 1);
+    rerender(<WalkControls dogs={[coco]} onStop={onStop} isStopping={true} />);
+    rerender(<WalkControls dogs={[coco]} onStop={onStop} isStopping={false} />);
+
+    expect(screen.getByTestId('walk-end-rn-slider').props.value).toBe(0);
   });
 
   it('updates the elapsed metric while the walk is active', () => {

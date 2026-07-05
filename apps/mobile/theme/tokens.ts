@@ -270,6 +270,12 @@ export const components = {
     minimizeButtonSize: 32,
     minimizeIconSize: 18,
     panelPaddingBottom: 24,
+    endSlideHeight: 64,
+    endSlideKnobSize: 56,
+    endSlideKnobInset: 4,
+    endSlidePowerIconSize: 28,
+    endSlideDisabledOpacity: 0.55,
+    endSlideLabelOpacity: 0.82,
   },
   walkMinimized: {
     avatarSize: 38,

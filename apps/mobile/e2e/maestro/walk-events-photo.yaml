@@ -14,11 +14,19 @@ env:
 ---
 - launchApp:
     clearState: false
+- runFlow:
+    when:
+      visible: Goal progress
+    commands:
+      - tapOn:
+          point: 11%,9%
 - tapOn: Walk
+- assertVisible: Walk
 - assertVisible: ${DOG_NAME}
+- tapOn: ${DOG_NAME}
 - tapOn: START WALK
 - extendedWaitUntil:
-    visible: Recording
+    visible: LIVE
     timeout: 15000
 - tapOn: Pee
 - tapOn: Poop
@@ -28,7 +36,11 @@ env:
       visible: OK
     commands:
       - tapOn: OK
-- tapOn: End Walk
+- assertVisible: End Walk
+- swipe:
+    start: 13%,84%
+    end: 91%,84%
+    duration: 2500
 - extendedWaitUntil:
     visible: Walk Complete!
     timeout: 15000

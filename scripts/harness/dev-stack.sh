@@ -41,6 +41,9 @@ Usage:
 
 Project: $project_name
 Ports: $(printf '%s' "$ports_json" | jq -c '.')
+
+Note: down removes the harness containers, networks, and named volumes for this
+worktree.
 EOF
 }
 
@@ -68,7 +71,7 @@ main() {
       compose_args=(up -d postgres dynamodb-local minio minio-init elasticmq api track-point-worker)
       ;;
     down)
-      compose_args=(down)
+      compose_args=(down --volumes --remove-orphans)
       ;;
     status)
       compose_args=(ps)

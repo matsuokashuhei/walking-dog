@@ -18,7 +18,7 @@ main() {
 
   "$script_dir/dev-stack.sh" down
 
-  echo "Harness local data reset. Seed fixture: $seed_path"
+  echo "Harness local data reset. Dev stack containers and volumes removed. Seed fixture: $seed_path"
 }
 
 main "$@"

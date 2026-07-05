@@ -79,6 +79,15 @@ describe('RootLayout', () => {
     });
   });
 
+  it('disables the root tabs stack gesture so map-overlay sliders do not drag the screen', () => {
+    render(<RootLayout />);
+
+    expect(mockScreen).toHaveBeenCalledWith({
+      name: '(tabs)',
+      options: { headerShown: false, gestureEnabled: false },
+    });
+  });
+
   it('presents /dogs/new quickly from the bottom at the root stack boundary', () => {
     render(<RootLayout />);
 

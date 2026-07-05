@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
-import Slider from '@react-native-community/slider';
+import {
+  StyleSheet,
+  Text,
+  View,
+  type GestureResponderEvent,
+  type LayoutChangeEvent,
+} from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
 import { components, typography } from '@/theme/tokens';
@@ -12,18 +17,22 @@ interface WalkControlsActionsProps {
 
 const SLIDE_MIN = 0;
 const SLIDE_MAX = 1;
-const SLIDE_STEP = 0.01;
 const SLIDE_COMPLETE_THRESHOLD = 0.95;
-const TRANSPARENT_CONTROL_COLOR = '#00000000';
-const SLIDE_THUMB_CENTER_OFFSET =
-  components.walkControls.endSlideKnobInset +
-  components.walkControls.endSlideKnobSize / 2;
 
 function clampSlideValue(value: number) {
   return Math.min(SLIDE_MAX, Math.max(SLIDE_MIN, value));
 }
 
-// 記録中パネル下部の終了操作を、RN Slider の native gesture で扱います。
+function slideValueFromDrag(startX: number, locationX: number, width: number) {
+  const knobTravel =
+    width -
+    components.walkControls.endSlideKnobSize -
+    components.walkControls.endSlideKnobInset * 2;
+  if (knobTravel <= 0) return SLIDE_MIN;
+  return clampSlideValue((locationX - startX) / knobTravel);
+}
+
+// 記録中パネル下部の終了操作を、専用 responder で親マップへ横ドラッグを渡さず扱います。
 export function WalkControlsActions({
   isStopping,
   onStop,
@@ -34,6 +43,7 @@ export function WalkControlsActions({
   const [sliderWidth, setSliderWidth] = useState(0);
   const slideValueRef = useRef(SLIDE_MIN);
   const hasCompletedRef = useRef(false);
+  const dragStartXRef = useRef<number | null>(null);
   const wasStoppingRef = useRef(isStopping);
 
   const setSlidePosition = useCallback((value: number) => {
@@ -49,14 +59,6 @@ export function WalkControlsActions({
     onStop();
   }, [isStopping, onStop, setSlidePosition]);
 
-  const handleSlideChange = useCallback(
-    (value: number) => {
-      if (isStopping || hasCompletedRef.current) return;
-      setSlidePosition(value);
-    },
-    [isStopping, setSlidePosition],
-  );
-
   const handleSlidingComplete = useCallback(
     (value: number) => {
       if (isStopping) return;
@@ -69,6 +71,50 @@ export function WalkControlsActions({
       setSlidePosition(SLIDE_MIN);
     },
     [completeSlide, isStopping, setSlidePosition],
+  );
+
+  const setSlidePositionFromEvent = useCallback(
+    (event: GestureResponderEvent) => {
+      if (isStopping || hasCompletedRef.current) return;
+      const dragStartX = dragStartXRef.current;
+      if (dragStartX === null) return;
+      setSlidePosition(slideValueFromDrag(dragStartX, event.nativeEvent.locationX, sliderWidth));
+    },
+    [isStopping, setSlidePosition, sliderWidth],
+  );
+
+  const shouldSetSlideResponder = useCallback(
+    () => !isStopping && !hasCompletedRef.current,
+    [isStopping],
+  );
+
+  const handleResponderGrant = useCallback(
+    (event: GestureResponderEvent) => {
+      if (isStopping || hasCompletedRef.current) return;
+      dragStartXRef.current = event.nativeEvent.locationX;
+      setSlidePosition(SLIDE_MIN);
+    },
+    [isStopping, setSlidePosition],
+  );
+
+  const handleResponderRelease = useCallback(() => {
+    if (isStopping) return;
+    dragStartXRef.current = null;
+    handleSlidingComplete(slideValueRef.current);
+  }, [handleSlidingComplete, isStopping]);
+
+  const handleResponderTerminate = useCallback(() => {
+    dragStartXRef.current = null;
+    if (hasCompletedRef.current) return;
+    setSlidePosition(SLIDE_MIN);
+  }, [setSlidePosition]);
+
+  const handleAccessibilityAction = useCallback(
+    (event: { nativeEvent: { actionName: string } }) => {
+      if (event.nativeEvent.actionName !== 'activate') return;
+      completeSlide();
+    },
+    [completeSlide],
   );
 
   useEffect(() => {
@@ -93,7 +139,24 @@ export function WalkControlsActions({
 
   return (
     <View style={styles.actionRow}>
-      <View style={styles.endSliderWrap} onLayout={handleSliderLayout}>
+      <View
+        accessible
+        accessibilityActions={[{ name: 'activate', label: t('walk.recording.endWalk') }]}
+        accessibilityLabel={t('walk.recording.endWalk')}
+        accessibilityRole="button"
+        accessibilityState={{ disabled: isStopping }}
+        onAccessibilityAction={handleAccessibilityAction}
+        onLayout={handleSliderLayout}
+        onMoveShouldSetResponder={shouldSetSlideResponder}
+        onResponderGrant={handleResponderGrant}
+        onResponderMove={setSlidePositionFromEvent}
+        onResponderRelease={handleResponderRelease}
+        onResponderTerminate={handleResponderTerminate}
+        onResponderTerminationRequest={() => false}
+        onStartShouldSetResponder={shouldSetSlideResponder}
+        style={styles.endSliderWrap}
+        testID="walk-end-slide-responder"
+      >
         <View
           pointerEvents="none"
           style={[
@@ -129,28 +192,6 @@ export function WalkControlsActions({
             <Text style={[styles.knobIcon, { color: theme.error }]}>⏻</Text>
           </View>
         </View>
-        <Slider
-          accessibilityLabel={t('walk.recording.endWalk')}
-          disabled={isStopping}
-          maximumTrackTintColor={TRANSPARENT_CONTROL_COLOR}
-          maximumValue={SLIDE_MAX}
-          minimumTrackTintColor={TRANSPARENT_CONTROL_COLOR}
-          minimumValue={SLIDE_MIN}
-          hitSlop={{
-            top: 0,
-            right: SLIDE_THUMB_CENTER_OFFSET,
-            bottom: 0,
-            left: SLIDE_THUMB_CENTER_OFFSET,
-          }}
-          onSlidingComplete={handleSlidingComplete}
-          onValueChange={handleSlideChange}
-          step={SLIDE_STEP}
-          style={styles.endSlider}
-          testID="walk-end-rn-slider"
-          thumbSize={components.walkControls.endSlideKnobSize}
-          thumbTintColor={TRANSPARENT_CONTROL_COLOR}
-          value={slideValue}
-        />
       </View>
     </View>
   );
@@ -164,14 +205,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: components.walkControls.endSlideHeight,
     position: 'relative',
-  },
-  endSlider: {
-    position: 'absolute',
-    top: 0,
-    right: SLIDE_THUMB_CENTER_OFFSET,
-    bottom: 0,
-    left: SLIDE_THUMB_CENTER_OFFSET,
-    height: components.walkControls.endSlideHeight,
   },
   visualLayer: {
     position: 'absolute',

@@ -97,7 +97,7 @@ services:
       - target_cache:/walking-dog/apps/api/target
       - ${HOME}/.aws:/root/.aws:ro
     env_file:
-      - api/.env.local
+      - ${WD_API_ENV_FILE:-api/.env.local}
     depends_on:
       postgres:
         condition: service_healthy
@@ -126,7 +126,7 @@ services:
       - target_cache:/walking-dog/apps/api/target
       - ${HOME}/.aws:/root/.aws:ro
     env_file:
-      - api/.env.local
+      - ${WD_API_ENV_FILE:-api/.env.local}
     depends_on:
       dynamodb-local:
         condition: service_started

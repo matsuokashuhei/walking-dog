@@ -6,7 +6,7 @@ import MapView, { Marker, Polyline, type Region } from 'react-native-maps';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
 import { useWalkStore } from '@/stores/walk-store';
-import { MAP_EVENT_EMOJIS } from '@/lib/walk/events';
+import { WALK_EVENT_EMOJIS } from '@/lib/walk/events';
 import { TOKYO_STATION_COORDINATE } from '@/lib/walk/constants';
 import { radius, spacing, typography } from '@/theme/tokens';
 import type { Dog } from '@/types/graphql';
@@ -167,11 +167,11 @@ export function WalkMap({ mode = 'recording', dogs = [] }: WalkMapProps) {
                   testID={`event-marker-${e.id}`}
                   coordinate={{ latitude: e.lat!, longitude: e.lng! }}
                   accessibilityLabel={t('walk.map.eventAt', {
-                    emoji: MAP_EVENT_EMOJIS[e.eventType],
+                    emoji: WALK_EVENT_EMOJIS[e.eventType],
                     occurredAt: e.occurredAt,
                   })}
                 >
-                  <Text style={styles.eventMarker}>{MAP_EVENT_EMOJIS[e.eventType]}</Text>
+                  <Text style={styles.eventMarker}>{WALK_EVENT_EMOJIS[e.eventType]}</Text>
                 </Marker>
               ))
           : null}

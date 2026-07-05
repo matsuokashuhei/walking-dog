@@ -48,7 +48,7 @@ export interface ScreenHeaderProps {
   testID?: string;
 }
 
-export interface ScreenHeaderAction {
+interface ScreenHeaderAction {
   label: string;
   onPress: () => void;
   /** Icon-only SF Symbol action. The label remains the accessibility label. */

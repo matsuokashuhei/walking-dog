@@ -3,7 +3,7 @@ import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { GroupedCard } from '@/components/ui/GroupedCard';
 import { useColors } from '@/hooks/use-colors';
-import { UI_EVENT_EMOJIS, countEventsByType } from '@/lib/walk/events';
+import { WALK_EVENT_EMOJIS, countEventsByType } from '@/lib/walk/events';
 import { components, radius, spacing, typography } from '@/theme/tokens';
 import type { Dog, WalkEvent } from '@/types/graphql';
 
@@ -76,7 +76,7 @@ export function PerDogSummaryCard({
                       photo: counts.photo,
                     })}
                   >
-                    {`${UI_EVENT_EMOJIS.pee} ${counts.pee}  ·  ${UI_EVENT_EMOJIS.poo} ${counts.poo}  ·  ${UI_EVENT_EMOJIS.photo} ${counts.photo}`}
+                    {`${WALK_EVENT_EMOJIS.pee} ${counts.pee}  ·  ${WALK_EVENT_EMOJIS.poo} ${counts.poo}  ·  ${WALK_EVENT_EMOJIS.photo} ${counts.photo}`}
                   </Text>
                 </View>
                 <Text style={[styles.chevron, { color: theme.textDisabled }]}>

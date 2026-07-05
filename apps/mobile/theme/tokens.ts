@@ -364,5 +364,3 @@ export const dogContactChrome = {
   deleteButtonMinHeight: 58,
   deleteButtonRadius: 24,
 } as const;
-
-export type DogContactChromeTokens = typeof dogContactChrome;

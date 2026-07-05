@@ -54,6 +54,5 @@ if (process.env.NODE_ENV !== 'test') {
 
 module.exports = {
   REQUIRED_PROVISIONING_FLAGS,
-  patchSpawnForProvisioningUpdates,
   withRequiredProvisioningFlags,
 };

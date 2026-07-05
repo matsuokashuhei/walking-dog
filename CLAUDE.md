@@ -52,6 +52,13 @@ npm run lint
 npm run knip
 ```
 
+Mobile changes must also include Maestro journey evidence, or explicitly state
+why no user journey is affected. User-facing UI, navigation, auth, walk, dog,
+profile, API contract, persistence, or permission changes require the matching
+Maestro flow from `apps/mobile/e2e/maestro/`. Broad journey-impacting changes
+require running all current Maestro flows. Static tooling, type-only, or
+unused-code cleanup may record "no affected journey" instead of running Maestro.
+
 ## Harness Commands
 
 ```bash

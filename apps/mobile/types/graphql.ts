@@ -34,12 +34,12 @@ export interface WalkStats {
   totalDurationSec: number;
 }
 
-export interface WalkAmount {
+interface WalkAmount {
   minutes: number;
   cycleDays: number;
 }
 
-export interface DogWalkGoal {
+interface DogWalkGoal {
   id: string;
   dogId: string;
   walkAmount: WalkAmount;
@@ -283,14 +283,14 @@ export interface UserResponse {
   user: ApiUser;
 }
 
-export interface ApiUserProfileWalk {
+interface ApiUserProfileWalk {
   id: string;
   startedAt: string;
   endedAt: string | null;
   distance: number | null;
 }
 
-export interface ApiUserProfileWalkConnection {
+interface ApiUserProfileWalkConnection {
   totalCount: number;
   totalDistance: number;
   totalDuration: number;

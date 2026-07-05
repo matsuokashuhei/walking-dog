@@ -12,9 +12,6 @@ export const WALK_EVENT_EMOJIS: Record<WalkEventType, string> = {
   photo: '📷',
 };
 
-export const MAP_EVENT_EMOJIS = WALK_EVENT_EMOJIS;
-export const UI_EVENT_EMOJIS = WALK_EVENT_EMOJIS;
-
 export interface CountableEvent {
   eventType: WalkEventType;
   dogId?: string | null;

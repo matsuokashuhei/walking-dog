@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>End Walk Slider Fix Mockup</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --surface-container: rgba(229, 229, 231, 0.92);
+      --surface: #ffffff;
+      --label: #1f1f22;
+      --error: #ff453a;
+      --shadow: rgba(0, 0, 0, 0.14);
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.72)),
+        repeating-linear-gradient(0deg, #e8efe8 0 1px, transparent 1px 48px),
+        repeating-linear-gradient(90deg, #e8efe8 0 1px, transparent 1px 64px);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .frame {
+      width: min(92vw, 620px);
+      padding: 16px 24px;
+    }
+
+    .slider {
+      position: relative;
+      height: 64px;
+      border-radius: 32px;
+      background: var(--surface-container);
+      overflow: hidden;
+    }
+
+    .label {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      color: var(--label);
+      font-size: 24px;
+      font-weight: 700;
+      opacity: 0.82;
+    }
+
+    .knob {
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: var(--surface);
+      color: var(--error);
+      font-size: 34px;
+      line-height: 1;
+      box-shadow: 0 2px 14px var(--shadow);
+    }
+  </style>
+</head>
+<body>
+  <main class="frame" aria-label="Corrected End Walk slider visual">
+    <section class="slider">
+      <div class="label">End Walk</div>
+      <div class="knob" aria-hidden="true">&#9211;</div>
+    </section>
+  </main>
+</body>
+</html>

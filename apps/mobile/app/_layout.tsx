@@ -15,6 +15,7 @@ import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { ErrorScreen } from '@/components/ui/ErrorScreen';
 
 const ROOT_SCREEN_OPTIONS = { headerShown: false } as const;
+const TABS_ROOT_SCREEN_OPTIONS = { headerShown: false, gestureEnabled: false } as const;
 const DOG_NEW_ROOT_SCREEN_OPTIONS = {
   ...ROOT_SCREEN_OPTIONS,
   animation: 'slide_from_bottom',
@@ -84,7 +85,7 @@ function RootLayout() {
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <NavigationGuard />
         <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={TABS_ROOT_SCREEN_OPTIONS} />
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           <Stack.Screen name="dogs" options={dogsRootScreenOptions} />
           <Stack.Screen name="settings" options={{ headerShown: false }} />

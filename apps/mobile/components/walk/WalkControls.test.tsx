@@ -1,7 +1,6 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 import { WalkControls } from './WalkControls';
-import { components } from '@/theme/tokens';
 import type { Dog } from '@/types/graphql';
 
 jest.mock('@/hooks/use-color-scheme', () => ({
@@ -9,28 +8,6 @@ jest.mock('@/hooks/use-color-scheme', () => ({
 }));
 
 jest.mock('expo-image', () => ({ Image: 'Image' }));
-
-jest.mock('@react-native-community/slider', () => {
-  const { View } = jest.requireActual('react-native');
-  return {
-    __esModule: true,
-    default: ({
-      onValueChange,
-      onSlidingComplete,
-      ...props
-    }: {
-      onValueChange?: (value: number) => void;
-      onSlidingComplete?: (value: number) => void;
-    }) => (
-      <View
-        {...props}
-        accessibilityRole="adjustable"
-        onValueChange={onValueChange}
-        onSlidingComplete={onSlidingComplete}
-      />
-    ),
-  };
-});
 
 const mockWalkStoreState = {
   startedAt: null as Date | null,
@@ -93,9 +70,9 @@ describe('WalkControls', () => {
     expect(screen.getByText('LIVE')).toBeTruthy();
   });
 
-  it('renders native slide-to-end control without the Pause button', () => {
+  it('renders slide-to-end control without the Pause button', () => {
     render(<WalkControls dogs={[coco]} onStop={jest.fn()} isStopping={false} />);
-    expect(screen.getByTestId('walk-end-rn-slider')).toBeTruthy();
+    expect(screen.getByTestId('walk-end-slide-responder')).toBeTruthy();
     expect(screen.getByTestId('walk-end-slider-knob')).toBeTruthy();
     expect(screen.getByText('End Walk')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Pause' })).toBeNull();
@@ -120,27 +97,21 @@ describe('WalkControls', () => {
 
   it('disables End Walk when isStopping', () => {
     render(<WalkControls dogs={[coco]} onStop={jest.fn()} isStopping={true} />);
-    const slider = screen.getByTestId('walk-end-rn-slider');
-    expect(slider.props.disabled).toBe(true);
+    const slideResponder = screen.getByTestId('walk-end-slide-responder');
+    expect(slideResponder.props.accessibilityState.disabled).toBe(true);
   });
 
-  it('uses a transparent RN slider thumb so the custom circular knob owns the visuals', () => {
+  it('does not render a hidden native slider behind the custom circular knob', () => {
     render(<WalkControls dogs={[coco]} onStop={jest.fn()} isStopping={false} />);
-    const slider = screen.getByTestId('walk-end-rn-slider');
-    expect(slider.props.thumbSize).toBe(components.walkControls.endSlideKnobSize);
-    expect(slider.props.thumbTintColor).toBe('#00000000');
-    expect(slider.props.minimumTrackTintColor).toBe('#00000000');
-    expect(slider.props.maximumTrackTintColor).toBe('#00000000');
+    expect(screen.queryByTestId('walk-end-rn-slider')).toBeNull();
   });
 
-  it('aligns the native slider thumb with the visible circular knob', () => {
+  it('keeps the slide gesture on the End Walk control instead of releasing it to the map', () => {
     render(<WalkControls dogs={[coco]} onStop={jest.fn()} isStopping={false} />);
-    const sliderStyle = StyleSheet.flatten(screen.getByTestId('walk-end-rn-slider').props.style);
-    const thumbCenter =
-      components.walkControls.endSlideKnobInset +
-      components.walkControls.endSlideKnobSize / 2;
-    expect(sliderStyle.left).toBe(thumbCenter);
-    expect(sliderStyle.right).toBe(thumbCenter);
+    const slideResponder = screen.getByTestId('walk-end-slide-responder');
+    expect(slideResponder.props.onStartShouldSetResponder()).toBe(true);
+    expect(slideResponder.props.onMoveShouldSetResponder()).toBe(true);
+    expect(slideResponder.props.onResponderTerminationRequest()).toBe(false);
   });
 
   it('renders single-dog identity with dog name and contextual walk label', () => {
@@ -163,13 +134,37 @@ describe('WalkControls', () => {
     const onStop = jest.fn();
     render(<WalkControls dogs={[coco]} onStop={onStop} isStopping={false} />);
 
-    const slider = screen.getByTestId('walk-end-rn-slider');
-    fireEvent(slider, 'onValueChange', 1);
+    const slideResponder = screen.getByTestId('walk-end-slide-responder');
+    fireEvent(slideResponder, 'onLayout', {
+      nativeEvent: { layout: { width: 320 } },
+    });
+    fireEvent(slideResponder, 'onResponderGrant', {
+      nativeEvent: { locationX: 32 },
+    });
+    fireEvent(slideResponder, 'onResponderMove', {
+      nativeEvent: { locationX: 288 },
+    });
     expect(onStop).not.toHaveBeenCalled();
 
-    fireEvent(slider, 'onSlidingComplete', 1);
+    fireEvent(slideResponder, 'onResponderRelease');
 
     expect(onStop).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not end the walk from a right-edge tap without a drag', () => {
+    const onStop = jest.fn();
+    render(<WalkControls dogs={[coco]} onStop={onStop} isStopping={false} />);
+
+    const slideResponder = screen.getByTestId('walk-end-slide-responder');
+    fireEvent(slideResponder, 'onLayout', {
+      nativeEvent: { layout: { width: 320 } },
+    });
+    fireEvent(slideResponder, 'onResponderGrant', {
+      nativeEvent: { locationX: 288 },
+    });
+    fireEvent(slideResponder, 'onResponderRelease');
+
+    expect(onStop).not.toHaveBeenCalled();
   });
 
   it('resets the end slider when a stop attempt returns to idle', () => {
@@ -178,12 +173,22 @@ describe('WalkControls', () => {
       <WalkControls dogs={[coco]} onStop={onStop} isStopping={false} />,
     );
 
-    fireEvent(screen.getByTestId('walk-end-rn-slider'), 'onValueChange', 1);
-    fireEvent(screen.getByTestId('walk-end-rn-slider'), 'onSlidingComplete', 1);
+    const slideResponder = screen.getByTestId('walk-end-slide-responder');
+    fireEvent(slideResponder, 'onLayout', {
+      nativeEvent: { layout: { width: 320 } },
+    });
+    fireEvent(slideResponder, 'onResponderGrant', {
+      nativeEvent: { locationX: 32 },
+    });
+    fireEvent(slideResponder, 'onResponderMove', {
+      nativeEvent: { locationX: 288 },
+    });
+    fireEvent(slideResponder, 'onResponderRelease');
     rerender(<WalkControls dogs={[coco]} onStop={onStop} isStopping={true} />);
     rerender(<WalkControls dogs={[coco]} onStop={onStop} isStopping={false} />);
 
-    expect(screen.getByTestId('walk-end-rn-slider').props.value).toBe(0);
+    const knobStyle = StyleSheet.flatten(screen.getByTestId('walk-end-slider-knob').props.style);
+    expect(knobStyle.transform).toEqual([{ translateX: 0 }]);
   });
 
   it('updates the elapsed metric while the walk is active', () => {

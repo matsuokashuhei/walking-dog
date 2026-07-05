@@ -210,12 +210,51 @@ test_auth_onboarding_starts_unified_email_one_time_password_auth() {
   assert_not_contains "$source" "password:" "did not expect password"
 }
 
+test_validate_mobile_knip_runs_knip_in_mobile_workspace() {
+  local tmpdir output npm_log
+  make_tmpdir tmpdir
+  npm_log="$tmpdir/npm.log"
+  mkdir -p "$tmpdir/apps/mobile" "$tmpdir/bin"
+  write_file "$tmpdir" "apps/mobile/package.json" '{"scripts":{"knip":"knip"}}'
+  write_file "$tmpdir" "bin/npm" $'#!/usr/bin/env bash\nprintf "%s\\n" "$PWD" > "$HARNESS_NPM_LOG"\nprintf "%s " "$@" >> "$HARNESS_NPM_LOG"\n'
+  chmod +x "$tmpdir/bin/npm"
+
+  output="$(HARNESS_NPM_LOG="$npm_log" PATH="$tmpdir/bin:$PATH" run_script_expect_status 0 "$repo_root/scripts/harness/validate-mobile-knip.sh" "$tmpdir")"
+
+  [[ -z "$output" ]] || fail "expected no output from passing mobile Knip validation; got $output"
+  assert_contains "$(cat "$npm_log")" "$tmpdir/apps/mobile" "expected Knip to run from apps/mobile"
+  assert_contains "$(cat "$npm_log")" "run knip -- --no-progress" "expected npm run knip command"
+}
+
+test_validate_mobile_knip_reports_knip_failures() {
+  local tmpdir output
+  make_tmpdir tmpdir
+  mkdir -p "$tmpdir/apps/mobile" "$tmpdir/bin"
+  write_file "$tmpdir" "apps/mobile/package.json" '{"scripts":{"knip":"knip"}}'
+  write_file "$tmpdir" "bin/npm" $'#!/usr/bin/env bash\necho "Unused files (1)" >&2\necho "components/Unused.tsx" >&2\nexit 1\n'
+  chmod +x "$tmpdir/bin/npm"
+
+  output="$(PATH="$tmpdir/bin:$PATH" run_script_expect_status 1 "$repo_root/scripts/harness/validate-mobile-knip.sh" "$tmpdir")"
+
+  assert_contains "$output" "mobile Knip validation failed" "expected Knip failure context"
+  assert_contains "$output" "Unused files (1)" "expected Knip output"
+  assert_contains "$output" "components/Unused.tsx" "expected Knip issue details"
+}
+
+test_validate_all_includes_mobile_knip_gate() {
+  local source
+  source="$(cat "$repo_root/scripts/harness/validate-all.sh")"
+
+  assert_contains "$source" "validate-mobile-knip.sh" "expected validate-all to source mobile Knip validator"
+  assert_contains "$source" "validate_mobile_knip" "expected validate-all to run mobile Knip validator"
+}
+
 test_harness_has_no_node_scripts_or_invocations() {
   local matches pattern
   matches="$(find "$repo_root/scripts/harness" -maxdepth 1 \( -name '*.mjs' -o -name '*.test.mjs' \) -print)"
   [[ -z "$matches" ]] || fail "expected no harness .mjs files; found $matches"
 
-  pattern="node scripts/"'harness|scripts/'"harness/"'[a-z-]+\.mjs|node -'"p"
+  pattern="node scripts/"'harness|node --test scripts/'"harness|scripts/"'harness/[a-z-]+\.mjs|node -'"p"
   matches="$(cd "$repo_root" && rg -n "$pattern" .github AGENTS.md CLAUDE.md docs scripts infra apps/mobile/e2e/maestro || true)"
   [[ -z "$matches" ]] || fail "expected no Node harness references; found $matches"
 }

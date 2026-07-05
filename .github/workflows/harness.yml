@@ -24,8 +24,12 @@ jobs:
         with:
           node-version: 22
 
-      - name: Run harness script tests
-        run: node --test scripts/harness/*.test.mjs
+      - name: Install mobile dependencies
+        working-directory: apps/mobile
+        run: npm ci
 
-      - name: Validate knowledge, architecture, and quality
+      - name: Run harness script tests
+        run: bash scripts/harness/harness.test.sh
+
+      - name: Validate knowledge, architecture, quality, and Knip
         run: scripts/harness/validate-all.sh

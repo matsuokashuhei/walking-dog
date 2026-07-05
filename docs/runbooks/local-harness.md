@@ -1,7 +1,8 @@
 # Local Harness Runbook
 
 Run commands from the repository root unless a command says otherwise.
-Harness shell scripts require `jq`.
+Harness shell scripts require `jq`. The mobile Knip gate also requires
+`apps/mobile` dependencies to be installed with `npm ci`.
 
 ## Start Per-Worktree Dev Stack
 
@@ -84,6 +85,7 @@ cd apps/mobile
 npm ci
 npm run lint
 npm run typecheck
+npm run knip
 npm test -- --runInBand
 ```
 

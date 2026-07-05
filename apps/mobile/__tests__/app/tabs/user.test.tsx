@@ -1,5 +1,7 @@
+import { StyleSheet } from 'react-native';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import UserScreen from '../../../app/(tabs)/user';
+import { colors, dogContactChrome } from '@/theme/tokens';
 
 const mockPush = jest.fn();
 const mockRetry = jest.fn();
@@ -21,6 +23,15 @@ jest.mock('expo-linear-gradient', () => {
 jest.mock('expo-image', () => ({
   Image: 'Image',
 }));
+
+jest.mock('expo-blur', () => {
+  const { View } = jest.requireActual('react-native');
+  return {
+    BlurView: ({ children, ...props }: { children: React.ReactNode }) => (
+      <View {...props}>{children}</View>
+    ),
+  };
+});
 
 jest.mock('expo-constants', () => ({
   default: {
@@ -100,6 +111,12 @@ describe('UserScreen', () => {
     expect(screen.getByText('412.8')).toBeTruthy();
     expect(screen.getByText('This week')).toBeTruthy();
     expect(screen.getByText('9.5 km total')).toBeTruthy();
+    const editStyle = StyleSheet.flatten(screen.getByTestId('user-edit-button').props.style);
+    expect(editStyle.minWidth).toBe(dogContactChrome.pillMinWidth);
+    expect(editStyle.height).toBe(dogContactChrome.pillHeight);
+    expect(editStyle.borderRadius).toBe(dogContactChrome.pillRadius);
+    expect(editStyle.backgroundColor).toBe(colors.light.background);
+    expect(editStyle.borderColor).toBe(colors.light.border);
 
     fireEvent.press(screen.getByRole('button', { name: 'Edit' }));
     expect(mockPush).toHaveBeenCalledWith('/user/edit');

@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { GroupedCard } from '@/components/ui/GroupedCard';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { NativeFieldRow, NativeFieldSection } from '@/components/ui/NativeFieldGroup';
 import { useColors } from '@/hooks/use-colors';
 import { useAuth } from '@/hooks/use-auth';
-import { components, spacing, typography } from '@/theme/tokens';
+import { spacing } from '@/theme/tokens';
 
 export function SignOutRow() {
   const { t } = useTranslation();
@@ -26,19 +26,14 @@ export function SignOutRow() {
 
   return (
     <>
-      <GroupedCard elevated={false} style={styles.card}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('settings.signOut')}
-          onPress={() => setShowConfirm(true)}
+      <NativeFieldSection style={styles.card}>
+        <NativeFieldRow
           disabled={loading}
-          style={styles.row}
-        >
-          <Text style={[styles.label, { color: theme.error }]}>
-            {t('settings.signOut')}
-          </Text>
-        </Pressable>
-      </GroupedCard>
+          label={t('settings.signOut')}
+          labelColor={theme.error}
+          onPress={() => setShowConfirm(true)}
+        />
+      </NativeFieldSection>
       <ConfirmDialog
         visible={showConfirm}
         title={t('settings.signOut')}
@@ -56,15 +51,5 @@ export function SignOutRow() {
 const styles = StyleSheet.create({
   card: {
     marginBottom: spacing.lg,
-  },
-  row: {
-    paddingVertical: spacing.step12,
-    paddingHorizontal: spacing.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: components.row.minHeight,
-  },
-  label: {
-    ...typography.body,
   },
 });

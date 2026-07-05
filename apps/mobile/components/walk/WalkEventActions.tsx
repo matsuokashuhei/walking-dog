@@ -7,6 +7,7 @@ import { useCameraEventTrigger } from '@/hooks/use-camera-event-trigger';
 import { useCommitWalkEvent } from '@/hooks/use-commit-walk-event';
 import { useMutationWithAlert } from '@/hooks/use-mutation-with-alert';
 import { useWalkEventRecorder } from '@/hooks/use-walk-event-recorder';
+import { runDetached } from '@/lib/run-detached';
 import { useWalkStore } from '@/stores/walk-store';
 import { spacing } from '@/theme/tokens';
 import { EVENT_ORDER, UI_EVENT_EMOJIS, countEventsByType } from '@/lib/walk/events';
@@ -105,11 +106,11 @@ export function WalkEventActions({ dogs }: WalkEventActionsProps) {
   const fire = useCallback(
     (type: WalkEventType, dogId?: string) => {
       if (type === 'photo') {
-        void handlePhoto(dogId);
+        runDetached(handlePhoto(dogId), 'walk.event.photo');
         return;
       }
 
-      void handleActivityEvent(type, dogId);
+      runDetached(handleActivityEvent(type, dogId), 'walk.event.activity');
     },
     [handlePhoto, handleActivityEvent],
   );

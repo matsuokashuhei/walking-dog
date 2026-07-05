@@ -22,6 +22,7 @@ import { DAILY_GOAL_CYCLE_DAYS, DEFAULT_DAILY_GOAL_MINUTES } from '@/constants/w
 import { useColors } from '@/hooks/use-colors';
 import { components, dogContactChrome, spacing } from '@/theme/tokens';
 import type { UploadFile } from '@/lib/graphql/client';
+import { runDetached } from '@/lib/run-detached';
 
 // 犬編集画面 — Contacts 風 chrome でフォームの Cancel/Save を提供します。
 // dog データのロード待ちは外側、form state 初期化は内側コンポーネントに分離して
@@ -117,7 +118,7 @@ function EditDogContent({ id, dogName, initialValues, currentAvatar }: EditDogCo
           text: t('dogs.edit.removeAction'),
           style: 'destructive',
           onPress: () => {
-            void handleRemove();
+            runDetached(handleRemove(), 'dogs.edit.remove');
           },
         },
       ],

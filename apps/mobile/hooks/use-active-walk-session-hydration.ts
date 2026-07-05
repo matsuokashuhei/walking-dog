@@ -1,5 +1,6 @@
 import { useCallback, useEffect } from 'react';
 import { AppState } from 'react-native';
+import { runDetached } from '@/lib/run-detached';
 import { loadActiveWalkSession } from '@/lib/walk/active-walk-session';
 import { useWalkStore } from '@/stores/walk-store';
 
@@ -19,11 +20,11 @@ export function useActiveWalkSessionHydration() {
   }, []);
 
   useEffect(() => {
-    void hydrate();
+    runDetached(hydrate(), 'walk.activeSession.hydrate');
 
     const subscription = AppState.addEventListener('change', (status) => {
       if (status === 'active') {
-        void hydrate();
+        runDetached(hydrate(), 'walk.activeSession.hydrate');
       }
     });
 

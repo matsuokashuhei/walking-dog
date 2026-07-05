@@ -31,7 +31,7 @@ describe('SignOutRow', () => {
   it('calls signOut after confirming the dialog', async () => {
     render(<SignOutRow />);
 
-    fireEvent.press(screen.getAllByRole('button', { name: 'Sign Out' })[0]);
+    fireEvent.press(screen.getByText('Sign Out'));
 
     const confirmButtons = await screen.findAllByRole('button', { name: 'Sign Out' });
     fireEvent.press(confirmButtons[confirmButtons.length - 1]);

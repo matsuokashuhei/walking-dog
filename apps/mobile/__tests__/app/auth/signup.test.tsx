@@ -24,7 +24,7 @@ describe('SignUpScreen', () => {
 
     expect(screen.getByText("Let's meet your dog.")).toBeTruthy();
     expect(screen.getByText("Create your account and you'll be walking in a minute.")).toBeTruthy();
-    expect(screen.getByLabelText('Email')).toBeTruthy();
+    expect(screen.getByPlaceholderText('Email')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Continue' })).toBeTruthy();
     expect(screen.getByText('Terms')).toBeTruthy();
     expect(screen.getByText('Privacy Policy')).toBeTruthy();

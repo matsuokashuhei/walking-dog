@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { runDetached } from '@/lib/run-detached';
 import { buildWalkActivityProps } from '@/lib/walk/live-activity';
 import { updateWalkLiveActivity } from '@/lib/walk/live-activity-controller';
 import { useWalkStore } from '@/stores/walk-store';
@@ -15,14 +16,17 @@ export function useWalkLiveActivitySync(dogs: Dog[]) {
   useEffect(() => {
     if (phase !== 'recording' || !walkId || !startedAt) return;
 
-    void updateWalkLiveActivity(
-      buildWalkActivityProps({
-        walkId,
-        startedAt,
-        distanceM,
-        dogs,
-        events,
-      }),
+    runDetached(
+      updateWalkLiveActivity(
+        buildWalkActivityProps({
+          walkId,
+          startedAt,
+          distanceM,
+          dogs,
+          events,
+        }),
+      ),
+      'walk.liveActivity.update',
     );
   }, [distanceM, dogs, events, phase, startedAt, walkId]);
 }

@@ -62,7 +62,7 @@ describe('EmailSettingsScreen', () => {
     expect(screen.getByText('mio@walk.app')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Change password' })).toBeNull();
 
-    fireEvent.changeText(screen.getByLabelText('New email'), 'mio@walk.app');
+    fireEvent.changeText(screen.getByPlaceholderText('New email'), 'mio@walk.app');
     expect(screen.getByRole('button', { name: 'Send code' }).props.accessibilityState).toEqual({
       disabled: true,
     });
@@ -80,7 +80,7 @@ describe('EmailSettingsScreen', () => {
 
     render(<EmailSettingsScreen />);
 
-    fireEvent.changeText(screen.getByLabelText('New email'), 'new-mio@walk.app');
+    fireEvent.changeText(screen.getByPlaceholderText('New email'), 'new-mio@walk.app');
     fireEvent.press(screen.getByRole('button', { name: 'Send code' }));
 
     await waitFor(() => {
@@ -109,7 +109,7 @@ describe('EmailSettingsScreen', () => {
 
     render(<EmailSettingsScreen />);
 
-    fireEvent.changeText(screen.getByLabelText('New email'), 'new-mio@walk.app');
+    fireEvent.changeText(screen.getByPlaceholderText('New email'), 'new-mio@walk.app');
     fireEvent.press(screen.getByRole('button', { name: 'Send code' }));
     await screen.findByLabelText('One-time password');
 
@@ -133,7 +133,7 @@ describe('EmailSettingsScreen', () => {
 
     render(<EmailSettingsScreen />);
 
-    fireEvent.changeText(screen.getByLabelText('New email'), 'new-mio@walk.app');
+    fireEvent.changeText(screen.getByPlaceholderText('New email'), 'new-mio@walk.app');
     fireEvent.press(screen.getByRole('button', { name: 'Send code' }));
     await screen.findByLabelText('One-time password');
 
@@ -147,7 +147,7 @@ describe('EmailSettingsScreen', () => {
     mockChangeEmail.mockRejectedValue({ kind: 'network' });
 
     render(<EmailSettingsScreen />);
-    fireEvent.changeText(screen.getByLabelText('New email'), 'other@walk.app');
+    fireEvent.changeText(screen.getByPlaceholderText('New email'), 'other@walk.app');
     fireEvent.press(screen.getByRole('button', { name: 'Send code' }));
 
     await waitFor(() => {

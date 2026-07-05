@@ -4,6 +4,7 @@ import {
   listPendingEvents,
   removePendingEvent,
 } from '@/lib/walk/event-outbox';
+import { runDetached } from '@/lib/run-detached';
 import { useWalkStore } from '@/stores/walk-store';
 import { useRecordWalkEvent } from './use-walk-event-mutations';
 
@@ -34,7 +35,7 @@ export function useFlushWalkEventOutbox() {
             : {}),
         });
         addEvent(event);
-        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        runDetached(Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light), 'walk.haptics.impact');
         await removePendingEvent(item.id);
         flushed += 1;
       } catch {

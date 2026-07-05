@@ -1,9 +1,6 @@
 import { ActionSheetIOS, Platform, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { GroupedCard } from '@/components/ui/GroupedCard';
-import { GroupedRow } from '@/components/ui/GroupedRow';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { SectionHeader } from '@/components/ui/SectionHeader';
+import { NativeFieldRow, NativeFieldSection } from '@/components/ui/NativeFieldGroup';
 import { useColors } from '@/hooks/use-colors';
 import { spacing } from '@/theme/tokens';
 import { useSettingsStore } from '@/stores/settings-store';
@@ -69,10 +66,10 @@ export function PreferencesSection() {
 
   return (
     <View style={styles.wrapper}>
-      <SectionHeader label={t('settings.sectionLabel.preferences')} />
-      <GroupedCard elevated={false}>
-        <GroupedRow
-          leading={<IconSymbol name="globe" size={18} color={theme.interactive} />}
+      <NativeFieldSection title={t('settings.sectionLabel.preferences')}>
+        <NativeFieldRow
+          icon="globe"
+          iconColor={theme.interactive}
           label={t('settings.language')}
           value={languageLabel}
           onPress={() =>
@@ -87,26 +84,28 @@ export function PreferencesSection() {
             )
           }
         />
-        <GroupedRow
-          leading={<IconSymbol name="ruler" size={18} color={theme.interactive} />}
+        <NativeFieldRow
+          icon="ruler"
+          iconColor={theme.interactive}
           label={t('settings.units')}
           value={unitsLabels[units]}
           onPress={() => presentSheet(UNITS, unitsLabels, units, setUnits)}
         />
-        <GroupedRow
-          leading={<IconSymbol name="bell.fill" size={18} color={theme.warning} />}
+        <NativeFieldRow
+          icon="notifications"
+          iconColor={theme.warning}
           label={t('settings.notifications')}
           value={t('settings.notificationsValue')}
           showChevron
         />
-        <GroupedRow
-          leading={<IconSymbol name="moon.fill" size={18} color={theme.warning} />}
+        <NativeFieldRow
+          icon="appearance"
+          iconColor={theme.warning}
           label={t('settings.appearance')}
           value={themeLabels[themeMode]}
           onPress={() => presentSheet(THEMES, themeLabels, themeMode, setTheme)}
-          separator={false}
         />
-      </GroupedCard>
+      </NativeFieldSection>
     </View>
   );
 }

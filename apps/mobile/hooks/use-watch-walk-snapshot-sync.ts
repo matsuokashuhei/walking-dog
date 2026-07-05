@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from 'react';
+import { runDetached } from '@/lib/run-detached';
 import { publishWalkSnapshot } from '@/lib/watch/bridge';
 import { buildWatchWalkSnapshot } from '@/lib/watch/snapshot';
 import { useWalkStore } from '@/stores/walk-store';
@@ -26,25 +27,24 @@ export function useWatchWalkSnapshotSync() {
   );
 
   useEffect(() => {
-    void publishWalkSnapshot(
-      buildWatchWalkSnapshot({
-        phase,
-        walkId,
-        startedAt,
-        dogs,
-        events,
-        distanceM,
-        latestPoint,
-      }),
-    )
-      .then((result) => {
+    runDetached(
+      publishWalkSnapshot(
+        buildWatchWalkSnapshot({
+          phase,
+          walkId,
+          startedAt,
+          dogs,
+          events,
+          distanceM,
+          latestPoint,
+        }),
+      ).then((result) => {
         if (result?.failureReason && !loggedPublishFailureReasons.has(result.failureReason)) {
           loggedPublishFailureReasons.add(result.failureReason);
           console.warn('[watch.snapshot] publish diagnostic', result);
         }
-      })
-      .catch((error) => {
-        console.error('[watch.snapshot] failed to publish walk snapshot', error);
-      });
+      }),
+      'watch.snapshot.publish',
+    );
   }, [distanceM, dogs, events, latestPoint, phase, startedAt, walkId]);
 }

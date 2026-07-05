@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { Host, Slider as SwiftUISlider } from '@expo/ui/swift-ui';
 import { clipped, frame } from '@expo/ui/swift-ui/modifiers';
 import { GroupedCard } from '@/components/ui/GroupedCard';
+import { NativeFieldRow, NativeFieldSection } from '@/components/ui/NativeFieldGroup';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { TextInput } from '@/components/ui/TextInput';
@@ -173,67 +174,32 @@ export function DogForm({ values, onChange, showDailyGoal = true }: DogFormProps
 
   return (
     <View style={styles.container}>
-      <GroupedCard>
+      <NativeFieldSection testID="dog-profile-fields">
         <TextInput
           label={t('dogs.form.name')}
           labelPosition="inline"
-          separator
           value={values.name}
           onChangeText={(name) => set({ name })}
-          placeholder={t('dogs.form.namePlaceholder')}
         />
         <TextInput
           label={t('dogs.form.breed')}
           labelPosition="inline"
-          separator
           value={values.breed}
           onChangeText={(breed) => set({ breed })}
-          placeholder={t('dogs.form.breedPlaceholder')}
         />
-        <View style={styles.inlineRow}>
-          <Text style={[styles.inlineLabel, { color: theme.onSurfaceVariant }]}>
-            {t('dogs.form.gender')}
-          </Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t('dogs.form.gender')}
-            onPress={presentGenderSheet}
-            style={styles.genderValueWrap}
-          >
-            <Text
-              style={[
-                styles.genderValue,
-                { color: genderValue ? theme.onSurface : theme.onSurfaceVariant },
-              ]}
-              numberOfLines={1}
-            >
-              {genderLabel}
-            </Text>
-          </Pressable>
-        </View>
-        <View style={[styles.separator, { backgroundColor: theme.border }]} />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('dogs.form.birthday')}
+        <NativeFieldRow
+          label={t('dogs.form.gender')}
+          labelColor={theme.onSurfaceVariant}
+          value={genderLabel}
+          onPress={presentGenderSheet}
+        />
+        <NativeFieldRow
+          label={t('dogs.form.birthday')}
+          labelColor={theme.onSurfaceVariant}
+          value={birthdayDisplay.isPlaceholder ? undefined : birthdayDisplay.text}
           onPress={openBirthdayPicker}
-          style={styles.inlineRow}
-        >
-          <Text style={[styles.inlineLabel, { color: theme.onSurfaceVariant }]}>
-            {t('dogs.form.birthday')}
-          </Text>
-          {birthdayDisplay.isPlaceholder ? null : (
-            <Text
-              style={[
-                styles.birthdayValue,
-                { color: theme.onSurface },
-              ]}
-              numberOfLines={1}
-            >
-              {birthdayDisplay.text}
-            </Text>
-          )}
-        </Pressable>
-      </GroupedCard>
+        />
+      </NativeFieldSection>
       {showDailyGoal ? (
         <GoalSection
           minutes={values.goalMinutes}
@@ -679,31 +645,6 @@ const styles = StyleSheet.create({
   goalLimitText: {
     ...typography.caption,
   },
-  inlineRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: components.row.gap,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.step14,
-    minHeight: components.row.minHeight,
-  },
-  inlineLabel: {
-    ...typography.subheadline,
-    width: components.textInput.inlineLabelWidth,
-  },
-  birthdayValue: {
-    ...typography.body,
-    flex: 1,
-  },
-  genderValueWrap: {
-    flex: 1,
-    minHeight: components.row.minHeight,
-    justifyContent: 'center',
-  },
-  genderValue: {
-    ...typography.body,
-    textAlign: 'left',
-  },
   modalBackdrop: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -758,9 +699,5 @@ const styles = StyleSheet.create({
   },
   pickerOptionText: {
     ...typography.subheadline,
-  },
-  separator: {
-    height: StyleSheet.hairlineWidth,
-    marginLeft: spacing.lg,
   },
 });

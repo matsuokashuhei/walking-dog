@@ -3,7 +3,7 @@ import { Linking, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/Button';
-import { GroupedCard } from '@/components/ui/GroupedCard';
+import { NativeFieldSection } from '@/components/ui/NativeFieldGroup';
 import { OneTimePasswordInput } from '@/components/auth/OneTimePasswordInput';
 import { TextInput } from '@/components/ui/TextInput';
 import { emailKeyboardType } from '@/components/auth/emailKeyboard';
@@ -11,6 +11,7 @@ import { useColors } from '@/hooks/use-colors';
 import { toAuthError } from '@/lib/auth/errors';
 import type { OneTimePasswordChallenge } from '@/lib/auth/api';
 import { PRIVACY_POLICY_URL, TERMS_URL } from '@/lib/legal-urls';
+import { runDetached } from '@/lib/run-detached';
 import { spacing, typography } from '@/theme/tokens';
 
 interface EmailAuthFormProps {
@@ -102,7 +103,7 @@ export function EmailAuthForm({
   }
 
   function openLegalUrl(url: string) {
-    void Linking.openURL(url);
+    runDetached(Linking.openURL(url), 'auth.legal.openUrl');
   }
 
   return (
@@ -124,7 +125,7 @@ export function EmailAuthForm({
           />
         </>
       ) : (
-        <GroupedCard>
+        <NativeFieldSection>
           <TextInput
             label={t('auth.login.email')}
             labelPosition="inline"
@@ -134,11 +135,9 @@ export function EmailAuthForm({
             keyboardType={emailKeyboardType}
             autoCapitalize="none"
             autoCorrect={false}
-            spellCheck={false}
             autoComplete="email"
-            textContentType="emailAddress"
           />
-        </GroupedCard>
+        </NativeFieldSection>
       )}
 
       {!challenge && supportingText ? (

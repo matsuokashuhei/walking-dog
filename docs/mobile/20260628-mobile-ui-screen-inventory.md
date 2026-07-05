@@ -190,7 +190,7 @@ Expo Router の leaf route は 14 個あるが、以下 2 route は画面を描�
 ### 5. マイページ画面
 
 - **route**: `apps/mobile/app/(tabs)/user.tsx`
-- **主要コンポーネント**: `ScreenHeader`, `ScrollView`, `UserSummary`, `UserAvatar`, `GroupedCard`, `GroupedRow`
+- **主要コンポーネント**: `ScreenHeader`, `ScrollView`, `UserSummary`, `UserAvatar`, `GroupedCard`, `NativeFieldSection`, `NativeFieldRow`
 - **役割**: ユーザー自身の散歩貢献とアカウント導線を表示する
 
 表示要素:
@@ -217,7 +217,7 @@ Expo Router の leaf route は 14 個あるが、以下 2 route は画面を描�
 ### 6. 犬登録画面
 
 - **route**: `apps/mobile/app/dogs/new.tsx`
-- **主要コンポーネント**: `ScreenHeader`, `ScrollView`, `DogForm`, `TextInput`
+- **主要コンポーネント**: `ScreenHeader`, `ScrollView`, `DogForm`, `NativeFieldSection`, `TextInput`
 - **役割**: 新しい犬の基本プロフィールを登録する
 
 表示要素:
@@ -275,7 +275,7 @@ Expo Router の leaf route は 14 個あるが、以下 2 route は画面を描�
 ### 8. 犬編集画面
 
 - **route**: `apps/mobile/app/dogs/[id]/edit.tsx`
-- **主要コンポーネント**: `ScreenHeader`, `DogAvatarEditor`, `DogForm`, `TextInput`, `SegmentedControl`, `@expo/ui/swift-ui` `Slider`
+- **主要コンポーネント**: `ScreenHeader`, `DogAvatarEditor`, `DogForm`, `NativeFieldSection`, `TextInput`, `SegmentedControl`, `@expo/ui/swift-ui` `Slider`
 - **役割**: 犬のプロフィール、写真、散歩目標を編集する
 
 表示要素:
@@ -307,7 +307,7 @@ Expo Router の leaf route は 14 個あるが、以下 2 route は画面を描�
 ### 9. ユーザー編集画面
 
 - **route**: `apps/mobile/app/user/edit.tsx`
-- **主要コンポーネント**: `ScreenHeader`, `UserAvatarEditor`, `UserAvatar`, `GroupedCard`, `TextInput`
+- **主要コンポーネント**: `ScreenHeader`, `UserAvatarEditor`, `UserAvatar`, `NativeFieldSection`, `TextInput`
 - **役割**: ユーザー表示名と写真を編集する
 
 表示要素:
@@ -328,7 +328,7 @@ Expo Router の leaf route は 14 個あるが、以下 2 route は画面を描�
 ### 10. 設定画面
 
 - **route**: `apps/mobile/app/settings/index.tsx`
-- **主要コンポーネント**: `ScreenHeader`, `PreferencesSection`, `LegalSection`, `SignOutRow`, `GroupedCard`, `GroupedRow`, `ConfirmDialog`
+- **主要コンポーネント**: `ScreenHeader`, `PreferencesSection`, `LegalSection`, `SignOutRow`, `NativeFieldSection`, `NativeFieldRow`, `ConfirmDialog`
 - **役割**: 表示設定、法的リンク、サインアウト導線をまとめる
 
 表示要素:
@@ -356,7 +356,7 @@ Expo Router の leaf route は 14 個あるが、以下 2 route は画面を描�
 ### 11. メール変更画面
 
 - **route**: `apps/mobile/app/settings/email.tsx`
-- **主要コンポーネント**: `ScreenHeader`, `GroupedCard`, `GroupedRow`, `TextInput`, `Button`, `OneTimePasswordInput`
+- **主要コンポーネント**: `ScreenHeader`, `NativeFieldSection`, `NativeFieldRow`, `TextInput`, `Button`, `OneTimePasswordInput`
 - **役割**: ログイン中ユーザーのメールアドレス変更
 
 表示要素:
@@ -414,9 +414,10 @@ Expo Router の leaf route は 14 個あるが、以下 2 route は画面を描�
 | --- | --- |
 | `ScreenHeader` | large title / inline header、戻る、保存、編集、追加など |
 | `BackButton` | 戻る導線 |
-| `GroupedCard` | iOS settings 風の grouped surface |
-| `GroupedRow` | 設定行、アカウント導線、値付き行 |
-| `TextInput` | top label / inline label の入力欄 |
+| `GroupedCard` | 統計、地図、散歩履歴などの汎用カード surface |
+| `NativeFieldSection` | `@expo/ui` TextInput / Row を画面スクロール内に並べる静的フォーム / 設定セクション |
+| `NativeFieldRow` | `@expo/ui` Row + Icon ベースの設定行、アカウント導線、値付き行 |
+| `TextInput` | `@expo/ui` TextInput ベースの入力欄。label は visible label ではなく placeholder として表示する |
 | `Button` | primary / secondary / ghost / destructive などの汎用ボタン |
 | `EmptyState` | 空状態メッセージと CTA |
 | `LoadingScreen` | 読み込み状態 |
@@ -433,6 +434,7 @@ Expo Router の leaf route は 14 個あるが、以下 2 route は画面を描�
 - Me タブはプロフィールと散歩貢献を主表示し、表示設定や法務リンクは `/settings` に置く。
 - map 主役の画面は `ScreenHeader` で上を押し下げず、マップ全面 + overlay 構成を維持する。
 - 入力・設定 UI は grouped row 形式と `ActionSheetIOS` ベースの選択を第一候補にする。
+- 入力セクション内に独立したスクロール領域を作らず、画面単位の `ScrollView` にスクロール範囲を集約する。
 - スタイルを変更する場合は `apps/mobile/theme/tokens.ts` の token を使い、magic number を増やさない。
 - UI 整理の判断は product axes で説明する:
   - Dog experience: 犬同士の出会い、犬との関係性を深めるか

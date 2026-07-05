@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo } from 'react';
 import { useCommitWalkEvent } from '@/hooks/use-commit-walk-event';
 import { useWalkEventRecorder } from '@/hooks/use-walk-event-recorder';
 import { useWalkSession } from '@/hooks/use-walk-session';
+import { runDetached } from '@/lib/run-detached';
 import { processWatchWalkCommand } from '@/lib/watch/commands';
 import { ackCommand, addCommandListener, getPendingCommands } from '@/lib/watch/bridge';
 import { useWalkStore } from '@/stores/walk-store';
@@ -69,23 +70,20 @@ export function useWatchWalkCommandProcessor() {
   useEffect(() => {
     let isMounted = true;
 
-    void getPendingCommands()
-      .then(async (commands) => {
+    runDetached(
+      getPendingCommands().then(async (commands) => {
         if (!isMounted) return;
 
         for (const command of commands) {
           if (!isMounted) return;
           await processCommand(command);
         }
-      })
-      .catch((error) => {
-        console.error('[watch.command] failed to drain pending commands', error);
-      });
+      }),
+      'watch.command.drainPending',
+    );
 
     const subscription = addCommandListener((command) => {
-      void processCommand(command).catch((error) => {
-        console.error('[watch.command] failed to process command', error);
-      });
+      runDetached(processCommand(command), 'watch.command.process');
     });
 
     return () => {

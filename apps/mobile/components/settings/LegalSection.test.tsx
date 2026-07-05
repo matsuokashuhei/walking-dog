@@ -40,7 +40,7 @@ describe('LegalSection', () => {
 
   it('opens the terms URL when tapped', () => {
     render(<LegalSection />);
-    fireEvent.press(screen.getByRole('button', { name: 'Terms of Service' }));
+    fireEvent.press(screen.getByText('Terms of Service'));
     expect(Linking.openURL).toHaveBeenCalledWith(
       'https://walking-dog.cacheandbuffer.com/terms',
     );
@@ -48,7 +48,7 @@ describe('LegalSection', () => {
 
   it('opens the privacy URL when tapped', () => {
     render(<LegalSection />);
-    fireEvent.press(screen.getByRole('button', { name: 'Privacy Policy' }));
+    fireEvent.press(screen.getByText('Privacy Policy'));
     expect(Linking.openURL).toHaveBeenCalledWith(
       'https://walking-dog.cacheandbuffer.com/policy',
     );

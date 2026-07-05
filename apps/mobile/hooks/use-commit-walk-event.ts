@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import * as Haptics from 'expo-haptics';
+import { runDetached } from '@/lib/run-detached';
 import { useWalkStore } from '@/stores/walk-store';
 import type { WalkEvent } from '@/types/graphql';
 
@@ -14,7 +15,7 @@ export function useCommitWalkEvent() {
 
       // サーバー確定済みイベントだけをストアへ追加し、UI の件数表示と触覚反応を揃えます。
       addEvent(event);
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      runDetached(Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light), 'walk.haptics.impact');
       return event;
     },
     [addEvent],

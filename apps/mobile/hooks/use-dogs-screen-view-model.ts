@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useRouter } from 'expo-router';
 import { useMe } from '@/hooks/use-me';
 import { usePackProgress } from '@/hooks/use-pack-progress';
+import { runDetached } from '@/lib/run-detached';
 import type { Dog } from '@/types/graphql';
 
 // Dogs 画面へ渡す犬一覧、パック進捗、画面操作をまとめた ViewModel です。
@@ -32,7 +33,7 @@ export function useDogsScreenViewModel(): DogsScreenViewModel {
   );
 
   const handleRefresh = useCallback(() => {
-    void refetch();
+    runDetached(refetch(), 'dogs.screen.refetch');
   }, [refetch]);
 
   return {

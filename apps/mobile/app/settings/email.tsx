@@ -7,9 +7,8 @@ import { OneTimePasswordInput } from '@/components/auth/OneTimePasswordInput';
 import { emailKeyboardType } from '@/components/auth/emailKeyboard';
 import { Button } from '@/components/ui/Button';
 import { ErrorScreen } from '@/components/ui/ErrorScreen';
-import { GroupedCard } from '@/components/ui/GroupedCard';
-import { GroupedRow } from '@/components/ui/GroupedRow';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
+import { NativeFieldRow, NativeFieldSection } from '@/components/ui/NativeFieldGroup';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { TextInput } from '@/components/ui/TextInput';
 import { useAuth } from '@/hooks/use-auth';
@@ -17,6 +16,7 @@ import { useColors } from '@/hooks/use-colors';
 import { useInvalidateUserQueries } from '@/hooks/use-invalidate-user-queries';
 import { useMe } from '@/hooks/use-me';
 import { toAuthError } from '@/lib/auth/errors';
+import { runDetached } from '@/lib/run-detached';
 import { spacing, typography } from '@/theme/tokens';
 import type { EmailChangeChallenge } from '@/lib/auth/api';
 
@@ -30,7 +30,7 @@ export default function EmailSettingsScreen() {
       <ErrorScreen
         message={t('user.loadError')}
         onRetry={() => {
-          void refetch();
+          runDetached(refetch(), 'settings.email.refetch');
         }}
       />
     );
@@ -138,14 +138,13 @@ function EmailSettingsContent({ currentEmail }: { currentEmail: string }) {
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
       >
-        <GroupedCard elevated={false}>
-          <GroupedRow
+        <NativeFieldSection>
+          <NativeFieldRow
             label={t('settings.emailChange.currentEmail')}
             value={currentEmail}
-            separator={false}
             showChevron={false}
           />
-        </GroupedCard>
+        </NativeFieldSection>
 
         {challenge ? (
           <View style={styles.otpSection}>
@@ -170,7 +169,7 @@ function EmailSettingsContent({ currentEmail }: { currentEmail: string }) {
           </View>
         ) : (
           <>
-            <GroupedCard elevated={false}>
+            <NativeFieldSection>
               <TextInput
                 label={t('settings.emailChange.newEmail')}
                 labelPosition="inline"
@@ -180,13 +179,11 @@ function EmailSettingsContent({ currentEmail }: { currentEmail: string }) {
                 keyboardType={emailKeyboardType}
                 autoCapitalize="none"
                 autoCorrect={false}
-                spellCheck={false}
                 autoComplete="email"
-                textContentType="emailAddress"
                 returnKeyType="send"
                 onSubmitEditing={handleSubmit}
               />
-            </GroupedCard>
+            </NativeFieldSection>
             <Button
               label={t('settings.emailChange.sendCode')}
               testID="email-change-send-code"

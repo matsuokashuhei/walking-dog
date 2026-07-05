@@ -1,5 +1,6 @@
 import { startTracking } from '@/lib/walk/gps-tracker';
 import { stopWalkBackgroundLocationUpdates } from '@/lib/walk/background-location-task';
+import { runDetached } from '@/lib/run-detached';
 import { useWalkStore } from '@/stores/walk-store';
 import type { WalkPoint, WalkPointInput } from '@/types/graphql';
 
@@ -59,7 +60,10 @@ export async function beginWalkTracking({
   );
 
   const flushTimer = setInterval(() => {
-    void flushPendingWalkPoints({ walkId, addWalkPoints }).catch(logPeriodicFlushError);
+    runDetached(
+      flushPendingWalkPoints({ walkId, addWalkPoints }).catch(logPeriodicFlushError),
+      'walk.tracking.periodicFlush',
+    );
   }, PERIODIC_FLUSH_INTERVAL_MS);
 
   const cleanup = async () => {
@@ -82,7 +86,7 @@ export async function stopWalkTracking() {
 
 export function resetWalkTrackingState() {
   useWalkStore.getState().resetTrackingSession();
-  void stopWalkBackgroundLocationUpdates();
+  runDetached(stopWalkBackgroundLocationUpdates(), 'walk.tracking.stopBackgroundLocation');
 }
 
 async function flushPendingWalkPointsNow({

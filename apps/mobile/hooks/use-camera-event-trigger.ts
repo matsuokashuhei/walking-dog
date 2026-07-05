@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
+import { runDetached } from '@/lib/run-detached';
 
 interface UseCameraEventTriggerArgs {
   cameraRequestedAt: number | null;
@@ -37,7 +38,10 @@ export function useCameraEventTrigger({
 
       cameraTimerRef.current = setTimeout(() => {
         cameraTimerRef.current = null;
-        void triggerPhoto(dogId);
+        const result = triggerPhoto(dogId);
+        if (result) {
+          runDetached(result, 'walk.camera.triggerPhoto');
+        }
       }, 150);
     };
 

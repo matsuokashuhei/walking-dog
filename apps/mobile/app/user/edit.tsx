@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { GroupedCard } from '@/components/ui/GroupedCard';
+import { NativeFieldSection } from '@/components/ui/NativeFieldGroup';
 import { TextInput } from '@/components/ui/TextInput';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
@@ -13,6 +13,7 @@ import { useMe } from '@/hooks/use-me';
 import { useUpdateUser } from '@/hooks/use-user-mutations';
 import { useMutationWithAlert } from '@/hooks/use-mutation-with-alert';
 import { useColors } from '@/hooks/use-colors';
+import { runDetached } from '@/lib/run-detached';
 import { spacing } from '@/theme/tokens';
 import type { UploadFile } from '@/lib/graphql/client';
 import type { User } from '@/types/graphql';
@@ -27,7 +28,7 @@ export default function UserEditScreen() {
       <ErrorScreen
         message={t('user.loadError')}
         onRetry={() => {
-          void refetch();
+          runDetached(refetch(), 'user.edit.refetch');
         }}
       />
     );
@@ -91,17 +92,17 @@ function UserEditContent({ me }: { me: User }) {
           displayName={name}
           onChange={setAvatarFile}
         />
-        <GroupedCard elevated={false}>
+        <NativeFieldSection>
           <TextInput
             label={t('userEdit.name')}
             labelPosition="inline"
             value={name}
             onChangeText={setName}
             autoCapitalize="words"
-            textContentType="name"
+            autoComplete="name"
             returnKeyType="done"
           />
-        </GroupedCard>
+        </NativeFieldSection>
       </ScrollView>
     </SafeAreaView>
   );

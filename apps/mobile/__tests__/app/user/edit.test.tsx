@@ -89,7 +89,7 @@ describe('UserEditScreen', () => {
   it('saves the edited user name and returns to the user screen', async () => {
     render(<UserEditScreen />);
 
-    fireEvent.changeText(screen.getByLabelText('Name'), 'Mio Updated');
+    fireEvent.changeText(screen.getByPlaceholderText('Name'), 'Mio Updated');
     fireEvent.press(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => {

@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { useMe } from '@/hooks/use-me';
+import { runDetached } from '@/lib/run-detached';
 import type { User } from '@/types/graphql';
 
 type SettingsScreenStatus = 'loading' | 'error' | 'ready';
@@ -25,7 +26,7 @@ export function useSettingsScreenViewModel(): SettingsScreenViewModel {
   const { data: me, isLoading, error, refetch } = useMe();
 
   const handleRetry = useCallback(() => {
-    void refetch();
+    runDetached(refetch(), 'settings.screen.refetch');
   }, [refetch]);
 
   // 画面側がデータ有無を意識せず表示分岐できるよう、状態ごとに返却形を固定します。

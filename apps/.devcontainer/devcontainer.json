@@ -6,13 +6,6 @@
     ],
     "service": "api",
     "workspaceFolder": "/walking-dog",
-    "mounts": [
-        {
-            "source": "${localEnv:HOME}/.copilot",
-            "target": "/home/vscode/.copilot",
-            "type": "bind"
-        }
-    ],
     "postCreateCommand": "sh ./apps/.devcontainer/post-create.sh",
     "containerEnv": {
         "CLAUDE_PROJECT_DIR": "/walking-dog"
@@ -28,7 +21,7 @@
     "customizations": {
         "vscode": {
             "extensions": [
-                "anthropic.claude-code",
+                // "anthropic.claude-code",
                 "fill-labs.dependi",
                 "GitHub.copilot",
                 "GitHub.vscode-pull-request-github",

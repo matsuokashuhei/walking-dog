@@ -1,0 +1,57 @@
+{
+  "$schema": "./node_modules/knip/schema.json",
+  "ignoreFiles": [
+    // Platform-specific module variants are resolved by React Native/Expo.
+    "components/ui/icon-symbol.ios.tsx",
+    "hooks/use-color-scheme.web.ts",
+
+    // Expo config plugins and Apple targets are discovered by app.config.ts
+    // and @bacons/apple-targets through string/glob based runtime loading.
+    "plugins/with-stable-widget-build-phases.js",
+    "targets/watch/expo-target.config.js",
+    "targets/watch-widget/expo-target.config.js",
+
+    // Local Expo module JS shims are loaded by Expo module naming conventions,
+    // while app code accesses the native module through requireOptionalNativeModule.
+    "modules/walking-dog-watch-bridge/src/WalkingDogWatchBridge.types.ts",
+    "modules/walking-dog-watch-bridge/src/WalkingDogWatchBridgeModule.ts",
+    "modules/walking-dog-watch-bridge/src/WalkingDogWatchBridgeModule.web.ts"
+  ],
+  "ignoreDependencies": [
+    // Existing dependency baseline retained by this harness-only change.
+    "@effect/platform",
+    "effect",
+    "graffle",
+
+    // These packages are resolved through Expo CLI/runtime internals and are
+    // intentionally not listed as direct app dependencies.
+    "@expo/cli",
+    "expo-modules-core",
+
+    // @bacons/apple-targets runtime-requires this package from its published
+    // build but declares it only as a devDependency.
+    "@expo/prebuild-config",
+
+    // Knip's Expo plugin assumes OTA updates are enabled when app.config.ts
+    // does not explicitly disable them.
+    "expo-updates"
+  ],
+  "ignoreIssues": {
+    // Existing production-code export baseline. This PR wires Knip into the
+    // harness without changing app/runtime source.
+    "components/dogs/DogForm.tsx": ["exports"],
+    "components/ui/ScreenHeader.tsx": ["types"],
+    "hooks/use-user-profile.ts": ["exports", "types"],
+    "hooks/use-user-screen-view-model.ts": ["types"],
+    "lib/walk/live-activity-controller.ts": ["exports"],
+    "lib/walk/live-activity.ts": ["types"],
+    "lib/watch/types.ts": ["types"],
+    "scripts/expo-xcodebuild-provisioning-hook.cjs": ["exports"],
+    "theme/tokens.ts": ["types"],
+    "types/graphql.ts": ["types"],
+
+    // These aliases intentionally point at one emoji table so map markers and
+    // UI controls cannot drift.
+    "lib/walk/events.ts": ["duplicates"]
+  }
+}

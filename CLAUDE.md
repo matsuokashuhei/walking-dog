@@ -37,6 +37,9 @@ Before claiming work is ready, run:
 scripts/harness/validate-all.sh
 ```
 
+This checks harness knowledge, architecture boundaries, quality score, and
+`apps/mobile` Knip unused-code analysis.
+
 For API changes, also run the API tests from the current worktree. Prefer the
 bind-mounted Docker form when multiple worktrees may share compose volumes.
 
@@ -46,6 +49,7 @@ For Mobile changes, run from `apps/mobile`:
 npm test
 npm run typecheck
 npm run lint
+npm run knip
 ```
 
 ## Harness Commands
@@ -53,6 +57,7 @@ npm run lint
 ```bash
 scripts/harness/validate-knowledge.sh
 scripts/harness/validate-architecture.sh
+scripts/harness/validate-mobile-knip.sh
 scripts/harness/validate-all.sh
 scripts/harness/dev-stack.sh up
 scripts/harness/reset-local-data.sh

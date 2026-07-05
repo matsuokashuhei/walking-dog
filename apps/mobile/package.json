@@ -17,6 +17,7 @@
     "ios:dev:prod": "EXPO_PUBLIC_API_URL=https://walking-dog.cacheandbuffer.com node ./scripts/expo-run-ios-with-provisioning.cjs run:ios --device --configuration Release",
     "web": "expo start --web",
     "lint": "eslint \"**/*.{ts,tsx}\" --ignore-pattern \"**/*.test.*\" --ignore-pattern \"**/__tests__/**\" --ignore-pattern \"jest.setup.ts\" --ignore-pattern \".claude/**\" --ignore-pattern \"node_modules/**\" --no-error-on-unmatched-pattern",
+    "knip": "knip",
     "hooks:install": "git -C ../.. config core.hooksPath .githooks",
     "typecheck": "tsc --noEmit",
     "test": "jest",
@@ -86,6 +87,7 @@
     "eslint-plugin-i18next": "6.1.4",
     "jest": "~29.7.0",
     "jest-expo": "~56.0.4",
+    "knip": "6.24.0",
     "react-test-renderer": "19.2.3",
     "typescript": "~6.0.3"
   },
@@ -115,12 +117,5 @@
       "text"
     ]
   },
-  "private": true,
-  "knip": {
-    "ignoreFiles": [
-      ".claude/skills/**",
-      "components/ui/icon-symbol.ios.tsx",
-      "hooks/use-color-scheme.web.ts"
-    ]
-  }
+  "private": true
 }

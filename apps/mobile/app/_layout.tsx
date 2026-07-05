@@ -70,7 +70,7 @@ function RootLayout() {
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           <Stack.Screen name="dogs" options={{ headerShown: false }} />
           <Stack.Screen name="settings" options={{ headerShown: false }} />
-          <Stack.Screen name="user" options={{ headerShown: false }} />
+          <Stack.Screen name="user" options={{ headerShown: false, animation: 'none' }} />
           <Stack.Screen name="walks" options={{ headerShown: false }} />
           <Stack.Screen
             name="walk-recording"

@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -6,11 +6,11 @@ import { GroupedCard } from '@/components/ui/GroupedCard';
 import { GroupedRow } from '@/components/ui/GroupedRow';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useColors } from '@/hooks/use-colors';
-import { spacing } from '@/theme/tokens';
+import { dogContactChrome, spacing, typography } from '@/theme/tokens';
 import { useUserScreenViewModel } from '@/hooks/use-user-screen-view-model';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { ErrorScreen } from '@/components/ui/ErrorScreen';
-import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { ContactChromeButton } from '@/components/ui/ContactChromeButton';
 import { UserSummary } from '@/components/user/UserSummary';
 
 // User タブはユーザー自身の散歩貢献を最初に見せ、設定は下部リンクから開きます。
@@ -27,14 +27,29 @@ export default function UserScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={[styles.safeArea, { backgroundColor: theme.background }]}>
-      <ScreenHeader
-        title={t('settings.title')}
-        rightAction={{
-          label: t('user.edit'),
-          onPress: () => router.push('/user/edit'),
-        }}
-        testID="settings-header"
-      />
+      <View testID="settings-header">
+        <View testID="settings-header-action-row" style={styles.headerActionRow}>
+          <View testID="settings-header-left-action-slot" style={styles.headerActionSlot} />
+          <View testID="settings-header-right-action-slot" style={styles.headerActionSlot}>
+            <ContactChromeButton
+              shape="pill"
+              label={t('user.edit')}
+              accessibilityLabel={t('user.edit')}
+              onPress={() => router.push('/user/edit')}
+              testID="user-edit-button"
+            />
+          </View>
+        </View>
+        <View testID="settings-header-large-title-row" style={styles.largeTitleRow}>
+          <Text
+            accessibilityRole="header"
+            numberOfLines={1}
+            style={[styles.largeTitle, { color: theme.onSurface }]}
+          >
+            {t('settings.title')}
+          </Text>
+        </View>
+      </View>
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         <UserSummary
           user={vm}
@@ -67,6 +82,24 @@ export default function UserScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
+  headerActionRow: {
+    height: dogContactChrome.circleSize,
+    paddingHorizontal: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  headerActionSlot: {
+    minWidth: dogContactChrome.pillMinWidth,
+  },
+  largeTitleRow: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.step6,
+    paddingBottom: spacing.step10,
+  },
+  largeTitle: {
+    ...typography.largeTitle,
+  },
   container: { flex: 1 },
   content: {
     padding: spacing.lg,

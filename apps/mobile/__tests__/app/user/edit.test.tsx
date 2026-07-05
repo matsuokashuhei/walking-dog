@@ -1,6 +1,8 @@
+import { StyleSheet } from 'react-native';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import * as ImagePicker from 'expo-image-picker';
 import UserEditScreen from '../../../app/user/edit';
+import { colors, dogContactChrome } from '@/theme/tokens';
 
 const mockBack = jest.fn();
 const mockUpdateUser = jest.fn();
@@ -22,11 +24,28 @@ jest.mock('expo-image', () => ({
   Image: 'Image',
 }));
 
+jest.mock('expo-blur', () => {
+  const { View } = jest.requireActual('react-native');
+  return {
+    BlurView: ({ children, ...props }: { children: React.ReactNode }) => (
+      <View {...props}>{children}</View>
+    ),
+  };
+});
+
 jest.mock('expo-image-picker', () => ({
   PermissionStatus: { GRANTED: 'granted' },
   requestMediaLibraryPermissionsAsync: jest.fn(),
   launchImageLibraryAsync: jest.fn(),
 }));
+
+jest.mock('@/components/ui/icon-symbol', () => {
+  const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
+
+  return {
+    IconSymbol: ({ name }: { name: string }) => <Text>{name}</Text>,
+  };
+});
 
 jest.mock('@/hooks/use-me', () => ({
   useMe: () => ({
@@ -84,6 +103,28 @@ describe('UserEditScreen', () => {
       canceled: true,
       assets: null,
     });
+  });
+
+  it('renders contacts-style cancel and save icon buttons', () => {
+    render(<UserEditScreen />);
+
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy();
+    expect(screen.queryByRole('header', { name: 'Edit user' })).toBeNull();
+    expect(screen.queryByText('Cancel')).toBeNull();
+    expect(screen.queryByText('Save')).toBeNull();
+    expect(screen.getByText('xmark')).toBeTruthy();
+    expect(screen.getByText('checkmark')).toBeTruthy();
+
+    const cancelStyle = StyleSheet.flatten(screen.getByTestId('user-edit-cancel-button').props.style);
+    const saveStyle = StyleSheet.flatten(screen.getByTestId('user-edit-save-button').props.style);
+    expect(cancelStyle.width).toBe(dogContactChrome.circleSize);
+    expect(cancelStyle.height).toBe(dogContactChrome.circleSize);
+    expect(cancelStyle.backgroundColor).toBe(colors.light.background);
+    expect(cancelStyle.borderColor).toBe(colors.light.border);
+    expect(saveStyle.width).toBe(dogContactChrome.circleSize);
+    expect(saveStyle.height).toBe(dogContactChrome.circleSize);
+    expect(saveStyle.backgroundColor).toBe(colors.light.background);
   });
 
   it('saves the edited user name and returns to the user screen', async () => {

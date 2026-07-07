@@ -1,6 +1,7 @@
 import { Alert, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
 import { useCallback, useState } from 'react';
+import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
 import { useWalkSession } from '@/hooks/use-walk-session';
@@ -19,10 +20,12 @@ interface WalkRecordingControlsOverlayProps {
 // overlay 内で切り替えることで、畳み状態に空の sheet 背景が残らないようにします。
 export function WalkRecordingControlsOverlay({ dogs }: WalkRecordingControlsOverlayProps) {
   const { t } = useTranslation();
+  const router = useRouter();
   const theme = useColors();
   const walkId = useWalkStore((s) => s.walkId);
   const isMinimized = useWalkStore((s) => s.isMinimized);
   const setMinimized = useWalkStore((s) => s.setMinimized);
+  const reset = useWalkStore((s) => s.reset);
   const walkSession = useWalkSession();
   const [isStopping, setIsStopping] = useState(false);
 
@@ -31,12 +34,14 @@ export function WalkRecordingControlsOverlay({ dogs }: WalkRecordingControlsOver
     setIsStopping(true);
     try {
       await walkSession.stop(walkId);
+      router.push(`/walks/${walkId}`);
+      reset();
     } catch {
       Alert.alert(t('common.error'), t('walk.error.finishFailed'));
     } finally {
       setIsStopping(false);
     }
-  }, [walkId, walkSession, t]);
+  }, [reset, router, walkId, walkSession, t]);
 
   return (
     <Animated.View

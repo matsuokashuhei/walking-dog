@@ -27,6 +27,8 @@ those events on the map, timeline, and saved walk detail.
   `StorageGateway`, and create the event only after upload succeeds.
 - Failed record, presign, upload, or permission paths surface errors and do not
   create misleading event counts.
+- Ending the walk opens the saved walk detail directly, without a post-walk save
+  screen.
 - Saved walk detail shows event markers and photo thumbnails.
 
 ## Evidence

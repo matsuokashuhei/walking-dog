@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>End Walk Direct Detail Flow</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #17211b;
+        --muted: #66736a;
+        --line: #d7ddd8;
+        --surface: #f7f9f6;
+        --accent: #2f7d57;
+        --danger: #b6403a;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        color: var(--ink);
+        background: #ffffff;
+      }
+
+      main {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 32px 24px;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: 30px;
+        line-height: 1.15;
+        letter-spacing: 0;
+      }
+
+      p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .flow {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        gap: 18px;
+        align-items: center;
+        margin-top: 32px;
+      }
+
+      .phone {
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background: var(--surface);
+        min-height: 520px;
+        padding: 18px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        box-shadow: 0 18px 40px rgba(23, 33, 27, 0.12);
+      }
+
+      .map {
+        flex: 1;
+        border-radius: 16px;
+        border: 1px solid var(--line);
+        background:
+          linear-gradient(135deg, rgba(47, 125, 87, 0.18), rgba(47, 125, 87, 0) 45%),
+          linear-gradient(90deg, #e7eee8 1px, transparent 1px),
+          linear-gradient(#e7eee8 1px, transparent 1px);
+        background-size: auto, 42px 42px, 42px 42px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .route {
+        position: absolute;
+        left: 22%;
+        top: 22%;
+        width: 52%;
+        height: 44%;
+        border: 5px solid var(--accent);
+        border-left-color: transparent;
+        border-bottom-color: transparent;
+        border-radius: 48%;
+        transform: rotate(18deg);
+      }
+
+      .sheet,
+      .detail {
+        margin-top: 16px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: #ffffff;
+        padding: 16px;
+      }
+
+      .label {
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .title {
+        margin-top: 6px;
+        font-size: 22px;
+        font-weight: 760;
+      }
+
+      .slider {
+        margin-top: 18px;
+        height: 52px;
+        border-radius: 26px;
+        background: #eef2ef;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--ink);
+        font-weight: 700;
+        position: relative;
+      }
+
+      .knob {
+        position: absolute;
+        left: 8px;
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background: #ffffff;
+        border: 1px solid var(--line);
+        display: grid;
+        place-items: center;
+        color: var(--danger);
+      }
+
+      .arrow {
+        color: var(--accent);
+        font-size: 28px;
+        font-weight: 800;
+      }
+
+      .detail-metrics {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin-top: 16px;
+      }
+
+      .metric {
+        border-radius: 10px;
+        background: #f0f4f1;
+        padding: 10px;
+      }
+
+      .metric strong {
+        display: block;
+        margin-top: 4px;
+        font-size: 18px;
+      }
+
+      .removed {
+        margin-top: 18px;
+        padding: 14px 16px;
+        border-left: 4px solid var(--danger);
+        background: #fff6f5;
+        color: #6f2d29;
+      }
+
+      @media (max-width: 760px) {
+        .flow {
+          grid-template-columns: 1fr;
+        }
+
+        .arrow {
+          transform: rotate(90deg);
+          text-align: center;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>End Walk opens Walk Detail directly</h1>
+      <p>
+        The post-walk summary/save screen is removed from the completion path.
+        After the stop gesture saves the walk, the app navigates straight to the
+        persisted walk detail.
+      </p>
+
+      <section class="flow" aria-label="Updated End Walk flow">
+        <div class="phone" aria-label="Recording screen">
+          <div class="map">
+            <div class="route"></div>
+          </div>
+          <div class="sheet">
+            <div class="label">Recording</div>
+            <div class="title">Coco's walk</div>
+            <div class="slider">
+              <span class="knob">|</span>
+              End Walk
+            </div>
+          </div>
+        </div>
+
+        <div class="arrow" aria-hidden="true">-></div>
+
+        <div class="phone" aria-label="Walk detail screen">
+          <div class="map">
+            <div class="route"></div>
+          </div>
+          <div class="detail">
+            <div class="label">Walk Detail</div>
+            <div class="title">Saved walk</div>
+            <div class="detail-metrics">
+              <div class="metric"><span>Distance</span><strong>1.42 km</strong></div>
+              <div class="metric"><span>Time</span><strong>24:00</strong></div>
+              <div class="metric"><span>Pace</span><strong>16'54"</strong></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <p class="removed">
+        Removed from this flow: "Walk Complete" summary, per-dog summary, "Add
+        note", and "Save walk" actions before opening the detail screen.
+      </p>
+    </main>
+  </body>
+</html>

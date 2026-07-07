@@ -195,25 +195,6 @@
       "expand": "展開",
       "expandHint": "タップして操作を展開"
     },
-    "finished": {
-      "title": "散歩完了！",
-      "details": "詳細を見る",
-      "done": "閉じる",
-      "saving": "散歩データを保存中...",
-      "walkComplete": "散歩おわり",
-      "titleSingle": "{{name}}、いい散歩だったね！",
-      "titleMulti": "みんな、いい散歩だったね。",
-      "perDog": "犬ごと",
-      "viewEach": "個別に見る",
-      "perDogEventCounts": "{{name}} おしっこ {{pee}}、うんち {{poo}}、写真 {{photo}}",
-      "minTogether": "{{names}} · {{min}}分いっしょに",
-      "minSolo": "{{name}} · {{min}}分",
-      "savedToHistoryMulti": "{{a}}と{{b}}の散歩履歴に保存します",
-      "savedToHistorySingle": "{{name}}の散歩履歴に保存します",
-      "addNote": "メモを追加",
-      "saveWalk": "散歩を保存",
-      "joinerAnd": "と"
-    },
     "history": {
       "title": "最近の散歩",
       "empty": "まだ散歩がありません。最初の散歩を始めましょう！",
@@ -256,9 +237,7 @@
     },
     "map": {
       "eventAt": "{{emoji}} イベント {{occurredAt}}",
-      "currentLocation": "現在の散歩位置 {{latitude}}, {{longitude}}",
-      "routeStart": "開始",
-      "routeEnd": "終了"
+      "currentLocation": "現在の散歩位置 {{latitude}}, {{longitude}}"
     },
     "activity": {
       "walking": "散歩中",

@@ -44,6 +44,7 @@ export function WalkControlsActions({
   const slideValueRef = useRef(SLIDE_MIN);
   const hasCompletedRef = useRef(false);
   const dragStartXRef = useRef<number | null>(null);
+  const hasDraggedRef = useRef(false);
   const wasStoppingRef = useRef(isStopping);
 
   const setSlidePosition = useCallback((value: number) => {
@@ -78,7 +79,11 @@ export function WalkControlsActions({
       if (isStopping || hasCompletedRef.current) return;
       const dragStartX = dragStartXRef.current;
       if (dragStartX === null) return;
-      setSlidePosition(slideValueFromDrag(dragStartX, event.nativeEvent.locationX, sliderWidth));
+      const nextValue = slideValueFromDrag(dragStartX, event.nativeEvent.locationX, sliderWidth);
+      if (nextValue > SLIDE_MIN) {
+        hasDraggedRef.current = true;
+      }
+      setSlidePosition(nextValue);
     },
     [isStopping, setSlidePosition, sliderWidth],
   );
@@ -92,6 +97,7 @@ export function WalkControlsActions({
     (event: GestureResponderEvent) => {
       if (isStopping || hasCompletedRef.current) return;
       dragStartXRef.current = event.nativeEvent.locationX;
+      hasDraggedRef.current = false;
       setSlidePosition(SLIDE_MIN);
     },
     [isStopping, setSlidePosition],
@@ -100,11 +106,16 @@ export function WalkControlsActions({
   const handleResponderRelease = useCallback(() => {
     if (isStopping) return;
     dragStartXRef.current = null;
+    if (!hasDraggedRef.current) {
+      completeSlide();
+      return;
+    }
     handleSlidingComplete(slideValueRef.current);
-  }, [handleSlidingComplete, isStopping]);
+  }, [completeSlide, handleSlidingComplete, isStopping]);
 
   const handleResponderTerminate = useCallback(() => {
     dragStartXRef.current = null;
+    hasDraggedRef.current = false;
     if (hasCompletedRef.current) return;
     setSlidePosition(SLIDE_MIN);
   }, [setSlidePosition]);

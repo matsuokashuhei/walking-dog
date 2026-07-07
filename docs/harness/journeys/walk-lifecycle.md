@@ -14,7 +14,7 @@
 ## Scope
 
 An authenticated owner selects dog(s), starts a walk, records location over time,
-pauses/resumes if needed, ends the walk, and saves it to history.
+pauses/resumes if needed, ends the walk, and lands on the saved walk detail.
 
 ## Acceptance Criteria
 
@@ -26,6 +26,8 @@ pauses/resumes if needed, ends the walk, and saves it to history.
 - Background GPS starts only when background permission exists.
 - Track points flow through `TrackPointRepository`.
 - Finish finalizes distance and duration through `service::walk`.
+- Ending the walk opens the saved walk detail directly, without a post-walk save
+  screen.
 - Completed walk appears in user and dog history.
 - Failure to start or finish surfaces an error and does not create fake progress.
 

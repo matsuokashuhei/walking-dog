@@ -195,25 +195,6 @@
       "expand": "Expand",
       "expandHint": "Tap to expand for controls"
     },
-    "finished": {
-      "title": "Walk Complete!",
-      "details": "View Details",
-      "done": "Done",
-      "saving": "Saving walk data...",
-      "walkComplete": "WALK COMPLETE",
-      "titleSingle": "Nice walk, {{name}}!",
-      "titleMulti": "Nice walk, everyone.",
-      "perDog": "Per dog",
-      "viewEach": "View each",
-      "perDogEventCounts": "{{name}} pee {{pee}}, poo {{poo}}, photo {{photo}}",
-      "minTogether": "{{names}} · {{min}} min together",
-      "minSolo": "{{name}} · {{min}} min",
-      "savedToHistoryMulti": "Saved to both {{a}}'s and {{b}}'s history",
-      "savedToHistorySingle": "Saved to {{name}}'s history",
-      "addNote": "Add note",
-      "saveWalk": "Save walk",
-      "joinerAnd": "and"
-    },
     "history": {
       "title": "Recent Walks",
       "empty": "No walks yet. Start your first walk!",
@@ -256,9 +237,7 @@
     },
     "map": {
       "eventAt": "{{emoji}} event at {{occurredAt}}",
-      "currentLocation": "Current walk location at {{latitude}}, {{longitude}}",
-      "routeStart": "Start",
-      "routeEnd": "End"
+      "currentLocation": "Current walk location at {{latitude}}, {{longitude}}"
     },
     "activity": {
       "walking": "Walking",

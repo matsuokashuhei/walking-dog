@@ -151,7 +151,7 @@ describe('WalkControls', () => {
     expect(onStop).toHaveBeenCalledTimes(1);
   });
 
-  it('does not end the walk from a right-edge tap without a drag', () => {
+  it('also ends the walk from an End Walk tap', () => {
     const onStop = jest.fn();
     render(<WalkControls dogs={[coco]} onStop={onStop} isStopping={false} />);
 
@@ -160,11 +160,11 @@ describe('WalkControls', () => {
       nativeEvent: { layout: { width: 320 } },
     });
     fireEvent(slideResponder, 'onResponderGrant', {
-      nativeEvent: { locationX: 288 },
+      nativeEvent: { locationX: 160 },
     });
     fireEvent(slideResponder, 'onResponderRelease');
 
-    expect(onStop).not.toHaveBeenCalled();
+    expect(onStop).toHaveBeenCalledTimes(1);
   });
 
   it('resets the end slider when a stop attempt returns to idle', () => {

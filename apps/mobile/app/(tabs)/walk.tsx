@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/use-colors';
@@ -9,17 +8,15 @@ import { useRecordingWalkDogs } from '@/hooks/use-recording-walk-dogs';
 import { useWalkLiveActivitySync } from '@/hooks/use-walk-live-activity-sync';
 import { useWalkReadySelection } from '@/hooks/use-walk-ready-selection';
 import { useWalkScreenViewModel } from '@/hooks/use-walk-screen-view-model';
-import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { WalkFloatingSheet } from '@/components/walk/WalkFloatingSheet';
 import { WalkMap } from '@/components/walk/WalkMap';
 import { WalkMapShell } from '@/components/walk/WalkMapShell';
 import { WalkReadySheetContent } from '@/components/walk/WalkReadySheetContent';
 import { WalkRecordingControlsOverlay } from '@/components/walk/WalkRecordingControlsOverlay';
-import { WalkSummaryCard } from '@/components/walk/WalkSummaryCard';
 import { WalkTopChip } from '@/components/walk/WalkTopChip';
 import { useWalkStore } from '@/stores/walk-store';
 
-// 散歩タブは現在の散歩フェーズに応じて、開始前または終了後サマリーを表示します。
+// 散歩タブは現在の散歩フェーズに応じて、開始前または記録中のマップを表示します。
 export default function WalkScreen() {
   const { t } = useTranslation();
   const theme = useColors();
@@ -79,12 +76,7 @@ export default function WalkScreen() {
     );
   }
 
-  return (
-    <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: theme.background }]}>
-      <ScreenHeader title={t('tabs.walk')} />
-      {vm.phase === 'finished' && <WalkSummaryCard />}
-    </SafeAreaView>
-  );
+  return null;
 }
 
 const styles = StyleSheet.create({

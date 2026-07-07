@@ -53,7 +53,6 @@ jest.mock('@/components/walk/WalkMapShell', () => {
     ),
   };
 });
-jest.mock('@/components/walk/WalkSummaryCard', () => ({ WalkSummaryCard: () => null }));
 jest.mock('@/components/walk/WalkControls', () => {
   const { Pressable, Text, View } = jest.requireActual('react-native');
   return {
@@ -258,5 +257,17 @@ describe('Walk tab route', () => {
     expect(mockWalkMapMounts).toBe(1);
     expect(mockWalkMapUnmounts).toBe(0);
     expect(mockWalkMapProps.at(-1)).toEqual(expect.objectContaining({ mode: 'recording' }));
+  });
+
+  it('does not render the post-walk summary screen after the walk is finished', () => {
+    mockPhase = 'finished';
+    mockDogs = [buildDog({})];
+    mockSelectedDogIds = ['d1'];
+
+    render(<WalkScreen />);
+
+    expect(screen.queryByRole('header', { name: 'Walk' })).toBeNull();
+    expect(screen.queryByText('Recording controls')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'START WALK' })).toBeNull();
   });
 });

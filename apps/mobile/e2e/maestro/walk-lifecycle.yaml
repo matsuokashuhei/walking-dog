@@ -31,15 +31,12 @@ env:
 - assertVisible: Time
 - assertVisible: Distance
 - assertVisible: End Walk
-- swipe:
-    start: 13%,84%
-    end: 91%,84%
-    duration: 2500
+- tapOn:
+    id: walk-end-slider-visual
 - extendedWaitUntil:
-    visible: Walk Complete!
+    visible: Walk Detail
     timeout: 15000
-- tapOn: Save walk
-- extendedWaitUntil:
-    visible: Recent Walks
-    timeout: 15000
+- assertVisible: Distance
+- assertVisible: Time
+- assertVisible: Pace
 - takeScreenshot: harness-walk-lifecycle

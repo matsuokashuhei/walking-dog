@@ -131,10 +131,10 @@ Local simulator build order:
 cd apps/mobile
 npm run metro:kill
 npm run ios:clean
-npm run ios:sim:local
+npm run ios:sim:local:dev-stack
 ```
 
-The local simulator build reads the API port from `.harness-runs/dev-stack/env.json`.
+The dev-stack simulator build reads the API port from `.harness-runs/dev-stack/env.json`.
 
 ## API Journey Harness
 

@@ -207,13 +207,9 @@ fn validate_manifest(manifest: &IntentManifest) -> Result<(), IntentError> {
     let scalar_fields = [
         (!manifest.id.trim().is_empty(), "id"),
         (!manifest.title.trim().is_empty(), "title"),
+        (github_handle(&manifest.owner).is_some(), "owner"),
         (
-            manifest.owner.starts_with("github:") && manifest.owner.len() > 7,
-            "owner",
-        ),
-        (
-            manifest.issue.starts_with("https://github.com/")
-                && manifest.issue.contains("/issues/"),
+            valid_github_issue(&manifest.owner, &manifest.issue),
             "issue",
         ),
         (!manifest.product_axes.is_empty(), "product_axes"),
@@ -294,11 +290,97 @@ fn contains_secret_like_value(manifest: &IntentManifest) -> bool {
         .chain(manifest.owned_files.iter().map(String::as_str))
         .any(|value| {
             let lower = value.to_ascii_lowercase();
-            lower.contains("password=")
-                || lower.contains("secret=")
-                || lower.contains("token=")
-                || lower.contains("private_key")
-                || lower.contains("ghp_")
-                || lower.contains("akia")
+            has_credential_assignment(&lower, "password")
+                || has_credential_assignment(&lower, "secret")
+                || has_credential_assignment(&lower, "token")
+                || has_bearer_credential(&lower)
+                || has_jwt_shape(value)
+                || lower.contains("-----begin private key-----")
+                || lower.contains("-----begin rsa private key-----")
+                || lower.contains("-----begin ec private key-----")
+                || has_common_access_key(value)
+        })
+}
+
+fn github_handle(owner: &str) -> Option<&str> {
+    let handle = owner.strip_prefix("github:")?;
+    (!handle.is_empty()
+        && handle
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-'))
+    .then_some(handle)
+}
+
+fn valid_github_issue(owner: &str, issue: &str) -> bool {
+    let Some(handle) = github_handle(owner) else {
+        return false;
+    };
+    let prefix = format!("https://github.com/{handle}/");
+    let Some(remainder) = issue.strip_prefix(&prefix) else {
+        return false;
+    };
+    let mut parts = remainder.split('/');
+    let (Some(repository), Some("issues"), Some(number), None) =
+        (parts.next(), parts.next(), parts.next(), parts.next())
+    else {
+        return false;
+    };
+    !repository.is_empty()
+        && repository
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.'))
+        && number.parse::<u64>().is_ok_and(|value| value > 0)
+}
+
+fn has_credential_assignment(value: &str, name: &str) -> bool {
+    value.match_indices(name).any(|(index, _)| {
+        let before_is_boundary = index == 0 || !value.as_bytes()[index - 1].is_ascii_alphanumeric();
+        let suffix = &value[index + name.len()..];
+        let suffix = suffix.trim_start();
+        before_is_boundary
+            && suffix
+                .strip_prefix(['=', ':'])
+                .is_some_and(|credential| !credential.trim().is_empty())
+    })
+}
+
+fn has_bearer_credential(value: &str) -> bool {
+    value.find("authorization").is_some_and(|index| {
+        let suffix = value[index + "authorization".len()..].trim_start();
+        suffix.strip_prefix(':').is_some_and(|header| {
+            header
+                .trim_start()
+                .strip_prefix("bearer ")
+                .is_some_and(|token| !token.trim().is_empty())
+        })
+    })
+}
+
+fn has_jwt_shape(value: &str) -> bool {
+    value.split_whitespace().any(|candidate| {
+        let candidate = candidate.trim_matches(|character: char| {
+            !character.is_ascii_alphanumeric() && !matches!(character, '-' | '_' | '.')
+        });
+        let segments = candidate.split('.').collect::<Vec<_>>();
+        segments.len() == 3
+            && segments.iter().all(|segment| {
+                segment.len() >= 8
+                    && segment
+                        .bytes()
+                        .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_'))
+            })
+    })
+}
+
+fn has_common_access_key(value: &str) -> bool {
+    value
+        .split(|character: char| !(character.is_ascii_alphanumeric() || character == '_'))
+        .any(|candidate| {
+            (candidate.starts_with("AKIA")
+                && candidate.len() == 20
+                && candidate
+                    .bytes()
+                    .all(|byte| byte.is_ascii_uppercase() || byte.is_ascii_digit()))
+                || (candidate.starts_with("ghp_") && candidate.len() >= 20)
         })
 }

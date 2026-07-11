@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Walking Dog — Mobile Journey Wireflow</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17211d;
+      --muted: #63706a;
+      --paper: #f6f2e8;
+      --panel: #fffdf7;
+      --line: #c9c8bb;
+      --green: #246b4e;
+      --green-soft: #dcecdf;
+      --blue: #245b78;
+      --blue-soft: #dcebf1;
+      --amber: #9a5c16;
+      --amber-soft: #f5e5c9;
+      --red: #a13b32;
+      --red-soft: #f5dcd7;
+      --shadow: 0 12px 30px rgb(38 47 42 / 9%);
+      --radius: 16px;
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--paper); color: var(--ink); }
+    button, select { font: inherit; }
+    header {
+      padding: 38px clamp(20px, 5vw, 72px) 24px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(135deg, #fffdf7 0%, #edf3ea 100%);
+    }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { max-width: 900px; font-size: clamp(34px, 5vw, 64px); line-height: .98; letter-spacing: -.045em; margin-bottom: 18px; }
+    h2 { font-size: 27px; letter-spacing: -.025em; }
+    h3 { font-size: 17px; }
+    .lede { max-width: 900px; color: var(--muted); font-size: 17px; line-height: 1.55; }
+    .meta, .legend, .filters { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; }
+    .chip { border: 1px solid var(--line); border-radius: 999px; padding: 6px 10px; background: rgb(255 255 255 / 64%); font-size: 12px; }
+    .legend { margin-top: 18px; }
+    .legend .chip::before { content: ""; width: 18px; height: 2px; display: inline-block; margin-right: 7px; vertical-align: middle; background: var(--green); }
+    .legend .modal::before { background: repeating-linear-gradient(90deg, var(--amber), var(--amber) 4px, transparent 4px, transparent 7px); }
+    .legend .override::before { background: var(--red); }
+    main { padding: 28px clamp(16px, 4vw, 58px) 80px; max-width: 1700px; margin: auto; }
+    .toolbar { position: sticky; top: 0; z-index: 5; display: flex; justify-content: space-between; gap: 14px; align-items: center; padding: 12px; margin-bottom: 20px; background: rgb(246 242 232 / 92%); backdrop-filter: blur(12px); border: 1px solid var(--line); border-radius: 14px; }
+    select, .reset { border: 1px solid var(--line); border-radius: 9px; background: var(--panel); padding: 8px 10px; color: var(--ink); }
+    .reset { cursor: pointer; }
+    .map { display: grid; gap: 18px; }
+    .lane { display: grid; grid-template-columns: 190px minmax(0, 1fr); border: 1px solid var(--line); border-radius: var(--radius); background: rgb(255 253 247 / 70%); overflow: hidden; box-shadow: var(--shadow); }
+    .lane-label { padding: 22px; border-right: 1px solid var(--line); background: rgb(255 255 255 / 45%); }
+    .lane-label p { color: var(--muted); font-size: 12px; line-height: 1.45; margin-bottom: 0; }
+    .nodes { padding: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(205px, 1fr)); gap: 14px; align-items: stretch; }
+    .node { appearance: none; text-align: left; color: inherit; border: 1px solid var(--line); border-left: 5px solid var(--green); border-radius: 12px; background: var(--panel); padding: 14px; cursor: pointer; min-height: 132px; box-shadow: 0 4px 14px rgb(38 47 42 / 5%); transition: transform .16s ease, box-shadow .16s ease, opacity .16s ease; }
+    .node:hover, .node:focus-visible { transform: translateY(-2px); box-shadow: var(--shadow); outline: 3px solid rgb(36 107 78 / 18%); }
+    .node[data-kind="modal"] { border-left-color: var(--amber); }
+    .node[data-kind="override"] { border-left-color: var(--red); background: #fff9f7; }
+    .node[data-kind="state"] { border-left-color: var(--blue); background: #f7fbfc; }
+    .node[hidden] { display: none; }
+    .route { font: 700 11px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--muted); letter-spacing: .02em; }
+    .node strong { display: block; margin: 9px 0 8px; font-size: 17px; }
+    .node small { display: block; color: var(--muted); line-height: 1.4; }
+    .tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+    .tag { font-size: 10px; border-radius: 999px; padding: 4px 7px; background: var(--green-soft); color: #174a36; }
+    .tag.slice { background: var(--blue-soft); color: #164760; }
+    .tag.override { background: var(--red-soft); color: #762820; }
+    .state-rail { margin: 18px 0 34px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 9px; }
+    .state { border: 1px solid var(--line); background: var(--panel); border-radius: 10px; padding: 11px; text-align: center; font-size: 12px; color: var(--blue); }
+    .section-head { display: flex; justify-content: space-between; align-items: end; gap: 18px; margin: 45px 0 18px; }
+    .section-head p { color: var(--muted); max-width: 720px; margin-bottom: 0; }
+    .phones { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px; align-items: start; }
+    .phone-wrap { display: grid; gap: 11px; }
+    .phone-title { font-weight: 750; }
+    .phone { max-width: 360px; width: 100%; margin: auto; min-height: 650px; border: 9px solid #1f2924; border-radius: 38px; background: #fff; overflow: hidden; box-shadow: var(--shadow); display: flex; flex-direction: column; }
+    .statusbar { height: 28px; padding: 7px 18px; font-size: 10px; display: flex; justify-content: space-between; background: #f8faf7; }
+    .screen { padding: 18px; flex: 1; display: flex; flex-direction: column; gap: 14px; }
+    .screen h3 { font-size: 25px; letter-spacing: -.03em; margin-bottom: 0; }
+    .screen p { color: var(--muted); font-size: 13px; line-height: 1.45; margin-bottom: 0; }
+    .field, .row, .card, .mapbox { border: 1px solid #d6dbd7; border-radius: 12px; padding: 13px; background: #fafcf9; }
+    .field { color: #7c8580; }
+    .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--green-soft); display: grid; place-items: center; font-weight: 800; }
+    .primary { border: 0; border-radius: 12px; padding: 14px; background: var(--green); color: white; font-weight: 750; text-align: center; }
+    .secondary { border: 1px solid var(--green); border-radius: 12px; padding: 13px; color: var(--green); font-weight: 750; text-align: center; }
+    .mapbox { min-height: 230px; display: grid; place-items: center; color: var(--blue); background: radial-gradient(circle at 35% 45%, #dcebf1 0 4px, transparent 5px), linear-gradient(35deg, #f3f6ee 45%, #e2eee5 46% 53%, #f3f6ee 54%); }
+    .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+    .metric { border: 1px solid #d6dbd7; border-radius: 10px; padding: 9px 6px; text-align: center; }
+    .metric b { display: block; font-size: 16px; }
+    .metric small { color: var(--muted); }
+    .tabs { height: 63px; border-top: 1px solid #d6dbd7; display: grid; grid-template-columns: repeat(3, 1fr); place-items: center; font-size: 11px; color: var(--muted); }
+    .tabs .active { color: var(--green); font-weight: 800; }
+    .detail { position: fixed; inset: auto 22px 22px auto; z-index: 10; width: min(430px, calc(100vw - 44px)); max-height: calc(100vh - 44px); overflow: auto; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); padding: 20px; box-shadow: 0 25px 70px rgb(20 31 26 / 24%); }
+    .detail[hidden] { display: none; }
+    .detail button { float: right; border: 0; background: transparent; font-size: 22px; cursor: pointer; }
+    .detail dl { display: grid; grid-template-columns: 100px 1fr; gap: 8px; font-size: 13px; }
+    .detail dt { color: var(--muted); }
+    .detail dd { margin: 0; }
+    .unassigned { margin-top: 30px; border: 1px solid var(--green); background: var(--green-soft); border-radius: 12px; padding: 14px; color: #174a36; }
+    @media (max-width: 760px) {
+      .lane { grid-template-columns: 1fr; }
+      .lane-label { border-right: 0; border-bottom: 1px solid var(--line); }
+      .toolbar { position: static; align-items: stretch; flex-direction: column; }
+      .state-rail { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media print {
+      body { background: white; }
+      .toolbar, .detail { display: none !important; }
+      .lane, .phone { box-shadow: none; break-inside: avoid; }
+      .node[hidden] { display: block; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="meta"><span class="chip">Planning artifact</span><span class="chip">iOS 18+</span><span class="chip">7 journeys</span><span class="chip">8 features</span><span class="chip">11 slices</span></div>
+    <h1>Walking Dog<br>Mobile Journey Wireflow</h1>
+    <p class="lede">A structural companion for the migration roadmap. It shows route ownership, canonical journeys, delivery slices, and the states that override ordinary navigation. It is not a final visual design or copy specification.</p>
+    <div class="legend"><span class="chip">Normal navigation</span><span class="chip modal">Modal / pushed task</span><span class="chip override">Forced override</span></div>
+  </header>
+
+  <main>
+    <div class="toolbar">
+      <div class="filters">
+        <label>Journey <select id="journey"><option value="all">All journeys</option></select></label>
+        <label>Feature <select id="feature"><option value="all">All features</option></select></label>
+        <label>Slice <select id="slice"><option value="all">All slices</option></select></label>
+      </div>
+      <button class="reset" id="reset" type="button">Reset filters</button>
+    </div>
+
+    <section aria-labelledby="map-heading">
+      <div class="section-head"><div><h2 id="map-heading">Route and override map</h2><p>Select a node for entry conditions, success destination, failure destination, and ownership. Filters never remove information when printed.</p></div></div>
+      <div class="map" id="map">
+        <article class="lane">
+          <div class="lane-label"><h3>Unauthenticated</h3><p>Access Account owns every entry before a valid authenticated session.</p></div>
+          <div class="nodes">
+            <button class="node" data-route="AUTH-01" data-title="Sign In" data-feature="account-access" data-journey="access-account" data-slice="4" data-kind="normal" data-entry="No authenticated session" data-success="AUTH-03 OTP verification" data-failure="Validation or retryable error on the same screen"><span class="route">AUTH-01 · /sign-in</span><strong>Sign In</strong><small>Email entry, legal links, Sign Up choice.</small><span class="tags"><span class="tag">account-access</span><span class="tag slice">Slice 4</span></span></button>
+            <button class="node" data-route="AUTH-02" data-title="Sign Up" data-feature="account-access" data-journey="access-account" data-slice="4" data-kind="normal" data-entry="Owner chooses Sign Up" data-success="AUTH-03 OTP verification" data-failure="Validation or retryable error on the same screen"><span class="route">AUTH-02 · /sign-up</span><strong>Sign Up</strong><small>Email-only account creation; Terms and Privacy links.</small><span class="tags"><span class="tag">account-access</span><span class="tag slice">Slice 4</span></span></button>
+            <button class="node" data-route="AUTH-03" data-title="OTP Verification" data-feature="account-access" data-journey="access-account" data-slice="4" data-kind="normal" data-entry="Live challenge with declared code length" data-success="Authenticated shell: Dogs tab" data-failure="Clear invalid code; expired/consumed/rate-limit recovery"><span class="route">AUTH-03 · /verify</span><strong>OTP Verification</strong><small>8 digits for Sign In; 6 for Sign Up and Email Change.</small><span class="tags"><span class="tag">account-access</span><span class="tag slice">Slice 4</span></span></button>
+          </div>
+        </article>
+
+        <article class="lane">
+          <div class="lane-label"><h3>Dogs tab</h3><p>Manage Dogs and Goals. Contribution and History are composed at route boundaries.</p></div>
+          <div class="nodes">
+            <button class="node" data-route="DOG-01" data-title="Dogs List" data-feature="dogs" data-journey="manage-dogs-and-goals" data-slice="6" data-kind="normal" data-entry="Authenticated; Dogs tab selected" data-success="DOG-02 detail or DOG-03 registration" data-failure="Cached update error or full retryable error"><span class="route">DOG-01 · /(tabs)/dogs</span><strong>Dogs List</strong><small>Current Dogs only, explicit empty/loading/error states.</small><span class="tags"><span class="tag">dogs</span><span class="tag slice">Slice 6</span></span></button>
+            <button class="node" data-route="DOG-03" data-title="Register Dog" data-feature="dogs" data-journey="manage-dogs-and-goals" data-slice="6" data-kind="modal" data-entry="Add from header, empty state, or Walk empty state" data-success="DOG-02 new Dog detail" data-failure="Preserve dirty form and media for retry"><span class="route">DOG-03 · /dogs/new</span><strong>Register Dog</strong><small>Name, Gender, partial Birthday, independent Goals, Avatar.</small><span class="tags"><span class="tag">dogs</span><span class="tag slice">Slice 6</span></span></button>
+            <button class="node" data-route="DOG-02" data-title="Dog Detail" data-feature="dogs,contribution,walk-history" data-journey="manage-dogs-and-goals,review-owner-contribution,review-walk-history" data-slice="6,9,10" data-kind="normal" data-entry="Current or Archived Dog ID owned by Owner" data-success="Edit, Goal progress, recent Walks, filtered History" data-failure="Not Found or retryable/contract error"><span class="route">DOG-02 · /dogs/:dogId</span><strong>Dog Detail</strong><small>Route composition: profile + progress + Completed Walk history.</small><span class="tags"><span class="tag">3 features</span><span class="tag slice">Slices 6/9/10</span></span></button>
+            <button class="node" data-route="DOG-04" data-title="Edit Dog" data-feature="dogs" data-journey="manage-dogs-and-goals" data-slice="6" data-kind="modal" data-entry="DOG-02 Edit" data-success="DOG-02 with authoritative refetch" data-failure="Preserve form; Not Found; archive blocked by Active Walk"><span class="route">DOG-04 · /dogs/:dogId/edit</span><strong>Edit / Archive Dog</strong><small>No-change Save disabled; explicit media removal; dirty discard.</small><span class="tags"><span class="tag">dogs</span><span class="tag slice">Slice 6</span></span></button>
+          </div>
+        </article>
+
+        <article class="lane">
+          <div class="lane-label"><h3>Walk tab</h3><p>One stable shell changes state without remounting. Events compose through ActiveWalkContext.</p></div>
+          <div class="nodes">
+            <button class="node" data-route="WALK-01" data-title="Walk Ready" data-feature="walk-recording,dogs" data-journey="record-a-walk" data-slice="7" data-kind="state" data-entry="Authenticated; no API Active Walk" data-success="WALK-02 starting, then WALK-03 recording" data-failure="Start blocked without Dog or foreground location"><span class="route">WALK-01 · /(tabs)/walk · ready</span><strong>Ready</strong><small>Select current Dogs, inspect today progress, start with location.</small><span class="tags"><span class="tag">walk-recording</span><span class="tag slice">Slice 7</span></span></button>
+            <button class="node" data-route="WALK-02" data-title="Walk Starting" data-feature="walk-recording" data-journey="record-a-walk" data-slice="7" data-kind="state" data-entry="Start intent accepted locally" data-success="Durable shell + API success → recording" data-failure="Return Ready with typed retry; no fake progress"><span class="route">WALK-02 · same route · starting</span><strong>Starting</strong><small>Persist shell, request foreground fix, create authoritative Active Walk.</small><span class="tags"><span class="tag">walk-recording</span><span class="tag slice">Slice 7</span></span></button>
+            <button class="node" data-route="WALK-03" data-title="Walk Recording" data-feature="walk-recording,walk-events" data-journey="record-a-walk,capture-walk-events" data-slice="7,8" data-kind="state" data-entry="Authoritative API Active Walk and valid foreground location" data-success="Slice 7: saved confirmation then Ready; Slice 9: HIST-02 detail" data-failure="Permission/location/auth recovery or Interrupted → Ready"><span class="route">WALK-03 · same route · recording</span><strong>Recording</strong><small>Stable map, time/distance, per-Dog Pee/Poop, Photo, Finish.</small><span class="tags"><span class="tag">2 features</span><span class="tag slice">Slices 7/8</span></span></button>
+            <button class="node" data-route="WALK-04" data-title="Photo Capture" data-feature="walk-events" data-journey="capture-walk-events" data-slice="8" data-kind="modal" data-entry="Camera intent while recording" data-success="Pending Photo appears; upload and registration continue" data-failure="Permission explanation, Retry, or confirmed discard"><span class="route">WALK-04 · camera modal</span><strong>Photo Capture</strong><small>Normalized JPEG, durable outbox, pending state after Finish.</small><span class="tags"><span class="tag">walk-events</span><span class="tag slice">Slice 8</span></span></button>
+          </div>
+        </article>
+
+        <article class="lane">
+          <div class="lane-label"><h3>Me tab</h3><p>Profile and preferences arrive before insight surfaces; History and Contribution are authoritative API read models.</p></div>
+          <div class="nodes">
+            <button class="node" data-route="ME-01" data-title="Me" data-feature="owner-profile,contribution" data-journey="manage-owner-profile-and-preferences,review-owner-contribution" data-slice="5,10" data-kind="normal" data-entry="Authenticated; Me tab selected" data-success="Edit Owner, History, Settings" data-failure="Cached update error or full retryable/contract error"><span class="route">ME-01 · /(tabs)/me</span><strong>Me / Contribution</strong><small>Current Owner, totals, weekly graph, Walking Since.</small><span class="tags"><span class="tag">2 features</span><span class="tag slice">Slices 5/10</span></span></button>
+            <button class="node" data-route="ME-02" data-title="Edit Owner" data-feature="owner-profile" data-journey="manage-owner-profile-and-preferences" data-slice="5" data-kind="modal" data-entry="ME-01 Edit" data-success="ME-01 authoritative refetch" data-failure="Preserve dirty form/media; retry"><span class="route">ME-02 · /owner/edit</span><strong>Edit Owner</strong><small>Name and Avatar replacement/removal with atomic visible result.</small><span class="tags"><span class="tag">owner-profile</span><span class="tag slice">Slice 5</span></span></button>
+            <button class="node" data-route="ME-03" data-title="Settings" data-feature="preferences,account-access" data-journey="manage-owner-profile-and-preferences,access-account" data-slice="5" data-kind="normal" data-entry="ME-01 Settings" data-success="Apply language/theme/units; email change; sign out" data-failure="Persistence rollback; legal-link error; Active Walk blocks sign out"><span class="route">ME-03 · /settings</span><strong>Settings</strong><small>Language, units, appearance, notifications, legal, About, Sign Out.</small><span class="tags"><span class="tag">2 features</span><span class="tag slice">Slice 5</span></span></button>
+            <button class="node" data-route="AUTH-04" data-title="Change Email Address" data-feature="account-access" data-journey="access-account" data-slice="4" data-kind="modal" data-entry="Authenticated account entry; Settings link arrives in Slice 5" data-success="AUTH-05 six-digit verification" data-failure="Validation, rate-limit, or retryable error with input preserved"><span class="route">AUTH-04 · /settings/email</span><strong>Change Email Address</strong><small>New identity request; the old address remains active until verification.</small><span class="tags"><span class="tag">account-access</span><span class="tag slice">Slice 4</span></span></button>
+            <button class="node" data-route="AUTH-05" data-title="Verify Email Change" data-feature="account-access" data-journey="access-account" data-slice="4" data-kind="modal" data-entry="Live Email Change challenge" data-success="All sessions revoked; AUTH-01 Sign In with the new address" data-failure="Invalid/expired/consumed challenge remains recoverable"><span class="route">AUTH-05 · /settings/email/verify</span><strong>Verify Email Change</strong><small>Successful verification ends every session and requires Sign In.</small><span class="tags"><span class="tag">account-access</span><span class="tag slice">Slice 4</span></span></button>
+            <button class="node" data-route="HIST-01" data-title="Walk History" data-feature="walk-history" data-journey="review-walk-history" data-slice="9" data-kind="normal" data-entry="ME-01 all Dogs, or DOG-02 preselected Dog" data-success="HIST-02 Walk detail" data-failure="Invalid cursor, retryable error, isolated unavailable row"><span class="route">HIST-01 · /walks</span><strong>Walk History</strong><small>Completed only; All/current/Archived Dog; fixed 20-item pages.</small><span class="tags"><span class="tag">walk-history</span><span class="tag slice">Slice 9</span></span></button>
+            <button class="node" data-route="HIST-02" data-title="Walk Detail" data-feature="walk-history" data-journey="review-walk-history" data-slice="9" data-kind="normal" data-entry="Completed Walk ID and no Active Walk" data-success="Route, current participants, events, photos" data-failure="Not Found, retryable, whole-detail contract error"><span class="route">HIST-02 · /walks/:walkId</span><strong>Walk Detail</strong><small>Validated route and metrics; current names; pending Photo state.</small><span class="tags"><span class="tag">walk-history</span><span class="tag slice">Slice 9</span></span></button>
+          </div>
+        </article>
+
+        <article class="lane">
+          <div class="lane-label"><h3>Navigation overrides</h3><p>These transitions supersede an otherwise valid route and must be tested as state-machine outcomes.</p></div>
+          <div class="nodes">
+            <button class="node" data-route="OVR-01" data-title="Active Walk Redirect" data-feature="walk-recording" data-journey="record-a-walk" data-slice="7" data-kind="override" data-entry="Any Walk detail requested while API Active Walk exists" data-success="WALK-03 recording controls" data-failure="No detail/recording navigation loop"><span class="route">OVR-01 · forced redirect</span><strong>Active Walk wins</strong><small>Every Walk detail intent returns to the recording shell.</small><span class="tags"><span class="tag override">override</span><span class="tag slice">Slice 7</span></span></button>
+            <button class="node" data-route="OVR-02" data-title="Location Interruption" data-feature="walk-recording" data-journey="record-a-walk" data-slice="7" data-kind="override" data-entry="Foreground permission/service lost or no valid point for 30 seconds" data-success="Interrupted explanation, then WALK-01 Ready" data-failure="Pending events continue hidden synchronization"><span class="route">OVR-02 · terminal override</span><strong>Location loss interrupts</strong><small>No detail/history; API Interrupted Walk remains hidden.</small><span class="tags"><span class="tag override">override</span><span class="tag slice">Slice 7</span></span></button>
+            <button class="node" data-route="OVR-03" data-title="Authentication Recovery" data-feature="account-access,walk-recording" data-journey="access-account,record-a-walk" data-slice="4,7" data-kind="override" data-entry="Refresh fails during Active Walk" data-success="Stop new events; finalize Interrupted; reauthenticate; resume sync" data-failure="Remain in explicit recovery; never fake authentication"><span class="route">OVR-03 · recovery state</span><strong>Auth loss during Walk</strong><small>Cross-feature composition through public capabilities only.</small><span class="tags"><span class="tag override">override</span><span class="tag slice">Slices 4/7</span></span></button>
+            <button class="node" data-route="OVR-04" data-title="API Reconciliation" data-feature="walk-recording" data-journey="record-a-walk" data-slice="7" data-kind="override" data-entry="Startup, sign-in, or foreground return" data-success="Restore API Active Walk or stop orphaned local shell" data-failure="Typed unrecoverable event state until confirmed discard"><span class="route">OVR-04 · lifecycle reconcile</span><strong>API state is authoritative</strong><small>Device-only state never creates or resumes a missing Walk.</small><span class="tags"><span class="tag override">override</span><span class="tag slice">Slice 7</span></span></button>
+          </div>
+        </article>
+      </div>
+
+      <div class="state-rail" aria-label="Shared route states"><div class="state">Loading</div><div class="state">Empty</div><div class="state">Cached + update error</div><div class="state">Retryable error</div><div class="state">Not Found</div><div class="state">Contract error</div></div>
+      <div class="unassigned"><strong>Coverage check:</strong> 0 unassigned routes · 0 unowned Journey entries · 0 Feature-internal imports represented.</div>
+    </section>
+
+    <section aria-labelledby="screens-heading">
+      <div class="section-head"><div><h2 id="screens-heading">Representative structural wireframes</h2><p>These frames validate hierarchy and primary actions. They deliberately avoid final colors, type scale, illustration, motion, exact copy, and component-library choices.</p></div></div>
+      <div class="phones">
+        <div class="phone-wrap"><div class="phone-title">AUTH-01 · Sign In</div><div class="phone"><div class="statusbar"><span>9:41</span><span>● ● ●</span></div><div class="screen"><p>Walking Dog</p><h3>Welcome back</h3><p>Sign in with your email address to continue caring through better walks.</p><div class="field">Email address</div><div class="primary">Continue</div><div class="secondary">Create account</div><div style="margin-top:auto"><p>Terms · Privacy</p><p>Validation and retryable errors stay actionable on this screen.</p></div></div></div></div>
+        <div class="phone-wrap"><div class="phone-title">DOG-01 · Dogs</div><div class="phone"><div class="statusbar"><span>9:41</span><span>● ● ●</span></div><div class="screen"><div class="row" style="border:0;background:white;padding:0"><h3>Dogs</h3><b>＋</b></div><div class="row"><div class="avatar">M</div><div style="flex:1"><b>Mugi</b><p>30 min daily goal</p></div><span>›</span></div><div class="row"><div class="avatar">S</div><div style="flex:1"><b>Sora</b><p>120 min weekly goal</p></div><span>›</span></div><div class="card" style="margin-top:auto"><b>Empty state contract</b><p>No Dogs is distinct from loading and failure. Add Dog routes to DOG-03.</p></div></div><div class="tabs"><span class="active">Dogs</span><span>Walk</span><span>Me</span></div></div></div>
+        <div class="phone-wrap"><div class="phone-title">WALK-01 · Ready</div><div class="phone"><div class="statusbar"><span>9:41</span><span>● ● ●</span></div><div class="screen"><h3>Ready to walk?</h3><p>Select one or more current Dogs. Foreground location is required before Start.</p><div class="row"><span>✓ Mugi</span><b>Today 18 / 30 min</b></div><div class="row"><span>○ Sora</span><b>This week 65 / 120</b></div><div class="mapbox">Map shell mounts here and remains stable</div><div class="primary">Start walk</div></div><div class="tabs"><span>Dogs</span><span class="active">Walk</span><span>Me</span></div></div></div>
+        <div class="phone-wrap"><div class="phone-title">WALK-03 · Recording</div><div class="phone"><div class="statusbar"><span>9:41</span><span>● ● ●</span></div><div class="screen"><div class="mapbox">Stable route map · accepted points only</div><div class="metrics"><div class="metric"><b>18:42</b><small>time</small></div><div class="metric"><b>1.34</b><small>km</small></div><div class="metric"><b>13:57</b><small>pace</small></div></div><div class="row"><b>Mugi</b><span>💧 Pee &nbsp; ● Poop</span></div><div class="row"><b>Sora</b><span>💧 Pee &nbsp; ● Poop</span></div><div class="secondary">Add photo · pending states visible</div><div class="primary" style="background:var(--red)">Finish walk</div></div><div class="tabs"><span>Dogs</span><span class="active">Walk</span><span>Me</span></div></div></div>
+        <div class="phone-wrap"><div class="phone-title">ME-01 · Contribution</div><div class="phone"><div class="statusbar"><span>9:41</span><span>● ● ●</span></div><div class="screen"><div class="row"><div class="avatar">A</div><div style="flex:1"><b>Akira</b><p>Walking since July 2026</p></div><span>⚙</span></div><h3>Your contribution</h3><div class="metrics"><div class="metric"><b>42</b><small>walks</small></div><div class="metric"><b>71.2</b><small>km</small></div><div class="metric"><b>16h</b><small>time</small></div></div><div class="card"><b>This week</b><p>Mon ▂ Tue ▆ Wed ▂ Thu █ Fri ▂ Sat ▂ Sun ▂</p></div><div class="row"><b>Walk history</b><span>All Dogs ›</span></div><div class="card"><b>Completed only</b><p>Active and Interrupted Walks never affect these values.</p></div></div><div class="tabs"><span>Dogs</span><span>Walk</span><span class="active">Me</span></div></div></div>
+      </div>
+    </section>
+  </main>
+
+  <aside class="detail" id="detail" hidden aria-live="polite">
+    <button type="button" id="close" aria-label="Close detail">×</button>
+    <span class="route" id="detail-route"></span>
+    <h2 id="detail-title"></h2>
+    <dl><dt>Feature</dt><dd id="detail-feature"></dd><dt>Journey</dt><dd id="detail-journey"></dd><dt>Slice</dt><dd id="detail-slice"></dd><dt>Entry</dt><dd id="detail-entry"></dd><dt>Success</dt><dd id="detail-success"></dd><dt>Failure</dt><dd id="detail-failure"></dd></dl>
+  </aside>
+
+  <script>
+    const nodes = [...document.querySelectorAll('.node')];
+    const controls = {
+      journey: document.querySelector('#journey'),
+      feature: document.querySelector('#feature'),
+      slice: document.querySelector('#slice')
+    };
+    function values(key) {
+      return [...new Set(nodes.flatMap(node => node.dataset[key].split(',')))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    }
+    Object.entries(controls).forEach(([key, select]) => {
+      values(key).forEach(value => select.add(new Option(key === 'slice' ? `Slice ${value}` : value, value)));
+      select.addEventListener('change', applyFilters);
+    });
+    function applyFilters() {
+      nodes.forEach(node => {
+        node.hidden = Object.entries(controls).some(([key, select]) => select.value !== 'all' && !node.dataset[key].split(',').includes(select.value));
+      });
+    }
+    document.querySelector('#reset').addEventListener('click', () => {
+      Object.values(controls).forEach(select => select.value = 'all');
+      applyFilters();
+    });
+    const detail = document.querySelector('#detail');
+    nodes.forEach(node => node.addEventListener('click', () => {
+      ['route', 'title', 'feature', 'journey', 'slice', 'entry', 'success', 'failure'].forEach(key => {
+        document.querySelector(`#detail-${key}`).textContent = node.dataset[key];
+      });
+      detail.hidden = false;
+      document.querySelector('#close').focus();
+    }));
+    document.querySelector('#close').addEventListener('click', () => detail.hidden = true);
+    document.addEventListener('keydown', event => { if (event.key === 'Escape') detail.hidden = true; });
+  </script>
+</body>
+</html>

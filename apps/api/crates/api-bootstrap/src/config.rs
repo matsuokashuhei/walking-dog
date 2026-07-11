@@ -1,11 +1,12 @@
 use std::{collections::HashMap, env, net::SocketAddr};
 
+use adapter_postgres::PostgresUrl;
 use thiserror::Error;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Config {
     pub api_bind_addr: SocketAddr,
-    pub database_url: String,
+    pub database_url: PostgresUrl,
 }
 
 #[derive(Clone, Debug, Error, Eq, PartialEq)]
@@ -14,8 +15,8 @@ pub enum ConfigError {
     Missing(&'static str),
     #[error("API_BIND_ADDR is not a socket address: {0}")]
     InvalidBindAddress(String),
-    #[error("DATABASE_URL must be a postgres URL")]
-    InvalidDatabaseUrl,
+    #[error("DATABASE_URL is not a complete PostgreSQL URL: {0}")]
+    InvalidDatabaseUrl(String),
 }
 
 impl Config {
@@ -25,8 +26,7 @@ impl Config {
     ///
     /// Returns a typed error when a required value is absent or invalid.
     pub fn from_env() -> Result<Self, ConfigError> {
-        let values = env::vars().collect();
-        Self::from_values(&values)
+        Self::from_values(&env::vars().collect())
     }
 
     /// Validates an explicit configuration map.
@@ -36,13 +36,12 @@ impl Config {
     /// Returns a typed error when a required value is absent or invalid.
     pub fn from_values(values: &HashMap<String, String>) -> Result<Self, ConfigError> {
         let bind = required(values, "API_BIND_ADDR")?;
-        let database_url = required(values, "DATABASE_URL")?.to_owned();
+        let database_value = required(values, "DATABASE_URL")?;
         let api_bind_addr = bind
             .parse()
             .map_err(|_| ConfigError::InvalidBindAddress(bind.to_owned()))?;
-        if !database_url.starts_with("postgres://") && !database_url.starts_with("postgresql://") {
-            return Err(ConfigError::InvalidDatabaseUrl);
-        }
+        let database_url = PostgresUrl::parse(database_value)
+            .map_err(|_| ConfigError::InvalidDatabaseUrl("DATABASE_URL".to_owned()))?;
         Ok(Self {
             api_bind_addr,
             database_url,

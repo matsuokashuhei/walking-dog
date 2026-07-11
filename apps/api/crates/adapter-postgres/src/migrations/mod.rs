@@ -1,23 +1,29 @@
 mod m0001_empty_baseline;
 
-pub use m0001_empty_baseline::EmptyBaseline;
+use crate::Database;
 
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
-pub struct MigrationContract {
-    baseline_applied: bool,
-    product_objects: Vec<String>,
+pub struct Migrator;
+
+impl Migrator {
+    /// Applies the persistent empty baseline exactly once.
+    ///
+    /// # Errors
+    ///
+    /// Returns a database error when Postgres cannot create or update the ledger.
+    pub async fn up(database: &Database) -> Result<(), sqlx::Error> {
+        m0001_empty_baseline::apply(database).await
+    }
+
+    /// Lists application-owned tables for integration verification.
+    ///
+    /// # Errors
+    ///
+    /// Returns a database error when Postgres cannot inspect its catalog.
+    pub async fn table_names(database: &Database) -> Result<Vec<String>, sqlx::Error> {
+        m0001_empty_baseline::table_names(database).await
+    }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct MigrationError;
-
-impl MigrationContract {
-    #[must_use]
-    pub fn fresh() -> Self {
-        Self::default()
-    }
-    #[must_use]
-    pub fn product_objects(&self) -> &[String] {
-        &self.product_objects
-    }
+pub(crate) async fn verify_connection(database: &Database) -> Result<(), sqlx::Error> {
+    m0001_empty_baseline::verify_connection(database).await
 }

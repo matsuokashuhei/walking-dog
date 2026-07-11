@@ -4,7 +4,7 @@ use api_bootstrap::{
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    observability::initialize();
+    observability::initialize()?;
     let config = Config::from_env()?;
     let shutdown = Shutdown::new();
     let trigger = shutdown.clone();

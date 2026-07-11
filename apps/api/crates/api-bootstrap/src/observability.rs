@@ -14,6 +14,10 @@ pub enum SafeLogError {
     ForbiddenValue,
 }
 
+#[derive(Clone, Debug, Error, Eq, PartialEq)]
+#[error("structured subscriber initialization failed: {0}")]
+pub struct ObservabilityInitError(String);
+
 impl SafeEvent {
     #[must_use]
     pub fn new(message: impl Into<String>) -> Self {
@@ -62,9 +66,15 @@ impl SafeEvent {
     }
 }
 
-pub fn initialize() {
-    let _ignored = tracing_subscriber::fmt()
+/// Installs the process-wide structured subscriber.
+///
+/// # Errors
+///
+/// Returns a typed initialization error when a subscriber is already installed.
+pub fn initialize() -> Result<(), ObservabilityInitError> {
+    tracing_subscriber::fmt()
         .json()
         .with_env_filter("info")
-        .try_init();
+        .try_init()
+        .map_err(|error| ObservabilityInitError(error.to_string()))
 }

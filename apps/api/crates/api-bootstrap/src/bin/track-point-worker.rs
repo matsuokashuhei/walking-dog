@@ -2,7 +2,7 @@ use api_bootstrap::{composition, config::Config, observability, shutdown::Shutdo
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    observability::initialize();
+    observability::initialize()?;
     let _config = Config::from_env()?;
     let shutdown = Shutdown::new();
     let trigger = shutdown.clone();

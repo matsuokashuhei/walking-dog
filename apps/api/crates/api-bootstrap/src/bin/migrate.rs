@@ -1,9 +1,10 @@
-use adapter_postgres::migrations::{EmptyBaseline, MigrationContract};
+use adapter_postgres::{Database, migrations::Migrator};
 use api_bootstrap::config::Config;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let _config = Config::from_env()?;
-    let mut database = MigrationContract::fresh();
-    EmptyBaseline::apply(&mut database).map_err(|_| "empty baseline migration failed")?;
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let config = Config::from_env()?;
+    let database = Database::connect(&config.database_url).await?;
+    Migrator::up(&database).await?;
     Ok(())
 }

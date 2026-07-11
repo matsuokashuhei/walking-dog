@@ -1,0 +1,62 @@
+version = 1
+id = "API-INTENT-20260711-KERNEL"
+title = "Replace the API architecture and bootstrap kernel"
+change_kind = "architecture"
+owner = "github:matsuokashuhei"
+issue = "https://github.com/matsuokashuhei/walking-dog/issues/380"
+product_axes = ["dog_experience", "walk_data", "owner_contribution"]
+canonical_journeys = []
+application_modules = []
+touched_seams = ["graphql", "postgres", "cognito", "s3", "sqs", "dynamodb"]
+schema_impact = "none"
+data_migration_impact = "none"
+expected_failure_modes = ["validation_failure", "build_failure", "deployment_failure"]
+required_evidence = ["architecture_validator", "integration_test", "deployment_health"]
+owned_files = [
+  "Cargo.lock",
+  "Cargo.toml",
+  "architecture/dependency-policy.toml",
+  "architecture/exceptions.toml",
+  "architecture/intents/20260711-api-kernel.toml",
+  "crates/adapter-aws-cognito/Cargo.toml",
+  "crates/adapter-aws-cognito/src/lib.rs",
+  "crates/adapter-aws-dynamodb/Cargo.toml",
+  "crates/adapter-aws-dynamodb/src/lib.rs",
+  "crates/adapter-aws-s3/Cargo.toml",
+  "crates/adapter-aws-s3/src/lib.rs",
+  "crates/adapter-aws-sqs/Cargo.toml",
+  "crates/adapter-aws-sqs/src/lib.rs",
+  "crates/adapter-graphql/Cargo.toml",
+  "crates/adapter-graphql/src/lib.rs",
+  "crates/adapter-postgres/Cargo.toml",
+  "crates/adapter-postgres/src/lib.rs",
+  "crates/api-bootstrap/Cargo.toml",
+  "crates/api-bootstrap/src/bin/api.rs",
+  "crates/api-bootstrap/src/bin/migrate.rs",
+  "crates/api-bootstrap/src/bin/schema.rs",
+  "crates/api-bootstrap/src/bin/track-point-worker.rs",
+  "crates/api-bootstrap/src/lib.rs",
+  "crates/application/Cargo.toml",
+  "crates/application/src/lib.rs",
+  "crates/domain/Cargo.toml",
+  "crates/domain/src/lib.rs",
+  "rust-toolchain.toml",
+  "tools/architecture-validator/Cargo.toml",
+  "tools/architecture-validator/src/ast.rs",
+  "tools/architecture-validator/src/exceptions.rs",
+  "tools/architecture-validator/src/intent.rs",
+  "tools/architecture-validator/src/lib.rs",
+  "tools/architecture-validator/src/main.rs",
+  "tools/architecture-validator/src/policy.rs",
+  "tools/architecture-validator/tests/exceptions.rs",
+  "tools/architecture-validator/tests/fixtures.rs",
+  "tools/architecture-validator/tests/intent.rs",
+  "tools/architecture-validator/tests/policy.rs",
+  "tools/architecture-validator/tests/workspace.rs",
+  "tools/harness-runtime/Cargo.toml",
+  "tools/harness-runtime/src/lib.rs",
+  "tools/integration-test-support/Cargo.toml",
+  "tools/integration-test-support/src/lib.rs",
+  "tools/xtask/Cargo.toml",
+  "tools/xtask/src/main.rs",
+]

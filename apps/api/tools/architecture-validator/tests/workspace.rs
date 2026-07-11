@@ -65,8 +65,8 @@ fn workspace_matches_the_api_kernel() {
         .collect::<BTreeSet<_>>();
     assert_eq!(actual, expected, "workspace member set must be exact");
 
-    let toolchain = fs::read_to_string(root.join("rust-toolchain.toml"))
-        .expect("read pinned Rust toolchain");
+    let toolchain =
+        fs::read_to_string(root.join("rust-toolchain.toml")).expect("read pinned Rust toolchain");
     assert!(toolchain.contains("channel = \"1.96.0\""));
     assert!(toolchain.contains("components = [\"clippy\", \"rustfmt\"]"));
 

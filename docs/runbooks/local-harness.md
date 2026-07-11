@@ -35,20 +35,46 @@ AWS_COGNITO_USER_POOL_ID=<local_cognito_user_pool_id>
 AWS_COGNITO_CLIENT_ID=<local_cognito_client_id>
 ```
 
+The local API also uses the Cognito admin APIs to inspect and remove users
+during the email one-time-password flow. Use the dedicated IAM role created by
+the AWS Terraform module. The role is assumed from the `default` AWS SSO
+profile, so the API receives temporary credentials and no long-lived access
+key is created:
+
+```bash
+LOCAL_API_ROLE_ARN="$(docker run --rm \
+  -v "$PWD/infra/aws:/workspace" \
+  -v "$HOME/.aws:/root/.aws:ro" \
+  -e AWS_PROFILE=default \
+  -w /workspace \
+  hashicorp/terraform:1.14 output -raw local_api_iam_role_arn)"
+
+aws configure set role_arn "$LOCAL_API_ROLE_ARN" --profile walking-dog-local
+aws configure set source_profile default --profile walking-dog-local
+aws configure set region ap-northeast-1 --profile walking-dog-local
+aws sts get-caller-identity --profile walking-dog-local
+```
+
+Compose defaults the API and track-point worker to the `walking-dog-local`
+profile. Override it explicitly with `AWS_PROFILE=<profile> scripts/harness/dev-stack.sh up`
+only when intentionally testing another profile. The role can call only
+`AdminGetUser` and `AdminDeleteUser` on the local Cognito user pool. It has no
+Terraform, IAM, DynamoDB, S3, SQS, SES, or production Cognito permissions.
+
 Fetch the values after applying `infra/aws`:
 
 ```bash
 docker run --rm \
   -v "$PWD/infra/aws:/workspace" \
   -v "$HOME/.aws:/root/.aws:ro" \
-  -e AWS_PROFILE=personal \
+  -e AWS_PROFILE=default \
   -w /workspace \
   hashicorp/terraform:1.14 output -raw local_cognito_user_pool_id
 
 docker run --rm \
   -v "$PWD/infra/aws:/workspace" \
   -v "$HOME/.aws:/root/.aws:ro" \
-  -e AWS_PROFILE=personal \
+  -e AWS_PROFILE=default \
   -w /workspace \
   hashicorp/terraform:1.14 output -raw local_cognito_client_id
 ```
@@ -61,7 +87,7 @@ pool configured in `apps/api/.env.local`.
 ## Health Check
 
 ```bash
-curl -fsS http://localhost:3000/health
+curl -fsS "http://localhost:$(jq -r '.ports.api' .harness-runs/dev-stack/env.json)/health"
 ```
 
 ## API Verification
@@ -105,10 +131,10 @@ Local simulator build order:
 cd apps/mobile
 npm run metro:kill
 npm run ios:clean
-npm run ios:sim:local
+npm run ios:sim:local:dev-stack
 ```
 
-The local simulator build points at `http://localhost:3000`.
+The dev-stack simulator build reads the API port from `.harness-runs/dev-stack/env.json`.
 
 ## API Journey Harness
 

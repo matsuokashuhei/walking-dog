@@ -37,9 +37,10 @@ Xcode → Settings → Accounts に Apple ID を追加し、Personal Team とし
 | Script | Install | API URL | Configuration |
 |---|---|---|---|
 | `npm run ios:sim:local` | Simulator | `http://localhost:3000` | Debug |
+| `npm run ios:sim:local:dev-stack` | Simulator | `http://localhost:<dev-stack API port>` | Debug |
 | `npm run ios:sim:dev` | Simulator | `https://walking-dog.cacheandbuffer.com` | Debug |
 | `npm run ios:sim:prod` | Simulator | `https://walking-dog.cacheandbuffer.com`（※本番未デプロイ） | Release |
-| `npm run ios:dev:local` | Device | `http://localhost:3000` | Debug |
+| `npm run ios:dev:local` | Device | `http://localhost:3000`（実機ではLAN IPへ差し替え） | Debug |
 | `npm run ios:dev:dev` | Device | `https://walking-dog.cacheandbuffer.com` | Release |
 | `npm run ios:dev:prod` | Device | `https://walking-dog.cacheandbuffer.com`（※本番未デプロイ） | Release |
 
@@ -58,9 +59,10 @@ Bundle ID は全プロファイル共通で `com.walkingdog.app`。
 ローカル `apps/api` と組み合わせて Debug ビルド。Metro fast refresh が効く。
 
 - **Simulator**: `npm run ios:sim:local`
-- **実機**: 実機からは `localhost` が iPhone 自身になるため URL は届かない。LAN IP に差し替えて起動する：
+- **dev-stack**: `npm run ios:sim:local:dev-stack`（APIポートは `.harness-runs/dev-stack/env.json` から読み込む）
+- **実機**: 実機からは `localhost` が iPhone 自身になるため URL は届かない。APIポートを `jq` で読み、LAN IP に差し替えて起動する：
   ```bash
-  EXPO_PUBLIC_API_URL=http://<MacのLAN_IP>:3000 npm run ios:dev:local
+  EXPO_PUBLIC_API_URL="http://<MacのLAN_IP>:$(jq -r '.ports.api' ../../.harness-runs/dev-stack/env.json)" npm run ios:dev:local
   ```
 
 ### Development (`walking-dog.cacheandbuffer.com`) — dev サーバ検証

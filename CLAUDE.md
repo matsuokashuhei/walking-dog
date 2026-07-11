@@ -29,6 +29,17 @@ Source of truth: [docs/product/principles.md](docs/product/principles.md)
 - Legal publishing: [infra/sakura/README.md](infra/sakura/README.md)
 - Cloudflare/Cognito email: [docs/cloudflare-cognito-email.md](docs/cloudflare-cognito-email.md)
 
+## Service Environments
+
+Keep these differences in mind when changing configuration, authentication, storage, queues, or data access:
+
+| Environment | Compose and service shape | External AWS resources | Cognito |
+| --- | --- | --- | --- |
+| Development ([apps/compose.yml](apps/compose.yml)) | PostgreSQL, DynamoDB Local, MinIO (avatar/photo storage), ElasticMQ (track-point queue), and hot-reloading API/worker | Cognito | `ap-northeast-1_TbsPwaBrt` |
+| Production ([infra/sakura/compose.yml](infra/sakura/compose.yml)) | Caddy, PostgreSQL, and ECR-based API/worker | Cognito, DynamoDB, S3 (avatar/photo storage), SQS, and CloudFront | Undisclosed |
+
+Never document or infer production Cognito identifiers or credentials from `infra/sakura/.env.example`; deployment secrets and configuration are authoritative.
+
 ## Mechanical Gates
 
 Before claiming work is ready, run:

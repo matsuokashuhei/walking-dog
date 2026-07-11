@@ -150,3 +150,15 @@ output "vps_api_secret_access_key" {
   value     = aws_iam_access_key.vps_api.secret
   sensitive = true
 }
+
+# --- Local API IAM Role ---
+
+output "local_api_iam_role_name" {
+  description = "IAM role name for local API Cognito access. Assume this role from the default AWS SSO profile to receive temporary credentials."
+  value       = aws_iam_role.local_api.name
+}
+
+output "local_api_iam_role_arn" {
+  description = "IAM role ARN for local API Cognito access."
+  value       = aws_iam_role.local_api.arn
+}

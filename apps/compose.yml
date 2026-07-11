@@ -96,6 +96,8 @@ services:
       - cargo_cache:/usr/local/cargo
       - target_cache:/walking-dog/apps/api/target
       - ${HOME}/.aws:/root/.aws:ro
+    environment:
+      AWS_PROFILE: ${AWS_PROFILE:-walking-dog-local}
     env_file:
       - ${WD_API_ENV_FILE:-api/.env.local}
     depends_on:
@@ -125,6 +127,8 @@ services:
       - cargo_cache:/usr/local/cargo
       - target_cache:/walking-dog/apps/api/target
       - ${HOME}/.aws:/root/.aws:ro
+    environment:
+      AWS_PROFILE: ${AWS_PROFILE:-walking-dog-local}
     env_file:
       - ${WD_API_ENV_FILE:-api/.env.local}
     depends_on:

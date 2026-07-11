@@ -25,7 +25,7 @@ and a Cloudflare API token for the provider.
 docker run --rm \
   -v "$PWD/infra/cloudflare:/workspace" \
   -v "$HOME/.aws:/root/.aws:ro" \
-  -e AWS_PROFILE=personal \
+  -e AWS_PROFILE=default \
   --env-file "$PWD/infra/cloudflare/.env.local" \
   -w /workspace \
   hashicorp/terraform:1.14 <command>
@@ -65,7 +65,7 @@ The SES values come from the AWS root module:
 docker run --rm \
   -v "$PWD/infra/aws:/workspace" \
   -v "$HOME/.aws:/root/.aws:ro" \
-  -e AWS_PROFILE=personal \
+  -e AWS_PROFILE=default \
   -w /workspace \
   hashicorp/terraform:1.14 output -json ses_cloudflare_dns_records
 ```
@@ -90,7 +90,7 @@ Initialize the module first:
 docker run --rm \
   -v "$PWD/infra/cloudflare:/workspace" \
   -v "$HOME/.aws:/root/.aws:ro" \
-  -e AWS_PROFILE=personal \
+  -e AWS_PROFILE=default \
   --env-file "$PWD/infra/cloudflare/.env.local" \
   -w /workspace \
   hashicorp/terraform:1.14 init
@@ -103,7 +103,7 @@ API, then import it with the matching resource address:
 docker run --rm \
   -v "$PWD/infra/cloudflare:/workspace" \
   -v "$HOME/.aws:/root/.aws:ro" \
-  -e AWS_PROFILE=personal \
+  -e AWS_PROFILE=default \
   --env-file "$PWD/infra/cloudflare/.env.local" \
   -w /workspace \
   hashicorp/terraform:1.14 import \
@@ -136,7 +136,7 @@ After importing all records, verify that Terraform sees no drift:
 docker run --rm \
   -v "$PWD/infra/cloudflare:/workspace" \
   -v "$HOME/.aws:/root/.aws:ro" \
-  -e AWS_PROFILE=personal \
+  -e AWS_PROFILE=default \
   --env-file "$PWD/infra/cloudflare/.env.local" \
   -w /workspace \
   hashicorp/terraform:1.14 plan

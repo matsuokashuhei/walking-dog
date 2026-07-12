@@ -30,7 +30,8 @@ pub fn validate_testcontainers_source(
     let syntax = syn::parse_file(source)
         .map_err(|error| ImagePolicyError(format!("cannot parse {path}: {error}")))?;
     let mut findings = Findings::default();
-    analyze_scope(&syntax.items, &BTreeSet::new(), &mut findings);
+    let exports = build_export_index(&syntax.items);
+    analyze_module(&syntax.items, &[], &[], &exports, &mut findings);
 
     if !factory {
         if findings.references == 0 && findings.macro_escapes == 0 {
@@ -66,15 +67,27 @@ struct ScopeSymbols {
     modules: BTreeSet<String>,
 }
 
-fn analyze_scope(items: &[Item], _inherited: &BTreeSet<String>, findings: &mut Findings) {
-    analyze_module(items, &[], findings);
-}
+type ExportIndex = BTreeSet<Vec<String>>;
 
-fn analyze_module(items: &[Item], parents: &[ScopeSymbols], findings: &mut Findings) {
-    let symbols = resolve_symbols(items, &ScopeSymbols::default(), parents);
+fn analyze_module(
+    items: &[Item],
+    parents: &[ScopeSymbols],
+    module_path: &[String],
+    exports: &ExportIndex,
+    findings: &mut Findings,
+) {
+    let symbols = resolve_symbols(
+        items,
+        &ScopeSymbols::default(),
+        parents,
+        module_path,
+        exports,
+    );
     let mut visitor = ScopeVisitor {
         symbols: &symbols,
         parents,
+        module_path,
+        exports,
         findings,
     };
     for item in items {
@@ -83,7 +96,15 @@ fn analyze_module(items: &[Item], parents: &[ScopeSymbols], findings: &mut Findi
                 if let Some((_, nested)) = &module.content {
                     let mut nested_parents = parents.to_vec();
                     nested_parents.push(symbols.clone());
-                    analyze_module(nested, &nested_parents, visitor.findings);
+                    let mut nested_path = module_path.to_vec();
+                    nested_path.push(module.ident.to_string());
+                    analyze_module(
+                        nested,
+                        &nested_parents,
+                        &nested_path,
+                        exports,
+                        visitor.findings,
+                    );
                 }
             }
             _ => visitor.visit_item(item),
@@ -91,7 +112,13 @@ fn analyze_module(items: &[Item], parents: &[ScopeSymbols], findings: &mut Findi
     }
 }
 
-fn resolve_symbols(items: &[Item], base: &ScopeSymbols, parents: &[ScopeSymbols]) -> ScopeSymbols {
+fn resolve_symbols(
+    items: &[Item],
+    base: &ScopeSymbols,
+    parents: &[ScopeSymbols],
+    module_path: &[String],
+    exports: &ExportIndex,
+) -> ScopeSymbols {
     let mut symbols = base.clone();
     let mut bindings = Vec::new();
     for item in items {
@@ -123,7 +150,7 @@ fn resolve_symbols(items: &[Item], base: &ScopeSymbols, parents: &[ScopeSymbols]
     loop {
         let previous = symbols.types.len() + symbols.modules.len();
         for (name, path) in &bindings {
-            if canonical_type_path(path, &symbols, parents) {
+            if canonical_type_path(path, &symbols, parents, module_path, exports) {
                 symbols.types.insert(name.clone());
             } else if canonical_module_path(path, &symbols, parents) {
                 symbols.modules.insert(name.clone());
@@ -134,6 +161,76 @@ fn resolve_symbols(items: &[Item], base: &ScopeSymbols, parents: &[ScopeSymbols]
         }
     }
     symbols
+}
+
+fn build_export_index(items: &[Item]) -> ExportIndex {
+    let mut exports = ExportIndex::new();
+    loop {
+        let previous = exports.len();
+        collect_module_exports(items, &[], &mut exports);
+        if exports.len() == previous {
+            return exports;
+        }
+    }
+}
+
+fn collect_module_exports(items: &[Item], module_path: &[String], exports: &mut ExportIndex) {
+    for item in items {
+        match item {
+            Item::Use(item_use) if matches!(item_use.vis, syn::Visibility::Public(_)) => {
+                let mut bindings = Vec::new();
+                collect_use_bindings(&item_use.tree, &[], &mut bindings);
+                for (name, source) in bindings {
+                    let segments = source
+                        .segments
+                        .iter()
+                        .map(|part| part.ident.to_string())
+                        .collect::<Vec<_>>();
+                    if segments == ["testcontainers", "GenericImage"]
+                        || exports.contains(&absolute_path(&segments, module_path))
+                    {
+                        let mut exported = module_path.to_vec();
+                        exported.push(name);
+                        exports.insert(exported);
+                    }
+                }
+            }
+            Item::Mod(module) => {
+                if let Some((_, nested)) = &module.content {
+                    let mut nested_path = module_path.to_vec();
+                    nested_path.push(module.ident.to_string());
+                    collect_module_exports(nested, &nested_path, exports);
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+fn absolute_path(segments: &[String], module_path: &[String]) -> Vec<String> {
+    if segments.first().is_some_and(|part| part == "crate") {
+        return segments[1..].to_vec();
+    }
+    if segments.first().is_some_and(|part| part == "self") {
+        return module_path
+            .iter()
+            .cloned()
+            .chain(segments[1..].iter().cloned())
+            .collect();
+    }
+    let supers = segments.iter().take_while(|part| *part == "super").count();
+    if supers > 0 {
+        return module_path[..module_path.len().saturating_sub(supers)]
+            .iter()
+            .cloned()
+            .chain(segments[supers..].iter().cloned())
+            .collect();
+    }
+    module_path
+        .iter()
+        .cloned()
+        .chain(segments.iter().cloned())
+        .collect()
 }
 
 fn collect_use_bindings(
@@ -170,14 +267,21 @@ fn path_from_segments(segments: &[String]) -> syn::Path {
     syn::parse_str(&segments.join("::")).expect("use path segments are valid Rust identifiers")
 }
 
-fn canonical_type_path(path: &syn::Path, symbols: &ScopeSymbols, parents: &[ScopeSymbols]) -> bool {
+fn canonical_type_path(
+    path: &syn::Path,
+    symbols: &ScopeSymbols,
+    parents: &[ScopeSymbols],
+    module_path: &[String],
+    exports: &ExportIndex,
+) -> bool {
     let segments = path
         .segments
         .iter()
         .map(|part| part.ident.to_string())
         .collect::<Vec<_>>();
     let (scope, rest) = qualified_scope(&segments, symbols, parents);
-    rest == ["testcontainers", "GenericImage"]
+    exports.contains(&absolute_path(&segments, module_path))
+        || rest == ["testcontainers", "GenericImage"]
         || (rest.len() == 2 && scope.modules.contains(&rest[0]) && rest[1] == "GenericImage")
         || (rest.len() == 1 && scope.types.contains(&rest[0]))
 }
@@ -218,6 +322,8 @@ fn qualified_scope<'a>(
 struct ScopeVisitor<'a> {
     symbols: &'a ScopeSymbols,
     parents: &'a [ScopeSymbols],
+    module_path: &'a [String],
+    exports: &'a ExportIndex,
     findings: &'a mut Findings,
 }
 
@@ -231,10 +337,18 @@ impl Visit<'_> for ScopeVisitor<'_> {
                 _ => None,
             })
             .collect::<Vec<_>>();
-        let symbols = resolve_symbols(&items, self.symbols, self.parents);
+        let symbols = resolve_symbols(
+            &items,
+            self.symbols,
+            self.parents,
+            self.module_path,
+            self.exports,
+        );
         let mut visitor = ScopeVisitor {
             symbols: &symbols,
             parents: self.parents,
+            module_path: self.module_path,
+            exports: self.exports,
             findings: self.findings,
         };
         for statement in &block.stmts {
@@ -243,7 +357,13 @@ impl Visit<'_> for ScopeVisitor<'_> {
     }
 
     fn visit_expr_path(&mut self, path: &ExprPath) {
-        if constructor_path(&path.path, self.symbols, self.parents) {
+        if constructor_path(
+            &path.path,
+            self.symbols,
+            self.parents,
+            self.module_path,
+            self.exports,
+        ) {
             self.findings.references += 1;
         }
         syn::visit::visit_expr_path(self, path);
@@ -251,7 +371,13 @@ impl Visit<'_> for ScopeVisitor<'_> {
 
     fn visit_expr_call(&mut self, call: &ExprCall) {
         if let Expr::Path(function) = call.func.as_ref()
-            && constructor_path(&function.path, self.symbols, self.parents)
+            && constructor_path(
+                &function.path,
+                self.symbols,
+                self.parents,
+                self.module_path,
+                self.exports,
+            )
         {
             let values = call.args.iter().map(path_ident).collect::<Option<Vec<_>>>();
             self.findings.calls.push(match values {
@@ -279,7 +405,13 @@ impl Visit<'_> for ScopeVisitor<'_> {
     fn visit_item_mod(&mut self, _module: &syn::ItemMod) {}
 }
 
-fn constructor_path(path: &syn::Path, symbols: &ScopeSymbols, parents: &[ScopeSymbols]) -> bool {
+fn constructor_path(
+    path: &syn::Path,
+    symbols: &ScopeSymbols,
+    parents: &[ScopeSymbols],
+    module_path: &[String],
+    exports: &ExportIndex,
+) -> bool {
     let segments = path
         .segments
         .iter()
@@ -291,6 +423,8 @@ fn constructor_path(path: &syn::Path, symbols: &ScopeSymbols, parents: &[ScopeSy
                 .expect("expression path is valid"),
             symbols,
             parents,
+            module_path,
+            exports,
         )
 }
 

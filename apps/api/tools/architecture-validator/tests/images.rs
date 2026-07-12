@@ -147,3 +147,22 @@ fn noncanonical_type_namespace_bindings_shadow_canonical_names() {
             .expect("local noncanonical type binding shadows the canonical name");
     }
 }
+
+#[test]
+fn module_reexports_propagate_canonical_provenance() {
+    for source in [
+        "mod shim { pub use testcontainers::GenericImage; } fn bad() { shim::GenericImage::new(\"redis\", \"7\"); }",
+        "mod shim { pub use testcontainers::GenericImage as Image; } use shim::Image as Final; fn bad() { Final::new(\"redis\", \"7\"); }",
+        "mod shim { pub use testcontainers::GenericImage as Image; } mod nested { fn bad() { crate::shim::Image::new(\"redis\", \"7\"); } }",
+        "mod parent { pub mod shim { pub use testcontainers::GenericImage as Image; } pub mod child { use super::shim::Image as Final; fn bad() { self::Final::new(\"redis\", \"7\"); } } }",
+    ] {
+        assert!(validate_testcontainers_source("crates/domain/src/lib.rs", source, false).is_err());
+    }
+}
+
+#[test]
+fn noncanonical_sibling_module_export_is_clean() {
+    let source = "mod canonical { pub use testcontainers::GenericImage as Image; } mod local { pub struct Image; impl Image { pub fn new() {} } } fn clean() { local::Image::new(); }";
+    validate_testcontainers_source("crates/domain/src/lib.rs", source, false)
+        .expect("qualified provenance does not leak across sibling modules");
+}

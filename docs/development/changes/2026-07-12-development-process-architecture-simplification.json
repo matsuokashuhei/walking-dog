@@ -23,6 +23,7 @@
     { "path": "CLAUDE.md", "task": "terra-implementation" },
     { "path": "apps/api/Cargo.lock", "task": "terra-implementation" },
     { "path": "apps/api/Cargo.toml", "task": "terra-implementation" },
+    { "path": "apps/api/README.md", "task": "terra-implementation" },
     { "path": "apps/api/architecture/", "task": "terra-implementation" },
     { "path": "apps/api/tools/architecture-validator/", "task": "terra-implementation" },
     { "path": "apps/api/tools/harness-runtime/", "task": "terra-implementation" },
@@ -78,10 +79,20 @@
       "dependencies": ["sol-planning-integration", "luna-read-only-inventory"],
       "acceptance": ["Manifest, canonical syntax, catalog, lifecycle, and consumer checks pass their recorded GREEN commands."],
       "consumers": [
+        { "name": "AGENTS.md / CLAUDE.md", "disposition": "checked", "decision": "Keep the compact index pointing to the manifest-driven process and model-routing documents." },
+        { "name": ".github/pull_request_template.md", "disposition": "checked", "decision": "Keep the structured PR-evidence marker and exact-head Sol approval contract." },
         { "name": "scripts/harness/validate-all.sh", "disposition": "updated", "decision": "Compose manifest validation with existing harness gates." },
         { "name": ".github/workflows/harness.yml", "disposition": "updated", "decision": "Validate PR evidence and changed manifest in Harness CI." },
-        { "name": ".github/workflows/test-api.yml", "disposition": "updated", "decision": "Run deterministic image generation twice and keep API gate coverage." },
-        { "name": "apps/api/tools/xtask", "disposition": "updated", "decision": "Expose deterministic image-catalog generate and verify commands." }
+        { "name": ".github/workflows/test-api.yml", "disposition": "updated", "decision": "Generate, verify, regenerate, then reject generated-runtime drift in API CI." },
+        { "name": "scripts/harness/harness.test.sh", "disposition": "updated", "decision": "Keep production-image contract fixtures aligned with the generated PostgreSQL runtime." },
+        { "name": "scripts/harness/validate-architecture.sh", "disposition": "checked", "decision": "Retain the xtask architecture entry point." },
+        { "name": ".vscode/tasks.json", "disposition": "updated", "decision": "Expose image-catalog verification for local editor users." },
+        { "name": "apps/api/README.md and docs/runbooks/local-harness.md", "disposition": "updated", "decision": "Document deterministic catalog generation and verification before architecture validation." },
+        { "name": "apps/api/Cargo.toml and Cargo.lock", "disposition": "checked", "decision": "Keep catalog dependencies isolated to xtask and the canonical runtime dependency isolated to harness-runtime." },
+        { "name": "apps/api/tools/xtask", "disposition": "updated", "decision": "Expose deterministic image-catalog generate and verify commands." },
+        { "name": "generated runtime and catalog", "disposition": "checked", "decision": "Verify checked-in generated output against the single fixed template." },
+        { "name": "tracked scratch", "disposition": "checked", "decision": "No .superpowers scratch is tracked." },
+        { "name": "PR evidence", "disposition": "checked", "decision": "Require one structured marker that binds task identities, test states, Sol result, and final head SHA." }
       ],
       "enforcement": { "layer": "schema", "rejectedSimplerAlternatives": ["Archival prose without machine validation", "Semantic compiler emulation"] },
       "rollback": "Revert Terra implementation milestones as a coherent set."
@@ -192,6 +203,20 @@
         "Docker: cargo test -p adapter-postgres --test migrations --locked"
       ],
       "result": "GREEN: strict Clippy passed; exact mounted-Git architecture check passed; focused validator/catalog suites passed; generated opaque runtime migration lifecycle passed 1/1."
+    },
+    {
+      "name": "consumer-audit-green",
+      "state": "green",
+      "commands": [
+        "bash scripts/harness/harness.test.sh",
+        "node --test scripts/development/tests/validate-change-manifest.test.mjs",
+        "bash scripts/development/validate-change-manifest.sh",
+        "Docker: cargo xtask image-catalog verify",
+        "node -e JSON.parse(.vscode/tasks.json)",
+        "git ls-files | rg '(^|/)\\.superpowers(/|$)'",
+        "git diff --check"
+      ],
+      "result": "GREEN: audited AGENTS/CLAUDE, PR evidence/template, Harness and API workflows, validation entry points, VS Code, API documentation/runbook, Cargo/xtask, generated artifacts, and tracked scratch. Harness contract suite passed 19/19, manifest suite passed 7/7, generated catalog verification passed, no tracked .superpowers scratch or whitespace errors remained. API CI now generates, verifies, generates again, and rejects runtime drift; local editor/docs expose the same catalog check."
     }
   ]
 }

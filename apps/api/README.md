@@ -4,6 +4,8 @@ This workspace contains the replacement API architecture and bootstrap kernel.
 It intentionally exposes no product GraphQL or queue behavior.
 
 ```bash
+cargo xtask image-catalog generate
+cargo xtask image-catalog verify
 cargo xtask architecture check
 cargo test --workspace --all-targets --all-features --locked
 cargo run -p api-bootstrap --bin api

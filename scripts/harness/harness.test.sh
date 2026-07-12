@@ -237,6 +237,9 @@ test_api_architecture_ci_maps_event_revisions_with_full_history() {
   assert_contains "$workflow" 'architecture check --base "$ARCHITECTURE_BASE" --head "$ARCHITECTURE_HEAD"' "architecture CI must validate the explicit revision pair"
   assert_contains "$workflow" 'cargo test --locked -p architecture-validator --all-targets --all-features' "architecture CI must execute validator fixtures"
   assert_contains "$workflow" 'cargo test --locked -p xtask --all-targets --all-features' "architecture CI must execute journey-generator fixtures"
+  assert_contains "$workflow" 'cargo xtask image-catalog generate' "architecture CI must regenerate the closed image catalog"
+  assert_contains "$workflow" 'cargo xtask image-catalog verify' "architecture CI must verify the closed image catalog"
+  [[ "$(grep -Fc 'cargo xtask image-catalog generate' <<<"$workflow")" -eq 2 ]] || fail "architecture CI must prove a second generation is clean"
   assert_contains "$workflow" 'verify-production-images.sh walking-dog-api-kernel:ci' "required CI must preserve the production image lifecycle gate"
   assert_contains "$workflow" 'git rev-parse "$ARCHITECTURE_HEAD^"' "initial push must resolve a real parent or fail"
   for path in infra/sakura/compose.yml infra/sakura/deploy.sh infra/sakura/.env.example infra/sakura/README.md; do
@@ -249,7 +252,7 @@ test_production_images_are_digest_pinned_and_worker_has_process_health() {
   dockerfile="$(cat "$repo_root/apps/api/Dockerfile")"
   compose="$(cat "$repo_root/infra/sakura/compose.yml")"
   deploy="$(cat "$repo_root/infra/sakura/deploy.sh")"
-  runtime="$(cat "$repo_root/apps/api/tools/harness-runtime/src/images.rs")"
+  runtime="$(cat "$repo_root/apps/api/tools/harness-runtime/src/generated_postgres.rs")"
 
   assert_contains "$dockerfile" '# syntax=docker/dockerfile:1@sha256:' "Dockerfile frontend must be digest pinned"
   [[ "$(grep -c '^FROM .*@sha256:[0-9a-f]\{64\}' "$repo_root/apps/api/Dockerfile")" -eq 2 ]] || fail "every external Dockerfile FROM must be digest pinned"
@@ -286,7 +289,7 @@ test_image_pin_validator_rejects_unpinned_and_malformed_references() {
   mkdir -p "$tmpdir/apps/api/tools/harness-runtime/src" "$tmpdir/apps/api/crates/domain/src" "$tmpdir/infra/sakura"
   cp "$repo_root/apps/api/Dockerfile" "$tmpdir/apps/api/Dockerfile"
   cp "$repo_root/apps/api/tools/harness-runtime/src/lib.rs" "$tmpdir/apps/api/tools/harness-runtime/src/lib.rs"
-  cp "$repo_root/apps/api/tools/harness-runtime/src/images.rs" "$tmpdir/apps/api/tools/harness-runtime/src/images.rs"
+  cp "$repo_root/apps/api/tools/harness-runtime/src/generated_postgres.rs" "$tmpdir/apps/api/tools/harness-runtime/src/generated_postgres.rs"
   cp "$repo_root/infra/sakura/compose.yml" "$tmpdir/infra/sakura/compose.yml"
   PIN_ROOT_OVERRIDE="$tmpdir" "$repo_root/scripts/harness/validate-image-pins.sh"
 

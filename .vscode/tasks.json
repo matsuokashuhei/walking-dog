@@ -9,6 +9,13 @@
       "problemMatcher": []
     },
     {
+      "label": "api: verify image catalog",
+      "type": "shell",
+      "command": "cargo xtask image-catalog verify",
+      "options": { "cwd": "${workspaceFolder}/apps/api" },
+      "problemMatcher": []
+    },
+    {
       "label": "api: run",
       "type": "shell",
       "command": "cargo run -p api-bootstrap --bin api",

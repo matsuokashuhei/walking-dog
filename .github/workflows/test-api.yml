@@ -54,6 +54,10 @@ jobs:
           cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
           cargo test --locked -p architecture-validator --all-targets --all-features
           cargo test --locked -p xtask --all-targets --all-features
+          cargo xtask image-catalog generate
+          cargo xtask image-catalog verify
+          cargo xtask image-catalog generate
+          git diff --exit-code -- tools/harness-runtime/src/generated_postgres.rs
           if [[ "$ARCHITECTURE_BASE" =~ ^0+$ ]]; then
             ARCHITECTURE_BASE="$(git rev-parse "$ARCHITECTURE_HEAD^")"
           fi

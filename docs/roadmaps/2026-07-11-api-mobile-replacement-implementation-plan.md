@@ -169,9 +169,9 @@ remains. Rollback redeploys the pre-PR API image.
 
 ---
 
-## PR 2 — Mobile architecture kernel
+## PR 2A — Mobile package, source, and iOS shell replacement
 
-### Task 2.1: Replace source, package graph, and iOS configuration
+### Task 2A.1: Replace source, package graph, and iOS configuration
 
 **Files:**
 
@@ -205,7 +205,15 @@ validation; it excludes every competing state/transport/persistence runtime.
   only an honest non-product shell, so the Release-equivalent launch smoke is the
   applicable executable evidence and no product Maestro flow is added or claimed.
 
-### Task 2.2: Implement manifests, compiler, state/error/persistence policies
+**PR 2A required result:** The replacement iOS shell builds and launches with the
+closed package/source graph. Rollback installs the pre-PR Mobile build. Depends
+on PR 1.
+
+---
+
+## PR 2B — Mobile architecture manifest, compiler, and negative gates
+
+### Task 2B.1: Implement manifests, compiler, and boundary policies
 
 **Files:**
 
@@ -214,15 +222,11 @@ validation; it excludes every competing state/transport/persistence runtime.
 - Create: `apps/mobile/tools/mobile-architecture/src/{cli.ts,discover.ts,graph.ts,exports.ts,manifest.ts,intent.ts,diagnostics.ts}`
 - Create: `apps/mobile/tools/mobile-architecture/src/review-input.ts`
 - Create: `apps/mobile/tools/mobile-architecture/tests/fixtures/`
-- Create: `apps/mobile/platform/result/{module.yaml,index.ts,result.ts,mobile-error.ts}`
-- Create: `apps/mobile/platform/query/{module.yaml,index.ts,query-client.ts}`
 - Create: one `module.yaml` and `index.ts` for each eight Feature directory and
   each Platform directory named by the Mobile kernel
-- Modify: `.github/workflows/test-mobile.yml`,
-  `scripts/harness/validate-mobile-knip.sh`, `scripts/harness/validate-all.sh`
 
-**Interfaces:** Produces `npm run architecture`, exact manifest schema, closed
-error Result, and policy ownership; placeholder implementation layers remain
+**Interfaces:** Produces `npm run architecture`, exact manifest schema, and
+closed Feature/Platform ownership; placeholder implementation layers remain
 absent.
 
 - [ ] Add failing fixtures for `MOB-ARCH-001` through `MOB-ARCH-014`, aliases,
@@ -230,22 +234,45 @@ absent.
   missing adapter contracts, and privacy violations.
 - [ ] Implement the compiler with TypeScript Compiler API and JSON Schema until
   `cd apps/mobile && npm run architecture` passes every fixture.
-- [ ] Add Result/error exhaustiveness tests and query-client boundary tests; run
+- [ ] Run `scripts/harness/validate-all.sh`; expect no output and exit 0.
+
+**PR 2B required result:** Every Mobile architecture negative fixture blocks and
+the closed module graph passes. Rollback reverts the compiler, manifests, and
+policies together. Depends on PR 2A.
+
+---
+
+## PR 2C — Mobile Result, query client, review input, and CI integration
+
+### Task 2C.1: Establish shared platform contracts and required consumers
+
+**Files:**
+
+- Create: `apps/mobile/platform/result/{module.yaml,index.ts,result.ts,mobile-error.ts}`
+- Create: `apps/mobile/platform/query/{module.yaml,index.ts,query-client.ts}`
+- Create: `apps/mobile/tools/mobile-architecture/src/review-input.ts`
+- Modify: `.github/workflows/test-mobile.yml`,
+  `scripts/harness/validate-mobile-knip.sh`, `scripts/harness/validate-all.sh`
+
+**Interfaces:** Produces closed Result/error and query-client APIs, deterministic
+independent-review input, and required Mobile CI entry points.
+
+- [ ] Add Result/error exhaustiveness and query-client boundary tests; run
   `npm test -- --runInBand`; expect pass.
 - [ ] Generate independent-review input highlighting new exports, dependencies,
   fallbacks, optional domain values, mutable module state, locality, seam pairs,
   and production/test interface parity; assert it contains no secret values.
-- [ ] Run `scripts/harness/validate-all.sh`; expect no output and exit 0.
+- [ ] Run Mobile tests, typecheck, lint, Knip, architecture, and Harness gates.
 
-**PR 2 required result:** iOS shell builds/launches; all Mobile negative gates
-block; no legacy source, global store, handwritten GraphQL, or out-of-scope
-platform survives. Rollback installs the pre-PR Mobile build.
+**PR 2C required result:** Shared platform contracts and their CI consumers pass
+without product behavior. Rollback reverts the platform APIs, review input, and
+CI wiring together. Depends on PR 2B.
 
 ---
 
-## PR 3 — GraphQL generation and deterministic Harness foundation
+## PR 3A — GraphQL schema generation and Mobile codegen
 
-### Task 3.1: Establish schema and Mobile code generation
+### Task 3A.1: Establish schema and Mobile code generation
 
 **Files:**
 
@@ -268,7 +295,15 @@ and typed standard-fetch transport. Only bootstrap `schemaRevision` exists.
   -- apps/api/schema.graphql apps/mobile/generated/graphql` succeeds.
 - [ ] Run API GraphQL tests and Mobile transport contracts; expect pass.
 
-### Task 3.2: Implement the Testcontainers runtime and evidence system
+**PR 3A required result:** Local schema and Mobile generated types are
+deterministic and transport contracts pass. Rollback reverts the schema,
+codegen, and generated contract together. Depends on PR 2C.
+
+---
+
+## PR 3B — Testcontainers runtime and evidence system
+
+### Task 3B.1: Implement the deterministic Harness foundation
 
 **Files:**
 
@@ -305,8 +340,10 @@ evidence manifests in the Harness design.
   pipeline themselves; canonical product flows begin in PR 4 after the first
   complete vertical slice exists.
 
-**PR 3 required result:** one command proves the isolated system and clean
-schema/codegen; required CI is installed; no product Journey is claimed.
+**PR 3B required result:** One command proves the isolated runtime and evidence
+system; required CI is installed and no product Journey is claimed. Rollback
+reverts the Harness runtime, evidence system, and workflow replacement together.
+Depends on PR 3A.
 
 ---
 
@@ -599,9 +636,9 @@ deep import; all prior Journeys pass.
 
 ---
 
-## PR 11 — Integrated hardening, deletion, and knowledge promotion
+## PR 11A — Complete negative gates and the full CI matrix
 
-### Task 11.1: Complete negative gates and full CI matrix
+### Task 11A.1: Complete negative gates and full CI matrix
 
 **Files:**
 
@@ -619,7 +656,15 @@ deep import; all prior Journeys pass.
 - [ ] Run provider contract separately and record `HUMAN_TIMEOUT` safely when
   applicable; it does not alter deterministic merge status.
 
-### Task 11.2: Delete residue and prove repository closure
+**PR 11A required result:** The complete negative-gate and CI matrix is required
+and green. Rollback reverts only the new gates and matrix wiring. Depends on all
+PR 4–10 vertical slices.
+
+---
+
+## PR 11B — Residue deletion, knowledge promotion, and repository closure
+
+### Task 11B.1: Delete residue and prove repository closure
 
 **Files:**
 
@@ -643,9 +688,10 @@ deep import; all prior Journeys pass.
 - [ ] Compare requirement ledger totals: zero unmapped, duplicate-owned,
   contradictory, unverifiable, or placeholder requirements.
 
-**PR 11 required result:** no obsolete asset or exception remains, all required
+**PR 11B required result:** no obsolete asset or exception remains, all required
 checks are enforced, seven Journeys satisfy every normalized outcome, and the
-input/output audit is ready for human review.
+input/output audit is ready for human review. Rollback reverts the closure PR as
+a whole. Depends on PR 11A.
 
 ## Rollback and merge discipline
 

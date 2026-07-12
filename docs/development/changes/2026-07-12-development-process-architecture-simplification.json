@@ -234,6 +234,18 @@
         "git diff --check; git status --short; git ls-files | rg '(^|/)\\.superpowers(/|$)'"
       ],
       "result": "GREEN non-Docker evidence: Harness shell contracts passed 19/19; manifest tests passed 7/7 and history validation passed. PR base/head mode without final evidence correctly rejected zero markers. Knowledge, quality, mobile Knip wrapper, mobile Jest (123 suites/744 tests), typecheck, lint, and Knip passed; all four workflow YAML files parsed. Docker catalog generate/verify/generate left generated_postgres.rs clean. validate-all.sh itself exited only because host cargo is absent in validate-architecture; its other validators passed independently, while the recorded Task 5 mounted-Git Docker architecture evidence remains authoritative. No tracked .superpowers scratch or whitespace errors were found."
+    },
+    {
+      "name": "integration-sol-self-review-green",
+      "state": "green",
+      "commands": [
+        "Compare approved plan, design, manifest, origin/main...HEAD diff, CI consumers, API-ARCH-001..012 fixtures, and image-policy guarantees",
+        "bash scripts/harness/harness.test.sh",
+        "node --test scripts/development/tests/validate-change-manifest.test.mjs",
+        "bash scripts/development/validate-change-manifest.sh",
+        "git diff --check; git status --short"
+      ],
+      "result": "GREEN after correction: self-review found the roadmap split existed only as an appendix while executable headings still grouped PR 2, PR 3, and PR 11. The roadmap body now defines PR 2A/2B/2C, 3A/3B, and 11A/11B with direct interfaces, acceptance, rollback, and dependency order. Process/manifest tests and clean-diff checks passed; independent Sol review remains external and pending on the resulting frozen SHA."
     }
   ]
 }

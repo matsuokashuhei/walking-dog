@@ -14,6 +14,7 @@ expected_failure_modes = ["validation_failure", "build_failure"]
 required_evidence = ["architecture_validator", "integration_test"]
 owned_files = [
   "Cargo.lock",
+  "README.md",
   "architecture/diffs/20260712-development-process-architecture-simplification.toml",
   "architecture/intents/20260712-development-process-architecture-simplification.toml",
   "architecture/test-images.json",

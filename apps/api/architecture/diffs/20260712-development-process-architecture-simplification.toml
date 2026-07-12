@@ -1,6 +1,7 @@
 version = 1
 changed_files = [
   "Cargo.lock",
+  "README.md",
   "architecture/diffs/20260712-development-process-architecture-simplification.toml",
   "architecture/intents/20260712-development-process-architecture-simplification.toml",
   "architecture/test-images.json",

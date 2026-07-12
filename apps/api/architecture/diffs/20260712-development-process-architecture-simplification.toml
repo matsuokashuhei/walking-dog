@@ -1,0 +1,21 @@
+version = 1
+changed_files = [
+  "Cargo.lock",
+  "architecture/diffs/20260712-development-process-architecture-simplification.toml",
+  "architecture/intents/20260712-development-process-architecture-simplification.toml",
+  "architecture/test-images.json",
+  "tools/architecture-validator/src/ast.rs",
+  "tools/architecture-validator/src/check.rs",
+  "tools/architecture-validator/src/image_policy.rs",
+  "tools/architecture-validator/src/lib.rs",
+  "tools/architecture-validator/tests/fixtures.rs",
+  "tools/architecture-validator/tests/image_policy.rs",
+  "tools/harness-runtime/src/generated_postgres.rs",
+  "tools/harness-runtime/src/lib.rs",
+  "tools/xtask/Cargo.toml",
+  "tools/xtask/src/image_catalog.rs",
+  "tools/xtask/src/lib.rs",
+  "tools/xtask/src/main.rs",
+  "tools/xtask/templates/postgres_container.rs",
+  "tools/xtask/tests/image_catalog.rs",
+]

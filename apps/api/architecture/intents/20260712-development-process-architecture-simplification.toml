@@ -1,0 +1,34 @@
+version = 1
+id = "API-INTENT-20260712-DEVELOPMENT-PROCESS-ARCHITECTURE-SIMPLIFICATION"
+title = "Simplify API architecture validation and generate the closed test image runtime"
+change_kind = "architecture"
+owner = "github:matsuokashuhei"
+issue = "https://github.com/matsuokashuhei/walking-dog/issues/380"
+product_axes = ["dog_experience", "walk_data", "owner_contribution"]
+canonical_journeys = []
+application_modules = []
+touched_seams = ["postgres", "test-harness", "architecture-validator"]
+schema_impact = "none"
+data_migration_impact = "none"
+expected_failure_modes = ["validation_failure", "build_failure"]
+required_evidence = ["architecture_validator", "integration_test"]
+owned_files = [
+  "Cargo.lock",
+  "architecture/diffs/20260712-development-process-architecture-simplification.toml",
+  "architecture/intents/20260712-development-process-architecture-simplification.toml",
+  "architecture/test-images.json",
+  "tools/architecture-validator/src/ast.rs",
+  "tools/architecture-validator/src/check.rs",
+  "tools/architecture-validator/src/image_policy.rs",
+  "tools/architecture-validator/src/lib.rs",
+  "tools/architecture-validator/tests/fixtures.rs",
+  "tools/architecture-validator/tests/image_policy.rs",
+  "tools/harness-runtime/src/generated_postgres.rs",
+  "tools/harness-runtime/src/lib.rs",
+  "tools/xtask/Cargo.toml",
+  "tools/xtask/src/image_catalog.rs",
+  "tools/xtask/src/lib.rs",
+  "tools/xtask/src/main.rs",
+  "tools/xtask/templates/postgres_container.rs",
+  "tools/xtask/tests/image_catalog.rs",
+]

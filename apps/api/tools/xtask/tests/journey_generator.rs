@@ -28,6 +28,38 @@ fn xtask(root: &TempDir, args: &[&str]) -> std::process::Output {
         .unwrap()
 }
 
+fn xtask_with_env(root: &TempDir, key: &str, value: &str, args: &[&str]) -> std::process::Output {
+    Command::new(env!("CARGO_BIN_EXE_xtask"))
+        .args(args)
+        .env(key, value)
+        .current_dir(root.path())
+        .output()
+        .unwrap()
+}
+
+fn workspace_files(root: &TempDir) -> Vec<(String, Vec<u8>)> {
+    fn visit(base: &std::path::Path, path: &std::path::Path, out: &mut Vec<(String, Vec<u8>)>) {
+        for entry in fs::read_dir(path).unwrap() {
+            let path = entry.unwrap().path();
+            if path.is_dir() {
+                visit(base, &path, out);
+            } else {
+                out.push((
+                    path.strip_prefix(base)
+                        .unwrap()
+                        .to_string_lossy()
+                        .into_owned(),
+                    fs::read(path).unwrap(),
+                ));
+            }
+        }
+    }
+    let mut files = Vec::new();
+    visit(root.path(), root.path(), &mut files);
+    files.sort_by(|left, right| left.0.cmp(&right.0));
+    files
+}
+
 #[test]
 fn generates_complete_output_and_verifies_it() {
     let root = TempDir::new().unwrap();
@@ -58,11 +90,15 @@ fn generates_complete_output_and_verifies_it() {
         "crates/application/src/walk_recording/adapters/in_memory_sqs_start_walk.rs",
         "docs/harness/journeys/generated/start-walk.md",
         "fixtures/observability/start-walk.toml",
-        "architecture/manifests/start-walk.toml",
+        "architecture/manifest.toml",
     ];
     for relative in required {
-        let contents = fs::read_to_string(root.path().join(relative))
-            .unwrap_or_else(|_| panic!("missing {relative}"));
+        let contents = fs::read_to_string(
+            root.path()
+                .join("generated/journeys/start-walk/artifacts")
+                .join(relative),
+        )
+        .unwrap_or_else(|_| panic!("missing {relative}"));
         assert!(
             contents.contains("@generated journey-generator:v1"),
             "marker missing in {relative}"
@@ -80,8 +116,9 @@ fn generates_complete_output_and_verifies_it() {
     );
 
     fs::remove_file(
-        root.path()
-            .join("crates/adapter-postgres/src/start_walk.rs"),
+        root.path().join(
+            "generated/journeys/start-walk/artifacts/crates/adapter-postgres/src/start_walk.rs",
+        ),
     )
     .unwrap();
     assert!(
@@ -106,7 +143,11 @@ fn generates_complete_output_and_verifies_it() {
         .status
         .success()
     );
-    fs::remove_file(root.path().join("architecture/manifests/start-walk.toml")).unwrap();
+    fs::remove_file(
+        root.path()
+            .join("generated/journeys/start-walk/artifacts/architecture/manifest.toml"),
+    )
+    .unwrap();
     assert!(
         !xtask(&root, &["journey", "verify-generated"])
             .status
@@ -120,7 +161,7 @@ fn invalid_registry_value_and_collision_are_atomic() {
     let spec = valid_spec(&root);
     let collision = root
         .path()
-        .join("crates/application/src/walk_recording/start_walk.rs");
+        .join("generated/journeys/start-walk/racing-owner.txt");
     fs::create_dir_all(collision.parent().unwrap()).unwrap();
     fs::write(&collision, "owned\n").unwrap();
 
@@ -139,11 +180,11 @@ fn invalid_registry_value_and_collision_are_atomic() {
     assert!(
         !root
             .path()
-            .join("architecture/manifests/start-walk.toml")
+            .join("architecture/generated-journeys.toml")
             .exists()
     );
 
-    fs::remove_file(&collision).unwrap();
+    fs::remove_dir_all(root.path().join("generated/journeys/start-walk")).unwrap();
     fs::write(
         &spec,
         fs::read_to_string(&spec)
@@ -162,10 +203,96 @@ fn invalid_registry_value_and_collision_are_atomic() {
         ],
     );
     assert!(!output.status.success());
+    assert!(!root.path().join("generated/journeys/start-walk").exists());
+}
+
+#[test]
+fn placement_failure_rolls_back_every_published_file() {
+    let root = TempDir::new().unwrap();
+    let spec = valid_spec(&root);
+    let before = workspace_files(&root);
+    let output = xtask_with_env(
+        &root,
+        "XTASK_TEST_FAIL_AFTER_PLACEMENTS",
+        "2",
+        &[
+            "journey",
+            "new",
+            "start-walk",
+            "--spec",
+            spec.to_str().unwrap(),
+        ],
+    );
+    assert!(!output.status.success());
+    assert_eq!(workspace_files(&root), before);
+}
+
+#[test]
+fn destination_created_after_preflight_is_not_overwritten() {
+    let root = TempDir::new().unwrap();
+    let spec = valid_spec(&root);
+    let output = xtask_with_env(
+        &root,
+        "XTASK_TEST_RACE_DESTINATION",
+        "crates/adapter-graphql/src/start_walk.rs",
+        &[
+            "journey",
+            "new",
+            "start-walk",
+            "--spec",
+            spec.to_str().unwrap(),
+        ],
+    );
+    assert!(!output.status.success());
     assert_eq!(
-        fs::read_dir(root.path().join("crates/application/src/walk_recording"))
-            .unwrap()
-            .count(),
-        0
+        fs::read_to_string(
+            root.path()
+                .join("generated/journeys/start-walk/crates/adapter-graphql/src/start_walk.rs")
+        )
+        .unwrap(),
+        "racing owner\n"
+    );
+    assert!(
+        !root
+            .path()
+            .join("generated/journeys/start-walk/artifacts")
+            .exists()
+    );
+}
+
+#[test]
+fn independent_index_rejects_total_artifact_deletion() {
+    let root = TempDir::new().unwrap();
+    let spec = valid_spec(&root);
+    assert!(
+        xtask(
+            &root,
+            &[
+                "journey",
+                "new",
+                "start-walk",
+                "--spec",
+                spec.to_str().unwrap()
+            ]
+        )
+        .status
+        .success()
+    );
+    let destination = root.path().join("generated/journeys/start-walk/artifacts");
+    let manifest = fs::read_to_string(destination.join("architecture/manifest.toml")).unwrap();
+    let parsed: toml::Value = toml::from_str(&manifest).unwrap();
+    for file in parsed["files"].as_array().unwrap() {
+        fs::remove_file(destination.join(file["path"].as_str().unwrap())).unwrap();
+    }
+    fs::remove_file(destination.join("architecture/manifest.toml")).unwrap();
+    assert!(
+        root.path()
+            .join("architecture/generated-journeys.toml")
+            .exists()
+    );
+    assert!(
+        !xtask(&root, &["journey", "verify-generated"])
+            .status
+            .success()
     );
 }

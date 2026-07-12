@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::{collections::BTreeSet, fs, path::Path};
+use std::{collections::BTreeSet, fs, io::Write, path::Path};
 
 const MARKER: &str = "@generated journey-generator:v1";
 const MODULES: &[&str] = &[
@@ -61,6 +61,20 @@ struct OwnedFile {
     sha256: String,
 }
 
+#[derive(Serialize, Deserialize)]
+struct GeneratedIndex {
+    marker: String,
+    generator_version: u32,
+    journeys: Vec<GeneratedJourney>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct GeneratedJourney {
+    use_case: String,
+    destination: String,
+    manifest: String,
+}
+
 pub fn generate(root: &Path, name: &str, spec_path: &Path) -> Result<(), String> {
     validate_name(name)?;
     let source = fs::read_to_string(spec_path).map_err(|e| format!("read spec: {e}"))?;
@@ -68,7 +82,7 @@ pub fn generate(root: &Path, name: &str, spec_path: &Path) -> Result<(), String>
     validate_spec(&spec)?;
     let snake = name.replace('-', "_");
     let mut outputs = render(name, &snake, &spec);
-    let manifest_path = format!("architecture/manifests/{name}.toml");
+    let manifest_path = "architecture/manifest.toml".to_owned();
     let owned = outputs
         .iter()
         .map(|(path, body)| OwnedFile {
@@ -85,57 +99,101 @@ pub fn generate(root: &Path, name: &str, spec_path: &Path) -> Result<(), String>
         files: owned,
     };
     outputs.push((
-        manifest_path,
+        manifest_path.clone(),
         format!(
             "# {MARKER}\n{}",
             toml::to_string_pretty(&manifest).map_err(|e| e.to_string())?
         ),
     ));
 
-    for (relative, _) in &outputs {
-        if root.join(relative).exists() {
-            return Err(format!("collision: {relative}"));
-        }
-    }
     validate_outputs(&outputs, &spec)?;
-    let stage = root.join(format!(".journey-generator-{name}-{}", std::process::id()));
-    if stage.exists() {
-        fs::remove_dir_all(&stage).map_err(|e| e.to_string())?;
+    let generated_root = root.join("generated/journeys");
+    let destination = generated_root.join(name);
+    let index_path = root.join("architecture/generated-journeys.toml");
+    if destination.exists() || index_path.exists() {
+        return Err("generated Journey destination or index already exists".into());
     }
+    let stage_parent = root.parent().unwrap_or(root);
+    let stage = tempfile::Builder::new()
+        .prefix(".journey-generator-")
+        .tempdir_in(stage_parent)
+        .map_err(|error| format!("create exclusive staging directory: {error}"))?;
     for (relative, body) in &outputs {
-        let target = stage.join(relative);
+        let target = stage.path().join(relative);
         fs::create_dir_all(target.parent().ok_or("invalid target")?).map_err(|e| e.to_string())?;
         fs::write(&target, body).map_err(|e| e.to_string())?;
     }
-    // All fallible content validation and collision detection happens before workspace placement.
-    for (relative, _) in &outputs {
-        let from = stage.join(relative);
-        let to = root.join(relative);
-        fs::create_dir_all(to.parent().ok_or("invalid target")?).map_err(|e| e.to_string())?;
-        fs::rename(from, to).map_err(|e| format!("place {relative}: {e}"))?;
+    if std::env::var_os("XTASK_TEST_FAIL_AFTER_PLACEMENTS").is_some() {
+        return Err("injected pre-publication failure".into());
     }
-    fs::remove_dir_all(stage).map_err(|e| e.to_string())?;
+    if let Ok(relative) = std::env::var("XTASK_TEST_RACE_DESTINATION") {
+        let raced = destination.join(relative);
+        fs::create_dir_all(raced.parent().ok_or("invalid raced destination")?)
+            .map_err(|error| error.to_string())?;
+        fs::write(raced, "racing owner\n").map_err(|error| error.to_string())?;
+    }
+    fs::create_dir_all(&generated_root).map_err(|error| error.to_string())?;
+    fs::create_dir(&destination)
+        .map_err(|error| format!("atomic destination reservation refused collision: {error}"))?;
+    let published_tree = destination.join("artifacts");
+    if let Err(error) = fs::rename(stage.path(), &published_tree) {
+        fs::remove_dir(&destination).map_err(|rollback| {
+            format!("atomic publish failed ({error}); reservation rollback failed ({rollback})")
+        })?;
+        return Err(format!("atomic publish failed: {error}"));
+    }
+    let index = GeneratedIndex {
+        marker: MARKER.into(),
+        generator_version: 1,
+        journeys: vec![GeneratedJourney {
+            use_case: name.into(),
+            destination: format!("generated/journeys/{name}/artifacts"),
+            manifest: format!("generated/journeys/{name}/artifacts/{manifest_path}"),
+        }],
+    };
+    let index_body = format!(
+        "# {MARKER}\n{}",
+        toml::to_string_pretty(&index).map_err(|error| error.to_string())?
+    );
+    if let Err(error) = create_new_file(&index_path, index_body.as_bytes()) {
+        fs::remove_dir_all(&destination).map_err(|rollback| {
+            format!("publish index failed ({error}); rollback failed ({rollback})")
+        })?;
+        return Err(format!("publish index failed: {error}"));
+    }
     Ok(())
 }
 
 pub fn verify(root: &Path) -> Result<(), String> {
-    let directory = root.join("architecture/manifests");
-    if !directory.exists() {
+    let index_path = root.join("architecture/generated-journeys.toml");
+    if !index_path.exists() {
+        if root.join("generated/journeys").exists() {
+            return Err("generated Journey tree exists without independent index".into());
+        }
         return Ok(());
     }
+    let index_text = fs::read_to_string(&index_path).map_err(|error| error.to_string())?;
+    let index: GeneratedIndex = toml::from_str(&index_text).map_err(|error| error.to_string())?;
+    if index.marker != MARKER || index.generator_version != 1 || index.journeys.is_empty() {
+        return Err("invalid independent generated Journey index".into());
+    }
     let mut owned_paths = BTreeSet::new();
-    for entry in fs::read_dir(directory).map_err(|e| e.to_string())? {
-        let path = entry.map_err(|e| e.to_string())?.path();
-        if path.extension().and_then(|v| v.to_str()) != Some("toml") {
-            continue;
+    for journey in index.journeys {
+        let destination = root.join(&journey.destination);
+        let path = root.join(&journey.manifest);
+        if !destination.is_dir() || !path.starts_with(&destination) {
+            return Err(format!(
+                "missing or invalid generated destination: {}",
+                journey.use_case
+            ));
         }
         let text = fs::read_to_string(&path).map_err(|e| e.to_string())?;
-        if !text.contains(MARKER) {
-            continue;
-        }
         let manifest: Manifest =
             toml::from_str(&text).map_err(|e| format!("{}: {e}", path.display()))?;
-        if manifest.marker != MARKER || manifest.generator_version != 1 || manifest.files.is_empty()
+        if manifest.marker != MARKER
+            || manifest.generator_version != 1
+            || manifest.files.is_empty()
+            || manifest.use_case != journey.use_case
         {
             return Err(format!("invalid generated manifest: {}", path.display()));
         }
@@ -143,7 +201,7 @@ pub fn verify(root: &Path) -> Result<(), String> {
             if !owned_paths.insert(owned.path.clone()) {
                 return Err(format!("duplicate generated ownership: {}", owned.path));
             }
-            let generated = root.join(&owned.path);
+            let generated = destination.join(&owned.path);
             let body = fs::read(&generated)
                 .map_err(|_| format!("missing generated file: {}", owned.path))?;
             let text = std::str::from_utf8(&body)
@@ -153,45 +211,20 @@ pub fn verify(root: &Path) -> Result<(), String> {
             }
         }
     }
-    for generated_root in [
-        "crates",
-        "docs/harness/journeys/generated",
-        "fixtures/observability",
-    ] {
-        collect_marked_files(root, &root.join(generated_root), &mut |relative| {
-            if !owned_paths.contains(relative) {
-                return Err(format!(
-                    "generated file has no manifest ownership: {relative}"
-                ));
-            }
-            Ok(())
-        })?;
-    }
     Ok(())
 }
 
-fn collect_marked_files(
-    root: &Path,
-    directory: &Path,
-    visit: &mut impl FnMut(&str) -> Result<(), String>,
-) -> Result<(), String> {
-    if !directory.exists() {
-        return Ok(());
-    }
-    for entry in fs::read_dir(directory).map_err(|error| error.to_string())? {
-        let path = entry.map_err(|error| error.to_string())?.path();
-        if path.is_dir() {
-            collect_marked_files(root, &path, visit)?;
-        } else if fs::read_to_string(&path).is_ok_and(|body| body.contains(MARKER)) {
-            let relative = path
-                .strip_prefix(root)
-                .map_err(|error| error.to_string())?
-                .to_str()
-                .ok_or_else(|| format!("non-UTF8 path: {}", path.display()))?;
-            visit(relative)?;
-        }
-    }
-    Ok(())
+fn create_new_file(path: &Path, contents: &[u8]) -> Result<(), String> {
+    fs::create_dir_all(path.parent().ok_or("invalid index path")?)
+        .map_err(|error| error.to_string())?;
+    let mut file = fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(path)
+        .map_err(|error| error.to_string())?;
+    file.write_all(contents)
+        .map_err(|error| error.to_string())?;
+    file.sync_all().map_err(|error| error.to_string())
 }
 
 fn validate_name(name: &str) -> Result<(), String> {

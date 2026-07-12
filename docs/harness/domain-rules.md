@@ -10,33 +10,38 @@ evidence aligned with them.
   `cycle_days`.
 - `cycle_days = 1` means daily. `cycle_days = 7` means weekly.
 - Distance is a separate walk statistic and must not become the goal primitive.
-- Goal minute bounds are a shared API/mobile contract. Changes must update:
-  `apps/api/src/service/dog_walk_goal.rs`,
-  `apps/mobile/constants/walk.ts`, and their boundary tests together.
+- Goal minute bounds are a shared API/mobile contract. When the API behavior is
+  introduced, domain invariants belong in `apps/api/crates/domain`, orchestration
+  belongs in `apps/api/crates/application`, and adapter details stay outside both.
+  Changes must update `apps/mobile/constants/walk.ts` and boundary tests on both
+  sides together.
 
 ## Track Points
 
-- Track point storage details live behind
-  `service::track_point::TrackPointRepository`.
-- GraphQL resolvers and queue handlers use the service/domain `TrackPoint`
-  contract.
+- Track point storage details must live behind an application-owned port in
+  `apps/api/crates/application`; provider implementations belong in adapter
+  crates such as `adapter-aws-dynamodb`.
+- GraphQL and queue adapters translate to domain/application contracts rather
+  than exposing provider representations.
 - DynamoDB table shape, timestamp encoding, and `AttributeValue` mapping must not
   leak into GraphQL or queue orchestration.
 
 ## Walk Lifecycle And Read Models
 
 - Walk start, active-walk ownership, stop/finalize, distance finalization, and
-  pagination totals belong in `service::walk` and
-  `service::walk_read_model`.
+  pagination semantics belong in domain rules and application use cases when
+  those product slices are implemented.
 - GraphQL translates inputs and outputs. It should not own lifecycle decisions,
   active-walk checks, aggregate SQL, or history semantics.
 
 ## Upload Storage
 
-- Upload storage lives behind `service::storage::StorageGateway`.
-- GraphQL may adapt `Upload` into `StorageUpload`.
+- Upload storage must live behind an application-owned port; S3 implementation
+  belongs in `apps/api/crates/adapter-aws-s3`.
+- GraphQL may translate transport uploads into an application input type.
 - S3 clients, bucket/env handling, content-size policy, object keys, and avatar or
-  photo URL construction stay in the storage service.
+  photo URL construction stay in the adapter/application boundary selected by
+  the relevant use case, never in GraphQL transport code.
 
 ## Cognito Email
 

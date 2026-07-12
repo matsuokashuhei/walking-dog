@@ -200,11 +200,28 @@ docker compose logs -f api
 
 ### DB マイグレーションが失敗する
 
-`apps/api/src/main.rs` の起動時に `Migrator::up` が自動実行される。
-失敗時は `DATABASE_URL` の接続情報を確認:
+API 起動時にはマイグレーションを実行しない。現在の実装は
+`apps/api/crates/api-bootstrap/src/bin/migrate.rs` の専用 `migrate` バイナリで、
+デプロイ済みイメージにも `/usr/local/bin/migrate` として含まれる。
+
+適用または再試行する場合は、PostgreSQL の起動完了後に同じ `.env` を使って
+一時コンテナを実行する:
+
+```bash
+docker compose run --rm api migrate
+```
+
+失敗時は `DATABASE_URL` の接続情報を確認する:
 
 ```bash
 docker compose exec postgres psql -U walking_dog -d walking_dog_test
+```
+
+ローカルの API ワークスペースから確認する場合は次を使う:
+
+```bash
+cd apps/api
+cargo run -p api-bootstrap --bin migrate
 ```
 
 ### ECR pull が `no basic auth credentials` エラー

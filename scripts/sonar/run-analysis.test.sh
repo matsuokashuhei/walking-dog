@@ -52,8 +52,10 @@ test_sonar_project_indexes_api_test_files_for_clippy_reports() {
   local properties
   properties="$(cat "$repo_root/infra/sonarqube/sonar-project.properties")"
 
-  [[ "$properties" == *"sonar.tests=apps/api/tests,apps/mobile"* ]] || fail "expected sonar.tests to include apps/api/tests for normalized Clippy diagnostics"
-  [[ "$properties" == *"apps/api/tests/**/*.rs"* ]] || fail "expected Rust integration tests to be included as Sonar test files"
+  [[ "$properties" == *"sonar.tests=apps/api/crates,apps/api/tools,apps/mobile"* ]] || fail "expected Sonar tests to cover crate and tool test roots"
+  [[ "$properties" == *"apps/api/**/tests/**/*.rs"* ]] || fail "expected Rust integration tests across crates and tools"
+  [[ "$properties" != *"apps/api/src"* ]] || fail "deleted monolith source root must not be indexed"
+  [[ "$properties" != *"apps/api/tests"* ]] || fail "deleted monolith test root must not be indexed"
 }
 
 test_run_analysis_uses_infra_project_settings() {
@@ -85,17 +87,17 @@ test_normalizes_clippy_paths_for_sonar_sources() {
   make_tmpdir tmpdir
 
   cat > "$tmpdir/clippy.json" <<'EOF'
-{"reason":"compiler-message","message":{"rendered":"warning\n  --> src/service/auth.rs:10:5\n","spans":[{"file_name":"src/service/auth.rs","line_start":10}]}}
-{"reason":"compiler-message","message":{"rendered":"warning\n  --> tests/auth_passwordless.rs:1:1\n","spans":[{"file_name":"tests/auth_passwordless.rs","line_start":1}]}}
+{"reason":"compiler-message","message":{"rendered":"warning\n  --> crates/application/src/lib.rs:10:5\n","spans":[{"file_name":"crates/application/src/lib.rs","line_start":10}]}}
+{"reason":"compiler-message","message":{"rendered":"warning\n  --> crates/adapter-postgres/tests/migrations.rs:1:1\n","spans":[{"file_name":"crates/adapter-postgres/tests/migrations.rs","line_start":1}]}}
 EOF
 
   "$repo_root/scripts/sonar/normalize-clippy-report.sh" "$tmpdir/clippy.json" "$tmpdir/normalized.json"
   output="$(cat "$tmpdir/normalized.json")"
 
-  [[ "$output" == *'"file_name":"apps/api/src/service/auth.rs"'* ]] || fail "expected src file_name to be prefixed for Sonar"
-  [[ "$output" == *'"file_name":"apps/api/tests/auth_passwordless.rs"'* ]] || fail "expected tests file_name to be prefixed for Sonar"
-  [[ "$output" == *'--> apps/api/src/service/auth.rs:10:5'* ]] || fail "expected rendered src path to be prefixed"
-  [[ "$output" != *'"file_name":"src/'* ]] || fail "raw src file_name must not remain"
+  [[ "$output" == *'"file_name":"apps/api/crates/application/src/lib.rs"'* ]] || fail "expected crate source path to be prefixed for Sonar"
+  [[ "$output" == *'"file_name":"apps/api/crates/adapter-postgres/tests/migrations.rs"'* ]] || fail "expected crate test path to be prefixed for Sonar"
+  [[ "$output" == *'--> apps/api/crates/application/src/lib.rs:10:5'* ]] || fail "expected rendered crate path to be prefixed"
+  [[ "$output" != *'"file_name":"crates/'* ]] || fail "raw crate file_name must not remain"
 }
 
 test_loads_sonar_host_url_from_local_env() {

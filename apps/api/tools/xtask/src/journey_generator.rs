@@ -75,6 +75,7 @@ struct GeneratedJourney {
     manifest: String,
 }
 
+#[allow(clippy::too_many_lines)] // Transaction sequencing is intentionally kept linear for auditable rollback.
 pub fn generate(root: &Path, name: &str, spec_path: &Path) -> Result<(), String> {
     validate_name(name)?;
     let source = fs::read_to_string(spec_path).map_err(|e| format!("read spec: {e}"))?;
@@ -110,9 +111,42 @@ pub fn generate(root: &Path, name: &str, spec_path: &Path) -> Result<(), String>
     let generated_root = root.join("generated/journeys");
     let destination = generated_root.join(name);
     let index_path = root.join("architecture/generated-journeys.toml");
-    if destination.exists() || index_path.exists() {
-        return Err("generated Journey destination or index already exists".into());
+    if destination.exists() {
+        return Err("generated Journey destination already exists".into());
     }
+    let original_index = if index_path.exists() {
+        Some(fs::read(&index_path).map_err(|error| error.to_string())?)
+    } else {
+        None
+    };
+    let mut index = if let Some(bytes) = &original_index {
+        toml::from_str::<GeneratedIndex>(
+            std::str::from_utf8(bytes).map_err(|error| error.to_string())?,
+        )
+        .map_err(|error| error.to_string())?
+    } else {
+        GeneratedIndex {
+            marker: MARKER.into(),
+            generator_version: 1,
+            journeys: Vec::new(),
+        }
+    };
+    if index
+        .journeys
+        .iter()
+        .any(|journey| journey.use_case == name)
+    {
+        return Err(format!("generated Journey already indexed: {name}"));
+    }
+    index.journeys.push(GeneratedJourney {
+        use_case: name.into(),
+        destination: format!("generated/journeys/{name}/artifacts"),
+        manifest: format!("generated/journeys/{name}/artifacts/{manifest_path}"),
+    });
+    let index_body = format!(
+        "# {MARKER}\n{}",
+        toml::to_string_pretty(&index).map_err(|error| error.to_string())?
+    );
     let stage_parent = root.parent().unwrap_or(root);
     let stage = tempfile::Builder::new()
         .prefix(".journey-generator-")
@@ -122,9 +156,6 @@ pub fn generate(root: &Path, name: &str, spec_path: &Path) -> Result<(), String>
         let target = stage.path().join(relative);
         fs::create_dir_all(target.parent().ok_or("invalid target")?).map_err(|e| e.to_string())?;
         fs::write(&target, body).map_err(|e| e.to_string())?;
-    }
-    if std::env::var_os("XTASK_TEST_FAIL_AFTER_PLACEMENTS").is_some() {
-        return Err("injected pre-publication failure".into());
     }
     if let Ok(relative) = std::env::var("XTASK_TEST_RACE_DESTINATION") {
         let raced = destination.join(relative);
@@ -142,24 +173,67 @@ pub fn generate(root: &Path, name: &str, spec_path: &Path) -> Result<(), String>
         })?;
         return Err(format!("atomic publish failed: {error}"));
     }
-    let index = GeneratedIndex {
-        marker: MARKER.into(),
-        generator_version: 1,
-        journeys: vec![GeneratedJourney {
-            use_case: name.into(),
-            destination: format!("generated/journeys/{name}/artifacts"),
-            manifest: format!("generated/journeys/{name}/artifacts/{manifest_path}"),
-        }],
+    if std::env::var_os("XTASK_TEST_FAIL_AFTER_PLACEMENTS").is_some() {
+        rollback_destination(&destination, &generated_root)?;
+        return Err("injected post-publication failure".into());
+    }
+    let architecture = index_path.parent().ok_or("invalid index path")?;
+    let architecture_existed = architecture.exists();
+    fs::create_dir_all(architecture).map_err(|error| error.to_string())?;
+    let mut staged_index = match tempfile::NamedTempFile::new_in(architecture) {
+        Ok(file) => file,
+        Err(error) => {
+            rollback_destination(&destination, &generated_root)?;
+            cleanup_architecture(architecture, architecture_existed)?;
+            return Err(format!("stage index creation failed: {error}"));
+        }
     };
-    let index_body = format!(
-        "# {MARKER}\n{}",
-        toml::to_string_pretty(&index).map_err(|error| error.to_string())?
-    );
-    if let Err(error) = create_new_file(&index_path, index_body.as_bytes()) {
-        fs::remove_dir_all(&destination).map_err(|rollback| {
-            format!("publish index failed ({error}); rollback failed ({rollback})")
-        })?;
-        return Err(format!("publish index failed: {error}"));
+    if std::env::var("XTASK_TEST_INDEX_FAILURE").as_deref() == Ok("write") {
+        rollback_destination(&destination, &generated_root)?;
+        drop(staged_index);
+        cleanup_architecture(architecture, architecture_existed)?;
+        return Err("injected index write failure".into());
+    }
+    if let Err(error) = staged_index.write_all(index_body.as_bytes()) {
+        rollback_destination(&destination, &generated_root)?;
+        drop(staged_index);
+        cleanup_architecture(architecture, architecture_existed)?;
+        return Err(format!("stage index write failed: {error}"));
+    }
+    if std::env::var("XTASK_TEST_INDEX_FAILURE").as_deref() == Ok("sync") {
+        rollback_destination(&destination, &generated_root)?;
+        drop(staged_index);
+        cleanup_architecture(architecture, architecture_existed)?;
+        return Err("injected index sync failure".into());
+    }
+    if let Err(error) = staged_index.as_file().sync_all() {
+        rollback_destination(&destination, &generated_root)?;
+        drop(staged_index);
+        cleanup_architecture(architecture, architecture_existed)?;
+        return Err(format!("stage index sync failed: {error}"));
+    }
+    if let Ok(owner) = std::env::var("XTASK_TEST_RACE_INDEX") {
+        fs::OpenOptions::new()
+            .append(true)
+            .open(&index_path)
+            .and_then(|mut file| writeln!(file, "# {owner}"))
+            .map_err(|error| error.to_string())?;
+    }
+    let current_index = if index_path.exists() {
+        Some(fs::read(&index_path).map_err(|error| error.to_string())?)
+    } else {
+        None
+    };
+    if current_index != original_index {
+        rollback_destination(&destination, &generated_root)?;
+        drop(staged_index);
+        cleanup_architecture(architecture, architecture_existed)?;
+        return Err("independent index changed concurrently".into());
+    }
+    if let Err(error) = staged_index.persist(&index_path) {
+        rollback_destination(&destination, &generated_root)?;
+        cleanup_architecture(architecture, architecture_existed)?;
+        return Err(format!("atomic index publish failed: {}", error.error));
     }
     Ok(())
 }
@@ -214,17 +288,38 @@ pub fn verify(root: &Path) -> Result<(), String> {
     Ok(())
 }
 
-fn create_new_file(path: &Path, contents: &[u8]) -> Result<(), String> {
-    fs::create_dir_all(path.parent().ok_or("invalid index path")?)
-        .map_err(|error| error.to_string())?;
-    let mut file = fs::OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open(path)
-        .map_err(|error| error.to_string())?;
-    file.write_all(contents)
-        .map_err(|error| error.to_string())?;
-    file.sync_all().map_err(|error| error.to_string())
+fn rollback_destination(destination: &Path, generated_root: &Path) -> Result<(), String> {
+    fs::remove_dir_all(destination)
+        .map_err(|error| format!("artifact rollback failed: {error}"))?;
+    for directory in [
+        generated_root,
+        generated_root.parent().unwrap_or(generated_root),
+    ] {
+        if directory.exists()
+            && fs::read_dir(directory)
+                .map_err(|error| format!("rollback inspection failed: {error}"))?
+                .next()
+                .is_none()
+        {
+            fs::remove_dir(directory)
+                .map_err(|error| format!("empty directory rollback failed: {error}"))?;
+        }
+    }
+    Ok(())
+}
+
+fn cleanup_architecture(directory: &Path, existed: bool) -> Result<(), String> {
+    if !existed
+        && directory.exists()
+        && fs::read_dir(directory)
+            .map_err(|error| error.to_string())?
+            .next()
+            .is_none()
+    {
+        fs::remove_dir(directory)
+            .map_err(|error| format!("architecture rollback failed: {error}"))?;
+    }
+    Ok(())
 }
 
 fn validate_name(name: &str) -> Result<(), String> {

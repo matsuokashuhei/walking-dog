@@ -228,6 +228,134 @@ fn placement_failure_rolls_back_every_published_file() {
 }
 
 #[test]
+fn index_write_and_sync_failures_restore_exact_workspace() {
+    for fault in ["write", "sync"] {
+        let root = TempDir::new().unwrap();
+        let spec = valid_spec(&root);
+        let before = workspace_files(&root);
+        let output = xtask_with_env(
+            &root,
+            "XTASK_TEST_INDEX_FAILURE",
+            fault,
+            &[
+                "journey",
+                "new",
+                "start-walk",
+                "--spec",
+                spec.to_str().unwrap(),
+            ],
+        );
+        assert!(
+            !output.status.success(),
+            "fault {fault} unexpectedly succeeded"
+        );
+        assert_eq!(
+            workspace_files(&root),
+            before,
+            "fault {fault} changed workspace"
+        );
+    }
+}
+
+#[test]
+fn appends_second_use_case_and_rejects_duplicate_unchanged() {
+    let root = TempDir::new().unwrap();
+    let spec = valid_spec(&root);
+    assert!(
+        xtask(
+            &root,
+            &[
+                "journey",
+                "new",
+                "start-walk",
+                "--spec",
+                spec.to_str().unwrap()
+            ]
+        )
+        .status
+        .success()
+    );
+    assert!(
+        xtask(
+            &root,
+            &[
+                "journey",
+                "new",
+                "finish-walk",
+                "--spec",
+                spec.to_str().unwrap()
+            ]
+        )
+        .status
+        .success()
+    );
+    let index =
+        fs::read_to_string(root.path().join("architecture/generated-journeys.toml")).unwrap();
+    assert!(index.contains("start-walk") && index.contains("finish-walk"));
+    assert!(
+        xtask(&root, &["journey", "verify-generated"])
+            .status
+            .success()
+    );
+
+    let before = workspace_files(&root);
+    assert!(
+        !xtask(
+            &root,
+            &[
+                "journey",
+                "new",
+                "finish-walk",
+                "--spec",
+                spec.to_str().unwrap()
+            ]
+        )
+        .status
+        .success()
+    );
+    assert_eq!(workspace_files(&root), before);
+}
+
+#[test]
+fn raced_index_is_preserved_and_new_artifacts_are_rolled_back() {
+    let root = TempDir::new().unwrap();
+    let spec = valid_spec(&root);
+    assert!(
+        xtask(
+            &root,
+            &[
+                "journey",
+                "new",
+                "start-walk",
+                "--spec",
+                spec.to_str().unwrap()
+            ]
+        )
+        .status
+        .success()
+    );
+    let output = xtask_with_env(
+        &root,
+        "XTASK_TEST_RACE_INDEX",
+        "concurrent-owner",
+        &[
+            "journey",
+            "new",
+            "finish-walk",
+            "--spec",
+            spec.to_str().unwrap(),
+        ],
+    );
+    assert!(!output.status.success());
+    assert!(
+        fs::read_to_string(root.path().join("architecture/generated-journeys.toml"))
+            .unwrap()
+            .contains("concurrent-owner")
+    );
+    assert!(!root.path().join("generated/journeys/finish-walk").exists());
+}
+
+#[test]
 fn destination_created_after_preflight_is_not_overwritten() {
     let root = TempDir::new().unwrap();
     let spec = valid_spec(&root);

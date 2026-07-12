@@ -193,6 +193,27 @@ test_validate_all_includes_mobile_knip_gate() {
   assert_contains "$source" "validate_mobile_knip" "expected validate-all to run mobile Knip validator"
 }
 
+test_validate_all_includes_change_manifest_gate() {
+  local source
+  source="$(cat "$repo_root/scripts/harness/validate-all.sh")"
+
+  assert_contains "$source" "validate-change-manifest.sh" "expected validate-all to source change manifest validator"
+  assert_contains "$source" "validate_change_manifest" "expected validate-all to run change manifest validator"
+}
+
+test_change_manifest_history_mode_succeeds_without_a_diff() {
+  local output
+  output="$(run_script_expect_status 0 bash "$repo_root/scripts/development/validate-change-manifest.sh" "$repo_root")"
+  [[ -z "$output" ]] || fail "expected history validation to be silent; got $output"
+}
+
+test_change_manifest_pr_mode_rejects_zero_changed_manifests() {
+  local output head
+  head="$(git -C "$repo_root" rev-parse HEAD)"
+  output="$(run_script_expect_status 1 bash "$repo_root/scripts/development/validate-change-manifest.sh" --pr "$repo_root" "$head" "$head" "<!-- change-manifest-evidence: {\"headSha\":\"$head\",\"approval\":\"approved\"} -->")"
+  assert_contains "$output" "exactly one changed manifest" "expected PR mode to reject a zero-manifest diff"
+}
+
 test_validate_all_propagates_validator_failure() {
   local source
   source="$(cat "$repo_root/scripts/harness/validate-all.sh")"

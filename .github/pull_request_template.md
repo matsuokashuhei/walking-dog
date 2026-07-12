@@ -30,3 +30,15 @@
 - [ ] API tests:
 - [ ] Mobile lint/typecheck/tests:
 - [ ] Maestro or manual harness:
+
+## Change Manifest Evidence
+
+- [ ] Manifest path:
+- [ ] Base/head validation command and result:
+- [ ] No affected journey (or affected journey evidence):
+
+<!-- change-manifest-evidence: {"headSha":"","approval":""} -->
+
+The independent Sol approval/result is external PR or CI evidence. Its `headSha`
+must equal the current PR head. Editing this PR reruns Harness validation; a
+matching approval remains valid when only prose changes.

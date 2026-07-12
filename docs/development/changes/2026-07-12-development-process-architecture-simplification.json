@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "change": {
+    "slug": "development-process-architecture-simplification",
+    "base": "origin/main",
+    "singleResponsibility": "Establish a live change-record gate and simplify the API architecture gate without weakening its approved contracts.",
+    "nonTargets": [
+      "Product behavior or UI",
+      "Maestro journey migration",
+      "docs/tmp-testcases migration",
+      "Unrelated wayfinder cleanup"
+    ],
+    "noAffectedJourney": true,
+    "sameCauseFailureThreshold": 3,
+    "rollback": "Revert the coherent milestone commits in reverse order; generated runtime and catalog return together with the previous gate."
+  },
+  "ownership": [
+    { "path": ".codex/skills/pr-development/", "task": "terra-implementation" },
+    { "path": ".github/pull_request_template.md", "task": "terra-implementation" },
+    { "path": ".github/workflows/harness.yml", "task": "terra-implementation" },
+    { "path": ".github/workflows/test-api.yml", "task": "terra-implementation" },
+    { "path": ".vscode/tasks.json", "task": "terra-implementation" },
+    { "path": "CLAUDE.md", "task": "terra-implementation" },
+    { "path": "apps/api/Cargo.lock", "task": "terra-implementation" },
+    { "path": "apps/api/Cargo.toml", "task": "terra-implementation" },
+    { "path": "apps/api/architecture/", "task": "terra-implementation" },
+    { "path": "apps/api/tools/architecture-validator/", "task": "terra-implementation" },
+    { "path": "apps/api/tools/harness-runtime/", "task": "terra-implementation" },
+    { "path": "apps/api/tools/xtask/", "task": "terra-implementation" },
+    { "path": "docs/agents/", "task": "terra-implementation" },
+    { "path": "docs/development/", "task": "terra-implementation" },
+    { "path": "docs/harness/lessons-learned.md", "task": "terra-implementation" },
+    { "path": "docs/roadmaps/2026-07-11-api-mobile-replacement-implementation-plan.md", "task": "terra-implementation" },
+    { "path": "docs/runbooks/local-harness.md", "task": "terra-implementation" },
+    { "path": "docs/superpowers/", "task": "terra-implementation" },
+    { "path": "scripts/development/", "task": "terra-implementation" },
+    { "path": "scripts/harness/harness.test.sh", "task": "terra-implementation" },
+    { "path": "scripts/harness/validate-all.sh", "task": "terra-implementation" },
+    { "path": "scripts/harness/validate-architecture.sh", "task": "terra-implementation" }
+  ],
+  "tasks": [
+    {
+      "id": "sol-planning-integration",
+      "role": "planner",
+      "model": "sol",
+      "thinking": "high",
+      "threadId": "019f505b-e7ba-7ae3-8b77-1d77c8882475",
+      "owner": "019f505b-e7ba-7ae3-8b77-1d77c8882475",
+      "responsibility": "Own the approved design, integration constraints, and manifest contract corrections.",
+      "dependencies": [],
+      "acceptance": ["Approved design and implementation plan are committed before production changes."],
+      "consumers": [{ "name": "docs/superpowers", "disposition": "updated", "decision": "Record the approved design and executable plan before production edits." }],
+      "enforcement": { "layer": "documentation", "rejectedSimplerAlternatives": ["Untracked conversational routing"] },
+      "rollback": "Revert only the planning documentation commit if the implementation is abandoned."
+    },
+    {
+      "id": "luna-read-only-inventory",
+      "role": "inventory",
+      "model": "luna",
+      "thinking": "medium",
+      "threadId": "019f54f5-eaaf-74d0-9901-77673361c3a9",
+      "owner": "019f54f5-eaaf-74d0-9901-77673361c3a9",
+      "responsibility": "Supply the approved read-only current-state inventory; it owns no files.",
+      "dependencies": ["sol-planning-integration"],
+      "acceptance": ["The supplied read-only inventory is reflected in the approved design and regression scope."],
+      "consumers": [{ "name": "apps/api/tools/architecture-validator", "disposition": "checked", "decision": "Preserve fail-closed exception, intent, diff, diagnostic, and rule guarantees." }],
+      "enforcement": { "layer": "documentation", "rejectedSimplerAlternatives": ["Ad hoc source exploration"] },
+      "rollback": "No tracked repository change belongs to the inventory role."
+    },
+    {
+      "id": "terra-implementation",
+      "role": "implementation",
+      "model": "terra",
+      "thinking": "high",
+      "threadId": "019f54fa-a2de-79b1-b4b1-c22c3630f176",
+      "owner": "019f54fa-a2de-79b1-b4b1-c22c3630f176",
+      "responsibility": "Implement and verify every tracked change in the Terra thread without using internal agents as routing evidence.",
+      "dependencies": ["sol-planning-integration", "luna-read-only-inventory"],
+      "acceptance": ["Manifest, canonical syntax, catalog, lifecycle, and consumer checks pass their recorded GREEN commands."],
+      "consumers": [
+        { "name": "scripts/harness/validate-all.sh", "disposition": "updated", "decision": "Compose manifest validation with existing harness gates." },
+        { "name": ".github/workflows/harness.yml", "disposition": "updated", "decision": "Validate PR evidence and changed manifest in Harness CI." },
+        { "name": ".github/workflows/test-api.yml", "disposition": "updated", "decision": "Run deterministic image generation twice and keep API gate coverage." },
+        { "name": "apps/api/tools/xtask", "disposition": "updated", "decision": "Expose deterministic image-catalog generate and verify commands." }
+      ],
+      "enforcement": { "layer": "schema", "rejectedSimplerAlternatives": ["Archival prose without machine validation", "Semantic compiler emulation"] },
+      "rollback": "Revert Terra implementation milestones as a coherent set."
+    },
+    {
+      "id": "sol-independent-final-review",
+      "role": "final-review",
+      "model": "sol",
+      "thinking": "medium",
+      "threadId": "019f54f9-cd15-72a2-8d04-b0cad89b700b",
+      "owner": "019f54f9-cd15-72a2-8d04-b0cad89b700b",
+      "responsibility": "Independently review the frozen Terra head only; own no files and do not create a post-review manifest commit.",
+      "dependencies": ["terra-implementation"],
+      "independentOf": "terra-implementation",
+      "evidence": { "channel": "pr-body-or-ci", "required": ["headSha", "approval"] },
+      "acceptance": ["Independent Sol result is recorded in PR body or CI evidence against the exact frozen head SHA."],
+      "consumers": [{ "name": "pull request body", "disposition": "updated", "decision": "Store exact SHA approval externally so prose-only edits rerun validation without invalidating a matching approval." }],
+      "enforcement": { "layer": "ci", "rejectedSimplerAlternatives": ["Trusting a review without SHA binding"] },
+      "rollback": "A changed head creates a new freeze and independent review; never mutate the frozen manifest after review."
+    }
+  ],
+  "milestones": [
+    {
+      "name": "manifest-red",
+      "state": "red",
+      "commands": ["node --test scripts/development/tests/validate-change-manifest.test.mjs"],
+      "result": "RED observed: the audit-expanded suite failed because the prior implementation selected historical manifests and did not execute the schema."
+    },
+    {
+      "name": "manifest-green",
+      "state": "green",
+      "commands": [
+        "node --test scripts/development/tests/validate-change-manifest.test.mjs",
+        "bash scripts/harness/harness.test.sh",
+        "bash scripts/development/validate-change-manifest.sh"
+      ],
+      "result": "GREEN: schema is executed, stored-history and PR-diff modes are distinct, ownership is segment-aware, and PR marker evidence is deterministic."
+    }
+  ]
+}

@@ -31,7 +31,14 @@ pub fn validate_testcontainers_source(
         .map_err(|error| ImagePolicyError(format!("cannot parse {path}: {error}")))?;
     let mut findings = Findings::default();
     let exports = build_export_index(&syntax.items);
-    analyze_module(&syntax.items, &[], &[], &exports, &mut findings);
+    analyze_module(
+        &syntax.items,
+        &[],
+        &[],
+        &exports,
+        is_production_source(path),
+        &mut findings,
+    );
 
     if !factory {
         if findings.references == 0 && findings.macro_escapes == 0 {
@@ -94,6 +101,7 @@ pub fn validate_testcontainers_source_set(
                 &[],
                 &source_module_components(path),
                 &exports,
+                is_production_source(path),
                 &mut findings,
             );
             let factory = *path == "tools/harness-runtime/src/images.rs";
@@ -152,6 +160,7 @@ fn analyze_module(
     parents: &[ScopeSymbols],
     module_path: &[String],
     exports: &ExportIndex,
+    production: bool,
     findings: &mut Findings,
 ) {
     let symbols = resolve_symbols(
@@ -166,6 +175,7 @@ fn analyze_module(
         parents,
         module_path,
         exports,
+        production,
         findings,
     };
     for item in items {
@@ -181,6 +191,7 @@ fn analyze_module(
                         &nested_parents,
                         &nested_path,
                         exports,
+                        production,
                         visitor.findings,
                     );
                 }
@@ -578,6 +589,7 @@ struct ScopeVisitor<'a> {
     parents: &'a [ScopeSymbols],
     module_path: &'a [String],
     exports: &'a ExportIndex,
+    production: bool,
     findings: &'a mut Findings,
 }
 
@@ -622,6 +634,7 @@ impl Visit<'_> for ScopeVisitor<'_> {
             parents: self.parents,
             module_path: self.module_path,
             exports: self.exports,
+            production: self.production,
             findings: self.findings,
         };
         for statement in &block.stmts {
@@ -662,7 +675,8 @@ impl Visit<'_> for ScopeVisitor<'_> {
     }
 
     fn visit_item_macro(&mut self, item: &ItemMacro) {
-        if unsafe_macro_definition(&item.mac.tokens)
+        if (self.production && item.mac.path.is_ident("include"))
+            || unsafe_macro_definition(&item.mac.tokens)
             || macro_constructor_tokens(
                 &item.mac.tokens,
                 self.symbols,
@@ -675,17 +689,25 @@ impl Visit<'_> for ScopeVisitor<'_> {
     }
 
     fn visit_expr_macro(&mut self, expression: &syn::ExprMacro) {
-        if macro_constructor_tokens(
-            &expression.mac.tokens,
-            self.symbols,
-            self.module_path,
-            self.exports,
-        ) {
+        if (self.production && expression.mac.path.is_ident("include"))
+            || macro_constructor_tokens(
+                &expression.mac.tokens,
+                self.symbols,
+                self.module_path,
+                self.exports,
+            )
+        {
             self.findings.macro_escapes += 1;
         }
     }
 
     fn visit_item_mod(&mut self, _module: &syn::ItemMod) {}
+}
+
+fn is_production_source(path: &str) -> bool {
+    !["/tests/", "/examples/", "/benches/"]
+        .iter()
+        .any(|part| path.contains(part))
 }
 
 fn constructor_path(

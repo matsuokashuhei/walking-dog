@@ -397,3 +397,40 @@ fn macro_arguments_with_local_exports_are_clean() {
     ];
     validate_testcontainers_source_set(&sources).expect("local macro argument is noncanonical");
 }
+
+#[test]
+fn production_rust_includes_fail_closed() {
+    for source in [
+        "include!(\"generated.inc\");",
+        "include!(\"generated.rs\");",
+        "include!(concat!(env!(\"OUT_DIR\"), \"/generated.rs\"));",
+    ] {
+        assert!(validate_testcontainers_source("crates/domain/src/lib.rs", source, false).is_err());
+    }
+
+    let sources = [
+        ("crates/domain/src/lib.rs", "include!(\"generated.inc\");"),
+        (
+            "crates/domain/src/generated.inc",
+            "testcontainers::GenericImage::new(\"redis\", \"7\");",
+        ),
+    ];
+    assert!(validate_testcontainers_source_set(&sources).is_err());
+}
+
+#[test]
+fn non_rust_includes_and_text_are_clean() {
+    for source in [
+        "const BYTES: &[u8] = include_bytes!(\"fixture.bin\");",
+        "const TEXT: &str = \"include!(\\\"generated.rs\\\")\"; // include!(\"ignored.rs\")",
+    ] {
+        validate_testcontainers_source("crates/domain/src/lib.rs", source, false)
+            .expect("non-token include content is harmless");
+    }
+    validate_testcontainers_source(
+        "crates/domain/tests/fixture.rs",
+        "include!(\"test_support.rs\");",
+        false,
+    )
+    .expect("non-production test target may include Rust support");
+}

@@ -77,3 +77,20 @@ fn workspace_matches_the_api_kernel() {
         );
     }
 }
+
+#[test]
+fn workspace_clippy_policy_owns_production_unwrap_and_expect_guarantees() {
+    let root = api_root();
+    let workspace = fs::read_to_string(root.join("Cargo.toml")).expect("read workspace manifest");
+    assert!(workspace.contains("unwrap_used = \"deny\""));
+    assert!(workspace.contains("expect_used = \"deny\""));
+
+    for member in EXPECTED_MEMBERS {
+        let manifest = fs::read_to_string(root.join(member).join("Cargo.toml"))
+            .expect("read workspace member manifest");
+        assert!(
+            manifest.contains("[lints]\nworkspace = true"),
+            "workspace Clippy policy must cover production member {member}"
+        );
+    }
+}

@@ -28,3 +28,5 @@ unsafe_code = "forbid"
 [workspace.lints.clippy]
 all = "deny"
 pedantic = "deny"
+unwrap_used = "deny"
+expect_used = "deny"

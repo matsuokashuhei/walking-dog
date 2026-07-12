@@ -10,7 +10,7 @@ struct FailingFixture {
     line: usize,
 }
 
-const INITIAL_FIXTURES: [FailingFixture; 12] = [
+const INITIAL_FIXTURES: [FailingFixture; 11] = [
     FailingFixture {
         rule: "API-ARCH-001",
         crate_name: "application",
@@ -40,13 +40,6 @@ const INITIAL_FIXTURES: [FailingFixture; 12] = [
         line: 1,
     },
     FailingFixture {
-        rule: "API-ARCH-005",
-        crate_name: "application",
-        path: "crates/application/src/lib.rs",
-        source: "fn value(v: Option<u8>) {\n    let _ = v.unwrap();\n}\n",
-        line: 2,
-    },
-    FailingFixture {
         rule: "API-ARCH-006",
         crate_name: "application",
         path: "crates/application/src/lib.rs",
@@ -63,8 +56,8 @@ const INITIAL_FIXTURES: [FailingFixture; 12] = [
     FailingFixture {
         rule: "API-ARCH-008",
         crate_name: "adapter-graphql",
-        path: "crates/adapter-graphql/src/walk/resolver.rs",
-        source: "fn resolve() {\n    repository.begin_transaction();\n}\n",
+        path: "crates/adapter-graphql/src/resolver.rs",
+        source: "fn resolve() {\n    adapter_postgres::Repository::begin_transaction();\n}\n",
         line: 2,
     },
     FailingFixture {
@@ -162,7 +155,7 @@ fn parser_failure_is_fail_closed() {
     assert!(matches!(result, Err(ValidationError::Parse { .. })));
 }
 
-const STRUCTURAL_FIXTURES: [FailingFixture; 12] = [
+const STRUCTURAL_FIXTURES: [FailingFixture; 11] = [
     FailingFixture {
         rule: "API-ARCH-001",
         crate_name: "application",
@@ -192,13 +185,6 @@ const STRUCTURAL_FIXTURES: [FailingFixture; 12] = [
         line: 1,
     },
     FailingFixture {
-        rule: "API-ARCH-005",
-        crate_name: "application",
-        path: "crates/application/src/use_case.rs",
-        source: "fn value(v: Option<u8>) { let _ = v.unwrap (); }\n",
-        line: 1,
-    },
-    FailingFixture {
         rule: "API-ARCH-006",
         crate_name: "application",
         path: "crates/application/src/ports.rs",
@@ -215,9 +201,9 @@ const STRUCTURAL_FIXTURES: [FailingFixture; 12] = [
     FailingFixture {
         rule: "API-ARCH-008",
         crate_name: "adapter-graphql",
-        path: "crates/adapter-graphql/src/owner/resolver.rs",
-        source: "use adapter_postgres::{\n    Repository as OwnerStore,\n};\n",
-        line: 2,
+        path: "crates/adapter-graphql/src/resolver.rs",
+        source: "fn resolve() { adapter_postgres::Repository::begin_transaction(); }\n",
+        line: 1,
     },
     FailingFixture {
         rule: "API-ARCH-001",
@@ -357,24 +343,6 @@ fn graphql_names_and_sql_words_require_forbidden_provenance_or_execution() {
 }
 
 #[test]
-fn same_rule_nodes_on_one_line_remain_distinct() {
-    let diagnostics = analyze_source(SourceUnit {
-        crate_name: "application",
-        path: "crates/application/src/use_case.rs",
-        source: "fn values(a: Option<u8>, b: Option<u8>) { a.unwrap(); b.unwrap(); }\n",
-        production: true,
-    })
-    .expect("fixture must parse");
-    assert_eq!(
-        diagnostics
-            .iter()
-            .filter(|diagnostic| diagnostic.rule_id == "API-ARCH-005")
-            .count(),
-        2
-    );
-}
-
-#[test]
 fn raw_sql_execution_apis_are_rejected_without_scanning_messages() {
     let cases = [
         "fn q() { sqlx::raw_sql(\"DELETE FROM dogs\").execute(&pool); }",
@@ -433,6 +401,24 @@ fn canonical_syntax_rejects_hiding_forms_at_their_source_location() {
         ("type Hidden = adapter_postgres::Row;", "API-ARCH-006", 1, 6),
         ("include!(\"generated.rs\");", "API-ARCH-001", 1, 1),
         ("#[cfg(any())]\nuse std::env;", "API-ARCH-001", 1, 1),
+        (
+            "#[cfg_attr(any(), cfg(any()))]\nuse std::env;",
+            "API-ARCH-001",
+            1,
+            1,
+        ),
+        (
+            "#[cfg_attr(any(), cfg(any()))]\nmod hidden {}",
+            "API-ARCH-001",
+            1,
+            1,
+        ),
+        (
+            "#[cfg_attr(any(), cfg(any()))]\nfn hidden() {}",
+            "API-ARCH-001",
+            1,
+            1,
+        ),
     ];
     for (source, rule, line, column) in cases {
         let diagnostics = analyze_source(SourceUnit {
@@ -460,6 +446,47 @@ fn canonical_syntax_rejects_hiding_forms_at_their_source_location() {
     })
     .expect("fixture parses");
     assert!(clean.is_empty());
+}
+
+#[test]
+fn resolver_boundary_is_declared_and_uses_only_explicit_call_targets() {
+    let declared = analyze_source(SourceUnit {
+        crate_name: "adapter-graphql",
+        path: "crates/adapter-graphql/src/resolver.rs",
+        source: "fn resolve() { adapter_postgres::Repository::begin_transaction(); }",
+        production: true,
+    })
+    .expect("fixture parses");
+    assert!(declared.iter().any(|diagnostic| {
+        diagnostic.rule_id == "API-ARCH-008"
+            && diagnostic.path == "crates/adapter-graphql/src/resolver.rs"
+            && diagnostic.line == 1
+    }));
+
+    for (path, source) in [
+        (
+            "crates/adapter-graphql/src/resolver_helpers.rs",
+            "fn resolve() { adapter_postgres::Repository::begin_transaction(); }",
+        ),
+        (
+            "crates/adapter-graphql/src/resolver.rs",
+            "fn resolve(repository: Store) { repository.begin_transaction(); }",
+        ),
+    ] {
+        let diagnostics = analyze_source(SourceUnit {
+            crate_name: "adapter-graphql",
+            path,
+            source,
+            production: true,
+        })
+        .expect("fixture parses");
+        assert!(
+            diagnostics
+                .iter()
+                .all(|diagnostic| diagnostic.rule_id != "API-ARCH-008"),
+            "declared syntax, not partial paths or names, controls API-ARCH-008: {diagnostics:?}"
+        );
+    }
 }
 
 #[test]

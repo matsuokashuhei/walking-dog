@@ -1,1 +1,29 @@
 version = 1
+
+[[exception]]
+id = "API-EXC-0001"
+rule = "API-ARCH-001"
+crate = "api-bootstrap"
+file = "crates/api-bootstrap/src/shutdown.rs"
+symbol = "cfg"
+fingerprint = "sha256:d7d15e4f015afe748d5421e7ddf56e3d335d7035fa48844bbd770e004f6161d6"
+owner = "github:matsuokashuhei"
+created_on = "2026-07-13"
+expires_on = "2026-08-12"
+removal_issue = "https://github.com/matsuokashuhei/walking-dog/issues/380"
+adr = "docs/adr/0003-platform-signal-conditional-compilation.md"
+justification = "The Unix SIGTERM handler preserves graceful container shutdown while the portable signal boundary is redesigned."
+
+[[exception]]
+id = "API-EXC-0002"
+rule = "API-ARCH-001"
+crate = "api-bootstrap"
+file = "crates/api-bootstrap/src/shutdown.rs"
+symbol = "cfg"
+fingerprint = "sha256:c191f22e29dfd0545d2f1956e2cfe65ef95b5962be2bca62d042733243eca570"
+owner = "github:matsuokashuhei"
+created_on = "2026-07-13"
+expires_on = "2026-08-12"
+removal_issue = "https://github.com/matsuokashuhei/walking-dog/issues/380"
+adr = "docs/adr/0004-non-unix-signal-fallback.md"
+justification = "The non-Unix fallback keeps the public shutdown API portable until the signal boundary no longer needs conditional compilation."

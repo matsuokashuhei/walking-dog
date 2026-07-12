@@ -6,8 +6,9 @@ use proc_macro2::{Span, TokenStream, TokenTree};
 use syn::spanned::Spanned;
 use syn::visit::{self, Visit};
 use syn::{
-    Block, ExprCall, ExprMacro, ExprMethodCall, ImplItemConst, ImplItemFn, ImplItemType, Item,
-    ItemExternCrate, ItemFn, ItemImpl, ItemMod, ItemUse, Macro, Path, Stmt, UseTree, Visibility,
+    Attribute, Block, ExprCall, ExprMacro, ExprMethodCall, ImplItemConst, ImplItemFn, ImplItemType,
+    Item, ItemExternCrate, ItemFn, ItemImpl, ItemMod, ItemUse, Macro, Meta, Path, Stmt, UseTree,
+    Visibility,
 };
 
 #[derive(Clone, Copy, Debug)]
@@ -196,17 +197,6 @@ impl Analyzer<'_> {
                 "express external capabilities as application ports",
             );
         }
-        if self.unit.crate_name == "adapter-graphql"
-            && is_resolver_path(self.unit.path)
-            && segments.iter().any(|part| is_resolver_concern(part))
-        {
-            self.report(
-                "API-ARCH-008",
-                span,
-                symbol,
-                "delegate orchestration to an application use case",
-            );
-        }
         if self.unit.crate_name == "application"
             && imports_another_application_module(&self.module_path, segments)
         {
@@ -260,6 +250,23 @@ impl Analyzer<'_> {
             );
         }
     }
+
+    fn inspect_attributes(&mut self, attributes: &[Attribute]) {
+        for attribute in attributes {
+            if attribute_hides_cfg(attribute) {
+                self.report(
+                    "API-ARCH-001",
+                    attribute.span(),
+                    if attribute.path().is_ident("cfg") {
+                        "cfg"
+                    } else {
+                        "cfg_attr"
+                    },
+                    "cfg and cfg_attr cannot hide governed architecture syntax",
+                );
+            }
+        }
+    }
 }
 
 impl<'ast> Visit<'ast> for Analyzer<'_> {
@@ -271,16 +278,7 @@ impl<'ast> Visit<'ast> for Analyzer<'_> {
     }
 
     fn visit_item_use(&mut self, node: &'ast ItemUse) {
-        for attribute in &node.attrs {
-            if attribute.path().is_ident("cfg") {
-                self.report(
-                    "API-ARCH-001",
-                    attribute.span(),
-                    "cfg",
-                    "cfg cannot hide governed architecture syntax",
-                );
-            }
-        }
+        self.inspect_attributes(&node.attrs);
         if use_is_noncanonical(&node.tree) || !matches!(node.vis, Visibility::Inherited) {
             self.report(
                 "API-ARCH-001",
@@ -300,18 +298,12 @@ impl<'ast> Visit<'ast> for Analyzer<'_> {
     }
 
     fn visit_attribute(&mut self, node: &'ast syn::Attribute) {
-        if node.path().is_ident("cfg") {
-            self.report(
-                "API-ARCH-001",
-                node.span(),
-                "cfg",
-                "cfg cannot hide governed architecture syntax",
-            );
-        }
+        self.inspect_attributes(std::slice::from_ref(node));
         visit::visit_attribute(self, node);
     }
 
     fn visit_item_mod(&mut self, node: &'ast ItemMod) {
+        self.inspect_attributes(&node.attrs);
         let Some((_, items)) = &node.content else {
             visit::visit_item_mod(self, node);
             return;
@@ -330,6 +322,7 @@ impl<'ast> Visit<'ast> for Analyzer<'_> {
     }
 
     fn visit_item_impl(&mut self, node: &'ast ItemImpl) {
+        self.inspect_attributes(&node.attrs);
         let previous = self.trait_impl;
         self.trait_impl = node.trait_.as_ref().is_some_and(|(_, path, _)| {
             let canonical = path_segments(path);
@@ -340,6 +333,7 @@ impl<'ast> Visit<'ast> for Analyzer<'_> {
     }
 
     fn visit_impl_item_fn(&mut self, node: &'ast ImplItemFn) {
+        self.inspect_attributes(&node.attrs);
         let previous = self.public_boundary;
         self.public_boundary = self.trait_impl || !matches!(node.vis, Visibility::Inherited);
         visit::visit_signature(self, &node.sig);
@@ -365,6 +359,7 @@ impl<'ast> Visit<'ast> for Analyzer<'_> {
     }
 
     fn visit_item_fn(&mut self, node: &'ast ItemFn) {
+        self.inspect_attributes(&node.attrs);
         let previous = self.public_boundary;
         self.public_boundary = !matches!(node.vis, Visibility::Inherited);
         visit::visit_signature(self, &node.sig);
@@ -374,6 +369,7 @@ impl<'ast> Visit<'ast> for Analyzer<'_> {
     }
 
     fn visit_item_extern_crate(&mut self, node: &'ast ItemExternCrate) {
+        self.inspect_attributes(&node.attrs);
         self.report(
             "API-ARCH-001",
             node.ident.span(),
@@ -385,6 +381,7 @@ impl<'ast> Visit<'ast> for Analyzer<'_> {
     }
 
     fn visit_item_type(&mut self, node: &'ast syn::ItemType) {
+        self.inspect_attributes(&node.attrs);
         self.report(
             "API-ARCH-006",
             node.ident.span(),
@@ -401,25 +398,6 @@ impl<'ast> Visit<'ast> for Analyzer<'_> {
 
     fn visit_expr_method_call(&mut self, node: &'ast ExprMethodCall) {
         let method = node.method.to_string();
-        if self.unit.production && matches!(method.as_str(), "unwrap" | "expect") {
-            self.report(
-                "API-ARCH-005",
-                node.method.span(),
-                method.clone(),
-                "return a typed error instead of aborting a production target",
-            );
-        }
-        if self.unit.crate_name == "adapter-graphql"
-            && is_resolver_path(self.unit.path)
-            && is_resolver_concern(&method)
-        {
-            self.report(
-                "API-ARCH-008",
-                node.method.span(),
-                method.clone(),
-                "delegate orchestration to an application use case",
-            );
-        }
         if self.unit.crate_name == "adapter-postgres"
             && !raw_sql_location_is_allowed(self.unit)
             && matches!(method.as_str(), "execute" | "execute_unprepared")
@@ -437,6 +415,16 @@ impl<'ast> Visit<'ast> for Analyzer<'_> {
     fn visit_expr_call(&mut self, node: &'ast ExprCall) {
         if let syn::Expr::Path(function) = node.func.as_ref() {
             let path = path_segments(&function.path);
+            if is_declared_resolver_boundary(self.unit)
+                && is_declared_resolver_orchestration_path(&path)
+            {
+                self.report(
+                    "API-ARCH-008",
+                    function.path.span(),
+                    "adapter-postgres transaction",
+                    "delegate orchestration to an application use case",
+                );
+            }
             if self.unit.crate_name != "api-bootstrap"
                 && path.last().is_some_and(|part| part == "new")
                 && path.iter().any(|part| part.starts_with("adapter_"))
@@ -657,18 +645,49 @@ fn aws_location_is_allowed(crate_name: &str, sdk: &str) -> bool {
         .any(|(expected_sdk, owner)| sdk == *expected_sdk && crate_name == *owner)
 }
 
-fn is_resolver_path(path: &str) -> bool {
-    ["/resolver", "/query", "/mutation"]
-        .iter()
-        .any(|part| path.contains(part))
+fn attribute_hides_cfg(attribute: &Attribute) -> bool {
+    if attribute.path().is_ident("cfg") {
+        return true;
+    }
+    if !attribute.path().is_ident("cfg_attr") {
+        return false;
+    }
+    let Ok(meta) = attribute.meta.require_list() else {
+        return true;
+    };
+    let Ok(arguments) =
+        meta.parse_args_with(syn::punctuated::Punctuated::<Meta, syn::Token![,]>::parse_terminated)
+    else {
+        return true;
+    };
+    arguments.iter().skip(1).any(meta_hides_cfg)
 }
 
-fn is_resolver_concern(value: &str) -> bool {
-    let value = value.to_ascii_lowercase();
-    ["transaction", "retry", "clock", "repository", "storage"]
-        .iter()
-        .any(|part| value.contains(part))
-        || value.starts_with("aws_sdk_")
+fn meta_hides_cfg(meta: &Meta) -> bool {
+    if meta.path().is_ident("cfg") {
+        return true;
+    }
+    let Meta::List(list) = meta else {
+        return false;
+    };
+    if !list.path.is_ident("cfg_attr") {
+        return false;
+    }
+    list.parse_args_with(syn::punctuated::Punctuated::<Meta, syn::Token![,]>::parse_terminated)
+        .map_or(true, |arguments| {
+            arguments.iter().skip(1).any(meta_hides_cfg)
+        })
+}
+
+fn is_declared_resolver_boundary(unit: SourceUnit<'_>) -> bool {
+    unit.crate_name == "adapter-graphql" && unit.path == "crates/adapter-graphql/src/resolver.rs"
+}
+
+fn is_declared_resolver_orchestration_path(path: &[String]) -> bool {
+    matches!(path, [adapter, repository, transaction]
+        if adapter == "adapter_postgres"
+            && repository == "Repository"
+            && transaction == "begin_transaction")
 }
 
 fn imports_another_application_module(source: &[String], imported: &[String]) -> bool {

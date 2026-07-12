@@ -46,7 +46,7 @@ function loadExactlyOneChangedManifest(root, changedPaths) {
   const manifests = changedPaths.filter(isManifestPath);
   if (manifests.length !== 1) throw new Error(`expected exactly one changed manifest, found ${manifests.length}`);
   const path = join(root, manifests[0]);
-  if (!existsSync(path)) throw new Error(`change manifest schema error: changed manifest is absent: ${manifests[0]}`);
+  if (!existsSync(path)) throw new Error(`changed manifest was deleted: ${manifests[0]}`);
   try {
     return { manifest: JSON.parse(readFileSync(path, "utf8")), path: manifests[0] };
   } catch (error) {
@@ -180,7 +180,7 @@ function validateEvidence(prEvidence, currentHead, { manifest, path }) {
 }
 
 function changedPaths(root, base, head) {
-  const output = execFileSync("git", ["diff", "--name-only", "--diff-filter=ACMR", `${base}...${head}`], { cwd: root, encoding: "utf8" });
+  const output = execFileSync("git", ["diff", "--name-only", "--diff-filter=ACMRD", `${base}...${head}`], { cwd: root, encoding: "utf8" });
   return output.split("\n").filter(Boolean);
 }
 

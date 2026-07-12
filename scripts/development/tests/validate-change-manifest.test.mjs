@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -131,6 +132,33 @@ async function rejectsFixture(t, options, expression) {
   await assert.rejects(validateChangeManifest(value), expression);
 }
 
+function git(root, args) {
+  return execFileSync("git", args, { cwd: root, encoding: "utf8" }).trim();
+}
+
+function commit(root, message) {
+  git(root, ["add", "."]);
+  git(root, ["-c", "user.email=tests@example.invalid", "-c", "user.name=Manifest tests", "commit", "-m", message]);
+}
+
+function validatePrDiff(root, base) {
+  return execFileSync(
+    process.execPath,
+    [new URL("../validate-change-manifest.mjs", import.meta.url).pathname, "--base", base, "--head", "HEAD"],
+    { cwd: root, encoding: "utf8", stdio: "pipe" },
+  );
+}
+
+function changedManifest() {
+  return {
+    ...validManifest(),
+    change: {
+      ...validManifest().change,
+      singleResponsibility: "Record deleted paths in ownership validation.",
+    },
+  };
+}
+
 test("selects exactly one changed manifest while permitting historical manifests", async (t) => {
   const valid = await fixture({ manifests: [
     { path: historicalPath, value: validManifest({ change: { ...validManifest().change, slug: "historical-change" } }) },
@@ -147,6 +175,53 @@ test("selects exactly one changed manifest while permitting historical manifests
     ],
     changedPaths: [manifestPath, historicalPath, "scripts/development/example.mjs"],
   }, /exactly one changed manifest/i);
+});
+
+test("PR diff includes deleted paths in ownership checks", async (t) => {
+  const value = await fixture();
+  t.after(() => rm(value.root, { recursive: true }));
+  const unowned = join(value.root, "apps", "api", "src", "deleted.rs");
+  await mkdir(join(unowned, ".."), { recursive: true });
+  await writeFile(unowned, "pub struct Deleted;\n");
+  git(value.root, ["init"]);
+  commit(value.root, "base");
+  const base = git(value.root, ["rev-parse", "HEAD"]);
+
+  await writeFile(join(value.root, manifestPath), JSON.stringify(changedManifest()));
+  await rm(unowned);
+  commit(value.root, "delete unowned source");
+
+  assert.throws(
+    () => validatePrDiff(value.root, base),
+    /unowned changed path: apps\/api\/src\/deleted\.rs/i,
+  );
+});
+
+test("PR diff permits an owned deletion but rejects a deleted manifest fail closed", async (t) => {
+  const owned = await fixture();
+  t.after(() => rm(owned.root, { recursive: true }));
+  const deletedOwnedPath = join(owned.root, "scripts", "development", "deleted.mjs");
+  await mkdir(join(deletedOwnedPath, ".."), { recursive: true });
+  await writeFile(deletedOwnedPath, "export {};\n");
+  git(owned.root, ["init"]);
+  commit(owned.root, "base");
+  const ownedBase = git(owned.root, ["rev-parse", "HEAD"]);
+  await writeFile(join(owned.root, manifestPath), JSON.stringify(changedManifest()));
+  await rm(deletedOwnedPath);
+  commit(owned.root, "delete owned source");
+  assert.doesNotThrow(() => validatePrDiff(owned.root, ownedBase));
+
+  const deletedManifest = await fixture();
+  t.after(() => rm(deletedManifest.root, { recursive: true }));
+  git(deletedManifest.root, ["init"]);
+  commit(deletedManifest.root, "base");
+  const manifestBase = git(deletedManifest.root, ["rev-parse", "HEAD"]);
+  await rm(join(deletedManifest.root, manifestPath));
+  commit(deletedManifest.root, "delete manifest");
+  assert.throws(
+    () => validatePrDiff(deletedManifest.root, manifestBase),
+    /changed manifest was deleted/i,
+  );
 });
 
 test("rejects schema-invalid manifest and every required empty field", async (t) => {

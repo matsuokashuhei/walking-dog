@@ -93,25 +93,34 @@ impl WriterLock {
             file: Some(file),
             release_attempted: false,
         };
-        let initialization =
-            if std::env::var("XTASK_TEST_LOCK_INIT_FAILURE").as_deref() == Ok("write") {
-                Err("injected lock initialization write failure".into())
-            } else if let Err(error) = writeln!(
-                guard.file.as_mut().expect("lock file"),
-                "pid={}",
-                std::process::id()
-            ) {
-                Err(format!("lock initialization write failed: {error}"))
+        let initialization = if std::env::var("XTASK_TEST_LOCK_INIT_FAILURE").as_deref()
+            == Ok("write")
+        {
+            Err("injected lock initialization write failure".into())
+        } else {
+            let write = guard
+                .file
+                .as_mut()
+                .ok_or_else(|| "generated index writer lock lost its file handle".to_owned())
+                .and_then(|file| {
+                    writeln!(file, "pid={}", std::process::id())
+                        .map_err(|error| format!("lock initialization write failed: {error}"))
+                });
+            if let Err(error) = write {
+                Err(error)
             } else if std::env::var("XTASK_TEST_LOCK_INIT_FAILURE").as_deref() == Ok("sync") {
                 Err("injected lock initialization sync failure".into())
             } else {
                 guard
                     .file
                     .as_ref()
-                    .expect("lock file")
-                    .sync_all()
-                    .map_err(|error| format!("lock initialization sync failed: {error}"))
-            };
+                    .ok_or_else(|| "generated index writer lock lost its file handle".to_owned())
+                    .and_then(|file| {
+                        file.sync_all()
+                            .map_err(|error| format!("lock initialization sync failed: {error}"))
+                    })
+            }
+        };
         if let Err(error) = initialization {
             return match guard.release() {
                 Ok(()) => Err(error),

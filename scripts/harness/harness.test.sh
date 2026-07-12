@@ -235,6 +235,8 @@ test_api_architecture_ci_maps_event_revisions_with_full_history() {
   assert_contains "$workflow" 'github.event.before' "push base SHA must be explicit"
   assert_contains "$workflow" 'github.sha' "push head SHA must be explicit"
   assert_contains "$workflow" 'architecture check --base "$ARCHITECTURE_BASE" --head "$ARCHITECTURE_HEAD"' "architecture CI must validate the explicit revision pair"
+  assert_contains "$workflow" 'cargo clippy --workspace --lib --bins --examples --all-features --locked -- -D warnings' "architecture CI must deny unwrap and expect in production targets"
+  assert_contains "$workflow" 'cargo clippy --workspace --tests --all-features --locked -- -D warnings -A clippy::unwrap_used -A clippy::expect_used' "architecture CI must keep tests strict while scoping unwrap and expect to production"
   assert_contains "$workflow" 'cargo test --locked -p architecture-validator --all-targets --all-features' "architecture CI must execute validator fixtures"
   assert_contains "$workflow" 'cargo test --locked -p xtask --all-targets --all-features' "architecture CI must execute journey-generator fixtures"
   assert_contains "$workflow" 'cargo xtask image-catalog generate' "architecture CI must regenerate the closed image catalog"

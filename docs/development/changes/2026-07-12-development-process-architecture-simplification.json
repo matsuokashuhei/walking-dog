@@ -29,6 +29,8 @@
     { "path": "apps/api/tools/harness-runtime/", "task": "terra-implementation" },
     { "path": "apps/api/tools/xtask/", "task": "terra-implementation" },
     { "path": "docs/agents/", "task": "terra-implementation" },
+    { "path": "docs/adr/0003-platform-signal-conditional-compilation.md", "task": "terra-implementation" },
+    { "path": "docs/adr/0004-non-unix-signal-fallback.md", "task": "terra-implementation" },
     { "path": "docs/development/", "task": "terra-implementation" },
     { "path": "docs/harness/lessons-learned.md", "task": "terra-implementation" },
     { "path": "docs/roadmaps/2026-07-11-api-mobile-replacement-implementation-plan.md", "task": "terra-implementation" },
@@ -89,12 +91,16 @@
         { "name": ".vscode/tasks.json", "disposition": "updated", "decision": "Expose image-catalog verification for local editor users." },
         { "name": "apps/api/README.md and docs/runbooks/local-harness.md", "disposition": "updated", "decision": "Document deterministic catalog generation and verification before architecture validation." },
         { "name": "apps/api/Cargo.toml and Cargo.lock", "disposition": "checked", "decision": "Keep catalog dependencies isolated to xtask and the canonical runtime dependency isolated to harness-runtime." },
+        { "name": "scripts/development/validate-change-manifest.mjs", "disposition": "updated", "decision": "Include deleted base/head paths in exact ownership checks and fail closed when the only changed manifest is deleted." },
+        { "name": "apps/api/tools/architecture-validator", "disposition": "updated", "decision": "Reject cfg_attr conditional hiding locally, use an exact declared resolver target instead of path/word inference, and retain only direct raw-SQL AST checks." },
+        { "name": "apps/api/Cargo.toml and .github/workflows/test-api.yml", "disposition": "updated", "decision": "Deny unwrap_used and expect_used for production lib/bin/example targets while retaining strict test linting with only those two test-target exceptions." },
+        { "name": "apps/api/architecture/exceptions.toml and docs/adr", "disposition": "updated", "decision": "Preserve Unix SIGTERM and non-Unix shutdown behavior through two exact 30-day cfg exceptions rather than a broad conditional-compilation allow." },
         { "name": "apps/api/tools/xtask", "disposition": "updated", "decision": "Expose deterministic image-catalog generate and verify commands." },
         { "name": "generated runtime and catalog", "disposition": "checked", "decision": "Verify checked-in generated output against the single fixed template." },
         { "name": "tracked scratch", "disposition": "checked", "decision": "No .superpowers scratch is tracked." },
         { "name": "PR evidence", "disposition": "checked", "decision": "Require one structured marker that binds task identities, test states, Sol result, and final head SHA." }
       ],
-      "enforcement": { "layer": "schema", "rejectedSimplerAlternatives": ["Archival prose without machine validation", "Semantic compiler emulation"] },
+      "enforcement": { "layer": "schema", "rejectedSimplerAlternatives": ["Archival prose without machine validation", "Semantic compiler emulation", "Ignoring deleted diff paths", "Resolver path or vocabulary inference", "Custom unwrap or expect method-name AST", "Broad cfg platform allow"] },
       "rollback": "Revert Terra implementation milestones as a coherent set."
     },
     {
@@ -246,6 +252,24 @@
         "git diff --check; git status --short"
       ],
       "result": "GREEN after correction: self-review found the roadmap split existed only as an appendix while executable headings still grouped PR 2, PR 3, and PR 11. The roadmap body now defines PR 2A/2B/2C, 3A/3B, and 11A/11B with direct interfaces, acceptance, rollback, and dependency order. Process/manifest tests and clean-diff checks passed; independent Sol review remains external and pending on the resulting frozen SHA."
+    },
+    {
+      "name": "independent-sol-important-fixes-green",
+      "state": "green",
+      "commands": [
+        "RED: node --test scripts/development/tests/validate-change-manifest.test.mjs",
+        "RED: Docker cargo test -p architecture-validator --test fixtures --test workspace --locked",
+        "RED: Docker cargo clippy --workspace --all-targets --all-features --locked -- -D warnings",
+        "RED: bash scripts/harness/harness.test.sh",
+        "GREEN: node --test scripts/development/tests/validate-change-manifest.test.mjs",
+        "GREEN: bash scripts/harness/harness.test.sh",
+        "GREEN: Docker cargo test -p architecture-validator --test fixtures --test check --test policy --test workspace --locked",
+        "GREEN: Docker cargo test -p xtask --test journey_generator --locked",
+        "GREEN: Docker cargo fmt --all -- --check",
+        "GREEN: Docker cargo clippy --workspace --lib --bins --examples --all-features --locked -- -D warnings; cargo clippy --workspace --tests --all-features --locked -- -D warnings -A clippy::unwrap_used -A clippy::expect_used",
+        "GREEN: Docker cargo xtask architecture check"
+      ],
+      "result": "Independent Sol Important findings fixed by Terra TDD. RED proved ACMR omitted deletions, deleted manifests had no dedicated failure, cfg_attr and resolver naming/path bypasses passed, workspace Clippy policy was absent, and all-target Clippy found two production xtask expects. GREEN: deletion ownership and deleted-manifest failure are exact; cfg_attr is syntax-local; API-ARCH-008 uses only the declared resolver path plus exact direct adapter-postgres transaction target; API-ARCH-005 is workspace Clippy for production with an explicit test-target scope; xtask lock initialization preserves write/sync failure behavior without expect. Two existing platform cfg branches use exact 30-day fingerprinted exceptions to preserve graceful shutdown and portability."
     }
   ]
 }

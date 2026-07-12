@@ -4,6 +4,8 @@ set -Eeuo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 runtime_image="${1:?usage: verify-production-images.sh <locally-built-runtime-image>}"
 digest="sha256:$(printf 'a%.0s' {1..64})"
+
+"$root/scripts/harness/validate-image-pins.sh"
 compose_fixture="$(mktemp -d)"
 cp "$root/infra/sakura/compose.yml" "$compose_fixture/compose.yml"
 touch "$compose_fixture/.env"

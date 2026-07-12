@@ -253,6 +253,25 @@ test_deploy_image_digest_validation_respects_environment_precedence() {
   assert_contains "$output" "64 lowercase hex" "tag-only image must be rejected"
 }
 
+test_image_pin_validator_rejects_unpinned_and_malformed_references() {
+  local tmpdir output
+  make_tmpdir tmpdir
+  mkdir -p "$tmpdir/apps/api/tools/harness-runtime/src" "$tmpdir/infra/sakura"
+  cp "$repo_root/apps/api/Dockerfile" "$tmpdir/apps/api/Dockerfile"
+  cp "$repo_root/apps/api/tools/harness-runtime/src/lib.rs" "$tmpdir/apps/api/tools/harness-runtime/src/lib.rs"
+  cp "$repo_root/infra/sakura/compose.yml" "$tmpdir/infra/sakura/compose.yml"
+  PIN_ROOT_OVERRIDE="$tmpdir" "$repo_root/scripts/harness/validate-image-pins.sh"
+
+  printf '\nFROM alpine:3\n' >> "$tmpdir/apps/api/Dockerfile"
+  output="$(run_script_expect_status 1 env PIN_ROOT_OVERRIDE="$tmpdir" "$repo_root/scripts/harness/validate-image-pins.sh")"
+  assert_contains "$output" "unpinned Dockerfile FROM" "third unpinned FROM must fail"
+
+  cp "$repo_root/apps/api/Dockerfile" "$tmpdir/apps/api/Dockerfile"
+  sed 's/@sha256:[0-9a-f]\{64\}/@sha256:abc/' "$repo_root/infra/sakura/compose.yml" > "$tmpdir/infra/sakura/compose.yml"
+  output="$(run_script_expect_status 1 env PIN_ROOT_OVERRIDE="$tmpdir" "$repo_root/scripts/harness/validate-image-pins.sh")"
+  assert_contains "$output" "unpinned Compose image" "short Compose digest must fail"
+}
+
 test_harness_has_no_node_scripts_or_invocations() {
   local matches pattern
   matches="$(find "$repo_root/scripts/harness" -maxdepth 1 \( -name '*.mjs' -o -name '*.test.mjs' \) -print)"

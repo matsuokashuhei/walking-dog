@@ -118,8 +118,11 @@ jobs:
         working-directory: apps/mobile
         run: npm ci
       - if: needs.changes.outputs.api == 'true'
+        run: docker build -f apps/api/Dockerfile -t walking-dog-api-kernel:ci apps/api
+      - if: needs.changes.outputs.api == 'true'
         run: |
           scripts/harness/harness.test.sh
           scripts/harness/validate-all.sh
+          scripts/harness/verify-production-images.sh walking-dog-api-kernel:ci
       - if: needs.changes.outputs.api != 'true'
         run: echo 'No API changes; stable check passes.'

@@ -134,3 +134,15 @@ cargo test -p architecture-validator
 ```
 
 Both commands passed in the project Docker toolchain. No line-scanner fallback, exception bypass, warning allow, lockfile, or harness-runtime change is included.
+
+## Final structural follow-up
+
+A third focused TDD cycle closed the remaining review escapes:
+
+- Rust `type` aliases are collected alongside imports at file, inline-module, and block scope; chained aliases preserve adapter and SeaORM provenance.
+- `API-ARCH-011` recognizes `sqlx::raw_sql`, query families, qualified `Executor::execute`, SeaORM `execute_unprepared`/`Statement::from_string`, and method-form raw execution. Ambiguous `.execute(...)` is limited to AST string arguments that begin with SQL statement verbs, so unrelated messages remain clean.
+- Repeated `super::super::...` prefixes are normalized before cross-application-root enforcement.
+- `Diagnostic` persists one-based columns; fingerprints include line and column, human/SARIF output includes the column, and an exact exception suppresses only its selected same-line node.
+- Local private trait implementations are not treated as exported boundaries; public local traits and externally qualified traits remain enforced.
+
+RED evidence included identical same-line fingerprints and scoped type aliases escaping their rules. Final focused fixtures/check tests and strict Clippy passed. No Cargo.lock, harness-runtime, or deployment file is part of this follow-up.

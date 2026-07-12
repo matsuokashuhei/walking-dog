@@ -1,11 +1,67 @@
 use std::fs;
 use std::process::Command;
 
+use architecture_validator::ast::{SourceUnit, analyze_source};
 use architecture_validator::check::{
     OutputFormat, check_workspace, diagnostic_fingerprint, render_diagnostics,
     unsuppressed_diagnostics,
 };
 use architecture_validator::exceptions::ExceptionSet;
+
+#[test]
+fn identical_same_line_nodes_have_distinct_fingerprints() {
+    let diagnostics = analyze_source(SourceUnit {
+        crate_name: "application",
+        path: "crates/application/src/use_case.rs",
+        source: "fn values(a: Option<u8>, b: Option<u8>) { a.unwrap(); b.unwrap(); }",
+        production: true,
+    })
+    .expect("fixture must parse")
+    .into_iter()
+    .filter(|diagnostic| diagnostic.rule_id == "API-ARCH-005")
+    .collect::<Vec<_>>();
+    assert_eq!(diagnostics.len(), 2);
+    assert_ne!(
+        diagnostic_fingerprint("application", &diagnostics[0]),
+        diagnostic_fingerprint("application", &diagnostics[1])
+    );
+}
+
+#[test]
+fn exact_exception_suppresses_only_one_identical_same_line_node() {
+    let diagnostics = analyze_source(SourceUnit {
+        crate_name: "application",
+        path: "crates/application/src/use_case.rs",
+        source: "fn values(a: Option<u8>, b: Option<u8>) { a.unwrap(); b.unwrap(); }",
+        production: true,
+    })
+    .expect("fixture must parse")
+    .into_iter()
+    .filter(|diagnostic| diagnostic.rule_id == "API-ARCH-005")
+    .collect::<Vec<_>>();
+    let fingerprint = diagnostic_fingerprint("application", &diagnostics[0]);
+    let source = format!(
+        r#"version = 1
+[[exception]]
+id = "API-EXC-0001"
+rule = "API-ARCH-005"
+crate = "application"
+file = "crates/application/src/use_case.rs"
+symbol = "unwrap"
+fingerprint = "{fingerprint}"
+owner = "github:matsuokashuhei"
+created_on = "2026-07-11"
+expires_on = "2026-08-10"
+removal_issue = "https://github.com/matsuokashuhei/walking-dog/issues/999"
+adr = "docs/adr/9999-temporary.md"
+justification = "Temporary containment while typed errors are introduced."
+"#
+    );
+    let exceptions = ExceptionSet::parse(&source).expect("exception");
+    let unsuppressed = unsuppressed_diagnostics(&diagnostics, &exceptions).expect("filter");
+    assert_eq!(unsuppressed.len(), 1);
+    assert_eq!(unsuppressed[0].column, diagnostics[1].column);
+}
 
 #[test]
 fn workspace_check_discovers_unreachable_rust_and_reports_complete_human_diagnostic() {
@@ -34,6 +90,7 @@ fn exact_exception_suppresses_only_its_stable_fingerprint() {
         rule_id: "API-ARCH-001",
         path: "crates/domain/src/lib.rs".to_owned(),
         line: 3,
+        column: 5,
         symbol: "std::env::var(\"PORT\")".to_owned(),
         guidance: "inject typed configuration from api-bootstrap",
     };
@@ -80,6 +137,7 @@ fn sarif_output_contains_rule_location_symbol_and_guidance() {
         rule_id: "API-ARCH-001",
         path: "crates/domain/src/lib.rs".to_owned(),
         line: 3,
+        column: 7,
         symbol: "std::env::var".to_owned(),
         guidance: "inject typed configuration from api-bootstrap",
     }];
@@ -91,6 +149,10 @@ fn sarif_output_contains_rule_location_symbol_and_guidance() {
     assert_eq!(
         result["locations"][0]["physicalLocation"]["region"]["startLine"],
         3
+    );
+    assert_eq!(
+        result["locations"][0]["physicalLocation"]["region"]["startColumn"],
+        7
     );
     assert!(
         result["message"]["text"]

@@ -68,6 +68,12 @@ pub fn check_workspace_against(
             ))
         })?;
         let source = fs::read_to_string(&path).map_err(error)?;
+        crate::images::validate_testcontainers_source(
+            &relative,
+            &source,
+            relative == "tools/harness-runtime/src/images.rs",
+        )
+        .map_err(error)?;
         let source_diagnostics = analyze_source(SourceUnit {
             crate_name,
             path: &relative,
@@ -222,8 +228,13 @@ pub fn diagnostic_fingerprint(crate_name: &str, diagnostic: &Diagnostic) -> Stri
         .collect::<Vec<_>>()
         .join(" ");
     let input = format!(
-        "{}\0{}\0{}\0{}",
-        diagnostic.rule_id, crate_name, diagnostic.path, canonical_symbol
+        "{}\0{}\0{}\0{}\0{}\0{}",
+        diagnostic.rule_id,
+        crate_name,
+        diagnostic.path,
+        diagnostic.line,
+        diagnostic.column,
+        canonical_symbol
     );
     format!("sha256:{:x}", Sha256::digest(input.as_bytes()))
 }
@@ -284,10 +295,11 @@ pub fn render_diagnostics(
         OutputFormat::Human => Ok(diagnostics
             .iter()
             .map(|diagnostic| format!(
-                "{} {}:{} symbol `{}`; permitted destination: {}; guidance: {}",
+                "{} {}:{}:{} symbol `{}`; permitted destination: {}; guidance: {}",
                 diagnostic.rule_id,
                 diagnostic.path,
                 diagnostic.line,
+                diagnostic.column,
                 diagnostic.symbol,
                 permitted_destination(diagnostic.rule_id),
                 diagnostic.guidance
@@ -304,7 +316,10 @@ pub fn render_diagnostics(
                     "message": { "text": format!("symbol `{}`; permitted destination: {}; guidance: {}", diagnostic.symbol, permitted_destination(diagnostic.rule_id), diagnostic.guidance) },
                     "locations": [{ "physicalLocation": {
                         "artifactLocation": { "uri": diagnostic.path },
-                        "region": { "startLine": diagnostic.line }
+                        "region": {
+                            "startLine": diagnostic.line,
+                            "startColumn": diagnostic.column
+                        }
                     }}]
                 })).collect::<Vec<_>>()
             }]

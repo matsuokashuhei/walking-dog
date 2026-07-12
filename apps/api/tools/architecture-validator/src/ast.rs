@@ -23,6 +23,7 @@ pub struct Diagnostic {
     pub rule_id: &'static str,
     pub path: String,
     pub line: usize,
+    pub column: usize,
     pub symbol: String,
     pub guidance: &'static str,
 }
@@ -54,6 +55,7 @@ pub fn analyze_source(unit: SourceUnit<'_>) -> Result<Vec<Diagnostic>, Validatio
         message: error.to_string(),
     })?;
     let aliases = collect_item_aliases(&file.items);
+    let local_traits = collect_local_traits(&file.items);
     let mut analyzer = Analyzer {
         unit,
         alias_scopes: vec![aliases],
@@ -61,6 +63,7 @@ pub fn analyze_source(unit: SourceUnit<'_>) -> Result<Vec<Diagnostic>, Validatio
         seen: HashSet::new(),
         public_boundary: false,
         trait_impl: false,
+        local_traits,
     };
     analyzer.visit_file(&file);
     Ok(analyzer.diagnostics)
@@ -73,6 +76,7 @@ struct Analyzer<'a> {
     seen: HashSet<(&'static str, usize, usize, String)>,
     public_boundary: bool,
     trait_impl: bool,
+    local_traits: HashMap<String, bool>,
 }
 
 impl Analyzer<'_> {
@@ -94,6 +98,7 @@ impl Analyzer<'_> {
                 rule_id,
                 path: self.unit.path.to_owned(),
                 line,
+                column: start.column + 1,
                 symbol,
                 guidance,
             });
@@ -269,7 +274,19 @@ impl<'ast> Visit<'ast> for Analyzer<'_> {
 
     fn visit_item_impl(&mut self, node: &'ast ItemImpl) {
         let previous = self.trait_impl;
-        self.trait_impl = node.trait_.is_some();
+        self.trait_impl = node.trait_.as_ref().is_some_and(|(_, path, _)| {
+            let canonical = canonicalize(&path_segments(path), &self.alias_scopes);
+            let root = canonical.first().map(String::as_str).unwrap_or_default();
+            if canonical.len() == 1 || matches!(root, "crate" | "self" | "super") {
+                canonical
+                    .last()
+                    .and_then(|name| self.local_traits.get(name))
+                    .copied()
+                    .unwrap_or(false)
+            } else {
+                true
+            }
+        });
         visit::visit_item_impl(self, node);
         self.trait_impl = previous;
     }
@@ -339,6 +356,17 @@ impl<'ast> Visit<'ast> for Analyzer<'_> {
                 "delegate orchestration to an application use case",
             );
         }
+        if !raw_sql_location_is_allowed(self.unit)
+            && (method == "execute_unprepared"
+                || (method == "execute" && arguments_contain_sql(&node.args)))
+        {
+            self.report(
+                "API-ARCH-011",
+                node.method.span(),
+                "raw SQL execution",
+                "keep raw SQL in classified adapter-postgres query or migration modules",
+            );
+        }
         visit::visit_expr_method_call(self, node);
     }
 
@@ -356,13 +384,14 @@ impl<'ast> Visit<'ast> for Analyzer<'_> {
                     "construct production adapters only in api-bootstrap",
                 );
             }
+            let name = path.last().map(String::as_str).unwrap_or_default();
             if !raw_sql_location_is_allowed(self.unit)
                 && ((path.first().is_some_and(|part| part == "sqlx")
-                    && path.last().is_some_and(|part| part.starts_with("query")))
+                    && (name.starts_with("query")
+                        || name == "raw_sql"
+                        || (name == "execute" && path.iter().any(|part| part == "Executor"))))
                     || (path.first().is_some_and(|part| part == "sea_orm")
-                        && path
-                            .windows(2)
-                            .any(|parts| parts == ["Statement", "from_string"])))
+                        && matches!(name, "from_string" | "execute_unprepared")))
             {
                 self.report(
                     "API-ARCH-011",
@@ -461,10 +490,39 @@ fn collect_item_aliases(items: &[Item]) -> HashMap<String, Vec<String>> {
                     .map_or_else(|| item.ident.to_string(), |(_, ident)| ident.to_string());
                 aliases.insert(alias, vec![item.ident.to_string()]);
             }
+            Item::Type(item) => {
+                if let syn::Type::Path(target) = item.ty.as_ref() {
+                    aliases.insert(item.ident.to_string(), path_segments(&target.path));
+                }
+            }
             _ => {}
         }
     }
     aliases
+}
+
+fn collect_local_traits(items: &[Item]) -> HashMap<String, bool> {
+    fn walk(items: &[Item], traits: &mut HashMap<String, bool>) {
+        for item in items {
+            match item {
+                Item::Trait(item) => {
+                    traits.insert(
+                        item.ident.to_string(),
+                        !matches!(item.vis, Visibility::Inherited),
+                    );
+                }
+                Item::Mod(item) => {
+                    if let Some((_, items)) = &item.content {
+                        walk(items, traits);
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+    let mut traits = HashMap::new();
+    walk(items, &mut traits);
+    traits
 }
 
 fn collect_block_aliases(block: &Block) -> HashMap<String, Vec<String>> {
@@ -537,6 +595,34 @@ fn token_words(tokens: &TokenStream, output: &mut Vec<(Span, String)>) {
     }
 }
 
+fn arguments_contain_sql(
+    arguments: &syn::punctuated::Punctuated<syn::Expr, syn::Token![,]>,
+) -> bool {
+    arguments.iter().any(|argument| {
+        matches!(argument, syn::Expr::Lit(literal) if matches!(&literal.lit, syn::Lit::Str(value) if is_sql_statement(&value.value())))
+    })
+}
+
+fn is_sql_statement(value: &str) -> bool {
+    let first = value
+        .trim_start()
+        .split(|character: char| character.is_whitespace() || character == '(')
+        .next()
+        .unwrap_or_default();
+    matches!(
+        first.to_ascii_lowercase().as_str(),
+        "select"
+            | "insert"
+            | "update"
+            | "delete"
+            | "create"
+            | "alter"
+            | "drop"
+            | "truncate"
+            | "with"
+    )
+}
+
 fn sensitive_token(tokens: &TokenStream) -> Option<(Span, String)> {
     let mut words = Vec::new();
     token_words(tokens, &mut words);
@@ -601,7 +687,11 @@ fn imports_another_application_module(path: &str, imported: &[String]) -> bool {
         .nth(1)
         .and_then(|relative| relative.split('/').next());
     let module = match imported {
-        [root, module, ..] if root == "crate" || root == "super" => Some(module.as_str()),
+        [root, module, ..] if root == "crate" => Some(module.as_str()),
+        [root, rest @ ..] if root == "super" => rest
+            .iter()
+            .find(|part| part.as_str() != "super")
+            .map(String::as_str),
         _ => None,
     };
     module.is_some_and(|module| MODULES.contains(&module) && Some(module) != current)

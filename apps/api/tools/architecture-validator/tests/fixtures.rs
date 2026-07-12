@@ -354,7 +354,7 @@ fn public_impl_members_and_trait_impl_members_are_public_boundaries() {
         SourceUnit {
             crate_name: "application",
             path: "crates/application/src/ports.rs",
-            source: "trait Port { fn save(&self, row: adapter_postgres::Row); }\nstruct Service;\nimpl Port for Service {\n    fn save(&self, row: adapter_postgres::Row) {}\n}\n",
+            source: "pub trait Port { fn save(&self, row: adapter_postgres::Row); }\nstruct Service;\nimpl Port for Service {\n    fn save(&self, row: adapter_postgres::Row) {}\n}\n",
             production: false,
         },
     ];
@@ -471,5 +471,105 @@ fn same_rule_nodes_on_one_line_remain_distinct() {
             .filter(|diagnostic| diagnostic.rule_id == "API-ARCH-005")
             .count(),
         2
+    );
+}
+
+#[test]
+fn scoped_type_aliases_preserve_adapter_and_sql_provenance() {
+    let adapter = analyze_source(SourceUnit {
+        crate_name: "adapter-graphql",
+        path: "crates/adapter-graphql/src/lib.rs",
+        source: "mod wiring {\n    type Store = adapter_postgres::Repository;\n    fn wire() { Store::new(); }\n}\n",
+        production: true,
+    })
+    .expect("fixture must parse");
+    assert!(
+        adapter
+            .iter()
+            .any(|diagnostic| { diagnostic.rule_id == "API-ARCH-009" && diagnostic.line == 3 })
+    );
+
+    let sql = analyze_source(SourceUnit {
+        crate_name: "application",
+        path: "crates/application/src/query.rs",
+        source: "fn query() {\n    type Statement = sea_orm::Statement;\n    type Sql = Statement;\n    Sql::from_string((), \"UPDATE dogs SET name = 'Pochi'\");\n}\n",
+        production: true,
+    })
+    .expect("fixture must parse");
+    assert!(
+        sql.iter()
+            .any(|diagnostic| { diagnostic.rule_id == "API-ARCH-011" && diagnostic.line == 4 })
+    );
+}
+
+#[test]
+fn raw_sql_execution_apis_are_rejected_without_scanning_messages() {
+    let cases = [
+        "fn q() { sqlx::raw_sql(\"DELETE FROM dogs\").execute(&pool); }",
+        "fn q() { sqlx::Executor::execute(&mut connection, \"UPDATE dogs SET name='P'\"); }",
+        "fn q() { connection.execute(\"CREATE TABLE hidden(id INT)\"); }",
+        "fn q() { connection.execute_unprepared(\"ALTER TABLE dogs ADD secret TEXT\"); }",
+        "fn q() { sea_orm::ConnectionTrait::execute_unprepared(&connection, \"DROP TABLE dogs\"); }",
+    ];
+    for source in cases {
+        let diagnostics = analyze_source(SourceUnit {
+            crate_name: "application",
+            path: "crates/application/src/query.rs",
+            source,
+            production: true,
+        })
+        .expect("fixture must parse");
+        assert!(
+            diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.rule_id == "API-ARCH-011"),
+            "raw execution API escaped: {source}"
+        );
+    }
+}
+
+#[test]
+fn repeated_super_paths_cannot_cross_application_roots() {
+    let diagnostics = analyze_source(SourceUnit {
+        crate_name: "application",
+        path: "crates/application/src/owner/nested/update.rs",
+        source: "fn related() -> super::super::dog::Dog { loop {} }\n",
+        production: false,
+    })
+    .expect("fixture must parse");
+    assert!(
+        diagnostics
+            .iter()
+            .any(|diagnostic| { diagnostic.rule_id == "API-ARCH-010" && diagnostic.line == 1 })
+    );
+}
+
+#[test]
+fn private_trait_impl_is_not_a_public_boundary_but_public_trait_impl_is() {
+    let private = analyze_source(SourceUnit {
+        crate_name: "application",
+        path: "crates/application/src/ports.rs",
+        source: "trait PrivatePort { fn row(&self) -> adapter_postgres::Row; }\nstruct Service;\nimpl PrivatePort for Service { fn row(&self) -> adapter_postgres::Row { loop {} } }\n",
+        production: false,
+    })
+    .expect("fixture must parse");
+    assert!(
+        private
+            .iter()
+            .all(|diagnostic| diagnostic.rule_id != "API-ARCH-006"),
+        "private trait implementation is not an exported boundary: {private:?}"
+    );
+
+    let public = analyze_source(SourceUnit {
+        crate_name: "application",
+        path: "crates/application/src/ports.rs",
+        source: "pub trait PublicPort { fn row(&self) -> adapter_postgres::Row; }\npub struct Service;\nimpl PublicPort for Service { fn row(&self) -> adapter_postgres::Row { loop {} } }\n",
+        production: false,
+    })
+    .expect("fixture must parse");
+    assert!(
+        public
+            .iter()
+            .any(|diagnostic| diagnostic.rule_id == "API-ARCH-006" && diagnostic.line == 3)
     );
 }

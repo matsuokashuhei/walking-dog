@@ -52,6 +52,8 @@ jobs:
         run: |
           cargo fmt --all -- --check
           cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+          cargo test --locked -p architecture-validator --all-targets --all-features
+          cargo test --locked -p xtask --all-targets --all-features
           if [[ "$ARCHITECTURE_BASE" =~ ^0+$ ]]; then
             ARCHITECTURE_BASE="$(git rev-parse "$ARCHITECTURE_HEAD^")"
           fi

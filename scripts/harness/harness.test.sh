@@ -214,6 +214,9 @@ test_api_architecture_ci_maps_event_revisions_with_full_history() {
   assert_contains "$workflow" 'github.event.before' "push base SHA must be explicit"
   assert_contains "$workflow" 'github.sha' "push head SHA must be explicit"
   assert_contains "$workflow" 'architecture check --base "$ARCHITECTURE_BASE" --head "$ARCHITECTURE_HEAD"' "architecture CI must validate the explicit revision pair"
+  assert_contains "$workflow" 'cargo test --locked -p architecture-validator --all-targets --all-features' "architecture CI must execute validator fixtures"
+  assert_contains "$workflow" 'cargo test --locked -p xtask --all-targets --all-features' "architecture CI must execute journey-generator fixtures"
+  assert_contains "$workflow" 'verify-production-images.sh walking-dog-api-kernel:ci' "required CI must preserve the production image lifecycle gate"
   assert_contains "$workflow" 'git rev-parse "$ARCHITECTURE_HEAD^"' "initial push must resolve a real parent or fail"
   for path in infra/sakura/compose.yml infra/sakura/deploy.sh infra/sakura/.env.example infra/sakura/README.md; do
     assert_contains "$workflow" "- '$path'" "infra-only change must run required deployment gates: $path"

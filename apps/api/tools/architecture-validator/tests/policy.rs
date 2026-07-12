@@ -1,5 +1,6 @@
 use architecture_validator::policy::{
     DependencyKind, Policy, PolicyError, WorkspaceEdge, validate_edges, validate_metadata,
+    validate_testcontainers_dependency_names,
 };
 use cargo_metadata::MetadataCommand;
 use std::fs;
@@ -107,4 +108,25 @@ fn checked_in_policy_accepts_the_locked_resolved_workspace() {
             .expect("closed workspace registry")
             .is_empty()
     );
+}
+
+#[test]
+fn renamed_testcontainers_dependencies_fail_closed_in_every_dependency_table() {
+    for heading in [
+        "dependencies",
+        "dev-dependencies",
+        "build-dependencies",
+        "target.'cfg(unix)'.dependencies",
+        "workspace.dependencies",
+    ] {
+        let manifest =
+            format!("[{heading}]\ntc = {{ package = \"testcontainers\", version = \"0.23\" }}\n");
+        assert!(validate_testcontainers_dependency_names("Cargo.toml", &manifest).is_err());
+    }
+
+    validate_testcontainers_dependency_names(
+        "Cargo.toml",
+        "[dependencies]\ntestcontainers = \"0.23\"\n",
+    )
+    .expect("canonical dependency key is allowed");
 }

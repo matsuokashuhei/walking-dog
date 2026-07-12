@@ -78,6 +78,50 @@ impl Display for PolicyError {
 
 impl Error for PolicyError {}
 
+/// Rejects Cargo dependency aliases for the canonical `testcontainers` package.
+///
+/// # Errors
+///
+/// Returns an error for malformed manifests or any dependency key other than
+/// `testcontainers` whose table declares `package = "testcontainers"`.
+pub fn validate_testcontainers_dependency_names(
+    path: &str,
+    source: &str,
+) -> Result<(), PolicyError> {
+    let manifest: toml::Value =
+        toml::from_str(source).map_err(|error| PolicyError::Parse(error.to_string()))?;
+    validate_dependency_tables(path, &manifest)
+}
+
+fn validate_dependency_tables(path: &str, value: &toml::Value) -> Result<(), PolicyError> {
+    let Some(table) = value.as_table() else {
+        return Ok(());
+    };
+    for (name, nested) in table {
+        if matches!(
+            name.as_str(),
+            "dependencies" | "dev-dependencies" | "build-dependencies"
+        ) && let Some(dependencies) = nested.as_table()
+        {
+            for (key, dependency) in dependencies {
+                if key != "testcontainers"
+                    && dependency
+                        .as_table()
+                        .and_then(|detail| detail.get("package"))
+                        .and_then(toml::Value::as_str)
+                        == Some("testcontainers")
+                {
+                    return Err(PolicyError::Parse(format!(
+                        "{path}: dependency key {key} aliases package testcontainers"
+                    )));
+                }
+            }
+        }
+        validate_dependency_tables(path, nested)?;
+    }
+    Ok(())
+}
+
 impl Policy {
     /// Parses and validates the closed dependency policy schema.
     ///

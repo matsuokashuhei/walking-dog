@@ -118,6 +118,14 @@ fn validate_repository_files(
         .other_options(vec!["--locked".to_owned(), "--all-features".to_owned()])
         .exec()
         .map_err(error)?;
+    for package in &metadata.packages {
+        let manifest_path = package.manifest_path.as_std_path();
+        crate::policy::validate_testcontainers_dependency_names(
+            &manifest_path.to_string_lossy(),
+            &fs::read_to_string(manifest_path).map_err(error)?,
+        )
+        .map_err(error)?;
+    }
     let edge_diagnostics = validate_metadata(&policy, &metadata).map_err(error)?;
     if !edge_diagnostics.is_empty() {
         return Err(CheckError(format!(

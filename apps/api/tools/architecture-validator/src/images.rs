@@ -44,6 +44,7 @@ pub fn validate_testcontainers_source(
     if findings.references != 1
         || findings.calls.len() != 1
         || findings.macro_escapes != 0
+        || findings.conditional_compilation != 0
         || findings.calls[0] != ("POSTGRES_NAME".to_owned(), "POSTGRES_TAG".to_owned())
     {
         return Err(ImagePolicyError(
@@ -121,6 +122,7 @@ fn validate_findings(
     if findings.references != 1
         || findings.calls.len() != 1
         || findings.macro_escapes != 0
+        || findings.conditional_compilation != 0
         || findings.calls[0] != ("POSTGRES_NAME".to_owned(), "POSTGRES_TAG".to_owned())
     {
         return Err(ImagePolicyError(
@@ -136,6 +138,7 @@ struct Findings {
     references: usize,
     calls: Vec<(String, String)>,
     macro_escapes: usize,
+    conditional_compilation: usize,
 }
 
 #[derive(Clone, Default)]
@@ -171,6 +174,9 @@ fn analyze_module(
     for item in items {
         match item {
             Item::Mod(module) => {
+                for attribute in &module.attrs {
+                    visitor.visit_attribute(attribute);
+                }
                 if let Some((_, nested)) = &module.content {
                     let mut nested_parents = parents.to_vec();
                     nested_parents.push(symbols.clone());
@@ -582,7 +588,17 @@ struct ScopeVisitor<'a> {
 }
 
 impl Visit<'_> for ScopeVisitor<'_> {
+    fn visit_attribute(&mut self, attribute: &syn::Attribute) {
+        if attribute.path().is_ident("cfg") || attribute.path().is_ident("cfg_attr") {
+            self.findings.conditional_compilation += 1;
+        }
+        syn::visit::visit_attribute(self, attribute);
+    }
+
     fn visit_item_use(&mut self, item: &syn::ItemUse) {
+        for attribute in &item.attrs {
+            self.visit_attribute(attribute);
+        }
         let mut globs = Vec::new();
         collect_glob_paths(&item.tree, &[], &mut globs);
         if globs.into_iter().any(|source| {

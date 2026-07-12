@@ -455,3 +455,23 @@ fn rust_includes_fail_closed_in_every_workspace_target() {
     ];
     assert!(validate_testcontainers_source_set(&sources).is_err());
 }
+
+#[test]
+fn approved_factory_rejects_conditional_compilation() {
+    for source in [
+        FACTORY.replacen("fn postgres()", "#[cfg(any())]\nfn postgres()", 1),
+        FACTORY.replacen("use testcontainers", "#[cfg_attr(any(), allow(dead_code))]\nuse testcontainers", 1),
+        FACTORY.replacen("const POSTGRES_TAG", "#[cfg(any())]\nconst POSTGRES_TAG", 1),
+        FACTORY.replacen(
+            "GenericImage::new(POSTGRES_NAME, POSTGRES_TAG)",
+            "if cfg!(any()) { GenericImage::new(POSTGRES_NAME, POSTGRES_TAG) } else { GenericImage::new(POSTGRES_NAME, POSTGRES_TAG) }",
+            1,
+        ),
+    ] {
+        assert!(
+            validate_testcontainers_source("tools/harness-runtime/src/images.rs", &source, true)
+                .is_err(),
+            "conditional factory unexpectedly passed:\n{source}"
+        );
+    }
+}

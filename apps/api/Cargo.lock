@@ -118,6 +118,7 @@ version = "0.1.0"
 dependencies = [
  "cargo_metadata",
  "chrono",
+ "proc-macro2",
  "serde",
  "serde_json",
  "sha2",

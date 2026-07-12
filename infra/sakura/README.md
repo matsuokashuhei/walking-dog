@@ -98,7 +98,7 @@ vi .env
 | `DATABASE_URL` | `POSTGRES_PASSWORD` と同じパスワードを埋め込む |
 | `AWS_ACCESS_KEY_ID` | `terraform output vps_api_access_key_id` |
 | `AWS_SECRET_ACCESS_KEY` | `terraform output -raw vps_api_secret_access_key` |
-| `ECR_IMAGE` | `terraform output ecr_repository_url` + `:latest` |
+| `ECR_IMAGE` | ECR repository plus the deployed immutable manifest digest (`repository@sha256:<64 hex>`) |
 | `AVATAR_CDN_URL` | `terraform output -raw cloudfront_avatars_url` |
 | `PHOTO_CDN_URL` | `terraform output -raw cloudfront_photos_url` |
 | `SENTRY_DSN` | Sentry project の Client Keys (DSN)。空なら Sentry 送信なし |

@@ -224,12 +224,33 @@ test_production_images_are_digest_pinned_and_worker_has_process_health() {
   deploy="$(cat "$repo_root/infra/sakura/deploy.sh")"
   runtime="$(cat "$repo_root/apps/api/tools/harness-runtime/src/lib.rs")"
 
-  assert_contains "$dockerfile" '@sha256:' "Dockerfile bases must be digest pinned"
+  assert_contains "$dockerfile" '# syntax=docker/dockerfile:1@sha256:' "Dockerfile frontend must be digest pinned"
+  [[ "$(grep -c '^FROM .*@sha256:[0-9a-f]\{64\}' "$repo_root/apps/api/Dockerfile")" -eq 2 ]] || fail "every external Dockerfile FROM must be digest pinned"
   assert_contains "$compose" 'caddy:2-alpine@sha256:' "production Caddy must be digest pinned"
   assert_contains "$compose" 'postgres:16-alpine@sha256:' "production PostgreSQL must be digest pinned"
   assert_contains "$runtime" '16-alpine@sha256:' "Testcontainers PostgreSQL must be digest pinned"
   assert_contains "$compose" 'test: ["CMD-SHELL", "kill -0 1"]' "worker health must use process liveness"
-  assert_contains "$deploy" '*@sha256:*' "deployment must reject tag-only API images"
+  assert_contains "$deploy" '@sha256:[0-9a-f]{64}' "deployment must reject tag-only API images"
+}
+
+test_deploy_image_digest_validation_respects_environment_precedence() {
+  local tmpdir deploy digest env_digest exported_digest output
+  make_tmpdir tmpdir
+  mkdir -p "$tmpdir/infra/sakura"
+  cp "$repo_root/infra/sakura/deploy.sh" "$tmpdir/infra/sakura/deploy.sh"
+  chmod +x "$tmpdir/infra/sakura/deploy.sh"
+  deploy="$tmpdir/infra/sakura/deploy.sh"
+  digest="sha256:$(printf 'a%.0s' {1..64})"
+  env_digest="registry.example/repository@$digest"
+  exported_digest="registry.example/override@sha256:$(printf 'b%.0s' {1..64})"
+
+  printf 'ECR_IMAGE=%s\n' "$env_digest" > "$tmpdir/infra/sakura/.env"
+  DEPLOY_VALIDATE_ONLY=1 "$deploy"
+  ECR_IMAGE="$exported_digest" DEPLOY_VALIDATE_ONLY=1 "$deploy"
+
+  printf 'ECR_IMAGE=registry.example/repository:latest\n' > "$tmpdir/infra/sakura/.env"
+  output="$(run_script_expect_status 2 env -u ECR_IMAGE DEPLOY_VALIDATE_ONLY=1 "$deploy")"
+  assert_contains "$output" "64 lowercase hex" "tag-only image must be rejected"
 }
 
 test_harness_has_no_node_scripts_or_invocations() {

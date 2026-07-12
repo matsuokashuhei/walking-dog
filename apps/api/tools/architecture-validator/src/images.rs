@@ -142,6 +142,7 @@ struct Findings {
 struct ScopeSymbols {
     types: BTreeSet<String>,
     modules: BTreeSet<String>,
+    local_modules: BTreeSet<String>,
 }
 
 type ExportIndex = BTreeSet<Vec<String>>;
@@ -206,7 +207,13 @@ fn resolve_symbols(
                     || item_extern.ident.to_string(),
                     |(_, rename)| rename.to_string(),
                 );
+                symbols.local_modules.remove(&name);
                 symbols.modules.insert(name);
+            }
+            Item::Mod(module) => {
+                let name = module.ident.to_string();
+                symbols.modules.remove(&name);
+                symbols.local_modules.insert(name);
             }
             Item::Type(item_type) => {
                 let Type::Path(path) = item_type.ty.as_ref() else {
@@ -462,7 +469,8 @@ fn canonical_type_path(
     let explicitly_qualified = segments.len() > 1
         && !(segments.len() == 2 && segments.first().is_some_and(|part| part == "self"));
     (explicitly_qualified && exports.contains(&absolute_path(&segments, module_path)))
-        || rest == ["testcontainers", "GenericImage"]
+        || (rest == ["testcontainers", "GenericImage"]
+            && (path.leading_colon.is_some() || !scope.local_modules.contains("testcontainers")))
         || (rest.len() == 2 && scope.modules.contains(&rest[0]) && rest[1] == "GenericImage")
         || (rest.len() == 1 && scope.types.contains(&rest[0]))
 }
@@ -478,7 +486,9 @@ fn canonical_module_path(
         .map(|part| part.ident.to_string())
         .collect::<Vec<_>>();
     let (scope, rest) = qualified_scope(&segments, symbols, parents);
-    rest == ["testcontainers"] || (rest.len() == 1 && scope.modules.contains(&rest[0]))
+    (rest == ["testcontainers"]
+        && (path.leading_colon.is_some() || !scope.local_modules.contains("testcontainers")))
+        || (rest.len() == 1 && scope.modules.contains(&rest[0]))
 }
 
 fn qualified_scope<'a>(

@@ -255,3 +255,32 @@ fn nested_binary_modules_use_target_relative_paths() {
     ];
     assert!(validate_testcontainers_source_set(&sources).is_err());
 }
+
+#[test]
+fn local_testcontainers_modules_shadow_the_extern_prelude() {
+    let inline = "mod testcontainers { pub struct GenericImage; impl GenericImage { pub fn new() {} } } fn clean() { testcontainers::GenericImage::new(); }";
+    validate_testcontainers_source("crates/domain/src/lib.rs", inline, false)
+        .expect("inline local module is noncanonical");
+
+    let split = [
+        (
+            "crates/domain/src/lib.rs",
+            "mod testcontainers; fn clean() { testcontainers::GenericImage::new(); }",
+        ),
+        (
+            "crates/domain/src/testcontainers.rs",
+            "pub struct GenericImage; impl GenericImage { pub fn new() {} }",
+        ),
+    ];
+    validate_testcontainers_source_set(&split).expect("file module is noncanonical");
+}
+
+#[test]
+fn explicit_external_testcontainers_paths_remain_canonical() {
+    for source in [
+        "fn bad() { ::testcontainers::GenericImage::new(\"redis\", \"7\"); }",
+        "extern crate testcontainers as tc; fn bad() { tc::GenericImage::new(\"redis\", \"7\"); }",
+    ] {
+        assert!(validate_testcontainers_source("crates/domain/src/lib.rs", source, false).is_err());
+    }
+}

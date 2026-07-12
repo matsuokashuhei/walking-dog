@@ -229,7 +229,7 @@ fn placement_failure_rolls_back_every_published_file() {
 
 #[test]
 fn index_write_and_sync_failures_restore_exact_workspace() {
-    for fault in ["write", "sync"] {
+    for fault in ["write", "sync", "persist"] {
         let root = TempDir::new().unwrap();
         let spec = valid_spec(&root);
         let before = workspace_files(&root);
@@ -254,6 +254,109 @@ fn index_write_and_sync_failures_restore_exact_workspace() {
             before,
             "fault {fault} changed workspace"
         );
+    }
+}
+
+#[test]
+fn stale_writer_lock_fails_closed_without_deletion() {
+    let root = TempDir::new().unwrap();
+    let spec = valid_spec(&root);
+    let lock = root.path().join("stale-index.lock");
+    fs::write(&lock, "other writer\n").unwrap();
+    let before = workspace_files(&root);
+    let output = xtask_with_env(
+        &root,
+        "XTASK_INDEX_LOCK_PATH",
+        lock.to_str().unwrap(),
+        &[
+            "journey",
+            "new",
+            "start-walk",
+            "--spec",
+            spec.to_str().unwrap(),
+        ],
+    );
+    assert!(!output.status.success());
+    assert_eq!(workspace_files(&root), before);
+}
+
+#[test]
+fn writer_reservation_is_held_at_compare_to_persist_boundary() {
+    let root = TempDir::new().unwrap();
+    let spec = valid_spec(&root);
+    let lock = root.path().join("writer.lock");
+    let output = Command::new(env!("CARGO_BIN_EXE_xtask"))
+        .args([
+            "journey",
+            "new",
+            "start-walk",
+            "--spec",
+            spec.to_str().unwrap(),
+        ])
+        .env("XTASK_INDEX_LOCK_PATH", &lock)
+        .env("XTASK_TEST_BOUNDARY_LOCK_PROBE", "concurrent-owner")
+        .current_dir(root.path())
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(
+        !fs::read_to_string(root.path().join("architecture/generated-journeys.toml"))
+            .unwrap()
+            .contains("concurrent-owner")
+    );
+    assert!(!lock.exists());
+}
+
+#[test]
+fn malformed_existing_index_is_rejected_unchanged() {
+    for replacement in [
+        (
+            "marker = \"wrong\"",
+            "marker = \"@generated journey-generator:v1\"",
+        ),
+        ("generator_version = 99", "generator_version = 1"),
+    ] {
+        let root = TempDir::new().unwrap();
+        let spec = valid_spec(&root);
+        assert!(
+            xtask(
+                &root,
+                &[
+                    "journey",
+                    "new",
+                    "start-walk",
+                    "--spec",
+                    spec.to_str().unwrap()
+                ]
+            )
+            .status
+            .success()
+        );
+        let index_path = root.path().join("architecture/generated-journeys.toml");
+        let index = fs::read_to_string(&index_path)
+            .unwrap()
+            .replace(replacement.1, replacement.0);
+        fs::write(&index_path, index).unwrap();
+        let before = workspace_files(&root);
+        assert!(
+            !xtask(
+                &root,
+                &[
+                    "journey",
+                    "new",
+                    "finish-walk",
+                    "--spec",
+                    spec.to_str().unwrap()
+                ]
+            )
+            .status
+            .success()
+        );
+        assert_eq!(workspace_files(&root), before);
     }
 }
 

@@ -75,6 +75,29 @@ struct GeneratedJourney {
     manifest: String,
 }
 
+struct WriterLock {
+    path: std::path::PathBuf,
+}
+
+impl WriterLock {
+    fn acquire(path: &Path) -> Result<Self, String> {
+        let mut file = fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(path)
+            .map_err(|error| format!("generated index writer lock unavailable: {error}"))?;
+        writeln!(file, "pid={}", std::process::id()).map_err(|error| error.to_string())?;
+        file.sync_all().map_err(|error| error.to_string())?;
+        Ok(Self { path: path.into() })
+    }
+}
+
+impl Drop for WriterLock {
+    fn drop(&mut self) {
+        let _removed = fs::remove_file(&self.path);
+    }
+}
+
 #[allow(clippy::too_many_lines)] // Transaction sequencing is intentionally kept linear for auditable rollback.
 pub fn generate(root: &Path, name: &str, spec_path: &Path) -> Result<(), String> {
     validate_name(name)?;
@@ -108,6 +131,17 @@ pub fn generate(root: &Path, name: &str, spec_path: &Path) -> Result<(), String>
     ));
 
     validate_outputs(&outputs, &spec)?;
+    let lock_path = std::env::var_os("XTASK_INDEX_LOCK_PATH").map_or_else(
+        || {
+            let lock_identity = fs::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());
+            std::env::temp_dir().join(format!(
+                "walking-dog-journey-index-{}.lock",
+                hash(lock_identity.to_string_lossy().as_bytes())
+            ))
+        },
+        std::path::PathBuf::from,
+    );
+    let _writer_lock = WriterLock::acquire(&lock_path)?;
     let generated_root = root.join("generated/journeys");
     let destination = generated_root.join(name);
     let index_path = root.join("architecture/generated-journeys.toml");
@@ -131,6 +165,9 @@ pub fn generate(root: &Path, name: &str, spec_path: &Path) -> Result<(), String>
             journeys: Vec::new(),
         }
     };
+    if original_index.is_some() {
+        validate_index(&index)?;
+    }
     if index
         .journeys
         .iter()
@@ -230,8 +267,29 @@ pub fn generate(root: &Path, name: &str, spec_path: &Path) -> Result<(), String>
         cleanup_architecture(architecture, architecture_existed)?;
         return Err("independent index changed concurrently".into());
     }
+    if let Ok(owner) = std::env::var("XTASK_TEST_BOUNDARY_LOCK_PROBE")
+        && let Ok(mut concurrent) = fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&lock_path)
+    {
+        writeln!(concurrent, "{owner}").map_err(|error| error.to_string())?;
+        fs::OpenOptions::new()
+            .append(true)
+            .open(&index_path)
+            .and_then(|mut file| writeln!(file, "# {owner}"))
+            .map_err(|error| error.to_string())?;
+        fs::remove_file(&lock_path).map_err(|error| error.to_string())?;
+    }
+    if std::env::var("XTASK_TEST_INDEX_FAILURE").as_deref() == Ok("persist") {
+        rollback_destination(&destination, &generated_root)?;
+        drop(staged_index);
+        cleanup_architecture(architecture, architecture_existed)?;
+        return Err("injected index persist failure".into());
+    }
     if let Err(error) = staged_index.persist(&index_path) {
         rollback_destination(&destination, &generated_root)?;
+        drop(error.file);
         cleanup_architecture(architecture, architecture_existed)?;
         return Err(format!("atomic index publish failed: {}", error.error));
     }
@@ -248,9 +306,7 @@ pub fn verify(root: &Path) -> Result<(), String> {
     }
     let index_text = fs::read_to_string(&index_path).map_err(|error| error.to_string())?;
     let index: GeneratedIndex = toml::from_str(&index_text).map_err(|error| error.to_string())?;
-    if index.marker != MARKER || index.generator_version != 1 || index.journeys.is_empty() {
-        return Err("invalid independent generated Journey index".into());
-    }
+    validate_index(&index)?;
     let mut owned_paths = BTreeSet::new();
     for journey in index.journeys {
         let destination = root.join(&journey.destination);
@@ -283,6 +339,30 @@ pub fn verify(root: &Path) -> Result<(), String> {
             if !text.contains(MARKER) || hash(&body) != owned.sha256 {
                 return Err(format!("generated file drift: {}", owned.path));
             }
+        }
+    }
+    Ok(())
+}
+
+fn validate_index(index: &GeneratedIndex) -> Result<(), String> {
+    if index.marker != MARKER || index.generator_version != 1 || index.journeys.is_empty() {
+        return Err("invalid independent generated Journey index".into());
+    }
+    let mut names = BTreeSet::new();
+    let mut destinations = BTreeSet::new();
+    for journey in &index.journeys {
+        validate_name(&journey.use_case)?;
+        let expected_destination = format!("generated/journeys/{}/artifacts", journey.use_case);
+        let expected_manifest = format!("{expected_destination}/architecture/manifest.toml");
+        if !names.insert(&journey.use_case)
+            || !destinations.insert(&journey.destination)
+            || journey.destination != expected_destination
+            || journey.manifest != expected_manifest
+        {
+            return Err(format!(
+                "invalid or duplicate generated Journey index entry: {}",
+                journey.use_case
+            ));
         }
     }
     Ok(())

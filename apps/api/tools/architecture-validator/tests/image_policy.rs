@@ -99,9 +99,17 @@ fn ignores_target_and_git_and_requires_generated_marker() {
 #[test]
 fn ignores_noncompiled_template_placeholders_but_rejects_template_escapes() {
     let root = fixture();
-    fs::write(root.path().join("tools/xtask/templates/placeholder.rs"), "{{not Rust}}").unwrap();
+    fs::write(
+        root.path().join("tools/xtask/templates/placeholder.rs"),
+        "{{not Rust}}",
+    )
+    .unwrap();
     assert!(validate(root.path()).is_ok());
-    fs::write(root.path().join("tools/xtask/templates/placeholder.rs"), "use testcontainers::GenericImage;").unwrap();
+    fs::write(
+        root.path().join("tools/xtask/templates/placeholder.rs"),
+        "use testcontainers::GenericImage;",
+    )
+    .unwrap();
     assert!(validate(root.path()).is_err());
 }
 

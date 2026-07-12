@@ -248,7 +248,7 @@ fn resolve_symbols(
         for (name, path) in &bindings {
             if canonical_type_path(path, &symbols, parents, module_path, exports) {
                 symbols.types.insert(name.clone());
-            } else if canonical_module_path(path, &symbols, parents) {
+            } else if canonical_module_path(path, &symbols, parents, module_path, exports) {
                 symbols.modules.insert(name.clone());
             }
         }
@@ -301,7 +301,18 @@ fn collect_module_exports(items: &[Item], module_path: &[String], exports: &mut 
                         || exports.contains(&absolute_path(&segments, module_path))
                     {
                         let mut exported = module_path.to_vec();
+                        exported.push(name.clone());
+                        exports.insert(exported);
+                    }
+                    let mut source_module = absolute_path(&segments, module_path);
+                    source_module.push("<module>".to_owned());
+                    if (segments == ["testcontainers"]
+                        && (source.leading_colon.is_some() || !local_testcontainers))
+                        || exports.contains(&source_module)
+                    {
+                        let mut exported = module_path.to_vec();
                         exported.push(name);
+                        exported.push("<module>".to_owned());
                         exports.insert(exported);
                     }
                 }
@@ -326,6 +337,19 @@ fn collect_module_exports(items: &[Item], module_path: &[String], exports: &mut 
                     nested_path.push(module.ident.to_string());
                     collect_module_exports(nested, &nested_path, exports);
                 }
+            }
+            Item::ExternCrate(item_extern)
+                if item_extern.ident == "testcontainers"
+                    && !matches!(item_extern.vis, syn::Visibility::Inherited) =>
+            {
+                let name = item_extern.rename.as_ref().map_or_else(
+                    || item_extern.ident.to_string(),
+                    |(_, rename)| rename.to_string(),
+                );
+                let mut exported = module_path.to_vec();
+                exported.push(name);
+                exported.push("<module>".to_owned());
+                exports.insert(exported);
             }
             _ => {}
         }
@@ -494,7 +518,15 @@ fn canonical_type_path(
     let (scope, rest) = qualified_scope(&segments, symbols, parents);
     let explicitly_qualified = segments.len() > 1
         && !(segments.len() == 2 && segments.first().is_some_and(|part| part == "self"));
+    let exported_module = if segments.last().is_some_and(|part| part == "GenericImage") {
+        let mut module = absolute_path(&segments[..segments.len() - 1], module_path);
+        module.push("<module>".to_owned());
+        exports.contains(&module)
+    } else {
+        false
+    };
     (explicitly_qualified && exports.contains(&absolute_path(&segments, module_path)))
+        || exported_module
         || (rest == ["testcontainers", "GenericImage"]
             && (path.leading_colon.is_some() || !scope.local_modules.contains("testcontainers")))
         || (rest.len() == 2 && scope.modules.contains(&rest[0]) && rest[1] == "GenericImage")
@@ -505,6 +537,8 @@ fn canonical_module_path(
     path: &syn::Path,
     symbols: &ScopeSymbols,
     parents: &[ScopeSymbols],
+    module_path: &[String],
+    exports: &ExportIndex,
 ) -> bool {
     let segments = path
         .segments
@@ -512,8 +546,11 @@ fn canonical_module_path(
         .map(|part| part.ident.to_string())
         .collect::<Vec<_>>();
     let (scope, rest) = qualified_scope(&segments, symbols, parents);
-    (rest == ["testcontainers"]
-        && (path.leading_colon.is_some() || !scope.local_modules.contains("testcontainers")))
+    let mut exported = absolute_path(&segments, module_path);
+    exported.push("<module>".to_owned());
+    exports.contains(&exported)
+        || (rest == ["testcontainers"]
+            && (path.leading_colon.is_some() || !scope.local_modules.contains("testcontainers")))
         || (rest.len() == 1 && scope.modules.contains(&rest[0]))
 }
 
@@ -552,8 +589,13 @@ impl Visit<'_> for ScopeVisitor<'_> {
             let path = path_from_segments(&source, item.leading_colon.is_some());
             let mut wildcard = absolute_path(&source, self.module_path);
             wildcard.push("*".to_owned());
-            canonical_module_path(&path, self.symbols, self.parents)
-                || self.exports.contains(&wildcard)
+            canonical_module_path(
+                &path,
+                self.symbols,
+                self.parents,
+                self.module_path,
+                self.exports,
+            ) || self.exports.contains(&wildcard)
         }) {
             self.findings.macro_escapes += 1;
         }

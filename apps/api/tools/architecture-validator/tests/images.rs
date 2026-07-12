@@ -320,3 +320,40 @@ fn local_module_reexport_without_absolute_prefix_is_clean() {
     validate_testcontainers_source("crates/domain/src/lib.rs", source, false)
         .expect("local reexport stays noncanonical");
 }
+
+#[test]
+fn cross_file_canonical_module_alias_exports_are_resolved() {
+    for root in [
+        "pub(crate) use ::testcontainers as tc; mod child;",
+        "pub extern crate testcontainers as tc; mod child;",
+        "pub use ::testcontainers as first; pub(super) use first as tc; mod child;",
+    ] {
+        let sources = [
+            ("crates/domain/src/lib.rs", root),
+            (
+                "crates/domain/src/child.rs",
+                "fn bad() { crate::tc::GenericImage::new(\"redis\", \"7\"); }",
+            ),
+        ];
+        assert!(validate_testcontainers_source_set(&sources).is_err());
+    }
+}
+
+#[test]
+fn local_module_alias_export_stays_noncanonical_across_files() {
+    let sources = [
+        (
+            "crates/domain/src/lib.rs",
+            "mod testcontainers; pub use testcontainers as tc; mod child;",
+        ),
+        (
+            "crates/domain/src/testcontainers.rs",
+            "pub struct GenericImage; impl GenericImage { pub fn new() {} }",
+        ),
+        (
+            "crates/domain/src/child.rs",
+            "fn clean() { crate::tc::GenericImage::new(); }",
+        ),
+    ];
+    validate_testcontainers_source_set(&sources).expect("local module capability is not canonical");
+}

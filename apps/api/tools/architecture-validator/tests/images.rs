@@ -422,15 +422,36 @@ fn production_rust_includes_fail_closed() {
 fn non_rust_includes_and_text_are_clean() {
     for source in [
         "const BYTES: &[u8] = include_bytes!(\"fixture.bin\");",
+        "const TEXT: &str = include_str!(\"fixture.txt\");",
         "const TEXT: &str = \"include!(\\\"generated.rs\\\")\"; // include!(\"ignored.rs\")",
     ] {
         validate_testcontainers_source("crates/domain/src/lib.rs", source, false)
             .expect("non-token include content is harmless");
     }
-    validate_testcontainers_source(
+}
+
+#[test]
+fn rust_includes_fail_closed_in_every_workspace_target() {
+    for path in [
         "crates/domain/tests/fixture.rs",
-        "include!(\"test_support.rs\");",
-        false,
-    )
-    .expect("non-production test target may include Rust support");
+        "crates/domain/examples/demo.rs",
+        "crates/domain/benches/throughput.rs",
+        "crates/domain/src/bin/tool.rs",
+    ] {
+        assert!(
+            validate_testcontainers_source(path, "include!(\"generated.rs\");", false).is_err()
+        );
+    }
+
+    let sources = [
+        (
+            "crates/domain/tests/fixture.rs",
+            "include!(\"generated.inc\");",
+        ),
+        (
+            "crates/domain/tests/generated.inc",
+            "testcontainers::GenericImage::new(\"redis\", \"7\");",
+        ),
+    ];
+    assert!(validate_testcontainers_source_set(&sources).is_err());
 }

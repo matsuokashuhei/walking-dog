@@ -75,7 +75,14 @@ pub fn analyze_source_set(units: &[SourceUnit<'_>]) -> Result<Vec<Diagnostic>, V
     for (unit, file) in &parsed {
         let prefix = source_module_components(unit.path);
         for (identity, public) in collect_qualified_traits(&file.items, &prefix) {
-            trait_index.insert((unit.crate_name.to_owned(), identity), public);
+            trait_index.insert(
+                (
+                    unit.crate_name.to_owned(),
+                    target_namespace(unit.path),
+                    identity,
+                ),
+                public,
+            );
         }
     }
     let mut diagnostics = Vec::new();
@@ -88,14 +95,16 @@ pub fn analyze_source_set(units: &[SourceUnit<'_>]) -> Result<Vec<Diagnostic>, V
 fn analyze_parsed(
     unit: SourceUnit<'_>,
     file: &syn::File,
-    trait_index: &HashMap<(String, Vec<String>), bool>,
+    trait_index: &HashMap<(String, String, Vec<String>), bool>,
 ) -> Vec<Diagnostic> {
     let aliases = collect_item_aliases(&file.items);
     let trait_scope = collect_item_traits(&file.items);
     let qualified_traits = trait_index
         .iter()
-        .filter(|((crate_name, _), _)| crate_name == unit.crate_name)
-        .map(|((_, identity), public)| (identity.clone(), *public))
+        .filter(|((crate_name, namespace, _), _)| {
+            crate_name == unit.crate_name && namespace == &target_namespace(unit.path)
+        })
+        .map(|((_, _, identity), public)| (identity.clone(), *public))
         .collect();
     let mut analyzer = Analyzer {
         unit,
@@ -236,7 +245,7 @@ impl Analyzer<'_> {
             );
         }
         if self.unit.crate_name == "application"
-            && imports_another_application_module(self.unit.path, segments)
+            && imports_another_application_module(&self.module_path, segments)
         {
             self.report(
                 "API-ARCH-010",
@@ -762,7 +771,7 @@ fn is_resolver_concern(value: &str) -> bool {
         || value.starts_with("aws_sdk_")
 }
 
-fn imports_another_application_module(path: &str, imported: &[String]) -> bool {
+fn imports_another_application_module(source: &[String], imported: &[String]) -> bool {
     const MODULES: [&str; 6] = [
         "identity",
         "owner",
@@ -771,7 +780,6 @@ fn imports_another_application_module(path: &str, imported: &[String]) -> bool {
         "walk_event",
         "walk_insight",
     ];
-    let source = source_module_components(path);
     let current = source.first().map(String::as_str);
     let resolved = match imported {
         [root, rest @ ..] if root == "crate" => rest.to_vec(),
@@ -792,6 +800,35 @@ fn imports_another_application_module(path: &str, imported: &[String]) -> bool {
     resolved.first().is_some_and(|module| {
         MODULES.contains(&module.as_str()) && Some(module.as_str()) != current
     })
+}
+
+fn target_namespace(path: &str) -> String {
+    for (directory, kind) in [
+        ("/tests/", "test"),
+        ("/examples/", "example"),
+        ("/benches/", "bench"),
+    ] {
+        if let Some(relative) = path.split(directory).nth(1) {
+            let target = relative
+                .split('/')
+                .next()
+                .unwrap_or_default()
+                .trim_end_matches(".rs");
+            return format!("{kind}:{target}");
+        }
+    }
+    if let Some(relative) = path.split("/src/bin/").nth(1) {
+        let target = relative
+            .split('/')
+            .next()
+            .unwrap_or_default()
+            .trim_end_matches(".rs");
+        return format!("bin:{target}");
+    }
+    if path.ends_with("/src/main.rs") {
+        return "bin:main".to_owned();
+    }
+    "lib".to_owned()
 }
 
 fn source_module_components(path: &str) -> Vec<String> {

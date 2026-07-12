@@ -725,3 +725,61 @@ fn sea_orm_raw_statement_constructors_are_closed() {
         );
     }
 }
+
+#[test]
+fn test_target_trait_collision_cannot_change_production_visibility() {
+    let units = [
+        SourceUnit {
+            crate_name: "application",
+            path: "crates/application/src/ports.rs",
+            source: "trait Port { fn row(&self) -> adapter_postgres::Row; }",
+            production: true,
+        },
+        SourceUnit {
+            crate_name: "application",
+            path: "crates/application/tests/ports.rs",
+            source: "mod ports { pub trait Port { fn row(&self) -> adapter_postgres::Row; } }",
+            production: false,
+        },
+        SourceUnit {
+            crate_name: "application",
+            path: "crates/application/src/owner/service.rs",
+            source: "struct Service; impl crate::ports::Port for Service { fn row(&self) -> adapter_postgres::Row { loop {} } }",
+            production: true,
+        },
+    ];
+    let diagnostics = analyze_source_set(&units).expect("fixtures must parse");
+    assert!(diagnostics.iter().all(|diagnostic| {
+        diagnostic.rule_id != "API-ARCH-006"
+            || diagnostic.path != "crates/application/src/owner/service.rs"
+    }));
+}
+
+#[test]
+fn inline_super_paths_use_the_analyzers_current_module() {
+    let clean = analyze_source(SourceUnit {
+        crate_name: "application",
+        path: "crates/application/src/owner.rs",
+        source: "mod nested { fn dog() -> super::dog::Dog { loop {} } }",
+        production: true,
+    })
+    .expect("fixture must parse");
+    assert!(
+        clean
+            .iter()
+            .all(|diagnostic| diagnostic.rule_id != "API-ARCH-010")
+    );
+
+    let cross = analyze_source(SourceUnit {
+        crate_name: "application",
+        path: "crates/application/src/owner.rs",
+        source: "mod nested { fn dog() -> super::super::dog::Dog { loop {} } }",
+        production: true,
+    })
+    .expect("fixture must parse");
+    assert!(
+        cross
+            .iter()
+            .any(|diagnostic| diagnostic.rule_id == "API-ARCH-010")
+    );
+}

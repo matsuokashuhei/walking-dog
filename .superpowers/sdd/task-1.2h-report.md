@@ -166,3 +166,11 @@ Workspace validation now parses the complete discovered Rust source set before p
 Analyzer module identity is seeded from the source path and extended by inline modules, so mixed filesystem/inline `super` paths resolve against the full module stack. SeaORM raw statement constructor enforcement covers the audited pinned surface: `Statement::from_string` and `Statement::from_sql_and_values`; `execute_unprepared` remains covered separately.
 
 TDD RED captured the missing source-set analyzer/context. Final focused results: check 6/6 and fixtures 20/20. Strict Clippy passed with `--all-targets -- -D warnings`, including the requested needless-borrow cleanup. No images, Cargo.lock, or deployment file is included.
+
+## Cargo-target isolation and live inline-module resolution
+
+Trait visibility index keys now include crate and mechanically derived Cargo target namespace: library, each `src/bin`/`main.rs` binary, each integration-test target, each example, and each benchmark. A same-qualified public trait declared in a test target therefore cannot overwrite a private production-library trait and change a production impl diagnostic.
+
+`API-ARCH-010` now resolves relative paths from `Analyzer.module_path` itself—the filesystem module seed plus the current inline-module stack—rather than reconstructing only the file path. Thus `owner.rs` with inline `nested { super::dog }` stays within the owner root, while `super::super::dog` crosses to the dog root and fails.
+
+TDD RED reproduced target-index pollution after aligning the adversarial integration-test module identity with production. Final focused fixtures passed 22/22 and strict Clippy passed with `--all-targets -- -D warnings`. No images or Cargo.lock change is included.

@@ -217,3 +217,41 @@ fn local_shadow_precedes_qualified_export_lookup() {
     validate_testcontainers_source("crates/domain/src/lib.rs", source, false)
         .expect("local type alias shadows the root export index");
 }
+
+#[test]
+fn canonical_glob_imports_fail_closed() {
+    for source in [
+        "use testcontainers::*; fn bad() { GenericImage::new(\"redis\", \"7\"); }",
+        "use testcontainers::*;",
+    ] {
+        assert!(validate_testcontainers_source("crates/domain/src/lib.rs", source, false).is_err());
+    }
+
+    let sources = [
+        ("crates/domain/src/lib.rs", "mod shim; use shim::*;"),
+        ("crates/domain/src/shim.rs", "pub use testcontainers::*;"),
+    ];
+    assert!(validate_testcontainers_source_set(&sources).is_err());
+}
+
+#[test]
+fn extern_crate_alias_is_canonical() {
+    let source =
+        "extern crate testcontainers as tc; fn bad() { tc::GenericImage::new(\"redis\", \"7\"); }";
+    assert!(validate_testcontainers_source("crates/domain/src/lib.rs", source, false).is_err());
+}
+
+#[test]
+fn nested_binary_modules_use_target_relative_paths() {
+    let sources = [
+        (
+            "crates/tool/src/bin/runner/main.rs",
+            "mod shim; fn bad() { crate::shim::Image::new(\"redis\", \"7\"); }",
+        ),
+        (
+            "crates/tool/src/bin/runner/shim.rs",
+            "pub(crate) use testcontainers::GenericImage as Image;",
+        ),
+    ];
+    assert!(validate_testcontainers_source_set(&sources).is_err());
+}

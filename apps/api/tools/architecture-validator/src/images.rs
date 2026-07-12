@@ -201,6 +201,13 @@ fn resolve_symbols(
     for item in items {
         match item {
             Item::Use(item_use) => collect_use_bindings(&item_use.tree, &[], &mut bindings),
+            Item::ExternCrate(item_extern) if item_extern.ident == "testcontainers" => {
+                let name = item_extern.rename.as_ref().map_or_else(
+                    || item_extern.ident.to_string(),
+                    |(_, rename)| rename.to_string(),
+                );
+                symbols.modules.insert(name);
+            }
             Item::Type(item_type) => {
                 let Type::Path(path) = item_type.ty.as_ref() else {
                     symbols.types.remove(&item_type.ident.to_string());
@@ -274,6 +281,17 @@ fn collect_module_exports(items: &[Item], module_path: &[String], exports: &mut 
                     {
                         let mut exported = module_path.to_vec();
                         exported.push(name);
+                        exports.insert(exported);
+                    }
+                }
+                let mut globs = Vec::new();
+                collect_glob_paths(&item_use.tree, &[], &mut globs);
+                for source in globs {
+                    let mut wildcard = absolute_path(&source, module_path);
+                    wildcard.push("*".to_owned());
+                    if source == ["testcontainers"] || exports.contains(&wildcard) {
+                        let mut exported = module_path.to_vec();
+                        exported.push("*".to_owned());
                         exports.insert(exported);
                     }
                 }
@@ -353,6 +371,20 @@ fn source_module_components(path: &str) -> Vec<String> {
     let Some(relative) = path.split("/src/").nth(1) else {
         return Vec::new();
     };
+    if let Some(binary) = relative.strip_prefix("bin/") {
+        let mut parts = binary.split('/').map(str::to_owned).collect::<Vec<_>>();
+        if parts.len() == 1 {
+            return Vec::new();
+        }
+        parts.remove(0);
+        let Some(file) = parts.pop() else {
+            return parts;
+        };
+        if !matches!(file.as_str(), "main.rs" | "mod.rs") {
+            parts.push(file.trim_end_matches(".rs").to_owned());
+        }
+        return parts;
+    }
     let mut parts = relative.split('/').map(str::to_owned).collect::<Vec<_>>();
     let Some(file) = parts.pop() else {
         return parts;
@@ -390,6 +422,23 @@ fn collect_use_bindings(
             }
         }
         UseTree::Glob(_) => {}
+    }
+}
+
+fn collect_glob_paths(tree: &UseTree, prefix: &[String], globs: &mut Vec<Vec<String>>) {
+    match tree {
+        UseTree::Path(path) => {
+            let mut nested = prefix.to_vec();
+            nested.push(path.ident.to_string());
+            collect_glob_paths(&path.tree, &nested, globs);
+        }
+        UseTree::Group(group) => {
+            for item in &group.items {
+                collect_glob_paths(item, prefix, globs);
+            }
+        }
+        UseTree::Glob(_) => globs.push(prefix.to_vec()),
+        UseTree::Name(_) | UseTree::Rename(_) => {}
     }
 }
 
@@ -460,6 +509,20 @@ struct ScopeVisitor<'a> {
 }
 
 impl Visit<'_> for ScopeVisitor<'_> {
+    fn visit_item_use(&mut self, item: &syn::ItemUse) {
+        let mut globs = Vec::new();
+        collect_glob_paths(&item.tree, &[], &mut globs);
+        if globs.into_iter().any(|source| {
+            let path = path_from_segments(&source);
+            let mut wildcard = absolute_path(&source, self.module_path);
+            wildcard.push("*".to_owned());
+            canonical_module_path(&path, self.symbols, self.parents)
+                || self.exports.contains(&wildcard)
+        }) {
+            self.findings.macro_escapes += 1;
+        }
+    }
+
     fn visit_block(&mut self, block: &syn::Block) {
         let items = block
             .stmts

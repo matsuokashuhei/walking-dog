@@ -217,6 +217,21 @@ test_api_architecture_ci_maps_event_revisions_with_full_history() {
   assert_contains "$workflow" 'git rev-parse "$ARCHITECTURE_HEAD^"' "initial push must resolve a real parent or fail"
 }
 
+test_production_images_are_digest_pinned_and_worker_has_process_health() {
+  local dockerfile compose deploy runtime
+  dockerfile="$(cat "$repo_root/apps/api/Dockerfile")"
+  compose="$(cat "$repo_root/infra/sakura/compose.yml")"
+  deploy="$(cat "$repo_root/infra/sakura/deploy.sh")"
+  runtime="$(cat "$repo_root/apps/api/tools/harness-runtime/src/lib.rs")"
+
+  assert_contains "$dockerfile" '@sha256:' "Dockerfile bases must be digest pinned"
+  assert_contains "$compose" 'caddy:2-alpine@sha256:' "production Caddy must be digest pinned"
+  assert_contains "$compose" 'postgres:16-alpine@sha256:' "production PostgreSQL must be digest pinned"
+  assert_contains "$runtime" '16-alpine@sha256:' "Testcontainers PostgreSQL must be digest pinned"
+  assert_contains "$compose" 'test: ["CMD-SHELL", "kill -0 1"]' "worker health must use process liveness"
+  assert_contains "$deploy" '*@sha256:*' "deployment must reject tag-only API images"
+}
+
 test_harness_has_no_node_scripts_or_invocations() {
   local matches pattern
   matches="$(find "$repo_root/scripts/harness" -maxdepth 1 \( -name '*.mjs' -o -name '*.test.mjs' \) -print)"

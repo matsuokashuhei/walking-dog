@@ -2,6 +2,11 @@
 # Deploy the Sakura stack: update tracked files, pull the API image, restart services.
 set -euo pipefail
 
+case "${ECR_IMAGE:-}" in
+  *@sha256:*) ;;
+  *) echo "ECR_IMAGE must be an immutable repository@sha256:digest reference" >&2; exit 2 ;;
+esac
+
 cd "$(dirname "$0")"
 
 git pull --ff-only

@@ -1,6 +1,6 @@
 services:
   caddy:
-    image: caddy:2-alpine
+    image: caddy:2-alpine@sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648
     ports:
       - "80:80"
       - "443:443"
@@ -12,7 +12,7 @@ services:
     restart: unless-stopped
 
   postgres:
-    image: postgres:16-alpine
+    image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
     environment:
       POSTGRES_USER: walking_dog
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -38,6 +38,11 @@ services:
   worker:
     image: ${ECR_IMAGE}
     command: ["track-point-worker"]
+    healthcheck:
+      test: ["CMD-SHELL", "kill -0 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
     env_file:
       - .env
     depends_on:

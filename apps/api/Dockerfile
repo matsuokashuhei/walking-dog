@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM public.ecr.aws/docker/library/rust:1.96 AS base
+FROM public.ecr.aws/docker/library/rust:1.96@sha256:1f0dbad1df66647807e6952d1db85d0b2bda7606cb2139d82517e4f009967376 AS base
 
 FROM base AS dev
 RUN <<EOT
@@ -22,7 +22,7 @@ RUN cargo build --release --locked -p api-bootstrap \
     --bin api --bin track-point-worker --bin schema --bin migrate
 
 # --- Runtime Stage ---
-FROM public.ecr.aws/debian/debian:stable-slim AS runtime
+FROM public.ecr.aws/debian/debian:stable-slim@sha256:f6beb142597164872b0182176972052ade2466c516a922cc9a9388f0e2eb615e AS runtime
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl \
     && update-ca-certificates \

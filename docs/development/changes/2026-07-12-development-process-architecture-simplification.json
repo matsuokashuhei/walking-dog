@@ -151,6 +151,17 @@
         "Docker: cargo run -p xtask -- architecture check"
       ],
       "result": "After three same-cause semantic-resolution failures, Sol redesign replaced alias/export/trait provenance with direct canonical syntax rejection. Focused suite passed 33 tests and independent canonical architecture check exited 0."
+    },
+    {
+      "name": "image-catalog-red-green",
+      "state": "green",
+      "commands": [
+        "Docker: cargo test -p xtask --test image_catalog --locked",
+        "Docker: cargo xtask image-catalog generate",
+        "Docker: cargo xtask image-catalog verify",
+        "Docker: cargo xtask image-catalog generate"
+      ],
+      "result": "RED unresolved xtask generator surface; GREEN 2 catalog tests including malformed digest/unknown-field rejection, deterministic generation, drift detection, and second-generation byte equality."
     }
   ]
 }

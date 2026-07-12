@@ -35,6 +35,8 @@ fn run() -> Result<(), String> {
         [group, command] if group == "journey" && command == "verify-generated" => {
             journey_generator::verify(std::path::Path::new("."))
         }
-        _ => Err("usage: cargo xtask architecture check [--sarif] | cargo xtask journey new <use-case> --spec <toml> | cargo xtask journey verify-generated".into()),
+        [group, command] if group == "image-catalog" && command == "generate" => xtask::image_catalog::generate(std::path::Path::new(".")),
+        [group, command] if group == "image-catalog" && command == "verify" => xtask::image_catalog::verify(std::path::Path::new(".")),
+        _ => Err("usage: cargo xtask architecture check [--sarif] | cargo xtask journey new <use-case> --spec <toml> | cargo xtask journey verify-generated | cargo xtask image-catalog generate|verify".into()),
     }
 }

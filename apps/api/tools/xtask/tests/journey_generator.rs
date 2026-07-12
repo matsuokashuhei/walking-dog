@@ -258,6 +258,36 @@ fn index_write_and_sync_failures_restore_exact_workspace() {
 }
 
 #[test]
+fn architecture_creation_and_live_index_read_failures_restore_exact_workspace() {
+    for fault in ["architecture", "live-index-read"] {
+        let root = TempDir::new().unwrap();
+        let spec = valid_spec(&root);
+        let before = workspace_files(&root);
+        let output = xtask_with_env(
+            &root,
+            "XTASK_TEST_POST_PUBLICATION_FAILURE",
+            fault,
+            &[
+                "journey",
+                "new",
+                "start-walk",
+                "--spec",
+                spec.to_str().unwrap(),
+            ],
+        );
+        assert!(
+            !output.status.success(),
+            "fault {fault} unexpectedly succeeded"
+        );
+        assert_eq!(
+            workspace_files(&root),
+            before,
+            "fault {fault} changed workspace"
+        );
+    }
+}
+
+#[test]
 fn stale_writer_lock_fails_closed_without_deletion() {
     let root = TempDir::new().unwrap();
     let spec = valid_spec(&root);

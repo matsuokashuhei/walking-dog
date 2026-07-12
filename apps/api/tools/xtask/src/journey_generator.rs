@@ -151,6 +151,44 @@ impl Drop for WriterLock {
     }
 }
 
+struct PublicationTransaction<'a> {
+    destination: &'a Path,
+    generated_root: &'a Path,
+    architecture: Option<(&'a Path, bool)>,
+    committed: bool,
+}
+
+impl<'a> PublicationTransaction<'a> {
+    fn new(destination: &'a Path, generated_root: &'a Path) -> Self {
+        Self {
+            destination,
+            generated_root,
+            architecture: None,
+            committed: false,
+        }
+    }
+
+    fn track_architecture(&mut self, path: &'a Path, existed: bool) {
+        self.architecture = Some((path, existed));
+    }
+
+    fn commit(&mut self) {
+        self.committed = true;
+    }
+}
+
+impl Drop for PublicationTransaction<'_> {
+    fn drop(&mut self) {
+        if self.committed {
+            return;
+        }
+        let _artifact_rollback = rollback_destination(self.destination, self.generated_root);
+        if let Some((architecture, existed)) = self.architecture {
+            let _architecture_rollback = cleanup_architecture(architecture, existed);
+        }
+    }
+}
+
 #[allow(clippy::too_many_lines)] // Transaction sequencing is intentionally kept linear for auditable rollback.
 pub fn generate(root: &Path, name: &str, spec_path: &Path) -> Result<(), String> {
     validate_name(name)?;
@@ -265,12 +303,17 @@ pub fn generate(root: &Path, name: &str, spec_path: &Path) -> Result<(), String>
             })?;
             return Err(format!("atomic publish failed: {error}"));
         }
+        let mut transaction = PublicationTransaction::new(&destination, &generated_root);
         if std::env::var_os("XTASK_TEST_FAIL_AFTER_PLACEMENTS").is_some() {
             rollback_destination(&destination, &generated_root)?;
             return Err("injected post-publication failure".into());
         }
         let architecture = index_path.parent().ok_or("invalid index path")?;
         let architecture_existed = architecture.exists();
+        transaction.track_architecture(architecture, architecture_existed);
+        if std::env::var("XTASK_TEST_POST_PUBLICATION_FAILURE").as_deref() == Ok("architecture") {
+            return Err("injected architecture creation failure".into());
+        }
         fs::create_dir_all(architecture).map_err(|error| error.to_string())?;
         let mut staged_index = match tempfile::NamedTempFile::new_in(architecture) {
             Ok(file) => file,
@@ -311,6 +354,10 @@ pub fn generate(root: &Path, name: &str, spec_path: &Path) -> Result<(), String>
                 .and_then(|mut file| writeln!(file, "# {owner}"))
                 .map_err(|error| error.to_string())?;
         }
+        if std::env::var("XTASK_TEST_POST_PUBLICATION_FAILURE").as_deref() == Ok("live-index-read")
+        {
+            return Err("injected live index read failure".into());
+        }
         let current_index = if index_path.exists() {
             Some(fs::read(&index_path).map_err(|error| error.to_string())?)
         } else {
@@ -348,6 +395,7 @@ pub fn generate(root: &Path, name: &str, spec_path: &Path) -> Result<(), String>
             cleanup_architecture(architecture, architecture_existed)?;
             return Err(format!("atomic index publish failed: {}", error.error));
         }
+        transaction.commit();
         Ok(())
     })
 }

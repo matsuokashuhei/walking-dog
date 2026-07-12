@@ -13,8 +13,11 @@ data_migration_impact = "none"
 expected_failure_modes = ["validation_failure", "build_failure", "deployment_failure"]
 required_evidence = ["architecture_validator", "integration_test", "deployment_health"]
 owned_files = [
+  ".cargo/config.toml",
   "Cargo.lock",
   "Cargo.toml",
+  "Dockerfile",
+  "README.md",
   "architecture/dependency-policy.toml",
   "architecture/exceptions.toml",
   "architecture/intents/20260711-api-kernel.toml",
@@ -43,12 +46,14 @@ owned_files = [
   "rust-toolchain.toml",
   "tools/architecture-validator/Cargo.toml",
   "tools/architecture-validator/src/ast.rs",
+  "tools/architecture-validator/src/check.rs",
   "tools/architecture-validator/src/exceptions.rs",
   "tools/architecture-validator/src/intent.rs",
   "tools/architecture-validator/src/lib.rs",
   "tools/architecture-validator/src/main.rs",
   "tools/architecture-validator/src/policy.rs",
   "tools/architecture-validator/tests/exceptions.rs",
+  "tools/architecture-validator/tests/check.rs",
   "tools/architecture-validator/tests/fixtures.rs",
   "tools/architecture-validator/tests/intent.rs",
   "tools/architecture-validator/tests/policy.rs",
@@ -58,5 +63,6 @@ owned_files = [
   "tools/integration-test-support/Cargo.toml",
   "tools/integration-test-support/src/lib.rs",
   "tools/xtask/Cargo.toml",
+  "tools/xtask/src/architecture.rs",
   "tools/xtask/src/main.rs",
 ]

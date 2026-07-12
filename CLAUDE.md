@@ -35,7 +35,7 @@ Keep these differences in mind when changing configuration, authentication, stor
 
 | Environment | Compose and service shape | External AWS resources | Cognito |
 | --- | --- | --- | --- |
-| Development ([apps/compose.yml](apps/compose.yml)) | PostgreSQL, DynamoDB Local, MinIO (avatar/photo storage), ElasticMQ (track-point queue), and hot-reloading API/worker | Cognito | `ap-northeast-1_TbsPwaBrt` |
+| Development and test | Testcontainers-owned, isolated services started by Rust integration tests | Deterministic fixtures only in required tests | No live Cognito |
 | Production ([infra/sakura/compose.yml](infra/sakura/compose.yml)) | Caddy, PostgreSQL, and ECR-based API/worker | Cognito, DynamoDB, S3 (avatar/photo storage), SQS, and CloudFront | Undisclosed |
 
 Never document or infer production Cognito identifiers or credentials from `infra/sakura/.env.example`; deployment secrets and configuration are authoritative.
@@ -77,8 +77,6 @@ scripts/harness/validate-knowledge.sh
 scripts/harness/validate-architecture.sh
 scripts/harness/validate-mobile-knip.sh
 scripts/harness/validate-all.sh
-scripts/harness/dev-stack.sh up
-scripts/harness/reset-local-data.sh
 HARNESS_ACCESS_TOKEN=<token> scripts/harness/run-api-journey.sh walk-lifecycle
 scripts/harness/query-observability.sh
 scripts/harness/score-quality.sh

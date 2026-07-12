@@ -18,7 +18,7 @@ Date: 2026-06-13.
   check the actual route that owns the UI: active walk controls live in `(tabs)/walk`,
   so `/walk-recording` stack gesture settings do not protect the in-tab overlay.
 - Local API verification should bind-mount the current worktree and isolate Cargo
-  target cache when multiple worktrees use `apps/compose.yml`.
+  target cache when multiple worktrees run the Dockerized Rust toolchain.
 - Legal URL behavior belongs to the Sakura/Caddy hosting path. App behavior should
   keep pointing to `/terms` and `/policy` unless the hosting architecture changes.
 - Do not hide failures in harness work. If a journey cannot be proven because seed

@@ -19,7 +19,7 @@ aws ecr get-login-password --region "$AWS_REGION" \
       "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
 
 # Pull latest image and (re)start services.
-docker compose pull api walker
+docker compose pull api worker
 docker compose up -d --force-recreate
 
 echo "Deploy complete."

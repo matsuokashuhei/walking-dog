@@ -18,12 +18,19 @@ EOT
 FROM base AS builder
 WORKDIR /apps/api
 COPY . .
-RUN cargo build --release
+RUN cargo build --release --locked -p api-bootstrap \
+    --bin api --bin track-point-worker --bin schema --bin migrate
 
 # --- Runtime Stage ---
 FROM public.ecr.aws/debian/debian:stable-slim AS runtime
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && update-ca-certificates
-COPY --from=builder /apps/api/target/release/walking-dog .
-COPY --from=builder /apps/api/target/release/track_point_worker .
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl \
+    && update-ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=builder /apps/api/target/release/api /usr/local/bin/api
+COPY --from=builder /apps/api/target/release/track-point-worker /usr/local/bin/track-point-worker
+COPY --from=builder /apps/api/target/release/schema /usr/local/bin/schema
+COPY --from=builder /apps/api/target/release/migrate /usr/local/bin/migrate
 EXPOSE 3000
-CMD ["./walking-dog"]
+HEALTHCHECK --interval=10s --timeout=3s --retries=3 CMD ["curl", "--fail", "--silent", "http://127.0.0.1:3000/health"]
+CMD ["api"]

@@ -94,51 +94,19 @@ test_validate_knowledge_accepts_complete_fixture() {
   [[ -z "$output" ]] || fail "expected no output from passing knowledge validation; got $output"
 }
 
-test_validate_architecture_rejects_aws_sdk_in_resolvers() {
-  local tmpdir output
+test_validate_architecture_delegates_to_canonical_xtask_check() {
+  local tmpdir output cargo_log
   make_tmpdir tmpdir
-  write_file "$tmpdir" "apps/api/src/graphql/mutation/dog.rs" $'use aws_sdk_s3::Client;\n'
-  write_file "$tmpdir" "apps/api/src/service/dog_walk_goal.rs" $'pub const MIN_DAILY_GOAL_MINUTES: i32 = 0;\npub const MAX_DAILY_GOAL_MINUTES: i32 = 120;\n'
-  write_file "$tmpdir" "apps/mobile/constants/walk.ts" $'export const MIN_DAILY_GOAL_MINUTES = 0;\nexport const MAX_DAILY_GOAL_MINUTES = 120;\n'
+  cargo_log="$tmpdir/cargo.log"
+  mkdir -p "$tmpdir/apps/api" "$tmpdir/bin"
+  write_file "$tmpdir" "bin/cargo" $'#!/usr/bin/env bash\nprintf "%s\n" "$PWD" > "$HARNESS_CARGO_LOG"\nprintf "%s " "$@" >> "$HARNESS_CARGO_LOG"\n'
+  chmod +x "$tmpdir/bin/cargo"
 
-  output="$(run_script_expect_status 1 "$repo_root/scripts/harness/validate-architecture.sh" "$tmpdir")"
+  output="$(HARNESS_CARGO_LOG="$cargo_log" PATH="$tmpdir/bin:$PATH" run_script_expect_status 0 "$repo_root/scripts/harness/validate-architecture.sh" "$tmpdir")"
 
-  assert_contains "$output" "GraphQL resolver boundary" "expected resolver boundary violation"
-}
-
-test_validate_architecture_rejects_walk_goal_range_drift() {
-  local tmpdir output
-  make_tmpdir tmpdir
-  write_file "$tmpdir" "apps/api/src/service/dog_walk_goal.rs" $'pub const MIN_DAILY_GOAL_MINUTES: i32 = 0;\npub const MAX_DAILY_GOAL_MINUTES: i32 = 120;\n'
-  write_file "$tmpdir" "apps/mobile/constants/walk.ts" $'export const MIN_DAILY_GOAL_MINUTES = 5;\nexport const MAX_DAILY_GOAL_MINUTES = 120;\n'
-
-  output="$(run_script_expect_status 1 "$repo_root/scripts/harness/validate-architecture.sh" "$tmpdir")"
-
-  assert_contains "$output" "walk goal minute bounds drift" "expected walk goal drift violation"
-}
-
-test_validate_architecture_rejects_track_point_worker_wrappers() {
-  local tmpdir output
-  make_tmpdir tmpdir
-  write_file "$tmpdir" "apps/api/src/bin/track_point_worker.rs" $'struct WorkerRuntimeConfig { worker_concurrency: usize }\nfn positive_usize_env_value(value: Option<&str>, default: usize) -> usize { default }\n'
-  write_file "$tmpdir" "apps/api/src/service/dog_walk_goal.rs" $'pub const MIN_DAILY_GOAL_MINUTES: i32 = 0;\npub const MAX_DAILY_GOAL_MINUTES: i32 = 120;\n'
-  write_file "$tmpdir" "apps/mobile/constants/walk.ts" $'export const MIN_DAILY_GOAL_MINUTES = 0;\nexport const MAX_DAILY_GOAL_MINUTES = 120;\n'
-
-  output="$(run_script_expect_status 1 "$repo_root/scripts/harness/validate-architecture.sh" "$tmpdir")"
-
-  assert_contains "$output" "track point worker env config" "expected track point worker violation"
-}
-
-test_validate_architecture_accepts_clean_fixture() {
-  local tmpdir output
-  make_tmpdir tmpdir
-  write_file "$tmpdir" "apps/api/src/graphql/mutation/dog.rs" $'use crate::service::dog;\n'
-  write_file "$tmpdir" "apps/api/src/service/dog_walk_goal.rs" $'pub const MIN_DAILY_GOAL_MINUTES: i32 = 0;\npub const MAX_DAILY_GOAL_MINUTES: i32 = 120;\n'
-  write_file "$tmpdir" "apps/mobile/constants/walk.ts" $'export const MIN_DAILY_GOAL_MINUTES = 0;\nexport const MAX_DAILY_GOAL_MINUTES = 120;\n'
-
-  output="$(run_script_expect_status 0 "$repo_root/scripts/harness/validate-architecture.sh" "$tmpdir")"
-
-  [[ -z "$output" ]] || fail "expected no output from passing architecture validation; got $output"
+  [[ -z "$output" ]] || fail "expected no output from canonical architecture validation; got $output"
+  assert_contains "$(cat "$cargo_log")" "$tmpdir/apps/api" "expected architecture check to run in API workspace"
+  assert_contains "$(cat "$cargo_log")" "xtask architecture check" "expected canonical architecture command"
 }
 
 test_score_quality_flags_stale_plans_and_missing_docs() {
@@ -151,46 +119,6 @@ test_score_quality_flags_stale_plans_and_missing_docs() {
 
   assert_contains "$output" "missing required quality document" "expected missing quality doc message"
   assert_contains "$output" "old active plan" "expected stale plan message"
-}
-
-test_compose_ports_are_parameterized_for_worktree_isolation() {
-  local compose
-  compose="$(cat "$repo_root/apps/compose.yml")"
-
-  for variable in \
-    WD_API_PORT \
-    WD_POSTGRES_PORT \
-    WD_DYNAMODB_PORT \
-    WD_MINIO_PORT \
-    WD_MINIO_CONSOLE_PORT \
-    WD_ELASTICMQ_PORT \
-    WD_ELASTICMQ_UI_PORT; do
-    [[ "$compose" =~ \$\{${variable}:-[0-9]+\} ]] || fail "expected compose to parameterize $variable"
-  done
-}
-
-test_api_ci_uses_dedicated_test_env_file() {
-  local compose workflow
-  compose="$(cat "$repo_root/apps/compose.yml")"
-  workflow="$(cat "$repo_root/.github/workflows/test-api.yml")"
-
-  assert_contains "$compose" '${WD_API_ENV_FILE:-api/.env.local}' "expected compose to default to local API env file"
-  assert_contains "$workflow" "WD_API_ENV_FILE: api/.env.test" "expected API CI to use the committed test env file"
-}
-
-test_dev_stack_does_not_use_compose_override_files() {
-  local source
-  source="$(cat "$repo_root/scripts/harness/dev-stack.sh")"
-
-  assert_not_contains "$source" "compose.override.yml" "dev-stack should not use compose override yml"
-  assert_not_contains "$source" "compose.override.yaml" "dev-stack should not use compose override yaml"
-}
-
-test_dev_stack_down_removes_named_volumes() {
-  local source
-  source="$(cat "$repo_root/scripts/harness/dev-stack.sh")"
-
-  assert_contains "$source" "compose_args=(down --volumes --remove-orphans)" "dev-stack down should remove harness volumes"
 }
 
 test_run_api_journey_uses_current_user_query() {
@@ -263,6 +191,15 @@ test_validate_all_includes_mobile_knip_gate() {
 
   assert_contains "$source" "validate-mobile-knip.sh" "expected validate-all to source mobile Knip validator"
   assert_contains "$source" "validate_mobile_knip" "expected validate-all to run mobile Knip validator"
+}
+
+test_validate_all_propagates_validator_failure() {
+  local source
+  source="$(cat "$repo_root/scripts/harness/validate-all.sh")"
+
+  assert_contains "$source" 'status=0' "expected aggregate status tracking"
+  assert_contains "$source" 'status=1' "expected failed validator to fail validate-all"
+  assert_contains "$source" 'return "$status"' "expected aggregate status propagation"
 }
 
 test_harness_has_no_node_scripts_or_invocations() {

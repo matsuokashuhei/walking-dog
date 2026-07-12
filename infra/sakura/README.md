@@ -183,12 +183,12 @@ cd ~/walking-dog/infra/sakura
 vi .env                              # 変数を追記・編集
 ./deploy.sh
 docker compose exec api env | grep <VAR_NAME>     # 反映確認
-docker compose exec walker env | grep <VAR_NAME>  # worker 側も確認
+docker compose exec worker env | grep <VAR_NAME>  # worker 側も確認
 ```
 
 例: `AWS_SQS_QUEUE_URL_TRACK_POINT` や `PHOTO_CDN_URL` を追加したとき、`docker compose restart` だけでは `env_file` を再読込しない環境があるため、`deploy.sh` 経由での `--force-recreate` を前提にする。
 
-`SENTRY_DSN` を追加・変更した場合も同じ手順で `./deploy.sh` を実行し、`api` と `walker` の両方に反映されたことを確認する。
+`SENTRY_DSN` を追加・変更した場合も同じ手順で `./deploy.sh` を実行し、`api` と `worker` の両方に反映されたことを確認する。
 
 ## トラブルシューティング
 

@@ -653,13 +653,14 @@ input/output audit is ready for human review.
 
 | Boundary | Responsibility and interface | Acceptance / rollback / dependency |
 | --- | --- | --- |
-| PR2A | Manifest schema and history/PR validator expose one changed-manifest and external-evidence contract. | Fixture RED/GREEN; revert validator commit; precedes all later boundaries. |
-| PR2B | Routing docs, PR template, Harness CI, and local validation consume the contract. | Consumer audit passes; revert consumer wiring; depends on PR2A. |
-| PR2C | Canonical syntax contract removes semantic resolver behavior while retaining API-ARCH IDs and diagnostics. | Rule fixtures and SARIF pass; revert gate as a unit; depends on PR2B. |
-| PR3A | Closed image catalog and deterministic generated opaque runtime replace source resolver. | Generate twice clean and lifecycle proof; revert catalog/runtime together; depends on PR2C. |
-| PR3B | Cargo policy and CI enforce the generated-only Testcontainers surface. | Dependency/alias/build policy tests pass; rollback to PR3A runtime; depends on PR3A. |
-| PR11A | Full consumer audit and required verification bind all gates. | All listed checks pass; revert the change set; depends on PR2A–PR3B. |
-| PR11B | Frozen head receives independent external Sol evidence. | Exact SHA evidence only; new head requires new review; depends on PR11A. |
+| PR2A | Mobile package/source/iOS shell. Interface: deployable iOS shell. | Shell tests/launch; rollback prior Mobile build; after PR1. |
+| PR2B | Mobile manifest/compiler/negative gates. Interface: `npm run architecture`. | Negative fixtures; rollback compiler/policy; after 2A. |
+| PR2C | Result/error/query-client/review-input/CI. Interface: Feature-safe platform APIs. | contracts and CI pass; rollback platform layer; after 2B. |
+| PR3A | GraphQL schema generation and Mobile codegen. Interface: deterministic schema/types. | twice-generated clean; rollback generated contract; after 2C. |
+| PR3B | Testcontainers runtime and evidence system. Interface: deterministic harness. | lifecycle/evidence proof; rollback runtime; after 3A. |
+| PR4–10 | Vertical product slices remain unchanged. Interface: complete Journey slices. | each Journey acceptance; revert whole slice; after PR3B. |
+| PR11A | Negative gates and full CI matrix. Interface: required validation. | matrix green; rollback gates; after PR4–10. |
+| PR11B | Residue/exceptions/knowledge/repository closure. Interface: clean repository. | closure audit; rollback closure PR; after 11A. |
 
 - Merge PRs strictly in numeric order; never cherry-pick a later Feature onto an
   earlier foundation.

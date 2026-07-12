@@ -1,16 +1,21 @@
 # Development Process
 
-Every change that crosses a reviewed base/head range has one changed active
-manifest in `docs/development/changes/`. The manifest partitions changed paths,
-names one owner per task, records dependencies, acceptance, consumer decisions,
-rollback, enforcement layer, non-targets, and RED/GREEN/frozen milestones.
+Before work, read the applicable docs, identify base/head, create one active
+manifest, and derive tasks from its single owners, dependencies, acceptance,
+consumer decisions, non-targets, enforcement layer, and rollback. Create a RED
+test before production edits, record its command/result, implement minimally,
+then record GREEN. Re-read the plan before each task and freeze.
 
-Use `scripts/development/validate-change-manifest.sh` for repository history.
-PR CI uses its `--pr` mode with the base/head range and a single structured PR
-evidence marker. The marker binds the changed manifest, approved task identities,
-successful test evidence, head SHA, and independent Sol result; it is external
-evidence and is not written into the frozen manifest after review.
+Commit coherent milestones; update the manifest before each freeze and push only
+after its commands pass. At 50%, audit AGENTS/CLAUDE, PR template, Harness and
+test-api workflows, validation scripts, VS Code, API README/runbook, Cargo/lock,
+and xtask. Re-read the diff, manifest, and non-targets before final verification.
 
-Same-cause failures stop after three attempts. Never track `.superpowers` scratch
-files. No affected journey is valid only when the manifest says so and the change
-does not alter product behavior, API contracts, persistence, permissions, or UI.
+Independent final review happens only on a frozen head. Critical or Important
+findings block merge; a changed head requires a new review. Its exact-SHA evidence
+lives externally, never in a post-review manifest commit. After merge, retain the
+manifest in history, observe CI, and use its recorded rollback rather than hiding
+or optionalizing defects. Three same-cause failures require escalation.
+
+Use history validation locally; PR validation requires one changed manifest and
+the structured evidence marker. Never track `.superpowers` scratch files.

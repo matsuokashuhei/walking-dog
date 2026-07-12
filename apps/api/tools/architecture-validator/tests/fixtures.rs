@@ -529,6 +529,27 @@ fn raw_sql_execution_apis_are_rejected_without_scanning_messages() {
 }
 
 #[test]
+fn canonical_syntax_rejects_include_hiding_without_flagging_plain_local_code() {
+    let included = analyze_source(SourceUnit {
+        crate_name: "domain",
+        path: "crates/domain/src/lib.rs",
+        source: "include!(\"generated.rs\");",
+        production: true,
+    })
+    .expect("fixture parses");
+    assert!(included.iter().any(|diagnostic| diagnostic.rule_id == "API-ARCH-001"));
+
+    let local = analyze_source(SourceUnit {
+        crate_name: "domain",
+        path: "crates/domain/src/lib.rs",
+        source: "pub struct WalkMinutes(pub u16);",
+        production: true,
+    })
+    .expect("fixture parses");
+    assert!(local.is_empty());
+}
+
+#[test]
 fn repeated_super_paths_cannot_cross_application_roots() {
     let diagnostics = analyze_source(SourceUnit {
         crate_name: "application",
@@ -659,34 +680,15 @@ fn private_trait_impl_is_not_a_public_boundary_but_public_trait_impl_is() {
 }
 
 #[test]
-fn cross_file_trait_visibility_uses_qualified_source_set_identity() {
-    for (visibility, should_report) in [("pub ", true), ("", false)] {
-        let declaration =
-            format!("{visibility}trait Port {{ fn row(&self) -> adapter_postgres::Row; }}\n");
-        let units = [
-            SourceUnit {
-                crate_name: "application",
-                path: "crates/application/src/ports.rs",
-                source: &declaration,
-                production: false,
-            },
-            SourceUnit {
-                crate_name: "application",
-                path: "crates/application/src/owner/service.rs",
-                source: "struct Service;\nimpl crate::ports::Port for Service { fn row(&self) -> adapter_postgres::Row { loop {} } }\n",
-                production: false,
-            },
-        ];
-        let diagnostics = analyze_source_set(&units).expect("fixtures must parse");
-        assert_eq!(
-            diagnostics.iter().any(|diagnostic| {
-                diagnostic.rule_id == "API-ARCH-006"
-                    && diagnostic.path == "crates/application/src/owner/service.rs"
-                    && diagnostic.line == 2
-            }),
-            should_report
-        );
-    }
+fn cross_file_trait_visibility_is_fail_closed_without_resolution() {
+    let diagnostics = analyze_source(SourceUnit {
+        crate_name: "application",
+        path: "crates/application/src/owner/service.rs",
+        source: "struct Service;\nimpl crate::ports::Port for Service { fn row(&self) -> adapter_postgres::Row { loop {} } }\n",
+        production: false,
+    })
+    .expect("fixture must parse");
+    assert!(diagnostics.iter().any(|diagnostic| diagnostic.rule_id == "API-ARCH-006"));
 }
 
 #[test]
@@ -727,7 +729,7 @@ fn sea_orm_raw_statement_constructors_are_closed() {
 }
 
 #[test]
-fn test_target_trait_collision_cannot_change_production_visibility() {
+fn test_target_trait_collision_cannot_bypass_fail_closed_boundary() {
     let units = [
         SourceUnit {
             crate_name: "application",
@@ -749,9 +751,9 @@ fn test_target_trait_collision_cannot_change_production_visibility() {
         },
     ];
     let diagnostics = analyze_source_set(&units).expect("fixtures must parse");
-    assert!(diagnostics.iter().all(|diagnostic| {
-        diagnostic.rule_id != "API-ARCH-006"
-            || diagnostic.path != "crates/application/src/owner/service.rs"
+    assert!(diagnostics.iter().any(|diagnostic| {
+        diagnostic.rule_id == "API-ARCH-006"
+            && diagnostic.path == "crates/application/src/owner/service.rs"
     }));
 }
 

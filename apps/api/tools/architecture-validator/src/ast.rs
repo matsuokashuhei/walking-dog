@@ -71,41 +71,16 @@ pub fn analyze_source_set(units: &[SourceUnit<'_>]) -> Result<Vec<Diagnostic>, V
                 })
         })
         .collect::<Result<Vec<_>, _>>()?;
-    let mut trait_index = HashMap::new();
-    for (unit, file) in &parsed {
-        let prefix = source_module_components(unit.path);
-        for (identity, public) in collect_qualified_traits(&file.items, &prefix) {
-            trait_index.insert(
-                (
-                    unit.crate_name.to_owned(),
-                    target_namespace(unit.path),
-                    identity,
-                ),
-                public,
-            );
-        }
-    }
     let mut diagnostics = Vec::new();
     for (unit, file) in &parsed {
-        diagnostics.extend(analyze_parsed(*unit, file, &trait_index));
+        diagnostics.extend(analyze_parsed(*unit, file));
     }
     Ok(diagnostics)
 }
 
-fn analyze_parsed(
-    unit: SourceUnit<'_>,
-    file: &syn::File,
-    trait_index: &HashMap<(String, String, Vec<String>), bool>,
-) -> Vec<Diagnostic> {
+fn analyze_parsed(unit: SourceUnit<'_>, file: &syn::File) -> Vec<Diagnostic> {
     let aliases = collect_item_aliases(&file.items);
     let trait_scope = collect_item_traits(&file.items);
-    let qualified_traits = trait_index
-        .iter()
-        .filter(|((crate_name, namespace, _), _)| {
-            crate_name == unit.crate_name && namespace == &target_namespace(unit.path)
-        })
-        .map(|((_, _, identity), public)| (identity.clone(), *public))
-        .collect();
     let mut analyzer = Analyzer {
         unit,
         alias_scopes: vec![aliases],
@@ -114,7 +89,7 @@ fn analyze_parsed(
         public_boundary: false,
         trait_impl: false,
         trait_scopes: vec![trait_scope],
-        qualified_traits,
+        qualified_traits: HashMap::new(),
         module_path: source_module_components(unit.path),
     };
     analyzer.visit_file(file);
@@ -259,6 +234,14 @@ impl Analyzer<'_> {
     fn inspect_macro(&mut self, node: &Macro) {
         let path = canonicalize(&path_segments(&node.path), &self.alias_scopes);
         let name = path.last().map(String::as_str).unwrap_or_default();
+        if name == "include" {
+            self.report(
+                "API-ARCH-001",
+                node.path.span(),
+                "include!",
+                "keep governed source explicit; include! cannot hide architecture-relevant syntax",
+            );
+        }
         if self.unit.production && matches!(name, "panic" | "todo" | "unimplemented") {
             self.report(
                 "API-ARCH-005",
@@ -573,34 +556,6 @@ fn collect_item_traits(items: &[Item]) -> HashMap<String, bool> {
         .collect()
 }
 
-fn collect_qualified_traits(items: &[Item], prefix: &[String]) -> HashMap<Vec<String>, bool> {
-    fn walk(
-        items: &[Item],
-        module_path: &mut Vec<String>,
-        traits: &mut HashMap<Vec<String>, bool>,
-    ) {
-        for item in items {
-            match item {
-                Item::Trait(item) => {
-                    let mut identity = module_path.clone();
-                    identity.push(item.ident.to_string());
-                    traits.insert(identity, !matches!(item.vis, Visibility::Inherited));
-                }
-                Item::Mod(item) => {
-                    if let Some((_, items)) = &item.content {
-                        module_path.push(item.ident.to_string());
-                        walk(items, module_path, traits);
-                        module_path.pop();
-                    }
-                }
-                _ => {}
-            }
-        }
-    }
-    let mut traits = HashMap::new();
-    walk(items, &mut prefix.to_vec(), &mut traits);
-    traits
-}
 
 fn collect_block_aliases(block: &Block) -> HashMap<String, Vec<String>> {
     let items = block
@@ -802,34 +757,6 @@ fn imports_another_application_module(source: &[String], imported: &[String]) ->
     })
 }
 
-fn target_namespace(path: &str) -> String {
-    for (directory, kind) in [
-        ("/tests/", "test"),
-        ("/examples/", "example"),
-        ("/benches/", "bench"),
-    ] {
-        if let Some(relative) = path.split(directory).nth(1) {
-            let target = relative
-                .split('/')
-                .next()
-                .unwrap_or_default()
-                .trim_end_matches(".rs");
-            return format!("{kind}:{target}");
-        }
-    }
-    if let Some(relative) = path.split("/src/bin/").nth(1) {
-        let target = relative
-            .split('/')
-            .next()
-            .unwrap_or_default()
-            .trim_end_matches(".rs");
-        return format!("bin:{target}");
-    }
-    if path.ends_with("/src/main.rs") {
-        return "bin:main".to_owned();
-    }
-    "lib".to_owned()
-}
 
 fn source_module_components(path: &str) -> Vec<String> {
     let Some(relative) = path.split("/src/").nth(1) else {

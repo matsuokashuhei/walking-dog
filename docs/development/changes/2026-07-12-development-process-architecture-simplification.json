@@ -135,6 +135,12 @@
       "state": "green",
       "commands": ["scripts/harness/validate-knowledge.sh", "bash scripts/development/validate-change-manifest.sh"],
       "result": "GREEN: concise AGENTS index, process/routing docs, repository skill, lessons, and roadmap boundaries are linked and validated."
+    },
+    {
+      "name": "canonical-trait-resolution-green",
+      "state": "green",
+      "commands": ["docker API harness: cargo test -p architecture-validator --test fixtures --test check --locked"],
+      "result": "RED include! fixture and GREEN focused suite recorded; cross-file trait identity resolver deleted and replaced by fail-closed local boundary behavior."
     }
   ]
 }

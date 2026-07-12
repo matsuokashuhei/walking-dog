@@ -1,0 +1,12 @@
+[package]
+name = "integration-test-support"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+harness-runtime = { path = "../harness-runtime" }
+
+[lints]
+workspace = true

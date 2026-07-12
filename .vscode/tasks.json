@@ -2,94 +2,34 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "watch: walking-dog",
+      "label": "api: architecture check",
       "type": "shell",
-      "command": "cargo watch -x 'run --bin walking-dog'",
-      "options": {
-        "cwd": "${workspaceFolder}/apps/api"
-      },
+      "command": "cargo xtask architecture check",
+      "options": { "cwd": "${workspaceFolder}/apps/api" },
+      "problemMatcher": []
+    },
+    {
+      "label": "api: run",
+      "type": "shell",
+      "command": "cargo run -p api-bootstrap --bin api",
+      "options": { "cwd": "${workspaceFolder}/apps/api" },
       "isBackground": true,
       "problemMatcher": []
     },
     {
-      "label": "watch: track_point_worker",
+      "label": "api: worker",
       "type": "shell",
-      "command": "cargo watch -x 'run --bin track_point_worker'",
-      "options": {
-        "cwd": "${workspaceFolder}/apps/api"
-      },
+      "command": "cargo run -p api-bootstrap --bin track-point-worker",
+      "options": { "cwd": "${workspaceFolder}/apps/api" },
       "isBackground": true,
       "problemMatcher": []
     },
     {
-      "label": "watch: all",
-      "dependsOn": ["watch: walking-dog", "watch: track_point_worker"],
-      "dependsOrder": "parallel",
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "watch: docker compose up",
+      "label": "api: integration tests",
       "type": "shell",
-      "command": "docker compose -f apps/compose.yml up",
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
-      "isBackground": true,
+      "command": "cargo test --workspace --all-targets --all-features --locked",
+      "options": { "cwd": "${workspaceFolder}/apps/api" },
       "problemMatcher": []
-    },
-    // {
-    //   "label": "watch: npm run metro:kill",
-    //   "type": "shell",
-    //   "command": "npm run metro:kill",
-    //   "options": {
-    //     "cwd": "${workspaceFolder}/apps/mobile"
-    //   },
-    //   "isBackground": true,
-    //   "problemMatcher": []
-    // },
-    // {
-    //   "label": "watch: npm run ios:clean",
-    //   "type": "shell",
-    //   "command": "npm run ios:clean",
-    //   "options": {
-    //     "cwd": "${workspaceFolder}/apps/mobile"
-    //   },
-    //   "isBackground": true,
-    //   "problemMatcher": []
-    // },
-    // {
-    //   "label": "watch: npm run ios:sim:local",
-    //   "type": "shell",
-    //   "command": "npm run ios:sim:local",
-    //   "options": {
-    //     "cwd": "${workspaceFolder}/apps/mobile"
-    //   },
-    //   "isBackground": true,
-    //   "problemMatcher": []
-    // },
-    // {
-    //   "label": "watch: npm",
-    //   "dependsOn": ["watch: npm run metro:kill", "watch: npm run ios:clean", "watch: npm run ios:sim:local"],
-    //   "dependsOrder": "sequence",
-    //   "group": {
-    //     "kind": "build",
-    //     "isDefault": true
-    //   },
-    //   "problemMatcher": []
-    // },
-    {
-      "label": "ios:sim:local",
-      "dependsOn": ["npm run metro:kill", "npm run ios:clean", "npm run ios:sim:local"],
-      "dependsOrder": "sequence",
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      },
-      "problemMatcher": []
-    },
+    }
   ]
 }

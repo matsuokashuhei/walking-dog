@@ -1,0 +1,55 @@
+version = 1
+default = "deny"
+
+[workspace_edges.normal]
+domain = []
+application = ["domain"]
+adapter-graphql = ["application", "domain"]
+adapter-postgres = ["application", "domain"]
+adapter-aws-cognito = ["application", "domain"]
+adapter-aws-s3 = ["application", "domain"]
+adapter-aws-sqs = ["application", "domain"]
+adapter-aws-dynamodb = ["application", "domain"]
+api-bootstrap = [
+  "application",
+  "adapter-graphql",
+  "adapter-postgres",
+  "adapter-aws-cognito",
+  "adapter-aws-s3",
+  "adapter-aws-sqs",
+  "adapter-aws-dynamodb",
+]
+architecture-validator = []
+harness-runtime = []
+integration-test-support = ["harness-runtime"]
+xtask = ["architecture-validator", "harness-runtime"]
+
+[workspace_edges.dev]
+domain = []
+application = []
+adapter-graphql = ["integration-test-support"]
+adapter-postgres = ["integration-test-support"]
+adapter-aws-cognito = ["integration-test-support"]
+adapter-aws-s3 = ["integration-test-support"]
+adapter-aws-sqs = ["integration-test-support"]
+adapter-aws-dynamodb = ["integration-test-support"]
+api-bootstrap = ["integration-test-support"]
+architecture-validator = []
+harness-runtime = []
+integration-test-support = []
+xtask = []
+
+[workspace_edges.build]
+domain = []
+application = []
+adapter-graphql = []
+adapter-postgres = []
+adapter-aws-cognito = []
+adapter-aws-s3 = []
+adapter-aws-sqs = []
+adapter-aws-dynamodb = []
+api-bootstrap = []
+architecture-validator = []
+harness-runtime = []
+integration-test-support = []
+xtask = []

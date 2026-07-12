@@ -1,7 +1,6 @@
 {
   "rust-analyzer.linkedProjects": [
-    "/walking-dog/apps/api/Cargo.toml",
-    "/walking-dog/apps/api/migration/Cargo.toml",
+    "${workspaceFolder}/apps/api/Cargo.toml"
   ],
   "chat.tools.terminal.autoApprove": {
     "cargo run": true

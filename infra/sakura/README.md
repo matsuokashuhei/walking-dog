@@ -98,7 +98,7 @@ vi .env
 | `DATABASE_URL` | `POSTGRES_PASSWORD` と同じパスワードを埋め込む |
 | `AWS_ACCESS_KEY_ID` | `terraform output vps_api_access_key_id` |
 | `AWS_SECRET_ACCESS_KEY` | `terraform output -raw vps_api_secret_access_key` |
-| `ECR_IMAGE` | `terraform output ecr_repository_url` + `:latest` |
+| `ECR_IMAGE` | ECR repository plus the deployed immutable manifest digest (`repository@sha256:<64 hex>`) |
 | `AVATAR_CDN_URL` | `terraform output -raw cloudfront_avatars_url` |
 | `PHOTO_CDN_URL` | `terraform output -raw cloudfront_photos_url` |
 | `SENTRY_DSN` | Sentry project の Client Keys (DSN)。空なら Sentry 送信なし |
@@ -183,12 +183,12 @@ cd ~/walking-dog/infra/sakura
 vi .env                              # 変数を追記・編集
 ./deploy.sh
 docker compose exec api env | grep <VAR_NAME>     # 反映確認
-docker compose exec walker env | grep <VAR_NAME>  # worker 側も確認
+docker compose exec worker env | grep <VAR_NAME>  # worker 側も確認
 ```
 
 例: `AWS_SQS_QUEUE_URL_TRACK_POINT` や `PHOTO_CDN_URL` を追加したとき、`docker compose restart` だけでは `env_file` を再読込しない環境があるため、`deploy.sh` 経由での `--force-recreate` を前提にする。
 
-`SENTRY_DSN` を追加・変更した場合も同じ手順で `./deploy.sh` を実行し、`api` と `walker` の両方に反映されたことを確認する。
+`SENTRY_DSN` を追加・変更した場合も同じ手順で `./deploy.sh` を実行し、`api` と `worker` の両方に反映されたことを確認する。
 
 ## トラブルシューティング
 
@@ -200,11 +200,28 @@ docker compose logs -f api
 
 ### DB マイグレーションが失敗する
 
-`apps/api/src/main.rs` の起動時に `Migrator::up` が自動実行される。
-失敗時は `DATABASE_URL` の接続情報を確認:
+API 起動時にはマイグレーションを実行しない。現在の実装は
+`apps/api/crates/api-bootstrap/src/bin/migrate.rs` の専用 `migrate` バイナリで、
+デプロイ済みイメージにも `/usr/local/bin/migrate` として含まれる。
+
+適用または再試行する場合は、PostgreSQL の起動完了後に同じ `.env` を使って
+一時コンテナを実行する:
+
+```bash
+docker compose run --rm api migrate
+```
+
+失敗時は `DATABASE_URL` の接続情報を確認する:
 
 ```bash
 docker compose exec postgres psql -U walking_dog -d walking_dog_test
+```
+
+ローカルの API ワークスペースから確認する場合は次を使う:
+
+```bash
+cd apps/api
+cargo run -p api-bootstrap --bin migrate
 ```
 
 ### ECR pull が `no basic auth credentials` エラー

@@ -1,0 +1,20 @@
+[package]
+name = "adapter-postgres"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+application = { path = "../application" }
+domain = { path = "../domain" }
+sqlx = { version = "0.8.6", default-features = false, features = ["postgres", "runtime-tokio"] }
+thiserror = "2.0.12"
+url = "2.5.4"
+
+[dev-dependencies]
+integration-test-support = { path = "../../tools/integration-test-support" }
+tokio = { version = "1.45.1", features = ["macros", "rt-multi-thread"] }
+
+[lints]
+workspace = true

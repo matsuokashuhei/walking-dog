@@ -1,50 +1,134 @@
-name: Test API
+name: API Required Checks
 
 on:
   push:
     branches: [main]
-    paths:
-      - "apps/api/**"
   pull_request:
-    paths:
-      - "apps/api/**"
+  merge_group:
 
 concurrency:
-  group: test-api-${{ github.ref }}
+  group: api-required-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  test:
-    name: Cargo Test
+  changes:
+    name: Detect API changes
     runs-on: ubuntu-latest
-    env:
-      WD_API_ENV_FILE: api/.env.test
+    outputs:
+      api: ${{ steps.filter.outputs.api }}
     steps:
-      - name: Checkout
+      - uses: actions/checkout@v6
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            api:
+              - 'apps/api/**'
+              - 'scripts/harness/**'
+              - 'infra/sakura/compose.yml'
+              - 'infra/sakura/deploy.sh'
+              - 'infra/sakura/.env.example'
+              - 'infra/sakura/README.md'
+              - '.github/workflows/test-api.yml'
+
+  architecture:
+    name: API / Architecture
+    needs: changes
+    runs-on: ubuntu-latest
+    steps:
+      - if: needs.changes.outputs.api == 'true'
         uses: actions/checkout@v6
-
-      - name: Create DynamoDB table and S3 bucket
+        with:
+          fetch-depth: 0
+      - if: needs.changes.outputs.api == 'true'
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: clippy,rustfmt
+      - if: needs.changes.outputs.api == 'true'
+        working-directory: apps/api
+        env:
+          ARCHITECTURE_BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
+          ARCHITECTURE_HEAD: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
         run: |
-          docker compose -f apps/compose.yml up -d dynamodb-local minio
-          sleep 3
-          curl -s -X POST http://localhost:8000 \
-            -H 'Content-Type: application/x-amz-json-1.0' \
-            -H 'X-Amz-Target: DynamoDB_20120810.CreateTable' \
-            -H 'X-Amz-Date: 20260101T000000Z' \
-            -H 'Authorization: AWS4-HMAC-SHA256 Credential=test/20260101/ap-northeast-1/dynamodb/aws4_request, SignedHeaders=content-type;host;x-amz-date;x-amz-target, Signature=dummy' \
-            -d '{
-              "TableName": "WalkPoints",
-              "AttributeDefinitions": [
-                {"AttributeName": "pk", "AttributeType": "S"},
-                {"AttributeName": "sk", "AttributeType": "S"}
-              ],
-              "KeySchema": [
-                {"AttributeName": "pk", "KeyType": "HASH"},
-                {"AttributeName": "sk", "KeyType": "RANGE"}
-              ],
-              "BillingMode": "PAY_PER_REQUEST"
-            }'
-          docker compose -f apps/compose.yml up minio-init
+          cargo fmt --all -- --check
+          cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+          cargo test --locked -p architecture-validator --all-targets --all-features
+          cargo test --locked -p xtask --all-targets --all-features
+          if [[ "$ARCHITECTURE_BASE" =~ ^0+$ ]]; then
+            ARCHITECTURE_BASE="$(git rev-parse "$ARCHITECTURE_HEAD^")"
+          fi
+          cargo xtask architecture check --base "$ARCHITECTURE_BASE" --head "$ARCHITECTURE_HEAD"
+      - if: needs.changes.outputs.api != 'true'
+        run: echo 'No API changes; stable check passes.'
 
-      - name: Run tests
-        run: docker compose -f apps/compose.yml run --rm api cargo test --features test-utils -- --test-threads=1
+  contracts:
+    name: API / Domain and Application Contracts
+    needs: changes
+    runs-on: ubuntu-latest
+    steps:
+      - if: needs.changes.outputs.api == 'true'
+        uses: actions/checkout@v6
+      - if: needs.changes.outputs.api == 'true'
+        uses: dtolnay/rust-toolchain@1.96.0
+      - if: needs.changes.outputs.api == 'true'
+        working-directory: apps/api
+        run: cargo test --locked -p domain -p application
+      - if: needs.changes.outputs.api != 'true'
+        run: echo 'No API changes; stable check passes.'
+
+  adapters:
+    name: API / Adapter Integration
+    needs: changes
+    runs-on: ubuntu-latest
+    steps:
+      - if: needs.changes.outputs.api == 'true'
+        uses: actions/checkout@v6
+      - if: needs.changes.outputs.api == 'true'
+        uses: dtolnay/rust-toolchain@1.96.0
+      - if: needs.changes.outputs.api == 'true'
+        working-directory: apps/api
+        run: cargo test --locked -p adapter-postgres -p integration-test-support -p harness-runtime
+      - if: needs.changes.outputs.api != 'true'
+        run: echo 'No API changes; stable check passes.'
+
+  graphql:
+    name: API / GraphQL Schema and Journeys
+    needs: changes
+    runs-on: ubuntu-latest
+    steps:
+      - if: needs.changes.outputs.api == 'true'
+        uses: actions/checkout@v6
+      - if: needs.changes.outputs.api == 'true'
+        uses: dtolnay/rust-toolchain@1.96.0
+      - if: needs.changes.outputs.api == 'true'
+        working-directory: apps/api
+        run: cargo test --locked -p adapter-graphql -p api-bootstrap
+      - if: needs.changes.outputs.api != 'true'
+        run: echo 'No API changes; stable check passes.'
+
+  repository:
+    name: Repository / Harness Invariants
+    needs: changes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - if: needs.changes.outputs.api == 'true'
+        uses: dtolnay/rust-toolchain@1.96.0
+      - if: needs.changes.outputs.api == 'true'
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.17.0
+          cache: npm
+          cache-dependency-path: apps/mobile/package-lock.json
+      - if: needs.changes.outputs.api == 'true'
+        working-directory: apps/mobile
+        run: npm ci
+      - if: needs.changes.outputs.api == 'true'
+        run: docker build -f apps/api/Dockerfile -t walking-dog-api-kernel:ci apps/api
+      - if: needs.changes.outputs.api == 'true'
+        run: |
+          scripts/harness/harness.test.sh
+          scripts/harness/validate-all.sh
+          scripts/harness/verify-production-images.sh walking-dog-api-kernel:ci
+      - if: needs.changes.outputs.api != 'true'
+        run: echo 'No API changes; stable check passes.'

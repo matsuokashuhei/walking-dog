@@ -94,51 +94,19 @@ test_validate_knowledge_accepts_complete_fixture() {
   [[ -z "$output" ]] || fail "expected no output from passing knowledge validation; got $output"
 }
 
-test_validate_architecture_rejects_aws_sdk_in_resolvers() {
-  local tmpdir output
+test_validate_architecture_delegates_to_canonical_xtask_check() {
+  local tmpdir output cargo_log
   make_tmpdir tmpdir
-  write_file "$tmpdir" "apps/api/src/graphql/mutation/dog.rs" $'use aws_sdk_s3::Client;\n'
-  write_file "$tmpdir" "apps/api/src/service/dog_walk_goal.rs" $'pub const MIN_DAILY_GOAL_MINUTES: i32 = 0;\npub const MAX_DAILY_GOAL_MINUTES: i32 = 120;\n'
-  write_file "$tmpdir" "apps/mobile/constants/walk.ts" $'export const MIN_DAILY_GOAL_MINUTES = 0;\nexport const MAX_DAILY_GOAL_MINUTES = 120;\n'
+  cargo_log="$tmpdir/cargo.log"
+  mkdir -p "$tmpdir/apps/api" "$tmpdir/bin"
+  write_file "$tmpdir" "bin/cargo" $'#!/usr/bin/env bash\nprintf "%s\n" "$PWD" > "$HARNESS_CARGO_LOG"\nprintf "%s " "$@" >> "$HARNESS_CARGO_LOG"\n'
+  chmod +x "$tmpdir/bin/cargo"
 
-  output="$(run_script_expect_status 1 "$repo_root/scripts/harness/validate-architecture.sh" "$tmpdir")"
+  output="$(HARNESS_CARGO_LOG="$cargo_log" PATH="$tmpdir/bin:$PATH" run_script_expect_status 0 "$repo_root/scripts/harness/validate-architecture.sh" "$tmpdir")"
 
-  assert_contains "$output" "GraphQL resolver boundary" "expected resolver boundary violation"
-}
-
-test_validate_architecture_rejects_walk_goal_range_drift() {
-  local tmpdir output
-  make_tmpdir tmpdir
-  write_file "$tmpdir" "apps/api/src/service/dog_walk_goal.rs" $'pub const MIN_DAILY_GOAL_MINUTES: i32 = 0;\npub const MAX_DAILY_GOAL_MINUTES: i32 = 120;\n'
-  write_file "$tmpdir" "apps/mobile/constants/walk.ts" $'export const MIN_DAILY_GOAL_MINUTES = 5;\nexport const MAX_DAILY_GOAL_MINUTES = 120;\n'
-
-  output="$(run_script_expect_status 1 "$repo_root/scripts/harness/validate-architecture.sh" "$tmpdir")"
-
-  assert_contains "$output" "walk goal minute bounds drift" "expected walk goal drift violation"
-}
-
-test_validate_architecture_rejects_track_point_worker_wrappers() {
-  local tmpdir output
-  make_tmpdir tmpdir
-  write_file "$tmpdir" "apps/api/src/bin/track_point_worker.rs" $'struct WorkerRuntimeConfig { worker_concurrency: usize }\nfn positive_usize_env_value(value: Option<&str>, default: usize) -> usize { default }\n'
-  write_file "$tmpdir" "apps/api/src/service/dog_walk_goal.rs" $'pub const MIN_DAILY_GOAL_MINUTES: i32 = 0;\npub const MAX_DAILY_GOAL_MINUTES: i32 = 120;\n'
-  write_file "$tmpdir" "apps/mobile/constants/walk.ts" $'export const MIN_DAILY_GOAL_MINUTES = 0;\nexport const MAX_DAILY_GOAL_MINUTES = 120;\n'
-
-  output="$(run_script_expect_status 1 "$repo_root/scripts/harness/validate-architecture.sh" "$tmpdir")"
-
-  assert_contains "$output" "track point worker env config" "expected track point worker violation"
-}
-
-test_validate_architecture_accepts_clean_fixture() {
-  local tmpdir output
-  make_tmpdir tmpdir
-  write_file "$tmpdir" "apps/api/src/graphql/mutation/dog.rs" $'use crate::service::dog;\n'
-  write_file "$tmpdir" "apps/api/src/service/dog_walk_goal.rs" $'pub const MIN_DAILY_GOAL_MINUTES: i32 = 0;\npub const MAX_DAILY_GOAL_MINUTES: i32 = 120;\n'
-  write_file "$tmpdir" "apps/mobile/constants/walk.ts" $'export const MIN_DAILY_GOAL_MINUTES = 0;\nexport const MAX_DAILY_GOAL_MINUTES = 120;\n'
-
-  output="$(run_script_expect_status 0 "$repo_root/scripts/harness/validate-architecture.sh" "$tmpdir")"
-
-  [[ -z "$output" ]] || fail "expected no output from passing architecture validation; got $output"
+  [[ -z "$output" ]] || fail "expected no output from canonical architecture validation; got $output"
+  assert_contains "$(cat "$cargo_log")" "$tmpdir/apps/api" "expected architecture check to run in API workspace"
+  assert_contains "$(cat "$cargo_log")" "xtask architecture check" "expected canonical architecture command"
 }
 
 test_score_quality_flags_stale_plans_and_missing_docs() {
@@ -151,46 +119,6 @@ test_score_quality_flags_stale_plans_and_missing_docs() {
 
   assert_contains "$output" "missing required quality document" "expected missing quality doc message"
   assert_contains "$output" "old active plan" "expected stale plan message"
-}
-
-test_compose_ports_are_parameterized_for_worktree_isolation() {
-  local compose
-  compose="$(cat "$repo_root/apps/compose.yml")"
-
-  for variable in \
-    WD_API_PORT \
-    WD_POSTGRES_PORT \
-    WD_DYNAMODB_PORT \
-    WD_MINIO_PORT \
-    WD_MINIO_CONSOLE_PORT \
-    WD_ELASTICMQ_PORT \
-    WD_ELASTICMQ_UI_PORT; do
-    [[ "$compose" =~ \$\{${variable}:-[0-9]+\} ]] || fail "expected compose to parameterize $variable"
-  done
-}
-
-test_api_ci_uses_dedicated_test_env_file() {
-  local compose workflow
-  compose="$(cat "$repo_root/apps/compose.yml")"
-  workflow="$(cat "$repo_root/.github/workflows/test-api.yml")"
-
-  assert_contains "$compose" '${WD_API_ENV_FILE:-api/.env.local}' "expected compose to default to local API env file"
-  assert_contains "$workflow" "WD_API_ENV_FILE: api/.env.test" "expected API CI to use the committed test env file"
-}
-
-test_dev_stack_does_not_use_compose_override_files() {
-  local source
-  source="$(cat "$repo_root/scripts/harness/dev-stack.sh")"
-
-  assert_not_contains "$source" "compose.override.yml" "dev-stack should not use compose override yml"
-  assert_not_contains "$source" "compose.override.yaml" "dev-stack should not use compose override yaml"
-}
-
-test_dev_stack_down_removes_named_volumes() {
-  local source
-  source="$(cat "$repo_root/scripts/harness/dev-stack.sh")"
-
-  assert_contains "$source" "compose_args=(down --volumes --remove-orphans)" "dev-stack down should remove harness volumes"
 }
 
 test_run_api_journey_uses_current_user_query() {
@@ -263,6 +191,103 @@ test_validate_all_includes_mobile_knip_gate() {
 
   assert_contains "$source" "validate-mobile-knip.sh" "expected validate-all to source mobile Knip validator"
   assert_contains "$source" "validate_mobile_knip" "expected validate-all to run mobile Knip validator"
+}
+
+test_validate_all_propagates_validator_failure() {
+  local source
+  source="$(cat "$repo_root/scripts/harness/validate-all.sh")"
+
+  assert_contains "$source" 'status=0' "expected aggregate status tracking"
+  assert_contains "$source" 'status=1' "expected failed validator to fail validate-all"
+  assert_contains "$source" 'return "$status"' "expected aggregate status propagation"
+}
+
+test_api_architecture_ci_maps_event_revisions_with_full_history() {
+  local workflow
+  workflow="$(cat "$repo_root/.github/workflows/test-api.yml")"
+
+  assert_contains "$workflow" "fetch-depth: 0" "architecture CI must fetch Git history"
+  assert_contains "$workflow" 'github.event.pull_request.base.sha' "PR base SHA must be explicit"
+  assert_contains "$workflow" 'github.event.pull_request.head.sha' "PR head SHA must be explicit"
+  assert_contains "$workflow" 'github.event.merge_group.base_sha' "merge queue base SHA must be explicit"
+  assert_contains "$workflow" 'github.event.merge_group.head_sha' "merge queue head SHA must be explicit"
+  assert_contains "$workflow" 'github.event.before' "push base SHA must be explicit"
+  assert_contains "$workflow" 'github.sha' "push head SHA must be explicit"
+  assert_contains "$workflow" 'architecture check --base "$ARCHITECTURE_BASE" --head "$ARCHITECTURE_HEAD"' "architecture CI must validate the explicit revision pair"
+  assert_contains "$workflow" 'cargo test --locked -p architecture-validator --all-targets --all-features' "architecture CI must execute validator fixtures"
+  assert_contains "$workflow" 'cargo test --locked -p xtask --all-targets --all-features' "architecture CI must execute journey-generator fixtures"
+  assert_contains "$workflow" 'verify-production-images.sh walking-dog-api-kernel:ci' "required CI must preserve the production image lifecycle gate"
+  assert_contains "$workflow" 'git rev-parse "$ARCHITECTURE_HEAD^"' "initial push must resolve a real parent or fail"
+  for path in infra/sakura/compose.yml infra/sakura/deploy.sh infra/sakura/.env.example infra/sakura/README.md; do
+    assert_contains "$workflow" "- '$path'" "infra-only change must run required deployment gates: $path"
+  done
+}
+
+test_production_images_are_digest_pinned_and_worker_has_process_health() {
+  local dockerfile compose deploy runtime
+  dockerfile="$(cat "$repo_root/apps/api/Dockerfile")"
+  compose="$(cat "$repo_root/infra/sakura/compose.yml")"
+  deploy="$(cat "$repo_root/infra/sakura/deploy.sh")"
+  runtime="$(cat "$repo_root/apps/api/tools/harness-runtime/src/images.rs")"
+
+  assert_contains "$dockerfile" '# syntax=docker/dockerfile:1@sha256:' "Dockerfile frontend must be digest pinned"
+  [[ "$(grep -c '^FROM .*@sha256:[0-9a-f]\{64\}' "$repo_root/apps/api/Dockerfile")" -eq 2 ]] || fail "every external Dockerfile FROM must be digest pinned"
+  assert_contains "$compose" 'caddy:2-alpine@sha256:' "production Caddy must be digest pinned"
+  assert_contains "$compose" 'postgres:16-alpine@sha256:' "production PostgreSQL must be digest pinned"
+  assert_contains "$runtime" '16-alpine@sha256:' "Testcontainers PostgreSQL must be digest pinned"
+  assert_contains "$compose" 'test: ["CMD-SHELL", "kill -0 1"]' "worker health must use process liveness"
+  assert_contains "$deploy" '@sha256:[0-9a-f]{64}' "deployment must reject tag-only API images"
+}
+
+test_deploy_image_digest_validation_respects_environment_precedence() {
+  local tmpdir deploy digest env_digest exported_digest output
+  make_tmpdir tmpdir
+  mkdir -p "$tmpdir/infra/sakura"
+  cp "$repo_root/infra/sakura/deploy.sh" "$tmpdir/infra/sakura/deploy.sh"
+  chmod +x "$tmpdir/infra/sakura/deploy.sh"
+  deploy="$tmpdir/infra/sakura/deploy.sh"
+  digest="sha256:$(printf 'a%.0s' {1..64})"
+  env_digest="registry.example/repository@$digest"
+  exported_digest="registry.example/override@sha256:$(printf 'b%.0s' {1..64})"
+
+  printf 'ECR_IMAGE=%s\n' "$env_digest" > "$tmpdir/infra/sakura/.env"
+  DEPLOY_VALIDATE_ONLY=1 "$deploy"
+  ECR_IMAGE="$exported_digest" DEPLOY_VALIDATE_ONLY=1 "$deploy"
+
+  printf 'ECR_IMAGE=registry.example/repository:latest\n' > "$tmpdir/infra/sakura/.env"
+  output="$(run_script_expect_status 2 env -u ECR_IMAGE DEPLOY_VALIDATE_ONLY=1 "$deploy")"
+  assert_contains "$output" "64 lowercase hex" "tag-only image must be rejected"
+}
+
+test_image_pin_validator_rejects_unpinned_and_malformed_references() {
+  local tmpdir output
+  make_tmpdir tmpdir
+  mkdir -p "$tmpdir/apps/api/tools/harness-runtime/src" "$tmpdir/apps/api/crates/domain/src" "$tmpdir/infra/sakura"
+  cp "$repo_root/apps/api/Dockerfile" "$tmpdir/apps/api/Dockerfile"
+  cp "$repo_root/apps/api/tools/harness-runtime/src/lib.rs" "$tmpdir/apps/api/tools/harness-runtime/src/lib.rs"
+  cp "$repo_root/apps/api/tools/harness-runtime/src/images.rs" "$tmpdir/apps/api/tools/harness-runtime/src/images.rs"
+  cp "$repo_root/infra/sakura/compose.yml" "$tmpdir/infra/sakura/compose.yml"
+  PIN_ROOT_OVERRIDE="$tmpdir" "$repo_root/scripts/harness/validate-image-pins.sh"
+
+  printf '\nFROM alpine:3\n' >> "$tmpdir/apps/api/Dockerfile"
+  output="$(run_script_expect_status 1 env PIN_ROOT_OVERRIDE="$tmpdir" "$repo_root/scripts/harness/validate-image-pins.sh")"
+  assert_contains "$output" "unpinned Dockerfile FROM" "third unpinned FROM must fail"
+
+  cp "$repo_root/apps/api/Dockerfile" "$tmpdir/apps/api/Dockerfile"
+  sed 's/@sha256:[0-9a-f]\{64\}/@sha256:abc/' "$repo_root/infra/sakura/compose.yml" > "$tmpdir/infra/sakura/compose.yml"
+  output="$(run_script_expect_status 1 env PIN_ROOT_OVERRIDE="$tmpdir" "$repo_root/scripts/harness/validate-image-pins.sh")"
+  assert_contains "$output" "unpinned Compose image" "short Compose digest must fail"
+
+  cp "$repo_root/infra/sakura/compose.yml" "$tmpdir/infra/sakura/compose.yml"
+  sed '1s/@sha256:[0-9a-f]\{64\}/@sha256:abc/' "$repo_root/apps/api/Dockerfile" > "$tmpdir/apps/api/Dockerfile"
+  output="$(run_script_expect_status 1 env PIN_ROOT_OVERRIDE="$tmpdir" "$repo_root/scripts/harness/validate-image-pins.sh")"
+  assert_contains "$output" "syntax frontend" "short frontend digest must fail"
+
+  cp "$repo_root/apps/api/Dockerfile" "$tmpdir/apps/api/Dockerfile"
+  printf '\nFROM alpine:3@sha256:abc\n' >> "$tmpdir/apps/api/Dockerfile"
+  output="$(run_script_expect_status 1 env PIN_ROOT_OVERRIDE="$tmpdir" "$repo_root/scripts/harness/validate-image-pins.sh")"
+  assert_contains "$output" "unpinned Dockerfile FROM" "short FROM digest must fail"
+
 }
 
 test_harness_has_no_node_scripts_or_invocations() {

@@ -52,6 +52,7 @@ pub enum ExceptionError {
     DurationExceeded { id: String, days: i64 },
     Expired { id: String },
     Unused { id: String },
+    Ambiguous { id: String, matches: usize },
 }
 
 impl Display for ExceptionError {
@@ -127,17 +128,29 @@ pub fn validate_exceptions(
                 id: entry.id.clone(),
             });
         }
-        let consumed = observed.iter().any(|violation| {
-            violation.rule == entry.rule
-                && violation.crate_name == entry.crate_name
-                && violation.file == entry.file
-                && violation.symbol == entry.symbol
-                && violation.fingerprint == entry.fingerprint
-        });
-        if !consumed {
-            return Err(ExceptionError::Unused {
-                id: entry.id.clone(),
-            });
+        let matches = observed
+            .iter()
+            .filter(|violation| {
+                violation.rule == entry.rule
+                    && violation.crate_name == entry.crate_name
+                    && violation.file == entry.file
+                    && violation.symbol == entry.symbol
+                    && violation.fingerprint == entry.fingerprint
+            })
+            .count();
+        match matches {
+            0 => {
+                return Err(ExceptionError::Unused {
+                    id: entry.id.clone(),
+                });
+            }
+            1 => {}
+            matches => {
+                return Err(ExceptionError::Ambiguous {
+                    id: entry.id.clone(),
+                    matches,
+                });
+            }
         }
     }
     Ok(())

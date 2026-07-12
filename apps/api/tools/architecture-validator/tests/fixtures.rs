@@ -341,3 +341,135 @@ fn structural_syntax_cannot_hide_any_architecture_rule() {
         );
     }
 }
+
+#[test]
+fn public_impl_members_and_trait_impl_members_are_public_boundaries() {
+    let fixtures = [
+        SourceUnit {
+            crate_name: "application",
+            path: "crates/application/src/ports.rs",
+            source: "struct Service;\nimpl Service {\n    pub fn row(&self) -> adapter_postgres::Row { loop {} }\n    pub const ROW: adapter_postgres::Row = loop {};\n}\n",
+            production: false,
+        },
+        SourceUnit {
+            crate_name: "application",
+            path: "crates/application/src/ports.rs",
+            source: "trait Port { fn save(&self, row: adapter_postgres::Row); }\nstruct Service;\nimpl Port for Service {\n    fn save(&self, row: adapter_postgres::Row) {}\n}\n",
+            production: false,
+        },
+    ];
+
+    for fixture in fixtures {
+        assert!(
+            analyze_source(fixture)
+                .expect("fixture must parse")
+                .iter()
+                .any(|diagnostic| diagnostic.rule_id == "API-ARCH-006"),
+            "public impl boundary was not enforced"
+        );
+    }
+}
+
+#[test]
+fn nested_scopes_resolve_adapter_and_logging_macro_aliases() {
+    let adapter = analyze_source(SourceUnit {
+        crate_name: "adapter-graphql",
+        path: "crates/adapter-graphql/src/lib.rs",
+        source: "fn wire() {\n    use adapter_postgres::Repository as Store;\n    Store::new();\n}\n",
+        production: true,
+    })
+    .expect("fixture must parse");
+    assert!(
+        adapter
+            .iter()
+            .any(|diagnostic| { diagnostic.rule_id == "API-ARCH-009" && diagnostic.line == 3 })
+    );
+
+    let logging = analyze_source(SourceUnit {
+        crate_name: "api-bootstrap",
+        path: "crates/api-bootstrap/src/log.rs",
+        source: "mod nested {\n    use tracing::info as audit;\n    fn record(token: &str) { audit!(access_token = token); }\n}\n",
+        production: true,
+    })
+    .expect("fixture must parse");
+    assert!(
+        logging
+            .iter()
+            .any(|diagnostic| { diagnostic.rule_id == "API-ARCH-012" && diagnostic.line == 3 })
+    );
+}
+
+#[test]
+fn fully_qualified_cross_application_paths_are_rejected() {
+    let diagnostics = analyze_source(SourceUnit {
+        crate_name: "application",
+        path: "crates/application/src/owner/update.rs",
+        source: "fn related() -> crate::dog::Dog { loop {} }\n",
+        production: false,
+    })
+    .expect("fixture must parse");
+
+    assert!(
+        diagnostics
+            .iter()
+            .any(|diagnostic| { diagnostic.rule_id == "API-ARCH-010" && diagnostic.line == 1 })
+    );
+}
+
+#[test]
+fn graphql_names_and_sql_words_require_forbidden_provenance_or_execution() {
+    let clean = analyze_source(SourceUnit {
+        crate_name: "domain",
+        path: "crates/domain/src/message.rs",
+        source: "struct Context; struct Upload; struct InputObject;\nfn context() -> Context { Context }\nfn message() -> &'static str { \"SELECT account context\" }\n",
+        production: true,
+    })
+    .expect("fixture must parse");
+    assert!(
+        clean.is_empty(),
+        "unrelated names/messages must be clean: {clean:?}"
+    );
+
+    for (source, line) in [
+        (
+            "fn q() { sqlx::query!(\"UPDATE dogs SET name = 'Pochi'\"); }",
+            1,
+        ),
+        ("fn q() { sqlx::query!(\"DELETE FROM dogs\"); }", 1),
+        (
+            "fn q() { sqlx::query!(\"CREATE TABLE hidden(id INT)\"); }",
+            1,
+        ),
+    ] {
+        let diagnostics = analyze_source(SourceUnit {
+            crate_name: "application",
+            path: "crates/application/src/query.rs",
+            source,
+            production: true,
+        })
+        .expect("fixture must parse");
+        assert!(
+            diagnostics.iter().any(|diagnostic| {
+                diagnostic.rule_id == "API-ARCH-011" && diagnostic.line == line
+            })
+        );
+    }
+}
+
+#[test]
+fn same_rule_nodes_on_one_line_remain_distinct() {
+    let diagnostics = analyze_source(SourceUnit {
+        crate_name: "application",
+        path: "crates/application/src/use_case.rs",
+        source: "fn values(a: Option<u8>, b: Option<u8>) { a.unwrap(); b.unwrap(); }\n",
+        production: true,
+    })
+    .expect("fixture must parse");
+    assert_eq!(
+        diagnostics
+            .iter()
+            .filter(|diagnostic| diagnostic.rule_id == "API-ARCH-005")
+            .count(),
+        2
+    );
+}

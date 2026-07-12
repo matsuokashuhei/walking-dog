@@ -6,8 +6,8 @@ use proc_macro2::{Span, TokenStream, TokenTree};
 use syn::spanned::Spanned;
 use syn::visit::{self, Visit};
 use syn::{
-    ExprCall, ExprLit, ExprMacro, ExprMethodCall, Item, ItemExternCrate, ItemUse, Lit, Macro, Path,
-    UseTree, Visibility,
+    Block, ExprCall, ExprMacro, ExprMethodCall, ImplItemConst, ImplItemFn, ImplItemType, Item,
+    ItemExternCrate, ItemFn, ItemImpl, ItemMod, ItemUse, Macro, Path, Stmt, UseTree, Visibility,
 };
 
 #[derive(Clone, Copy, Debug)]
@@ -53,13 +53,14 @@ pub fn analyze_source(unit: SourceUnit<'_>) -> Result<Vec<Diagnostic>, Validatio
         path: unit.path.to_owned(),
         message: error.to_string(),
     })?;
-    let aliases = collect_aliases(&file);
+    let aliases = collect_item_aliases(&file.items);
     let mut analyzer = Analyzer {
         unit,
-        aliases,
+        alias_scopes: vec![aliases],
         diagnostics: Vec::new(),
         seen: HashSet::new(),
         public_boundary: false,
+        trait_impl: false,
     };
     analyzer.visit_file(&file);
     Ok(analyzer.diagnostics)
@@ -67,10 +68,11 @@ pub fn analyze_source(unit: SourceUnit<'_>) -> Result<Vec<Diagnostic>, Validatio
 
 struct Analyzer<'a> {
     unit: SourceUnit<'a>,
-    aliases: HashMap<String, Vec<String>>,
+    alias_scopes: Vec<HashMap<String, Vec<String>>>,
     diagnostics: Vec<Diagnostic>,
-    seen: HashSet<(&'static str, usize)>,
+    seen: HashSet<(&'static str, usize, usize, String)>,
     public_boundary: bool,
+    trait_impl: bool,
 }
 
 impl Analyzer<'_> {
@@ -81,13 +83,18 @@ impl Analyzer<'_> {
         symbol: impl Into<String>,
         guidance: &'static str,
     ) {
-        let line = span.start().line.max(1);
-        if self.seen.insert((rule_id, line)) {
+        let start = span.start();
+        let line = start.line.max(1);
+        let symbol = symbol.into();
+        if self
+            .seen
+            .insert((rule_id, line, start.column, symbol.clone()))
+        {
             self.diagnostics.push(Diagnostic {
                 rule_id,
                 path: self.unit.path.to_owned(),
                 line,
-                symbol: symbol.into(),
+                symbol,
                 guidance,
             });
         }
@@ -95,7 +102,7 @@ impl Analyzer<'_> {
 
     fn inspect_path(&mut self, path: &Path) {
         let raw = path_segments(path);
-        let canonical = canonicalize(&raw, &self.aliases);
+        let canonical = canonicalize(&raw, &self.alias_scopes);
         self.inspect_segments(
             &canonical,
             path.span(),
@@ -134,15 +141,7 @@ impl Analyzer<'_> {
                 "move provider SDK use to its AWS adapter or bootstrap wiring",
             );
         }
-        if self.unit.crate_name != "adapter-graphql"
-            && (root == "async_graphql"
-                || segments.iter().any(|part| {
-                    matches!(
-                        part.as_str(),
-                        "SimpleObject" | "InputObject" | "Context" | "Upload"
-                    )
-                }))
-        {
+        if self.unit.crate_name != "adapter-graphql" && root == "async_graphql" {
             self.report(
                 "API-ARCH-004",
                 span,
@@ -186,10 +185,20 @@ impl Analyzer<'_> {
                 "delegate orchestration to an application use case",
             );
         }
+        if self.unit.crate_name == "application"
+            && imports_another_application_module(self.unit.path, segments)
+        {
+            self.report(
+                "API-ARCH-010",
+                span,
+                symbol,
+                "share domain values or compose modules from api-bootstrap",
+            );
+        }
     }
 
     fn inspect_macro(&mut self, node: &Macro) {
-        let path = canonicalize(&path_segments(&node.path), &self.aliases);
+        let path = canonicalize(&path_segments(&node.path), &self.alias_scopes);
         let name = path.last().map(String::as_str).unwrap_or_default();
         if self.unit.production && matches!(name, "panic" | "todo" | "unimplemented") {
             self.report(
@@ -200,8 +209,8 @@ impl Analyzer<'_> {
             );
         }
         if !raw_sql_location_is_allowed(self.unit)
-            && ((path.first().is_some_and(|part| part == "sqlx") && name.starts_with("query"))
-                || tokens_contain_sql(&node.tokens))
+            && path.first().is_some_and(|part| part == "sqlx")
+            && name.starts_with("query")
         {
             self.report(
                 "API-ARCH-011",
@@ -234,22 +243,69 @@ impl<'ast> Visit<'ast> for Analyzer<'_> {
     fn visit_item_use(&mut self, node: &'ast ItemUse) {
         let public = !matches!(node.vis, Visibility::Inherited);
         for leaf in use_leaves(&node.tree) {
-            let canonical = canonicalize(&leaf.path, &self.aliases);
+            let canonical = canonicalize(&leaf.path, &self.alias_scopes);
             let previous = self.public_boundary;
             self.public_boundary = public;
             self.inspect_segments(&canonical, leaf.span, leaf.name.as_deref().unwrap_or("use"));
             self.public_boundary = previous;
-            if self.unit.crate_name == "application"
-                && imports_another_application_module(self.unit.path, &canonical)
-            {
-                self.report(
-                    "API-ARCH-010",
-                    leaf.span,
-                    leaf.name.unwrap_or_else(|| "use".to_owned()),
-                    "share domain values or compose modules from api-bootstrap",
-                );
-            }
         }
+    }
+
+    fn visit_item_mod(&mut self, node: &'ast ItemMod) {
+        let Some((_, items)) = &node.content else {
+            visit::visit_item_mod(self, node);
+            return;
+        };
+        self.alias_scopes.push(collect_item_aliases(items));
+        visit::visit_item_mod(self, node);
+        self.alias_scopes.pop();
+    }
+
+    fn visit_block(&mut self, node: &'ast Block) {
+        self.alias_scopes.push(collect_block_aliases(node));
+        visit::visit_block(self, node);
+        self.alias_scopes.pop();
+    }
+
+    fn visit_item_impl(&mut self, node: &'ast ItemImpl) {
+        let previous = self.trait_impl;
+        self.trait_impl = node.trait_.is_some();
+        visit::visit_item_impl(self, node);
+        self.trait_impl = previous;
+    }
+
+    fn visit_impl_item_fn(&mut self, node: &'ast ImplItemFn) {
+        let previous = self.public_boundary;
+        self.public_boundary = self.trait_impl || !matches!(node.vis, Visibility::Inherited);
+        visit::visit_signature(self, &node.sig);
+        self.public_boundary = false;
+        self.visit_block(&node.block);
+        self.public_boundary = previous;
+    }
+
+    fn visit_impl_item_const(&mut self, node: &'ast ImplItemConst) {
+        let previous = self.public_boundary;
+        self.public_boundary = self.trait_impl || !matches!(node.vis, Visibility::Inherited);
+        self.visit_type(&node.ty);
+        self.public_boundary = false;
+        self.visit_expr(&node.expr);
+        self.public_boundary = previous;
+    }
+
+    fn visit_impl_item_type(&mut self, node: &'ast ImplItemType) {
+        let previous = self.public_boundary;
+        self.public_boundary = self.trait_impl || !matches!(node.vis, Visibility::Inherited);
+        visit::visit_impl_item_type(self, node);
+        self.public_boundary = previous;
+    }
+
+    fn visit_item_fn(&mut self, node: &'ast ItemFn) {
+        let previous = self.public_boundary;
+        self.public_boundary = !matches!(node.vis, Visibility::Inherited);
+        visit::visit_signature(self, &node.sig);
+        self.public_boundary = false;
+        self.visit_block(&node.block);
+        self.public_boundary = previous;
     }
 
     fn visit_item_extern_crate(&mut self, node: &'ast ItemExternCrate) {
@@ -288,7 +344,7 @@ impl<'ast> Visit<'ast> for Analyzer<'_> {
 
     fn visit_expr_call(&mut self, node: &'ast ExprCall) {
         if let syn::Expr::Path(function) = node.func.as_ref() {
-            let path = canonicalize(&path_segments(&function.path), &self.aliases);
+            let path = canonicalize(&path_segments(&function.path), &self.alias_scopes);
             if self.unit.crate_name != "api-bootstrap"
                 && path.last().is_some_and(|part| part == "new")
                 && path.iter().any(|part| part.starts_with("adapter_"))
@@ -301,10 +357,12 @@ impl<'ast> Visit<'ast> for Analyzer<'_> {
                 );
             }
             if !raw_sql_location_is_allowed(self.unit)
-                && (path.starts_with(&["sqlx".to_owned(), "query".to_owned()])
-                    || path
-                        .windows(2)
-                        .any(|parts| parts == ["Statement", "from_string"]))
+                && ((path.first().is_some_and(|part| part == "sqlx")
+                    && path.last().is_some_and(|part| part.starts_with("query")))
+                    || (path.first().is_some_and(|part| part == "sea_orm")
+                        && path
+                            .windows(2)
+                            .any(|parts| parts == ["Statement", "from_string"])))
             {
                 self.report(
                     "API-ARCH-011",
@@ -325,18 +383,6 @@ impl<'ast> Visit<'ast> for Analyzer<'_> {
     fn visit_macro(&mut self, node: &'ast Macro) {
         self.inspect_macro(node);
         visit::visit_macro(self, node);
-    }
-
-    fn visit_expr_lit(&mut self, node: &'ast ExprLit) {
-        if !raw_sql_location_is_allowed(self.unit) && lit_contains_sql(&node.lit) {
-            self.report(
-                "API-ARCH-011",
-                node.lit.span(),
-                "raw SQL",
-                "keep raw SQL in classified adapter-postgres query or migration modules",
-            );
-        }
-        visit::visit_expr_lit(self, node);
     }
 }
 
@@ -394,9 +440,9 @@ fn use_leaves(tree: &UseTree) -> Vec<UseLeaf> {
     output
 }
 
-fn collect_aliases(file: &syn::File) -> HashMap<String, Vec<String>> {
+fn collect_item_aliases(items: &[Item]) -> HashMap<String, Vec<String>> {
     let mut aliases = HashMap::new();
-    for item in &file.items {
+    for item in items {
         match item {
             Item::Use(item) => {
                 for leaf in use_leaves(&item.tree) {
@@ -421,14 +467,30 @@ fn collect_aliases(file: &syn::File) -> HashMap<String, Vec<String>> {
     aliases
 }
 
-fn canonicalize(path: &[String], aliases: &HashMap<String, Vec<String>>) -> Vec<String> {
+fn collect_block_aliases(block: &Block) -> HashMap<String, Vec<String>> {
+    let items = block
+        .stmts
+        .iter()
+        .filter_map(|statement| match statement {
+            Stmt::Item(item) => Some(item.clone()),
+            Stmt::Local(_) | Stmt::Expr(_, _) | Stmt::Macro(_) => None,
+        })
+        .collect::<Vec<_>>();
+    collect_item_aliases(&items)
+}
+
+fn canonicalize(path: &[String], alias_scopes: &[HashMap<String, Vec<String>>]) -> Vec<String> {
     let mut result = path.to_vec();
     let mut expanded = HashSet::new();
     while let Some(first) = result.first().cloned() {
         if !expanded.insert(first.clone()) {
             break;
         }
-        let Some(replacement) = aliases.get(&first) else {
+        let Some(replacement) = alias_scopes
+            .iter()
+            .rev()
+            .find_map(|aliases| aliases.get(&first))
+        else {
             break;
         };
         let mut next = replacement.clone();
@@ -497,23 +559,6 @@ fn sensitive_token(tokens: &TokenStream) -> Option<(Span, String)> {
             .any(|sensitive| value.contains(sensitive))
         })
         .map(|(span, _)| (span, "sensitive log field".to_owned()))
-}
-
-fn tokens_contain_sql(tokens: &TokenStream) -> bool {
-    let mut words = Vec::new();
-    token_words(tokens, &mut words);
-    words
-        .iter()
-        .any(|(_, word)| string_contains_sql(word.trim_matches('"').trim_matches('#')))
-}
-
-fn lit_contains_sql(lit: &Lit) -> bool {
-    matches!(lit, Lit::Str(value) if string_contains_sql(&value.value()))
-}
-
-fn string_contains_sql(value: &str) -> bool {
-    let lowercase = value.trim_start().to_ascii_lowercase();
-    lowercase.starts_with("select ") || lowercase.starts_with("insert into ")
 }
 
 fn aws_location_is_allowed(crate_name: &str, sdk: &str) -> bool {

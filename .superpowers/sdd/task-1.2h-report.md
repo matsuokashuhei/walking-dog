@@ -111,3 +111,26 @@ This is static architecture tooling only. It changes no dog experience, walk dat
 
 - The direct `proc-macro2` dependency requires the existing workspace lockfile to include it as an architecture-validator dependency during root integration. The lockfile change is intentionally left unstaged for the root integrator.
 - Macro bodies are necessarily token-inspected because Rust procedural/declarative macro input is not generally parseable as normal Rust AST before expansion. Inspection is recursive and span-aware, and it does not fall back to source-line substring matching.
+
+## Targeted review follow-up
+
+The targeted review identified additional syntactic hiding and precision cases. A second TDD cycle added failing coverage and then implemented:
+
+- public inherent impl method/associated-const signatures and trait-impl members as `API-ARCH-006` public boundaries, while implementation bodies remain non-public context;
+- lexical alias stacks for file, inline-module, and block scopes, including aliased logging macros and locally aliased adapter constructors;
+- `API-ARCH-010` inspection on every canonical path, including fully-qualified `crate::other_module` paths outside `use` declarations;
+- `API-ARCH-004` provenance restricted to canonical `async_graphql` paths, eliminating unrelated `Context`, `Upload`, and `InputObject` false positives;
+- `API-ARCH-011` provenance restricted to actual `sqlx` query calls/macros or `sea_orm::Statement::from_string`, covering update, delete, and DDL execution without flagging arbitrary SQL-looking messages;
+- diagnostic identity keyed by rule, span line/column, and safe symbol so two violations on one line remain distinct;
+- fail-closed exception validation when one exception matches more than one observed node.
+
+Focused RED produced four expected fixture failures (impl members, nested aliases, fully-qualified application paths, and same-line diagnostics). The strengthened provenance fixture also exposed the prior unrelated-name/string false positives. Focused GREEN passed 10 fixture tests and 6 exception tests.
+
+Fresh follow-up verification:
+
+```text
+cargo clippy -p architecture-validator --all-targets -- -D warnings
+cargo test -p architecture-validator
+```
+
+Both commands passed in the project Docker toolchain. No line-scanner fallback, exception bypass, warning allow, lockfile, or harness-runtime change is included.

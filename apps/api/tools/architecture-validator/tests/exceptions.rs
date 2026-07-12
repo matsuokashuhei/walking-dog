@@ -148,3 +148,23 @@ fn fingerprint_drift_makes_an_exact_exception_unused() {
         Err(ExceptionError::Unused { .. })
     ));
 }
+
+#[test]
+fn one_exception_cannot_match_two_observed_nodes() {
+    let set = ExceptionSet::parse(&exception_source(
+        "2026-07-11",
+        "2026-08-10",
+        "crates/adapter-graphql/src/walk/query.rs",
+    ))
+    .expect("valid exception");
+    let violation = observed()[0];
+
+    assert!(matches!(
+        validate_exceptions(
+            &set,
+            NaiveDate::from_ymd_opt(2026, 7, 11).expect("valid date"),
+            &[violation, violation],
+        ),
+        Err(ExceptionError::Ambiguous { matches: 2, .. })
+    ));
+}

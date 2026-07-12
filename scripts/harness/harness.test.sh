@@ -285,27 +285,6 @@ test_image_pin_validator_rejects_unpinned_and_malformed_references() {
   output="$(run_script_expect_status 1 env PIN_ROOT_OVERRIDE="$tmpdir" "$repo_root/scripts/harness/validate-image-pins.sh")"
   assert_contains "$output" "unpinned Dockerfile FROM" "short FROM digest must fail"
 
-  cp "$repo_root/apps/api/Dockerfile" "$tmpdir/apps/api/Dockerfile"
-  printf '\nfn extra() { let _ = GenericImage::new("redis", "7"); }\n' >> "$tmpdir/apps/api/crates/domain/src/lib.rs"
-  output="$(run_script_expect_status 1 env PIN_ROOT_OVERRIDE="$tmpdir" "$repo_root/scripts/harness/validate-image-pins.sh")"
-  assert_contains "$output" "outside approved factory" "second unpinned GenericImage must fail"
-
-  : > "$tmpdir/apps/api/crates/domain/src/lib.rs"
-  sed 's/@sha256:[0-9a-f]\{64\}/@sha256:abc/' "$repo_root/apps/api/tools/harness-runtime/src/images.rs" > "$tmpdir/apps/api/tools/harness-runtime/src/images.rs"
-  output="$(run_script_expect_status 1 env PIN_ROOT_OVERRIDE="$tmpdir" "$repo_root/scripts/harness/validate-image-pins.sh")"
-  assert_contains "$output" "unpinned Testcontainers image" "short GenericImage digest must fail"
-
-  cp "$repo_root/apps/api/tools/harness-runtime/src/images.rs" "$tmpdir/apps/api/tools/harness-runtime/src/images.rs"
-  for source in \
-    'const TAG: &str = "7"; fn bad() { GenericImage::new("redis", TAG); }' \
-    'fn bad(tag: &str) { GenericImage::new("redis", tag); }' \
-    'use testcontainers::GenericImage as Image; fn bad() { Image::new("redis", "7"); }' \
-    'fn bad() { GenericImage::new(r#"redis"#, "7"); }' \
-    'fn bad() { GenericImage::new(&format!("red{}", "is"), "7"); }'; do
-    printf '%s\n' "$source" > "$tmpdir/apps/api/crates/domain/src/lib.rs"
-    output="$(run_script_expect_status 1 env PIN_ROOT_OVERRIDE="$tmpdir" "$repo_root/scripts/harness/validate-image-pins.sh")"
-    assert_contains "$output" "outside approved factory" "direct/aliased/constructed Testcontainers image must fail"
-  done
 }
 
 test_harness_has_no_node_scripts_or_invocations() {

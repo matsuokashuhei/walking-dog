@@ -217,6 +217,23 @@
         "git diff --check"
       ],
       "result": "GREEN: audited AGENTS/CLAUDE, PR evidence/template, Harness and API workflows, validation entry points, VS Code, API documentation/runbook, Cargo/xtask, generated artifacts, and tracked scratch. Harness contract suite passed 19/19, manifest suite passed 7/7, generated catalog verification passed, no tracked .superpowers scratch or whitespace errors remained. API CI now generates, verifies, generates again, and rejects runtime drift; local editor/docs expose the same catalog check."
+    },
+    {
+      "name": "task-7-nondocker-green",
+      "state": "green",
+      "commands": [
+        "bash scripts/harness/harness.test.sh",
+        "node --test scripts/development/tests/validate-change-manifest.test.mjs",
+        "bash scripts/development/validate-change-manifest.sh",
+        "bash scripts/development/validate-change-manifest.sh --pr $PWD origin/main HEAD '' (expected evidence rejection)",
+        "scripts/harness/validate-knowledge.sh; scripts/harness/score-quality.sh; scripts/harness/validate-mobile-knip.sh",
+        "apps/mobile: npm ci; npm test -- --runInBand; npm run typecheck; npm run lint; npm run knip",
+        "Ruby YAML parse of .github/workflows/*.yml",
+        "Docker: cargo xtask image-catalog generate; verify; generate; clean generated-runtime diff",
+        "scripts/harness/validate-all.sh (host-Cargo limitation recorded)",
+        "git diff --check; git status --short; git ls-files | rg '(^|/)\\.superpowers(/|$)'"
+      ],
+      "result": "GREEN non-Docker evidence: Harness shell contracts passed 19/19; manifest tests passed 7/7 and history validation passed. PR base/head mode without final evidence correctly rejected zero markers. Knowledge, quality, mobile Knip wrapper, mobile Jest (123 suites/744 tests), typecheck, lint, and Knip passed; all four workflow YAML files parsed. Docker catalog generate/verify/generate left generated_postgres.rs clean. validate-all.sh itself exited only because host cargo is absent in validate-architecture; its other validators passed independently, while the recorded Task 5 mounted-Git Docker architecture evidence remains authoritative. No tracked .superpowers scratch or whitespace errors were found."
     }
   ]
 }

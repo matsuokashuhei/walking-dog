@@ -146,3 +146,15 @@ A third focused TDD cycle closed the remaining review escapes:
 - Local private trait implementations are not treated as exported boundaries; public local traits and externally qualified traits remain enforced.
 
 RED evidence included identical same-line fingerprints and scoped type aliases escaping their rules. Final focused fixtures/check tests and strict Clippy passed. No Cargo.lock, harness-runtime, or deployment file is part of this follow-up.
+
+## Final SQL, relative-path, and trait-identity precision
+
+The enforceable `API-ARCH-011` policy is now exact about what static syntax can prove:
+
+- canonical SQLx query/raw-SQL/`Executor::execute` and SeaORM `Statement::from_string`/`execute_unprepared` paths are rejected outside classified adapter-postgres query or migration modules;
+- ambiguous method-form `.execute` and `.execute_unprepared` are prohibited only in `adapter-postgres` outside those classified modules, regardless of whether SQL is a literal, variable, or formatted value;
+- arbitrary methods such as `workflow.execute("SELECT account context")` outside the database adapter are not treated as SQL based on their name or argument text. Application/domain database dependencies remain independently prohibited by `API-ARCH-002`/`API-ARCH-007` when provenance is present.
+
+Relative `super` paths now resolve by counting ascents against the source file's real module components (`mod.rs`/`lib.rs` handled explicitly). Cross-root resolution is rejected and over-traversal fails deterministically. Local trait visibility now uses lexical trait scopes plus module-qualified identities, so same-named public/private traits in nested modules do not contaminate one another; `self`, `super`, `crate`, and imported aliases resolve to the correct trait.
+
+TDD RED reproduced the arbitrary `.execute` false positive and nested private-trait false positive. Final focused fixtures passed 17/17. Strict Clippy was attempted, but a concurrent uncommitted repository-agent edit introduced a duplicate `proc-macro2` manifest key (and an unrelated `images.rs` unused import) between the passing fixture compile and Clippy invocation; this task did not edit or stage those concurrent files.

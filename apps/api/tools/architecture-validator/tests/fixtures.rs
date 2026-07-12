@@ -507,8 +507,6 @@ fn raw_sql_execution_apis_are_rejected_without_scanning_messages() {
     let cases = [
         "fn q() { sqlx::raw_sql(\"DELETE FROM dogs\").execute(&pool); }",
         "fn q() { sqlx::Executor::execute(&mut connection, \"UPDATE dogs SET name='P'\"); }",
-        "fn q() { connection.execute(\"CREATE TABLE hidden(id INT)\"); }",
-        "fn q() { connection.execute_unprepared(\"ALTER TABLE dogs ADD secret TEXT\"); }",
         "fn q() { sea_orm::ConnectionTrait::execute_unprepared(&connection, \"DROP TABLE dogs\"); }",
     ];
     for source in cases {
@@ -533,7 +531,7 @@ fn repeated_super_paths_cannot_cross_application_roots() {
     let diagnostics = analyze_source(SourceUnit {
         crate_name: "application",
         path: "crates/application/src/owner/nested/update.rs",
-        source: "fn related() -> super::super::dog::Dog { loop {} }\n",
+        source: "fn related() -> super::super::super::dog::Dog { loop {} }\n",
         production: false,
     })
     .expect("fixture must parse");
@@ -541,6 +539,90 @@ fn repeated_super_paths_cannot_cross_application_roots() {
         diagnostics
             .iter()
             .any(|diagnostic| { diagnostic.rule_id == "API-ARCH-010" && diagnostic.line == 1 })
+    );
+}
+
+#[test]
+fn super_resolution_uses_real_module_depth_and_rejects_over_traversal() {
+    let same_root = analyze_source(SourceUnit {
+        crate_name: "application",
+        path: "crates/application/src/owner/nested/update.rs",
+        source: "fn helper() -> super::super::model::Owner { loop {} }\n",
+        production: false,
+    })
+    .expect("fixture must parse");
+    assert!(
+        same_root
+            .iter()
+            .all(|diagnostic| diagnostic.rule_id != "API-ARCH-010")
+    );
+
+    let over = analyze_source(SourceUnit {
+        crate_name: "application",
+        path: "crates/application/src/owner/update.rs",
+        source: "fn broken() -> super::super::super::dog::Dog { loop {} }\n",
+        production: false,
+    })
+    .expect("fixture must parse");
+    assert!(
+        over.iter()
+            .any(|diagnostic| diagnostic.rule_id == "API-ARCH-010")
+    );
+}
+
+#[test]
+fn execute_requires_database_provenance_or_adapter_postgres_policy() {
+    let clean = analyze_source(SourceUnit {
+        crate_name: "application",
+        path: "crates/application/src/workflow.rs",
+        source: "fn run() { workflow.execute(\"SELECT account context\"); }\n",
+        production: true,
+    })
+    .expect("fixture must parse");
+    assert!(
+        clean
+            .iter()
+            .all(|diagnostic| diagnostic.rule_id != "API-ARCH-011")
+    );
+
+    for source in [
+        "fn q(sql: &str) { connection.execute(sql); }",
+        "fn q() { connection.execute(format!(\"DELETE FROM {}\", \"dogs\")); }",
+        "fn q(sql: &str) { connection.execute_unprepared(sql); }",
+    ] {
+        let diagnostics = analyze_source(SourceUnit {
+            crate_name: "adapter-postgres",
+            path: "crates/adapter-postgres/src/repository.rs",
+            source,
+            production: true,
+        })
+        .expect("fixture must parse");
+        assert!(
+            diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.rule_id == "API-ARCH-011")
+        );
+    }
+}
+
+#[test]
+fn trait_visibility_uses_qualified_lexical_identity() {
+    let diagnostics = analyze_source(SourceUnit {
+        crate_name: "application",
+        path: "crates/application/src/ports.rs",
+        source: "pub trait Port { fn row(&self) -> adapter_postgres::Row; }\nmod hidden {\n    trait Port { fn row(&self) -> adapter_postgres::Row; }\n    struct Service;\n    impl Port for Service { fn row(&self) -> adapter_postgres::Row { loop {} } }\n}\nmod exposed {\n    pub trait Port { fn row(&self) -> adapter_postgres::Row; }\n    pub struct Service;\n    impl self::Port for Service { fn row(&self) -> adapter_postgres::Row { loop {} } }\n}\n",
+        production: false,
+    })
+    .expect("fixture must parse");
+    assert!(
+        diagnostics
+            .iter()
+            .all(|diagnostic| { diagnostic.rule_id != "API-ARCH-006" || diagnostic.line != 5 })
+    );
+    assert!(
+        diagnostics
+            .iter()
+            .any(|diagnostic| { diagnostic.rule_id == "API-ARCH-006" && diagnostic.line == 10 })
     );
 }
 

@@ -55,7 +55,8 @@ pub fn analyze_source(unit: SourceUnit<'_>) -> Result<Vec<Diagnostic>, Validatio
         message: error.to_string(),
     })?;
     let aliases = collect_item_aliases(&file.items);
-    let local_traits = collect_local_traits(&file.items);
+    let trait_scope = collect_item_traits(&file.items);
+    let qualified_traits = collect_qualified_traits(&file.items);
     let mut analyzer = Analyzer {
         unit,
         alias_scopes: vec![aliases],
@@ -63,7 +64,9 @@ pub fn analyze_source(unit: SourceUnit<'_>) -> Result<Vec<Diagnostic>, Validatio
         seen: HashSet::new(),
         public_boundary: false,
         trait_impl: false,
-        local_traits,
+        trait_scopes: vec![trait_scope],
+        qualified_traits,
+        module_path: Vec::new(),
     };
     analyzer.visit_file(&file);
     Ok(analyzer.diagnostics)
@@ -76,7 +79,9 @@ struct Analyzer<'a> {
     seen: HashSet<(&'static str, usize, usize, String)>,
     public_boundary: bool,
     trait_impl: bool,
-    local_traits: HashMap<String, bool>,
+    trait_scopes: Vec<HashMap<String, bool>>,
+    qualified_traits: HashMap<Vec<String>, bool>,
+    module_path: Vec<String>,
 }
 
 impl Analyzer<'_> {
@@ -262,13 +267,19 @@ impl<'ast> Visit<'ast> for Analyzer<'_> {
             return;
         };
         self.alias_scopes.push(collect_item_aliases(items));
+        self.trait_scopes.push(collect_item_traits(items));
+        self.module_path.push(node.ident.to_string());
         visit::visit_item_mod(self, node);
+        self.module_path.pop();
+        self.trait_scopes.pop();
         self.alias_scopes.pop();
     }
 
     fn visit_block(&mut self, node: &'ast Block) {
         self.alias_scopes.push(collect_block_aliases(node));
+        self.trait_scopes.push(collect_block_traits(node));
         visit::visit_block(self, node);
+        self.trait_scopes.pop();
         self.alias_scopes.pop();
     }
 
@@ -276,16 +287,12 @@ impl<'ast> Visit<'ast> for Analyzer<'_> {
         let previous = self.trait_impl;
         self.trait_impl = node.trait_.as_ref().is_some_and(|(_, path, _)| {
             let canonical = canonicalize(&path_segments(path), &self.alias_scopes);
-            let root = canonical.first().map(String::as_str).unwrap_or_default();
-            if canonical.len() == 1 || matches!(root, "crate" | "self" | "super") {
-                canonical
-                    .last()
-                    .and_then(|name| self.local_traits.get(name))
-                    .copied()
-                    .unwrap_or(false)
-            } else {
-                true
-            }
+            trait_is_public(
+                &canonical,
+                &self.module_path,
+                &self.trait_scopes,
+                &self.qualified_traits,
+            )
         });
         visit::visit_item_impl(self, node);
         self.trait_impl = previous;
@@ -356,9 +363,9 @@ impl<'ast> Visit<'ast> for Analyzer<'_> {
                 "delegate orchestration to an application use case",
             );
         }
-        if !raw_sql_location_is_allowed(self.unit)
-            && (method == "execute_unprepared"
-                || (method == "execute" && arguments_contain_sql(&node.args)))
+        if self.unit.crate_name == "adapter-postgres"
+            && !raw_sql_location_is_allowed(self.unit)
+            && matches!(method.as_str(), "execute" | "execute_unprepared")
         {
             self.report(
                 "API-ARCH-011",
@@ -501,19 +508,37 @@ fn collect_item_aliases(items: &[Item]) -> HashMap<String, Vec<String>> {
     aliases
 }
 
-fn collect_local_traits(items: &[Item]) -> HashMap<String, bool> {
-    fn walk(items: &[Item], traits: &mut HashMap<String, bool>) {
+fn collect_item_traits(items: &[Item]) -> HashMap<String, bool> {
+    items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Trait(item) => Some((
+                item.ident.to_string(),
+                !matches!(item.vis, Visibility::Inherited),
+            )),
+            _ => None,
+        })
+        .collect()
+}
+
+fn collect_qualified_traits(items: &[Item]) -> HashMap<Vec<String>, bool> {
+    fn walk(
+        items: &[Item],
+        module_path: &mut Vec<String>,
+        traits: &mut HashMap<Vec<String>, bool>,
+    ) {
         for item in items {
             match item {
                 Item::Trait(item) => {
-                    traits.insert(
-                        item.ident.to_string(),
-                        !matches!(item.vis, Visibility::Inherited),
-                    );
+                    let mut identity = module_path.clone();
+                    identity.push(item.ident.to_string());
+                    traits.insert(identity, !matches!(item.vis, Visibility::Inherited));
                 }
                 Item::Mod(item) => {
                     if let Some((_, items)) = &item.content {
-                        walk(items, traits);
+                        module_path.push(item.ident.to_string());
+                        walk(items, module_path, traits);
+                        module_path.pop();
                     }
                 }
                 _ => {}
@@ -521,7 +546,7 @@ fn collect_local_traits(items: &[Item]) -> HashMap<String, bool> {
         }
     }
     let mut traits = HashMap::new();
-    walk(items, &mut traits);
+    walk(items, &mut Vec::new(), &mut traits);
     traits
 }
 
@@ -535,6 +560,57 @@ fn collect_block_aliases(block: &Block) -> HashMap<String, Vec<String>> {
         })
         .collect::<Vec<_>>();
     collect_item_aliases(&items)
+}
+
+fn collect_block_traits(block: &Block) -> HashMap<String, bool> {
+    block
+        .stmts
+        .iter()
+        .filter_map(|statement| match statement {
+            Stmt::Item(Item::Trait(item)) => Some((
+                item.ident.to_string(),
+                !matches!(item.vis, Visibility::Inherited),
+            )),
+            _ => None,
+        })
+        .collect()
+}
+
+fn trait_is_public(
+    canonical: &[String],
+    module_path: &[String],
+    trait_scopes: &[HashMap<String, bool>],
+    qualified_traits: &HashMap<Vec<String>, bool>,
+) -> bool {
+    match canonical {
+        [name] => trait_scopes
+            .iter()
+            .rev()
+            .find_map(|traits| traits.get(name))
+            .copied()
+            .unwrap_or(false),
+        [root, rest @ ..] if root == "crate" => {
+            qualified_traits.get(rest).copied().unwrap_or(false)
+        }
+        [root, rest @ ..] if root == "self" => {
+            let mut identity = module_path.to_vec();
+            identity.extend_from_slice(rest);
+            qualified_traits.get(&identity).copied().unwrap_or(false)
+        }
+        [root, rest @ ..] if root == "super" => {
+            let count = canonical
+                .iter()
+                .take_while(|part| part.as_str() == "super")
+                .count();
+            if count > module_path.len() {
+                return false;
+            }
+            let mut identity = module_path[..module_path.len() - count].to_vec();
+            identity.extend_from_slice(&rest[count - 1..]);
+            qualified_traits.get(&identity).copied().unwrap_or(false)
+        }
+        _ => true,
+    }
 }
 
 fn canonicalize(path: &[String], alias_scopes: &[HashMap<String, Vec<String>>]) -> Vec<String> {
@@ -593,34 +669,6 @@ fn token_words(tokens: &TokenStream, output: &mut Vec<(Span, String)>) {
             TokenTree::Punct(_) => {}
         }
     }
-}
-
-fn arguments_contain_sql(
-    arguments: &syn::punctuated::Punctuated<syn::Expr, syn::Token![,]>,
-) -> bool {
-    arguments.iter().any(|argument| {
-        matches!(argument, syn::Expr::Lit(literal) if matches!(&literal.lit, syn::Lit::Str(value) if is_sql_statement(&value.value())))
-    })
-}
-
-fn is_sql_statement(value: &str) -> bool {
-    let first = value
-        .trim_start()
-        .split(|character: char| character.is_whitespace() || character == '(')
-        .next()
-        .unwrap_or_default();
-    matches!(
-        first.to_ascii_lowercase().as_str(),
-        "select"
-            | "insert"
-            | "update"
-            | "delete"
-            | "create"
-            | "alter"
-            | "drop"
-            | "truncate"
-            | "with"
-    )
 }
 
 fn sensitive_token(tokens: &TokenStream) -> Option<(Span, String)> {
@@ -682,19 +730,41 @@ fn imports_another_application_module(path: &str, imported: &[String]) -> bool {
         "walk_event",
         "walk_insight",
     ];
-    let current = path
-        .split("/src/")
-        .nth(1)
-        .and_then(|relative| relative.split('/').next());
-    let module = match imported {
-        [root, module, ..] if root == "crate" => Some(module.as_str()),
-        [root, rest @ ..] if root == "super" => rest
-            .iter()
-            .find(|part| part.as_str() != "super")
-            .map(String::as_str),
-        _ => None,
+    let source = source_module_components(path);
+    let current = source.first().map(String::as_str);
+    let resolved = match imported {
+        [root, rest @ ..] if root == "crate" => rest.to_vec(),
+        [root, ..] if root == "super" => {
+            let count = imported
+                .iter()
+                .take_while(|part| part.as_str() == "super")
+                .count();
+            if count > source.len() {
+                return true;
+            }
+            let mut resolved = source[..source.len() - count].to_vec();
+            resolved.extend_from_slice(&imported[count..]);
+            resolved
+        }
+        _ => return false,
     };
-    module.is_some_and(|module| MODULES.contains(&module) && Some(module) != current)
+    resolved.first().is_some_and(|module| {
+        MODULES.contains(&module.as_str()) && Some(module.as_str()) != current
+    })
+}
+
+fn source_module_components(path: &str) -> Vec<String> {
+    let Some(relative) = path.split("/src/").nth(1) else {
+        return Vec::new();
+    };
+    let mut parts = relative.split('/').map(str::to_owned).collect::<Vec<_>>();
+    let Some(file) = parts.pop() else {
+        return parts;
+    };
+    if !matches!(file.as_str(), "lib.rs" | "main.rs" | "mod.rs") {
+        parts.push(file.trim_end_matches(".rs").to_owned());
+    }
+    parts
 }
 
 fn raw_sql_location_is_allowed(unit: SourceUnit<'_>) -> bool {

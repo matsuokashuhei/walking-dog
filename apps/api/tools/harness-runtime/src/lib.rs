@@ -1,7 +1,9 @@
 #![forbid(unsafe_code)]
 
 use testcontainers::{
-    ContainerAsync, GenericImage, ImageExt, core::IntoContainerPort, runners::AsyncRunner,
+    ContainerAsync, GenericImage, ImageExt,
+    core::{IntoContainerPort, WaitFor},
+    runners::AsyncRunner,
 };
 
 pub struct PostgresContainer {
@@ -17,6 +19,9 @@ impl PostgresContainer {
     /// Returns the container runtime or endpoint discovery error.
     pub async fn start() -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         let container = GenericImage::new("postgres", "16-alpine")
+            .with_wait_for(WaitFor::message_on_stderr(
+                "database system is ready to accept connections",
+            ))
             .with_exposed_port(5432.tcp())
             .with_env_var("POSTGRES_USER", "postgres")
             .with_env_var("POSTGRES_PASSWORD", "kernel")

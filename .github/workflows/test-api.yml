@@ -40,10 +40,16 @@ jobs:
           components: clippy,rustfmt
       - if: needs.changes.outputs.api == 'true'
         working-directory: apps/api
+        env:
+          ARCHITECTURE_BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
         run: |
           cargo fmt --all -- --check
           cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
-          cargo xtask architecture check
+          if [ -n "$ARCHITECTURE_BASE" ]; then
+            cargo xtask architecture check --base "$ARCHITECTURE_BASE"
+          else
+            cargo xtask architecture check
+          fi
       - if: needs.changes.outputs.api != 'true'
         run: echo 'No API changes; stable check passes.'
 

@@ -1,6 +1,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::error::Error;
 use std::fmt::{self, Display, Formatter};
+use std::path::Path;
+use std::process::Command;
 
 use serde::Deserialize;
 
@@ -152,6 +154,36 @@ impl IntentDiff {
     #[must_use]
     pub fn changed_files(&self) -> &BTreeSet<String> {
         &self.changed_files
+    }
+
+    /// Reads the controller-defined API diff from Git.
+    ///
+    /// # Errors
+    ///
+    /// Fails when Git cannot resolve either revision or enumerate the diff.
+    pub fn from_git(api_root: &Path, base: &str, head: &str) -> Result<Self, IntentError> {
+        let output = Command::new("git")
+            .current_dir(api_root)
+            .args([
+                "diff",
+                "--name-only",
+                "--diff-filter=ACMR",
+                "--relative",
+                base,
+                head,
+                "--",
+                ".",
+            ])
+            .output()
+            .map_err(|error| IntentError::Parse(error.to_string()))?;
+        if !output.status.success() {
+            return Err(IntentError::Parse(
+                String::from_utf8_lossy(&output.stderr).trim().to_owned(),
+            ));
+        }
+        let stdout = String::from_utf8(output.stdout)
+            .map_err(|error| IntentError::Parse(error.to_string()))?;
+        Ok(Self::new(stdout.lines()))
     }
 }
 

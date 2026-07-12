@@ -1,3 +1,5 @@
+use std::future::Future;
+use thiserror::Error;
 use tokio::sync::watch;
 
 #[derive(Clone, Debug)]
@@ -8,6 +10,14 @@ pub struct Shutdown {
 #[derive(Debug)]
 pub struct ShutdownSignal {
     receiver: watch::Receiver<bool>,
+}
+
+#[derive(Debug, Error)]
+pub enum LifecycleError<E> {
+    #[error("termination signal failed: {0}")]
+    Signal(#[source] std::io::Error),
+    #[error("service lifecycle failed: {0}")]
+    Service(E),
 }
 
 impl Shutdown {
@@ -42,6 +52,32 @@ impl ShutdownSignal {
             if *self.receiver.borrow() {
                 return;
             }
+        }
+    }
+}
+
+/// Coordinates a service future with an injectable termination waiter.
+///
+/// # Errors
+///
+/// Returns the signal installation/wait error or the service lifecycle error.
+pub async fn coordinate_shutdown<O, S, E>(
+    shutdown: Shutdown,
+    operation: O,
+    signal: S,
+) -> Result<(), LifecycleError<E>>
+where
+    O: Future<Output = Result<(), E>>,
+    S: Future<Output = std::io::Result<()>>,
+{
+    tokio::pin!(operation);
+    tokio::pin!(signal);
+    tokio::select! {
+        result = &mut operation => result.map_err(LifecycleError::Service),
+        result = &mut signal => {
+            result.map_err(LifecycleError::Signal)?;
+            shutdown.trigger();
+            operation.await.map_err(LifecycleError::Service)
         }
     }
 }

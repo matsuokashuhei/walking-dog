@@ -44,6 +44,19 @@ impl Error for CheckError {}
 ///
 /// Fails closed for I/O, parse, metadata, policy, exception, and intent errors.
 pub fn check_workspace(root: &Path, validate_repository: bool) -> Result<CheckOutcome, CheckError> {
+    check_workspace_against(root, validate_repository, None)
+}
+
+/// Checks the workspace and optionally verifies intent against explicit Git revisions.
+///
+/// # Errors
+///
+/// Fails closed for discovery, parsing, policy, exception, intent, or Git errors.
+pub fn check_workspace_against(
+    root: &Path,
+    validate_repository: bool,
+    revisions: Option<(&str, &str)>,
+) -> Result<CheckOutcome, CheckError> {
     let mut sources = Vec::new();
     discover_rust(root, root, &mut sources)?;
     let mut diagnostics = Vec::new();
@@ -67,7 +80,7 @@ pub fn check_workspace(root: &Path, validate_repository: bool) -> Result<CheckOu
         }
     }
     if validate_repository {
-        diagnostics = validate_repository_files(root, &diagnostics)?;
+        diagnostics = validate_repository_files(root, &diagnostics, revisions)?;
     }
     Ok(CheckOutcome { diagnostics })
 }
@@ -75,6 +88,7 @@ pub fn check_workspace(root: &Path, validate_repository: bool) -> Result<CheckOu
 fn validate_repository_files(
     root: &Path,
     diagnostics: &[Diagnostic],
+    revisions: Option<(&str, &str)>,
 ) -> Result<Vec<Diagnostic>, CheckError> {
     let policy = Policy::parse(
         &fs::read_to_string(root.join("architecture/dependency-policy.toml")).map_err(error)?,
@@ -136,7 +150,20 @@ fn validate_repository_files(
             IntentDiff::parse_artifact(&fs::read_to_string(path).map_err(error)?).map_err(error)?;
         changed_files.extend(diff.changed_files().iter().cloned());
     }
-    validate_intents(&manifests, &IntentDiff::new(changed_files)).map_err(error)?;
+    let artifact_diff = IntentDiff::new(changed_files);
+    let diff = if let Some((base, head)) = revisions {
+        let actual = IntentDiff::from_git(root, base, head).map_err(error)?;
+        if actual != artifact_diff {
+            return Err(CheckError(
+                "checked-in intent diff artifact does not match the controller-defined Git diff"
+                    .to_owned(),
+            ));
+        }
+        actual
+    } else {
+        artifact_diff
+    };
+    validate_intents(&manifests, &diff).map_err(error)?;
     unsuppressed_diagnostics(diagnostics, &exceptions)
 }
 

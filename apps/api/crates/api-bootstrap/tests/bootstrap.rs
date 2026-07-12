@@ -129,6 +129,18 @@ async fn worker_loop_finishes_after_shutdown() {
         .expect("worker join");
 }
 
+#[tokio::test]
+async fn signal_waiter_error_propagates_from_lifecycle() {
+    let shutdown = Shutdown::new();
+    let operation = std::future::pending::<Result<(), std::convert::Infallible>>();
+    let signal = async { Err(std::io::Error::other("signal install failed")) };
+    let result = api_bootstrap::shutdown::coordinate_shutdown(shutdown, operation, signal).await;
+    assert!(matches!(
+        result,
+        Err(api_bootstrap::shutdown::LifecycleError::Signal(_))
+    ));
+}
+
 #[test]
 fn bootstrap_schema_has_no_product_fields() {
     assert_eq!(

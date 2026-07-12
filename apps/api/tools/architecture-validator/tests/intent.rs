@@ -118,6 +118,22 @@ changed_files = ["Cargo.toml", "crates/domain/src/lib.rs"]
 }
 
 #[test]
+fn checked_in_diff_artifact_matches_real_pr_base() {
+    let api_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let actual = IntentDiff::from_git(
+        &api_root,
+        "93db6a3ce552f010db3059f8b130694c1da24774",
+        "HEAD",
+    )
+    .expect("real PR diff");
+    let artifact = IntentDiff::parse_artifact(include_str!(
+        "../../../architecture/diffs/20260711-api-kernel.toml"
+    ))
+    .expect("checked-in artifact");
+    assert_eq!(actual.changed_files(), artifact.changed_files());
+}
+
+#[test]
 fn schema_and_registries_fail_closed() {
     let unknown_field = format!(
         "{}\ncompatibility_alias = \"legacy\"\n",

@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use architecture_validator::check::{OutputFormat, check_workspace, render_diagnostics};
+use architecture_validator::check::{OutputFormat, check_workspace_against, render_diagnostics};
 
 fn main() {
     if let Err(error) = run() {
@@ -21,7 +21,19 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         .windows(2)
         .find(|pair| pair[0] == "--root")
         .map_or(".", |pair| pair[1].as_str());
-    let outcome = check_workspace(Path::new(root), validate_repository)?;
+    let base = args
+        .windows(2)
+        .find(|pair| pair[0] == "--base")
+        .map(|pair| pair[1].as_str());
+    let head = args
+        .windows(2)
+        .find(|pair| pair[0] == "--head")
+        .map_or("HEAD", |pair| pair[1].as_str());
+    let outcome = check_workspace_against(
+        Path::new(root),
+        validate_repository,
+        base.map(|value| (value, head)),
+    )?;
     let output = render_diagnostics(&outcome.diagnostics, format)?;
     if !output.is_empty() {
         println!("{output}");

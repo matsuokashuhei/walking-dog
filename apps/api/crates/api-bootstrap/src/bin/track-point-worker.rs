@@ -5,15 +5,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     observability::initialize()?;
     let _config = Config::from_env()?;
     let shutdown = Shutdown::new();
-    let trigger = shutdown.clone();
-    tokio::spawn(async move {
-        if api_bootstrap::shutdown::wait_for_termination()
-            .await
-            .is_ok()
-        {
-            trigger.trigger();
-        }
-    });
-    composition::run_worker_until_shutdown(shutdown.subscribe()).await;
+    let shutdown_signal = shutdown.subscribe();
+    let operation = async {
+        composition::run_worker_until_shutdown(shutdown_signal).await;
+        Ok::<(), std::convert::Infallible>(())
+    };
+    api_bootstrap::shutdown::coordinate_shutdown(
+        shutdown,
+        operation,
+        api_bootstrap::shutdown::wait_for_termination(),
+    )
+    .await?;
     Ok(())
 }

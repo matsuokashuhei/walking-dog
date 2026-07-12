@@ -52,3 +52,57 @@ const TEXT: &str = "GenericImage::new(constructed, tag)";
     validate_testcontainers_source("crates/domain/src/lib.rs", source, false)
         .expect("non-code text is harmless");
 }
+
+#[test]
+fn constructor_function_items_and_macro_forwarding_fail() {
+    for source in [
+        "use testcontainers::GenericImage; fn bad() { let constructor = GenericImage::new; let _ = constructor; }",
+        "use testcontainers::GenericImage; fn bad() { let constructor = || GenericImage::new; let _ = constructor; }",
+        "use testcontainers::GenericImage; macro_rules! forward { ($value:path) => { $value } } fn bad() { let _ = forward!(GenericImage::new); }",
+    ] {
+        assert!(validate_testcontainers_source("crates/domain/src/lib.rs", source, false).is_err());
+    }
+}
+
+#[test]
+fn factory_macros_and_constructor_references_fail() {
+    for addition in [
+        "fn reference() { let _ = GenericImage::new; }",
+        "macro_rules! make { () => { GenericImage::new(POSTGRES_NAME, POSTGRES_TAG) } }",
+        "fn make() { let _ = identity!(GenericImage::new); }",
+    ] {
+        assert!(
+            validate_testcontainers_source(
+                "tools/harness-runtime/src/images.rs",
+                &format!("{FACTORY}\n{addition}"),
+                true,
+            )
+            .is_err()
+        );
+    }
+}
+
+#[test]
+fn aliases_are_fixed_point_order_independent_and_scope_local() {
+    let chained = "type Final = Middle; type Middle = testcontainers::GenericImage; fn bad() { Final::new(\"redis\", \"7\"); }";
+    assert!(validate_testcontainers_source("crates/domain/src/lib.rs", chained, false).is_err());
+
+    let siblings = r"
+mod first { use testcontainers::GenericImage as Image; }
+mod second { struct Image; impl Image { fn new() {} } fn clean() { Image::new(); } }
+";
+    validate_testcontainers_source("crates/domain/src/lib.rs", siblings, false)
+        .expect("canonical alias does not leak to sibling scope");
+}
+
+#[test]
+fn unrelated_generic_image_names_are_clean() {
+    for source in [
+        "struct GenericImage; impl GenericImage { fn new() {} } fn clean() { GenericImage::new(); }",
+        "use my_images::GenericImage; fn clean() { GenericImage::new(); }",
+        "use testcontainers::GenericImage; fn clean() { struct GenericImage; impl GenericImage { fn new() {} } GenericImage::new(); }",
+    ] {
+        validate_testcontainers_source("crates/domain/src/lib.rs", source, false)
+            .expect("unrelated provenance is clean");
+    }
+}

@@ -1,5 +1,7 @@
 #![forbid(unsafe_code)]
 
+mod images;
+
 use testcontainers::{
     ContainerAsync, GenericImage, ImageExt,
     core::{IntoContainerPort, WaitFor},
@@ -18,10 +20,7 @@ impl PostgresContainer {
     ///
     /// Returns the container runtime or endpoint discovery error.
     pub async fn start() -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
-        let container = GenericImage::new(
-            "postgres",
-            "16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777",
-        )
+        let container = images::postgres()
             .with_wait_for(WaitFor::message_on_stderr(
                 "database system is ready to accept connections",
             ))

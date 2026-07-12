@@ -225,7 +225,7 @@ test_production_images_are_digest_pinned_and_worker_has_process_health() {
   dockerfile="$(cat "$repo_root/apps/api/Dockerfile")"
   compose="$(cat "$repo_root/infra/sakura/compose.yml")"
   deploy="$(cat "$repo_root/infra/sakura/deploy.sh")"
-  runtime="$(cat "$repo_root/apps/api/tools/harness-runtime/src/lib.rs")"
+  runtime="$(cat "$repo_root/apps/api/tools/harness-runtime/src/images.rs")"
 
   assert_contains "$dockerfile" '# syntax=docker/dockerfile:1@sha256:' "Dockerfile frontend must be digest pinned"
   [[ "$(grep -c '^FROM .*@sha256:[0-9a-f]\{64\}' "$repo_root/apps/api/Dockerfile")" -eq 2 ]] || fail "every external Dockerfile FROM must be digest pinned"
@@ -259,9 +259,10 @@ test_deploy_image_digest_validation_respects_environment_precedence() {
 test_image_pin_validator_rejects_unpinned_and_malformed_references() {
   local tmpdir output
   make_tmpdir tmpdir
-  mkdir -p "$tmpdir/apps/api/tools/harness-runtime/src" "$tmpdir/infra/sakura"
+  mkdir -p "$tmpdir/apps/api/tools/harness-runtime/src" "$tmpdir/apps/api/crates/domain/src" "$tmpdir/infra/sakura"
   cp "$repo_root/apps/api/Dockerfile" "$tmpdir/apps/api/Dockerfile"
   cp "$repo_root/apps/api/tools/harness-runtime/src/lib.rs" "$tmpdir/apps/api/tools/harness-runtime/src/lib.rs"
+  cp "$repo_root/apps/api/tools/harness-runtime/src/images.rs" "$tmpdir/apps/api/tools/harness-runtime/src/images.rs"
   cp "$repo_root/infra/sakura/compose.yml" "$tmpdir/infra/sakura/compose.yml"
   PIN_ROOT_OVERRIDE="$tmpdir" "$repo_root/scripts/harness/validate-image-pins.sh"
 
@@ -285,13 +286,26 @@ test_image_pin_validator_rejects_unpinned_and_malformed_references() {
   assert_contains "$output" "unpinned Dockerfile FROM" "short FROM digest must fail"
 
   cp "$repo_root/apps/api/Dockerfile" "$tmpdir/apps/api/Dockerfile"
-  printf '\nfn extra() { let _ = GenericImage::new("redis", "7"); }\n' >> "$tmpdir/apps/api/tools/harness-runtime/src/lib.rs"
+  printf '\nfn extra() { let _ = GenericImage::new("redis", "7"); }\n' >> "$tmpdir/apps/api/crates/domain/src/lib.rs"
   output="$(run_script_expect_status 1 env PIN_ROOT_OVERRIDE="$tmpdir" "$repo_root/scripts/harness/validate-image-pins.sh")"
-  assert_contains "$output" "unpinned Testcontainers image: redis:7" "second unpinned GenericImage must fail"
+  assert_contains "$output" "outside approved factory" "second unpinned GenericImage must fail"
 
-  sed 's/@sha256:[0-9a-f]\{64\}/@sha256:abc/' "$repo_root/apps/api/tools/harness-runtime/src/lib.rs" > "$tmpdir/apps/api/tools/harness-runtime/src/lib.rs"
+  : > "$tmpdir/apps/api/crates/domain/src/lib.rs"
+  sed 's/@sha256:[0-9a-f]\{64\}/@sha256:abc/' "$repo_root/apps/api/tools/harness-runtime/src/images.rs" > "$tmpdir/apps/api/tools/harness-runtime/src/images.rs"
   output="$(run_script_expect_status 1 env PIN_ROOT_OVERRIDE="$tmpdir" "$repo_root/scripts/harness/validate-image-pins.sh")"
   assert_contains "$output" "unpinned Testcontainers image" "short GenericImage digest must fail"
+
+  cp "$repo_root/apps/api/tools/harness-runtime/src/images.rs" "$tmpdir/apps/api/tools/harness-runtime/src/images.rs"
+  for source in \
+    'const TAG: &str = "7"; fn bad() { GenericImage::new("redis", TAG); }' \
+    'fn bad(tag: &str) { GenericImage::new("redis", tag); }' \
+    'use testcontainers::GenericImage as Image; fn bad() { Image::new("redis", "7"); }' \
+    'fn bad() { GenericImage::new(r#"redis"#, "7"); }' \
+    'fn bad() { GenericImage::new(&format!("red{}", "is"), "7"); }'; do
+    printf '%s\n' "$source" > "$tmpdir/apps/api/crates/domain/src/lib.rs"
+    output="$(run_script_expect_status 1 env PIN_ROOT_OVERRIDE="$tmpdir" "$repo_root/scripts/harness/validate-image-pins.sh")"
+    assert_contains "$output" "outside approved factory" "direct/aliased/constructed Testcontainers image must fail"
+  done
 }
 
 test_harness_has_no_node_scripts_or_invocations() {

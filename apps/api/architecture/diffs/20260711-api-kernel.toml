@@ -59,6 +59,7 @@ changed_files = [
   "tools/architecture-validator/tests/workspace.rs",
   "tools/harness-runtime/Cargo.toml",
   "tools/harness-runtime/src/lib.rs",
+  "tools/harness-runtime/src/images.rs",
   "tools/integration-test-support/Cargo.toml",
   "tools/integration-test-support/src/lib.rs",
   "tools/xtask/Cargo.toml",

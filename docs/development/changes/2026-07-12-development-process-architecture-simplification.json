@@ -162,6 +162,19 @@
         "Docker: cargo xtask image-catalog generate"
       ],
       "result": "RED unresolved xtask generator surface; GREEN 2 catalog tests including malformed digest/unknown-field rejection, deterministic generation, drift detection, and second-generation byte equality."
+    },
+    {
+      "name": "image-policy-freeze",
+      "state": "green",
+      "commands": [
+        "Docker: cargo fmt --check",
+        "Docker: cargo clippy -p architecture-validator -p xtask -p harness-runtime --all-targets --all-features --locked -- -D warnings",
+        "Docker: cargo test -p architecture-validator --test image_policy --test check --test policy --locked",
+        "Docker: cargo test -p xtask --test image_catalog --locked",
+        "Docker: cargo xtask image-catalog generate; verify; generate",
+        "Docker: cargo xtask architecture check --base origin/main --head HEAD"
+      ],
+      "result": "Integration verified architecture-validator focused suites 15/15 and xtask image catalog 2/2 green; image-policy covers grouped imports, build scripts, ignored target/.git, generated marker, and public opacity. Template assets are classified fail-closed without parsing unrelated placeholders."
     }
   ]
 }

@@ -76,11 +76,6 @@ pub fn check_workspace_against(
         let source = fs::read_to_string(&path).map_err(error)?;
         owned_sources.push((crate_name, relative, source));
     }
-    let image_sources = owned_sources
-        .iter()
-        .map(|(_, path, source)| (path.as_str(), source.as_str()))
-        .collect::<Vec<_>>();
-    crate::images::validate_testcontainers_source_set(&image_sources).map_err(error)?;
     let units = owned_sources
         .iter()
         .map(|(crate_name, path, source)| SourceUnit {
@@ -108,6 +103,7 @@ fn validate_repository_files(
     diagnostics: &[Diagnostic],
     revisions: Option<(&str, &str)>,
 ) -> Result<Vec<Diagnostic>, CheckError> {
+    crate::image_policy::validate(root).map_err(error)?;
     let policy = Policy::parse(
         &fs::read_to_string(root.join("architecture/dependency-policy.toml")).map_err(error)?,
     )

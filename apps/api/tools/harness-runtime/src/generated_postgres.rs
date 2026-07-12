@@ -10,13 +10,16 @@ pub struct PostgresContainer {
     connection_url: String,
 }
 
+const IMAGE_NAME: &str = "postgres";
+const IMAGE_REFERENCE: &str = "16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777";
+
 impl PostgresContainer {
-    /// Starts an isolated PostgreSQL service owned by this handle.
+    /// Starts an isolated `PostgreSQL` service owned by this handle.
     ///
     /// # Errors
     /// Returns container startup or endpoint discovery errors.
     pub async fn start() -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
-        let container = GenericImage::new("postgres", "16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777")
+        let container = GenericImage::new(IMAGE_NAME, IMAGE_REFERENCE)
             .with_wait_for(WaitFor::message_on_stderr("database system is ready to accept connections"))
             .with_exposed_port(5432.tcp())
             .with_env_var("POSTGRES_USER", "postgres")

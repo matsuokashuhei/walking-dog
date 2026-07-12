@@ -284,3 +284,39 @@ fn explicit_external_testcontainers_paths_remain_canonical() {
         assert!(validate_testcontainers_source("crates/domain/src/lib.rs", source, false).is_err());
     }
 }
+
+#[test]
+fn absolute_use_provenance_survives_alias_chains() {
+    for source in [
+        "mod testcontainers { pub struct GenericImage; } use ::testcontainers::GenericImage as ExternalImage; fn bad() { ExternalImage::new(\"redis\", \"7\"); }",
+        "mod testcontainers { pub struct GenericImage; } use ::testcontainers::GenericImage as First; use First as Final; fn bad() { Final::new(\"redis\", \"7\"); }",
+    ] {
+        assert!(validate_testcontainers_source("crates/domain/src/lib.rs", source, false).is_err());
+    }
+}
+
+#[test]
+fn absolute_cross_file_reexports_remain_canonical() {
+    let sources = [
+        (
+            "crates/domain/src/lib.rs",
+            "mod testcontainers; mod shim; use shim::Image as Final; fn bad() { Final::new(\"redis\", \"7\"); }",
+        ),
+        (
+            "crates/domain/src/testcontainers.rs",
+            "pub struct GenericImage;",
+        ),
+        (
+            "crates/domain/src/shim.rs",
+            "pub use ::testcontainers::GenericImage as Image;",
+        ),
+    ];
+    assert!(validate_testcontainers_source_set(&sources).is_err());
+}
+
+#[test]
+fn local_module_reexport_without_absolute_prefix_is_clean() {
+    let source = "mod testcontainers { pub struct GenericImage; impl GenericImage { pub fn new() {} } } pub use testcontainers::GenericImage as Image; fn clean() { Image::new(); }";
+    validate_testcontainers_source("crates/domain/src/lib.rs", source, false)
+        .expect("local reexport stays noncanonical");
+}

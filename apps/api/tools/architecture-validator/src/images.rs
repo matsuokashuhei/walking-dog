@@ -201,7 +201,12 @@ fn resolve_symbols(
     let mut bindings = Vec::new();
     for item in items {
         match item {
-            Item::Use(item_use) => collect_use_bindings(&item_use.tree, &[], &mut bindings),
+            Item::Use(item_use) => collect_use_bindings(
+                &item_use.tree,
+                &[],
+                item_use.leading_colon.is_some(),
+                &mut bindings,
+            ),
             Item::ExternCrate(item_extern) if item_extern.ident == "testcontainers" => {
                 let name = item_extern.rename.as_ref().map_or_else(
                     || item_extern.ident.to_string(),
@@ -275,15 +280,24 @@ fn collect_module_exports(items: &[Item], module_path: &[String], exports: &mut 
     for item in items {
         match item {
             Item::Use(item_use) if !matches!(item_use.vis, syn::Visibility::Inherited) => {
+                let local_testcontainers = items.iter().any(
+                    |item| matches!(item, Item::Mod(module) if module.ident == "testcontainers"),
+                );
                 let mut bindings = Vec::new();
-                collect_use_bindings(&item_use.tree, &[], &mut bindings);
+                collect_use_bindings(
+                    &item_use.tree,
+                    &[],
+                    item_use.leading_colon.is_some(),
+                    &mut bindings,
+                );
                 for (name, source) in bindings {
                     let segments = source
                         .segments
                         .iter()
                         .map(|part| part.ident.to_string())
                         .collect::<Vec<_>>();
-                    if segments == ["testcontainers", "GenericImage"]
+                    if (segments == ["testcontainers", "GenericImage"]
+                        && (source.leading_colon.is_some() || !local_testcontainers))
                         || exports.contains(&absolute_path(&segments, module_path))
                     {
                         let mut exported = module_path.to_vec();
@@ -296,7 +310,10 @@ fn collect_module_exports(items: &[Item], module_path: &[String], exports: &mut 
                 for source in globs {
                     let mut wildcard = absolute_path(&source, module_path);
                     wildcard.push("*".to_owned());
-                    if source == ["testcontainers"] || exports.contains(&wildcard) {
+                    if (source == ["testcontainers"]
+                        && (item_use.leading_colon.is_some() || !local_testcontainers))
+                        || exports.contains(&wildcard)
+                    {
                         let mut exported = module_path.to_vec();
                         exported.push("*".to_owned());
                         exports.insert(exported);
@@ -405,27 +422,34 @@ fn source_module_components(path: &str) -> Vec<String> {
 fn collect_use_bindings(
     tree: &UseTree,
     prefix: &[String],
+    leading_colon: bool,
     bindings: &mut Vec<(String, syn::Path)>,
 ) {
     match tree {
         UseTree::Path(path) => {
             let mut nested = prefix.to_vec();
             nested.push(path.ident.to_string());
-            collect_use_bindings(&path.tree, &nested, bindings);
+            collect_use_bindings(&path.tree, &nested, leading_colon, bindings);
         }
         UseTree::Name(name) => {
             let mut source = prefix.to_vec();
             source.push(name.ident.to_string());
-            bindings.push((name.ident.to_string(), path_from_segments(&source)));
+            bindings.push((
+                name.ident.to_string(),
+                path_from_segments(&source, leading_colon),
+            ));
         }
         UseTree::Rename(rename) => {
             let mut source = prefix.to_vec();
             source.push(rename.ident.to_string());
-            bindings.push((rename.rename.to_string(), path_from_segments(&source)));
+            bindings.push((
+                rename.rename.to_string(),
+                path_from_segments(&source, leading_colon),
+            ));
         }
         UseTree::Group(group) => {
             for item in &group.items {
-                collect_use_bindings(item, prefix, bindings);
+                collect_use_bindings(item, prefix, leading_colon, bindings);
             }
         }
         UseTree::Glob(_) => {}
@@ -449,8 +473,10 @@ fn collect_glob_paths(tree: &UseTree, prefix: &[String], globs: &mut Vec<Vec<Str
     }
 }
 
-fn path_from_segments(segments: &[String]) -> syn::Path {
-    syn::parse_str(&segments.join("::")).expect("use path segments are valid Rust identifiers")
+fn path_from_segments(segments: &[String], leading_colon: bool) -> syn::Path {
+    let prefix = if leading_colon { "::" } else { "" };
+    syn::parse_str(&format!("{prefix}{}", segments.join("::")))
+        .expect("use path segments are valid Rust identifiers")
 }
 
 fn canonical_type_path(
@@ -523,7 +549,7 @@ impl Visit<'_> for ScopeVisitor<'_> {
         let mut globs = Vec::new();
         collect_glob_paths(&item.tree, &[], &mut globs);
         if globs.into_iter().any(|source| {
-            let path = path_from_segments(&source);
+            let path = path_from_segments(&source, item.leading_colon.is_some());
             let mut wildcard = absolute_path(&source, self.module_path);
             wildcard.push("*".to_owned());
             canonical_module_path(&path, self.symbols, self.parents)

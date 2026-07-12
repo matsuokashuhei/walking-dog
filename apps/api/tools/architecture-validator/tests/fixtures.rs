@@ -1,4 +1,6 @@
-use architecture_validator::ast::{SourceUnit, ValidationError, analyze_source};
+use architecture_validator::ast::{
+    SourceUnit, ValidationError, analyze_source, analyze_source_set,
+};
 
 struct FailingFixture {
     rule: &'static str,
@@ -654,4 +656,72 @@ fn private_trait_impl_is_not_a_public_boundary_but_public_trait_impl_is() {
             .iter()
             .any(|diagnostic| diagnostic.rule_id == "API-ARCH-006" && diagnostic.line == 3)
     );
+}
+
+#[test]
+fn cross_file_trait_visibility_uses_qualified_source_set_identity() {
+    for (visibility, should_report) in [("pub ", true), ("", false)] {
+        let declaration =
+            format!("{visibility}trait Port {{ fn row(&self) -> adapter_postgres::Row; }}\n");
+        let units = [
+            SourceUnit {
+                crate_name: "application",
+                path: "crates/application/src/ports.rs",
+                source: &declaration,
+                production: false,
+            },
+            SourceUnit {
+                crate_name: "application",
+                path: "crates/application/src/owner/service.rs",
+                source: "struct Service;\nimpl crate::ports::Port for Service { fn row(&self) -> adapter_postgres::Row { loop {} } }\n",
+                production: false,
+            },
+        ];
+        let diagnostics = analyze_source_set(&units).expect("fixtures must parse");
+        assert_eq!(
+            diagnostics.iter().any(|diagnostic| {
+                diagnostic.rule_id == "API-ARCH-006"
+                    && diagnostic.path == "crates/application/src/owner/service.rs"
+                    && diagnostic.line == 2
+            }),
+            should_report
+        );
+    }
+}
+
+#[test]
+fn mixed_filesystem_and_inline_modules_resolve_super_paths() {
+    let diagnostics = analyze_source(SourceUnit {
+        crate_name: "application",
+        path: "crates/application/src/owner/nested/update.rs",
+        source: "mod deeper { fn related() -> super::super::super::super::dog::Dog { loop {} } }\n",
+        production: false,
+    })
+    .expect("fixture must parse");
+    assert!(
+        diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.rule_id == "API-ARCH-010")
+    );
+}
+
+#[test]
+fn sea_orm_raw_statement_constructors_are_closed() {
+    for constructor in ["from_string", "from_sql_and_values"] {
+        let source = format!(
+            "fn q() {{ sea_orm::Statement::{constructor}((), \"DELETE FROM dogs\", []); }}"
+        );
+        let diagnostics = analyze_source(SourceUnit {
+            crate_name: "application",
+            path: "crates/application/src/query.rs",
+            source: &source,
+            production: true,
+        })
+        .expect("fixture must parse");
+        assert!(
+            diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.rule_id == "API-ARCH-011")
+        );
+    }
 }

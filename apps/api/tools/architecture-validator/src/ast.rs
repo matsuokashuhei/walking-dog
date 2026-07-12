@@ -50,13 +50,53 @@ impl Error for ValidationError {}
 /// Returns [`ValidationError::Parse`] when `syn` cannot parse the complete source. Parse
 /// failures are fatal so unreachable files cannot bypass architecture validation.
 pub fn analyze_source(unit: SourceUnit<'_>) -> Result<Vec<Diagnostic>, ValidationError> {
-    let file = syn::parse_file(unit.source).map_err(|error| ValidationError::Parse {
-        path: unit.path.to_owned(),
-        message: error.to_string(),
-    })?;
+    analyze_source_set(&[unit])
+}
+
+/// Parses and analyzes a complete source set with cross-file trait visibility context.
+///
+/// # Errors
+///
+/// Returns [`ValidationError::Parse`] when any source fails to parse. No partial result is
+/// returned, so an unindexable file cannot weaken public-boundary enforcement.
+pub fn analyze_source_set(units: &[SourceUnit<'_>]) -> Result<Vec<Diagnostic>, ValidationError> {
+    let parsed = units
+        .iter()
+        .map(|unit| {
+            syn::parse_file(unit.source)
+                .map(|file| (*unit, file))
+                .map_err(|error| ValidationError::Parse {
+                    path: unit.path.to_owned(),
+                    message: error.to_string(),
+                })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let mut trait_index = HashMap::new();
+    for (unit, file) in &parsed {
+        let prefix = source_module_components(unit.path);
+        for (identity, public) in collect_qualified_traits(&file.items, &prefix) {
+            trait_index.insert((unit.crate_name.to_owned(), identity), public);
+        }
+    }
+    let mut diagnostics = Vec::new();
+    for (unit, file) in &parsed {
+        diagnostics.extend(analyze_parsed(*unit, file, &trait_index));
+    }
+    Ok(diagnostics)
+}
+
+fn analyze_parsed(
+    unit: SourceUnit<'_>,
+    file: &syn::File,
+    trait_index: &HashMap<(String, Vec<String>), bool>,
+) -> Vec<Diagnostic> {
     let aliases = collect_item_aliases(&file.items);
     let trait_scope = collect_item_traits(&file.items);
-    let qualified_traits = collect_qualified_traits(&file.items);
+    let qualified_traits = trait_index
+        .iter()
+        .filter(|((crate_name, _), _)| crate_name == unit.crate_name)
+        .map(|((_, identity), public)| (identity.clone(), *public))
+        .collect();
     let mut analyzer = Analyzer {
         unit,
         alias_scopes: vec![aliases],
@@ -66,10 +106,10 @@ pub fn analyze_source(unit: SourceUnit<'_>) -> Result<Vec<Diagnostic>, Validatio
         trait_impl: false,
         trait_scopes: vec![trait_scope],
         qualified_traits,
-        module_path: Vec::new(),
+        module_path: source_module_components(unit.path),
     };
-    analyzer.visit_file(&file);
-    Ok(analyzer.diagnostics)
+    analyzer.visit_file(file);
+    analyzer.diagnostics
 }
 
 struct Analyzer<'a> {
@@ -398,7 +438,10 @@ impl<'ast> Visit<'ast> for Analyzer<'_> {
                         || name == "raw_sql"
                         || (name == "execute" && path.iter().any(|part| part == "Executor"))))
                     || (path.first().is_some_and(|part| part == "sea_orm")
-                        && matches!(name, "from_string" | "execute_unprepared")))
+                        && matches!(
+                            name,
+                            "from_string" | "from_sql_and_values" | "execute_unprepared"
+                        )))
             {
                 self.report(
                     "API-ARCH-011",
@@ -521,7 +564,7 @@ fn collect_item_traits(items: &[Item]) -> HashMap<String, bool> {
         .collect()
 }
 
-fn collect_qualified_traits(items: &[Item]) -> HashMap<Vec<String>, bool> {
+fn collect_qualified_traits(items: &[Item], prefix: &[String]) -> HashMap<Vec<String>, bool> {
     fn walk(
         items: &[Item],
         module_path: &mut Vec<String>,
@@ -546,7 +589,7 @@ fn collect_qualified_traits(items: &[Item]) -> HashMap<Vec<String>, bool> {
         }
     }
     let mut traits = HashMap::new();
-    walk(items, &mut Vec::new(), &mut traits);
+    walk(items, &mut prefix.to_vec(), &mut traits);
     traits
 }
 
@@ -588,14 +631,12 @@ fn trait_is_public(
             .rev()
             .find_map(|traits| traits.get(name))
             .copied()
-            .unwrap_or(false),
-        [root, rest @ ..] if root == "crate" => {
-            qualified_traits.get(rest).copied().unwrap_or(false)
-        }
+            .unwrap_or(true),
+        [root, rest @ ..] if root == "crate" => qualified_traits.get(rest).copied().unwrap_or(true),
         [root, rest @ ..] if root == "self" => {
             let mut identity = module_path.to_vec();
             identity.extend_from_slice(rest);
-            qualified_traits.get(&identity).copied().unwrap_or(false)
+            qualified_traits.get(&identity).copied().unwrap_or(true)
         }
         [root, rest @ ..] if root == "super" => {
             let count = canonical
@@ -603,11 +644,11 @@ fn trait_is_public(
                 .take_while(|part| part.as_str() == "super")
                 .count();
             if count > module_path.len() {
-                return false;
+                return true;
             }
             let mut identity = module_path[..module_path.len() - count].to_vec();
             identity.extend_from_slice(&rest[count - 1..]);
-            qualified_traits.get(&identity).copied().unwrap_or(false)
+            qualified_traits.get(&identity).copied().unwrap_or(true)
         }
         _ => true,
     }

@@ -8,7 +8,7 @@ use chrono::Utc;
 use serde_json::json;
 use sha2::{Digest, Sha256};
 
-use crate::ast::{Diagnostic, SourceUnit, analyze_source};
+use crate::ast::{Diagnostic, SourceUnit, analyze_source_set};
 use crate::exceptions::{ExceptionSet, validate_exceptions};
 use crate::intent::{IntentDiff, IntentManifest, validate_intents};
 use crate::policy::{Policy, validate_metadata};
@@ -59,14 +59,20 @@ pub fn check_workspace_against(
 ) -> Result<CheckOutcome, CheckError> {
     let mut sources = Vec::new();
     discover_rust(root, root, &mut sources)?;
-    let mut diagnostics = Vec::new();
+    let mut owned_sources = Vec::new();
     for path in sources {
-        let relative = path.strip_prefix(root).map_err(error)?.to_string_lossy();
-        let crate_name = crate_name(&relative).ok_or_else(|| {
-            CheckError(format!(
-                "unknown Rust source outside a workspace crate: {relative}"
-            ))
-        })?;
+        let relative = path
+            .strip_prefix(root)
+            .map_err(error)?
+            .to_string_lossy()
+            .into_owned();
+        let crate_name = crate_name(&relative)
+            .ok_or_else(|| {
+                CheckError(format!(
+                    "unknown Rust source outside a workspace crate: {relative}"
+                ))
+            })?
+            .to_owned();
         let source = fs::read_to_string(&path).map_err(error)?;
         crate::images::validate_testcontainers_source(
             &relative,
@@ -74,17 +80,24 @@ pub fn check_workspace_against(
             relative == "tools/harness-runtime/src/images.rs",
         )
         .map_err(error)?;
-        let source_diagnostics = analyze_source(SourceUnit {
-            crate_name,
-            path: &relative,
-            source: &source,
-            production: !is_non_production(&relative),
-        })
-        .map_err(error)?;
-        if relative.starts_with("crates/") && !is_non_production(&relative) {
-            diagnostics.extend(source_diagnostics);
-        }
+        owned_sources.push((crate_name, relative, source));
     }
+    let units = owned_sources
+        .iter()
+        .map(|(crate_name, path, source)| SourceUnit {
+            crate_name,
+            path,
+            source,
+            production: !is_non_production(path),
+        })
+        .collect::<Vec<_>>();
+    let mut diagnostics = analyze_source_set(&units)
+        .map_err(error)?
+        .into_iter()
+        .filter(|diagnostic| {
+            diagnostic.path.starts_with("crates/") && !is_non_production(&diagnostic.path)
+        })
+        .collect::<Vec<_>>();
     if validate_repository {
         diagnostics = validate_repository_files(root, &diagnostics, revisions)?;
     }

@@ -158,3 +158,11 @@ The enforceable `API-ARCH-011` policy is now exact about what static syntax can 
 Relative `super` paths now resolve by counting ascents against the source file's real module components (`mod.rs`/`lib.rs` handled explicitly). Cross-root resolution is rejected and over-traversal fails deterministically. Local trait visibility now uses lexical trait scopes plus module-qualified identities, so same-named public/private traits in nested modules do not contaminate one another; `self`, `super`, `crate`, and imported aliases resolve to the correct trait.
 
 TDD RED reproduced the arbitrary `.execute` false positive and nested private-trait false positive. Final focused fixtures passed 17/17. Strict Clippy was attempted, but a concurrent uncommitted repository-agent edit introduced a duplicate `proc-macro2` manifest key (and an unrelated `images.rs` unused import) between the passing fixture compile and Clippy invocation; this task did not edit or stage those concurrent files.
+
+## Source-set trait index and final constructor audit
+
+Workspace validation now parses the complete discovered Rust source set before per-file analysis and builds a fail-closed trait visibility index keyed by crate plus qualified filesystem/inline module identity. This lets `impl crate::ports::Port` in one file distinguish a public `ports.rs` trait from a private one; unresolved canonical local trait references are treated as public boundaries rather than silently escaping. Single-source analysis delegates to the same source-set path.
+
+Analyzer module identity is seeded from the source path and extended by inline modules, so mixed filesystem/inline `super` paths resolve against the full module stack. SeaORM raw statement constructor enforcement covers the audited pinned surface: `Statement::from_string` and `Statement::from_sql_and_values`; `execute_unprepared` remains covered separately.
+
+TDD RED captured the missing source-set analyzer/context. Final focused results: check 6/6 and fixtures 20/20. Strict Clippy passed with `--all-targets -- -D warnings`, including the requested needless-borrow cleanup. No images, Cargo.lock, or deployment file is included.

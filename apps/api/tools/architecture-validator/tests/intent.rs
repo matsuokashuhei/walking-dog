@@ -1,7 +1,11 @@
 use architecture_validator::intent::{IntentDiff, IntentError, IntentManifest, validate_intents};
 use std::path::Path;
 
-const EXPECTED_PR_STAGE_PATHS: &[&str] = &[
+#[allow(
+    dead_code,
+    reason = "documents the original independently reviewed PR stage"
+)]
+const LEGACY_EXPECTED_PR_STAGE_PATHS: &[&str] = &[
     "Cargo.lock",
     "Cargo.toml",
     "architecture/dependency-policy.toml",
@@ -87,6 +91,30 @@ fn architecture_intent_exactly_owns_its_changed_files() {
     let diff = IntentDiff::new(["tools/architecture-validator/src/intent.rs"]);
 
     validate_intents(&[manifest], &diff).expect("ownership matches in both directions");
+}
+
+#[test]
+fn independent_diff_artifact_rejects_omitted_actual_and_claimed_unchanged_files() {
+    let artifact = r#"version = 1
+changed_files = ["Cargo.toml", "crates/domain/src/lib.rs"]
+"#;
+    let diff = IntentDiff::parse_artifact(artifact).expect("independent diff artifact");
+    let omitted = IntentManifest::parse(&intent("API-INTENT-20260711-KERNEL", &["Cargo.toml"]))
+        .expect("intent");
+    assert!(matches!(
+        validate_intents(&[omitted], &diff),
+        Err(IntentError::UnownedChangedFile { .. })
+    ));
+
+    let claimed = IntentManifest::parse(&intent(
+        "API-INTENT-20260711-KERNEL",
+        &["Cargo.toml", "crates/domain/src/lib.rs", "README.md"],
+    ))
+    .expect("intent");
+    assert!(matches!(
+        validate_intents(&[claimed], &diff),
+        Err(IntentError::OwnershipOfUnchangedFile { .. })
+    ));
 }
 
 #[test]
@@ -282,27 +310,31 @@ fn adapter_changes_require_a_named_seam_and_integration_evidence() {
 fn checked_in_kernel_intent_owns_only_existing_kernel_files_and_no_journey() {
     let source = include_str!("../../../architecture/intents/20260711-api-kernel.toml");
     let manifest = IntentManifest::parse(source).expect("checked-in intent uses the closed schema");
+    let diff = IntentDiff::parse_artifact(include_str!(
+        "../../../architecture/diffs/20260711-api-kernel.toml"
+    ))
+    .expect("checked-in diff artifact uses the closed schema");
     let api_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
-    for file in EXPECTED_PR_STAGE_PATHS {
+    for file in diff.changed_files() {
         assert!(
             api_root.join(file).is_file(),
             "expected PR-stage file must exist: {file}"
         );
     }
-    let diff = IntentDiff::new(EXPECTED_PR_STAGE_PATHS.iter().copied());
     validate_intents(&[manifest], &diff).expect("checked-in intent is internally consistent");
 }
 
 #[test]
 fn checked_in_kernel_intent_rejects_missing_and_extra_ownership() {
     let source = include_str!("../../../architecture/intents/20260711-api-kernel.toml");
+    let diff = IntentDiff::parse_artifact(include_str!(
+        "../../../architecture/diffs/20260711-api-kernel.toml"
+    ))
+    .expect("checked-in diff artifact");
     let missing = source.replace("  \"Cargo.lock\",\n", "");
     let manifest = IntentManifest::parse(&missing).expect("modified manifest parses");
     assert!(matches!(
-        validate_intents(
-            &[manifest],
-            &IntentDiff::new(EXPECTED_PR_STAGE_PATHS.iter().copied())
-        ),
+        validate_intents(&[manifest], &diff),
         Err(IntentError::UnownedChangedFile { .. })
     ));
 
@@ -312,10 +344,7 @@ fn checked_in_kernel_intent_rejects_missing_and_extra_ownership() {
     );
     let manifest = IntentManifest::parse(&extra).expect("modified manifest parses");
     assert!(matches!(
-        validate_intents(
-            &[manifest],
-            &IntentDiff::new(EXPECTED_PR_STAGE_PATHS.iter().copied())
-        ),
+        validate_intents(&[manifest], &diff),
         Err(IntentError::OwnershipOfUnchangedFile { .. })
     ));
 }

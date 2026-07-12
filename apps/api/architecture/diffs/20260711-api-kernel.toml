@@ -1,18 +1,5 @@
 version = 1
-id = "API-INTENT-20260711-KERNEL"
-title = "Replace the API architecture and bootstrap kernel"
-change_kind = "architecture"
-owner = "github:matsuokashuhei"
-issue = "https://github.com/matsuokashuhei/walking-dog/issues/380"
-product_axes = ["dog_experience", "walk_data", "owner_contribution"]
-canonical_journeys = []
-application_modules = []
-touched_seams = ["graphql", "postgres", "cognito", "s3", "sqs", "dynamodb"]
-schema_impact = "none"
-data_migration_impact = "none"
-expected_failure_modes = ["validation_failure", "build_failure", "deployment_failure"]
-required_evidence = ["architecture_validator", "integration_test", "deployment_health"]
-owned_files = [
+changed_files = [
   ".cargo/config.toml",
   ".dockerignore",
   "Cargo.lock",
@@ -55,8 +42,8 @@ owned_files = [
   "tools/architecture-validator/src/lib.rs",
   "tools/architecture-validator/src/main.rs",
   "tools/architecture-validator/src/policy.rs",
-  "tools/architecture-validator/tests/exceptions.rs",
   "tools/architecture-validator/tests/check.rs",
+  "tools/architecture-validator/tests/exceptions.rs",
   "tools/architecture-validator/tests/fixtures.rs",
   "tools/architecture-validator/tests/intent.rs",
   "tools/architecture-validator/tests/policy.rs",

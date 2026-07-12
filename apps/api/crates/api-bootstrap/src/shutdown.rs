@@ -45,3 +45,25 @@ impl ShutdownSignal {
         }
     }
 }
+
+/// Waits for the platform termination signal used by interactive shells and
+/// container runtimes.
+///
+/// # Errors
+///
+/// Returns an error when the operating system signal handler cannot be installed.
+#[cfg(unix)]
+pub async fn wait_for_termination() -> std::io::Result<()> {
+    use tokio::signal::unix::{SignalKind, signal};
+
+    let mut terminate = signal(SignalKind::terminate())?;
+    tokio::select! {
+        result = tokio::signal::ctrl_c() => result,
+        _ = terminate.recv() => Ok(()),
+    }
+}
+
+#[cfg(not(unix))]
+pub async fn wait_for_termination() -> std::io::Result<()> {
+    tokio::signal::ctrl_c().await
+}

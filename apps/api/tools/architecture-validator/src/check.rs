@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 use cargo_metadata::MetadataCommand;
 use chrono::Utc;
 use serde_json::json;
+use sha2::{Digest, Sha256};
 
 use crate::ast::{Diagnostic, SourceUnit, analyze_source};
 use crate::exceptions::{ExceptionSet, validate_exceptions};
@@ -20,6 +21,11 @@ pub enum OutputFormat {
 
 #[derive(Debug)]
 pub struct CheckError(String);
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CheckOutcome {
+    pub diagnostics: Vec<Diagnostic>,
+}
 
 impl Display for CheckError {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
@@ -37,10 +43,7 @@ impl Error for CheckError {}
 /// # Errors
 ///
 /// Fails closed for I/O, parse, metadata, policy, exception, and intent errors.
-pub fn check_workspace(
-    root: &Path,
-    validate_repository: bool,
-) -> Result<Vec<Diagnostic>, CheckError> {
+pub fn check_workspace(root: &Path, validate_repository: bool) -> Result<CheckOutcome, CheckError> {
     let mut sources = Vec::new();
     discover_rust(root, root, &mut sources)?;
     let mut diagnostics = Vec::new();
@@ -64,12 +67,15 @@ pub fn check_workspace(
         }
     }
     if validate_repository {
-        validate_repository_files(root, &diagnostics)?;
+        diagnostics = validate_repository_files(root, &diagnostics)?;
     }
-    Ok(diagnostics)
+    Ok(CheckOutcome { diagnostics })
 }
 
-fn validate_repository_files(root: &Path, diagnostics: &[Diagnostic]) -> Result<(), CheckError> {
+fn validate_repository_files(
+    root: &Path,
+    diagnostics: &[Diagnostic],
+) -> Result<Vec<Diagnostic>, CheckError> {
     let policy = Policy::parse(
         &fs::read_to_string(root.join("architecture/dependency-policy.toml")).map_err(error)?,
     )
@@ -91,24 +97,47 @@ fn validate_repository_files(root: &Path, diagnostics: &[Diagnostic]) -> Result<
         &fs::read_to_string(root.join("architecture/exceptions.toml")).map_err(error)?,
     )
     .map_err(error)?;
-    validate_exceptions(&exceptions, Utc::now().date_naive(), &[]).map_err(error)?;
+    let observed_owned = diagnostics
+        .iter()
+        .map(|diagnostic| {
+            let crate_name = crate_name(&diagnostic.path).ok_or_else(|| {
+                CheckError(format!("unknown diagnostic crate: {}", diagnostic.path))
+            })?;
+            Ok((
+                crate_name.to_owned(),
+                diagnostic_fingerprint(crate_name, diagnostic),
+            ))
+        })
+        .collect::<Result<Vec<_>, CheckError>>()?;
+    let observed = diagnostics
+        .iter()
+        .zip(&observed_owned)
+        .map(
+            |(diagnostic, (crate_name, fingerprint))| crate::exceptions::ObservedViolation {
+                rule: diagnostic.rule_id,
+                crate_name,
+                file: &diagnostic.path,
+                symbol: &diagnostic.symbol,
+                fingerprint,
+            },
+        )
+        .collect::<Vec<_>>();
+    validate_exceptions(&exceptions, Utc::now().date_naive(), &observed).map_err(error)?;
 
     let mut manifests = Vec::new();
-    let mut owned = Vec::new();
     for path in sorted_files(&root.join("architecture/intents"), "toml")? {
         let manifest =
             IntentManifest::parse(&fs::read_to_string(path).map_err(error)?).map_err(error)?;
-        owned.extend(manifest.owned_files().iter().cloned());
         manifests.push(manifest);
     }
-    validate_intents(&manifests, &IntentDiff::new(owned)).map_err(error)?;
-    if !diagnostics.is_empty() {
-        return Err(CheckError(render_diagnostics(
-            diagnostics,
-            OutputFormat::Human,
-        )?));
+    let mut changed_files = Vec::new();
+    for path in sorted_files(&root.join("architecture/diffs"), "toml")? {
+        let diff =
+            IntentDiff::parse_artifact(&fs::read_to_string(path).map_err(error)?).map_err(error)?;
+        changed_files.extend(diff.changed_files().iter().cloned());
     }
-    Ok(())
+    validate_intents(&manifests, &IntentDiff::new(changed_files)).map_err(error)?;
+    unsuppressed_diagnostics(diagnostics, &exceptions)
 }
 
 fn discover_rust(
@@ -140,14 +169,67 @@ fn discover_rust(
 }
 
 fn sorted_files(directory: &Path, extension: &str) -> Result<Vec<PathBuf>, CheckError> {
-    let mut files = fs::read_dir(directory)
-        .map_err(error)?
-        .filter_map(Result::ok)
+    let mut files = collect_fail_closed(fs::read_dir(directory).map_err(error)?)?
+        .into_iter()
         .map(|entry| entry.path())
         .filter(|path| path.extension().is_some_and(|value| value == extension))
         .collect::<Vec<_>>();
     files.sort();
     Ok(files)
+}
+
+fn collect_fail_closed<T, E: Display>(
+    entries: impl IntoIterator<Item = Result<T, E>>,
+) -> Result<Vec<T>, CheckError> {
+    entries
+        .into_iter()
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(error)
+}
+
+#[must_use]
+pub fn diagnostic_fingerprint(crate_name: &str, diagnostic: &Diagnostic) -> String {
+    let canonical_symbol = diagnostic
+        .symbol
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ");
+    let input = format!(
+        "{}\0{}\0{}\0{}",
+        diagnostic.rule_id, crate_name, diagnostic.path, canonical_symbol
+    );
+    format!("sha256:{:x}", Sha256::digest(input.as_bytes()))
+}
+
+/// Removes only diagnostics matched by exact, fingerprinted exceptions.
+///
+/// # Errors
+///
+/// Fails if a diagnostic cannot be assigned to a workspace crate.
+pub fn unsuppressed_diagnostics(
+    diagnostics: &[Diagnostic],
+    exceptions: &ExceptionSet,
+) -> Result<Vec<Diagnostic>, CheckError> {
+    diagnostics
+        .iter()
+        .filter_map(|diagnostic| {
+            let Some(crate_name) = crate_name(&diagnostic.path) else {
+                return Some(Err(CheckError(format!(
+                    "unknown diagnostic crate: {}",
+                    diagnostic.path
+                ))));
+            };
+            let fingerprint = diagnostic_fingerprint(crate_name, diagnostic);
+            let violation = crate::exceptions::ObservedViolation {
+                rule: diagnostic.rule_id,
+                crate_name,
+                file: &diagnostic.path,
+                symbol: &diagnostic.symbol,
+                fingerprint: &fingerprint,
+            };
+            (!exceptions.permits(&violation)).then(|| Ok(diagnostic.clone()))
+        })
+        .collect()
 }
 
 fn crate_name(path: &str) -> Option<&str> {
@@ -218,4 +300,22 @@ fn permitted_destination(rule: &str) -> &'static str {
 
 fn error(value: impl Display) -> CheckError {
     CheckError(value.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::collect_fail_closed;
+
+    #[test]
+    fn directory_entry_error_is_not_skipped() {
+        let entries = vec![Ok("known.rs"), Err("unreadable entry")];
+        let result = collect_fail_closed(entries);
+        assert!(result.is_err());
+        assert!(
+            result
+                .expect_err("must fail closed")
+                .to_string()
+                .contains("unreadable entry")
+        );
+    }
 }

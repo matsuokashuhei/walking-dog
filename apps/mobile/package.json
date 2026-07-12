@@ -7,7 +7,6 @@
     "metro:kill": "sh ./scripts/kill-metro.sh",
     "ios:clean": "npx expo prebuild --platform ios --clean",
     "ios:sim:local": "EXPO_PUBLIC_API_URL=http://localhost:3000 expo run:ios --device 'iPhone 17 Pro'",
-    "ios:sim:local:dev-stack": "EXPO_PUBLIC_API_URL=\"${EXPO_PUBLIC_API_URL:-http://localhost:$(jq -r '.ports.api' ../../.harness-runs/dev-stack/env.json)}\" expo run:ios --device 'iPhone 17 Pro'",
     "ios:sim:clean:local": "npm run metro:kill && npm run ios:clean && npm run ios:sim:local",
     "ios:sim:dev": "EXPO_PUBLIC_API_URL=https://walking-dog.cacheandbuffer.com expo run:ios",
     "ios:sim:prod": "EXPO_PUBLIC_API_URL=https://walking-dog.cacheandbuffer.com expo run:ios --configuration Release",

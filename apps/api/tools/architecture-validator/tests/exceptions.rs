@@ -124,3 +124,27 @@ fn expired_and_unused_entries_fail_closed() {
         Err(ExceptionError::Unused { .. })
     ));
 }
+
+#[test]
+fn fingerprint_drift_makes_an_exact_exception_unused() {
+    let set = ExceptionSet::parse(&exception_source(
+        "2026-07-11",
+        "2026-08-10",
+        "crates/adapter-graphql/src/walk/query.rs",
+    ))
+    .expect("valid exception");
+    let drifted_fingerprint =
+        "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+    let drifted = [ObservedViolation {
+        fingerprint: drifted_fingerprint,
+        ..observed()[0]
+    }];
+    assert!(matches!(
+        validate_exceptions(
+            &set,
+            NaiveDate::from_ymd_opt(2026, 7, 11).expect("valid date"),
+            &drifted,
+        ),
+        Err(ExceptionError::Unused { .. })
+    ));
+}

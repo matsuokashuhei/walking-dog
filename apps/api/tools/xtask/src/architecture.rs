@@ -3,9 +3,9 @@ use std::path::Path;
 use architecture_validator::check::{OutputFormat, check_workspace, render_diagnostics};
 
 pub fn check(root: &Path, sarif: bool) -> Result<(), String> {
-    let diagnostics = check_workspace(root, true).map_err(|error| error.to_string())?;
+    let outcome = check_workspace(root, true).map_err(|error| error.to_string())?;
     let output = render_diagnostics(
-        &diagnostics,
+        &outcome.diagnostics,
         if sarif {
             OutputFormat::Sarif
         } else {
@@ -15,6 +15,7 @@ pub fn check(root: &Path, sarif: bool) -> Result<(), String> {
     .map_err(|error| error.to_string())?;
     if !output.is_empty() {
         println!("{output}");
+        return Err("architecture violations found".to_owned());
     }
     Ok(())
 }

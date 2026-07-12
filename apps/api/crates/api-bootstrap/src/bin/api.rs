@@ -9,7 +9,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let shutdown = Shutdown::new();
     let trigger = shutdown.clone();
     tokio::spawn(async move {
-        if tokio::signal::ctrl_c().await.is_ok() {
+        if api_bootstrap::shutdown::wait_for_termination()
+            .await
+            .is_ok()
+        {
             trigger.trigger();
         }
     });

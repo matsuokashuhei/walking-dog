@@ -98,6 +98,13 @@ pub struct IntentDiff {
     changed_files: BTreeSet<String>,
 }
 
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct IntentDiffArtifact {
+    version: u16,
+    changed_files: Vec<String>,
+}
+
 impl IntentDiff {
     #[must_use]
     pub fn new<I, S>(changed_files: I) -> Self
@@ -108,6 +115,43 @@ impl IntentDiff {
         Self {
             changed_files: changed_files.into_iter().map(Into::into).collect(),
         }
+    }
+
+    /// Parses an independently produced checked-in changed-file artifact.
+    ///
+    /// # Errors
+    ///
+    /// Rejects malformed schemas, unsupported versions, duplicates, and
+    /// non-exact paths.
+    pub fn parse_artifact(source: &str) -> Result<Self, IntentError> {
+        let artifact: IntentDiffArtifact =
+            toml::from_str(source).map_err(|error| IntentError::Parse(error.to_string()))?;
+        if artifact.version != 1 {
+            return Err(IntentError::UnsupportedVersion(artifact.version));
+        }
+        let changed_files = artifact
+            .changed_files
+            .iter()
+            .cloned()
+            .collect::<BTreeSet<_>>();
+        if changed_files.len() != artifact.changed_files.len()
+            || changed_files.iter().any(|file| {
+                file.trim().is_empty()
+                    || file.starts_with('/')
+                    || file.contains(['*', '?', '[', ']'])
+                    || file.ends_with('/')
+            })
+        {
+            return Err(IntentError::Parse(
+                "changed_files must be unique exact repository-relative paths".to_owned(),
+            ));
+        }
+        Ok(Self { changed_files })
+    }
+
+    #[must_use]
+    pub fn changed_files(&self) -> &BTreeSet<String> {
+        &self.changed_files
     }
 }
 

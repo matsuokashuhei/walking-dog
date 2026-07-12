@@ -107,7 +107,7 @@ docker run \
   -w /walking-dog/apps/api \
   apps-api-sonar \
   cargo llvm-cov \
-  -p walking-dog \
+  -p api-bootstrap \
   --lib \
   --tests \
   --features test-utils \

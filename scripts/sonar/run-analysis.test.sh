@@ -299,7 +299,7 @@ test_limits_cargo_llvm_cov_to_test_targets() {
   [[ "$coverage_block" == *"--lib"* ]] || fail "expected cargo-llvm-cov to include library tests"
   [[ "$coverage_block" == *"--tests"* ]] || fail "expected cargo-llvm-cov to include integration tests"
   [[ "$coverage_block" == *"-j 1"* ]] || fail "expected cargo-llvm-cov to run with one job to reduce linker memory"
-  [[ "$coverage_block" == *"-p walking-dog"* ]] || fail "expected cargo-llvm-cov to cover the API package, not every workspace package"
+  [[ "$coverage_block" == *"-p api-bootstrap"* ]] || fail "expected cargo-llvm-cov to cover the API bootstrap package, not every workspace package"
   [[ "$coverage_block" != *"--workspace"* ]] || fail "cargo-llvm-cov must not run unrelated workspace integration tests"
   [[ "$coverage_block" != *"--bins"* ]] || fail "cargo-llvm-cov must not force binary coverage targets"
 }

@@ -12,7 +12,7 @@ validate_all() {
   local root="${1:-$HARNESS_REPO_ROOT}" messages="" output status=0
   for validator in validate_knowledge validate_architecture score_quality validate_mobile_knip; do
     if output="$($validator "$root" 2>&1)"; then
-      harness_append_messages messages "$output"
+      :
     else
       harness_append_messages messages "$output"
       status=1

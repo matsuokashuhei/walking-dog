@@ -76,6 +76,17 @@ impl ExceptionSet {
         }
         Ok(set)
     }
+
+    #[must_use]
+    pub fn permits(&self, violation: &ObservedViolation<'_>) -> bool {
+        self.exception.iter().any(|entry| {
+            violation.rule == entry.rule
+                && violation.crate_name == entry.crate_name
+                && violation.file == entry.file
+                && violation.symbol == entry.symbol
+                && violation.fingerprint == entry.fingerprint
+        })
+    }
 }
 
 /// Validates exception bounds and proves every entry suppresses exactly one observed violation.

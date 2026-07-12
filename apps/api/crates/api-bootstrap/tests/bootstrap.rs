@@ -116,6 +116,19 @@ async fn graceful_shutdown_finishes_in_flight_then_stops_accepting() {
         .expect("API serve");
 }
 
+#[tokio::test]
+async fn worker_loop_finishes_after_shutdown() {
+    let shutdown = Shutdown::new();
+    let worker = tokio::spawn(composition::run_worker_until_shutdown(shutdown.subscribe()));
+
+    shutdown.trigger();
+
+    tokio::time::timeout(Duration::from_secs(1), worker)
+        .await
+        .expect("worker timeout")
+        .expect("worker join");
+}
+
 #[test]
 fn bootstrap_schema_has_no_product_fields() {
     assert_eq!(

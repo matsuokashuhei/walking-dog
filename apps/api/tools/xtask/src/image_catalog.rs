@@ -18,7 +18,7 @@ struct Image {
     digest: String,
 }
 
-/// Generates the opaque PostgreSQL runtime from the closed catalog.
+/// Generates the opaque `PostgreSQL` runtime from the closed catalog.
 ///
 /// # Errors
 /// Returns an error when the catalog, output path, or generated write is invalid.

@@ -34,6 +34,8 @@ jobs:
     steps:
       - if: needs.changes.outputs.api == 'true'
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
       - if: needs.changes.outputs.api == 'true'
         uses: dtolnay/rust-toolchain@1.96.0
         with:
@@ -41,15 +43,15 @@ jobs:
       - if: needs.changes.outputs.api == 'true'
         working-directory: apps/api
         env:
-          ARCHITECTURE_BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+          ARCHITECTURE_BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
+          ARCHITECTURE_HEAD: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
         run: |
           cargo fmt --all -- --check
           cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
-          if [ -n "$ARCHITECTURE_BASE" ]; then
-            cargo xtask architecture check --base "$ARCHITECTURE_BASE"
-          else
-            cargo xtask architecture check
+          if [[ "$ARCHITECTURE_BASE" =~ ^0+$ ]]; then
+            ARCHITECTURE_BASE="$(git rev-parse "$ARCHITECTURE_HEAD^")"
           fi
+          cargo xtask architecture check --base "$ARCHITECTURE_BASE" --head "$ARCHITECTURE_HEAD"
       - if: needs.changes.outputs.api != 'true'
         run: echo 'No API changes; stable check passes.'
 

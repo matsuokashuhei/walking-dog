@@ -202,6 +202,21 @@ test_validate_all_propagates_validator_failure() {
   assert_contains "$source" 'return "$status"' "expected aggregate status propagation"
 }
 
+test_api_architecture_ci_maps_event_revisions_with_full_history() {
+  local workflow
+  workflow="$(cat "$repo_root/.github/workflows/test-api.yml")"
+
+  assert_contains "$workflow" "fetch-depth: 0" "architecture CI must fetch Git history"
+  assert_contains "$workflow" 'github.event.pull_request.base.sha' "PR base SHA must be explicit"
+  assert_contains "$workflow" 'github.event.pull_request.head.sha' "PR head SHA must be explicit"
+  assert_contains "$workflow" 'github.event.merge_group.base_sha' "merge queue base SHA must be explicit"
+  assert_contains "$workflow" 'github.event.merge_group.head_sha' "merge queue head SHA must be explicit"
+  assert_contains "$workflow" 'github.event.before' "push base SHA must be explicit"
+  assert_contains "$workflow" 'github.sha' "push head SHA must be explicit"
+  assert_contains "$workflow" 'architecture check --base "$ARCHITECTURE_BASE" --head "$ARCHITECTURE_HEAD"' "architecture CI must validate the explicit revision pair"
+  assert_contains "$workflow" 'git rev-parse "$ARCHITECTURE_HEAD^"' "initial push must resolve a real parent or fail"
+}
+
 test_harness_has_no_node_scripts_or_invocations() {
   local matches pattern
   matches="$(find "$repo_root/scripts/harness" -maxdepth 1 \( -name '*.mjs' -o -name '*.test.mjs' \) -print)"

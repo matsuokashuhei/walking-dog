@@ -79,17 +79,14 @@ pub fn analyze_source_set(units: &[SourceUnit<'_>]) -> Result<Vec<Diagnostic>, V
 }
 
 fn analyze_parsed(unit: SourceUnit<'_>, file: &syn::File) -> Vec<Diagnostic> {
-    let aliases = collect_item_aliases(&file.items);
     let trait_scope = collect_item_traits(&file.items);
     let mut analyzer = Analyzer {
         unit,
-        alias_scopes: vec![aliases],
         diagnostics: Vec::new(),
         seen: HashSet::new(),
         public_boundary: false,
         trait_impl: false,
         trait_scopes: vec![trait_scope],
-        qualified_traits: HashMap::new(),
         module_path: source_module_components(unit.path),
     };
     analyzer.visit_file(file);
@@ -98,13 +95,11 @@ fn analyze_parsed(unit: SourceUnit<'_>, file: &syn::File) -> Vec<Diagnostic> {
 
 struct Analyzer<'a> {
     unit: SourceUnit<'a>,
-    alias_scopes: Vec<HashMap<String, Vec<String>>>,
     diagnostics: Vec<Diagnostic>,
     seen: HashSet<(&'static str, usize, usize, String)>,
     public_boundary: bool,
     trait_impl: bool,
     trait_scopes: Vec<HashMap<String, bool>>,
-    qualified_traits: HashMap<Vec<String>, bool>,
     module_path: Vec<String>,
 }
 
@@ -136,20 +131,13 @@ impl Analyzer<'_> {
 
     fn inspect_path(&mut self, path: &Path) {
         let raw = path_segments(path);
-        let canonical = canonicalize(&raw, &self.alias_scopes);
-        self.inspect_segments(
-            &canonical,
-            path.span(),
-            raw.last().map_or("path", String::as_str),
-        );
+        self.inspect_segments(&raw, path.span(), raw.last().map_or("path", String::as_str));
     }
 
     fn inspect_segments(&mut self, segments: &[String], span: Span, symbol: &str) {
         let joined = segments.join("::");
         let root = segments.first().map(String::as_str).unwrap_or_default();
-        if self.unit.crate_name != "api-bootstrap"
-            && (joined.starts_with("std::env") || matches!(root, "env" | "option_env"))
-        {
+        if self.unit.crate_name != "api-bootstrap" && joined.starts_with("std::env") {
             self.report(
                 "API-ARCH-001",
                 span,
@@ -232,7 +220,7 @@ impl Analyzer<'_> {
     }
 
     fn inspect_macro(&mut self, node: &Macro) {
-        let path = canonicalize(&path_segments(&node.path), &self.alias_scopes);
+        let path = path_segments(&node.path);
         let name = path.last().map(String::as_str).unwrap_or_default();
         if name == "include" {
             self.report(
@@ -283,9 +271,27 @@ impl<'ast> Visit<'ast> for Analyzer<'_> {
     }
 
     fn visit_item_use(&mut self, node: &'ast ItemUse) {
+        for attribute in &node.attrs {
+            if attribute.path().is_ident("cfg") {
+                self.report(
+                    "API-ARCH-001",
+                    attribute.span(),
+                    "cfg",
+                    "cfg cannot hide governed architecture syntax",
+                );
+            }
+        }
+        if use_is_noncanonical(&node.tree) || !matches!(node.vis, Visibility::Inherited) {
+            self.report(
+                "API-ARCH-001",
+                node.use_token.span,
+                "noncanonical use",
+                "use direct canonical paths; aliases, globs, and re-exports are forbidden",
+            );
+        }
         let public = !matches!(node.vis, Visibility::Inherited);
         for leaf in use_leaves(&node.tree) {
-            let canonical = canonicalize(&leaf.path, &self.alias_scopes);
+            let canonical = leaf.path;
             let previous = self.public_boundary;
             self.public_boundary = public;
             self.inspect_segments(&canonical, leaf.span, leaf.name.as_deref().unwrap_or("use"));
@@ -293,38 +299,41 @@ impl<'ast> Visit<'ast> for Analyzer<'_> {
         }
     }
 
+    fn visit_attribute(&mut self, node: &'ast syn::Attribute) {
+        if node.path().is_ident("cfg") {
+            self.report(
+                "API-ARCH-001",
+                node.span(),
+                "cfg",
+                "cfg cannot hide governed architecture syntax",
+            );
+        }
+        visit::visit_attribute(self, node);
+    }
+
     fn visit_item_mod(&mut self, node: &'ast ItemMod) {
         let Some((_, items)) = &node.content else {
             visit::visit_item_mod(self, node);
             return;
         };
-        self.alias_scopes.push(collect_item_aliases(items));
         self.trait_scopes.push(collect_item_traits(items));
         self.module_path.push(node.ident.to_string());
         visit::visit_item_mod(self, node);
         self.module_path.pop();
         self.trait_scopes.pop();
-        self.alias_scopes.pop();
     }
 
     fn visit_block(&mut self, node: &'ast Block) {
-        self.alias_scopes.push(collect_block_aliases(node));
         self.trait_scopes.push(collect_block_traits(node));
         visit::visit_block(self, node);
         self.trait_scopes.pop();
-        self.alias_scopes.pop();
     }
 
     fn visit_item_impl(&mut self, node: &'ast ItemImpl) {
         let previous = self.trait_impl;
         self.trait_impl = node.trait_.as_ref().is_some_and(|(_, path, _)| {
-            let canonical = canonicalize(&path_segments(path), &self.alias_scopes);
-            trait_is_public(
-                &canonical,
-                &self.module_path,
-                &self.trait_scopes,
-                &self.qualified_traits,
-            )
+            let canonical = path_segments(path);
+            trait_is_public(&canonical, &self.trait_scopes)
         });
         visit::visit_item_impl(self, node);
         self.trait_impl = previous;
@@ -365,8 +374,24 @@ impl<'ast> Visit<'ast> for Analyzer<'_> {
     }
 
     fn visit_item_extern_crate(&mut self, node: &'ast ItemExternCrate) {
+        self.report(
+            "API-ARCH-001",
+            node.ident.span(),
+            "extern crate",
+            "extern crate is forbidden in governed source",
+        );
         let path = vec![node.ident.to_string()];
         self.inspect_segments(&path, node.ident.span(), &node.ident.to_string());
+    }
+
+    fn visit_item_type(&mut self, node: &'ast syn::ItemType) {
+        self.report(
+            "API-ARCH-006",
+            node.ident.span(),
+            "type alias",
+            "type aliases cannot hide governed boundary types",
+        );
+        visit::visit_item_type(self, node);
     }
 
     fn visit_path(&mut self, node: &'ast Path) {
@@ -411,7 +436,7 @@ impl<'ast> Visit<'ast> for Analyzer<'_> {
 
     fn visit_expr_call(&mut self, node: &'ast ExprCall) {
         if let syn::Expr::Path(function) = node.func.as_ref() {
-            let path = canonicalize(&path_segments(&function.path), &self.alias_scopes);
+            let path = path_segments(&function.path);
             if self.unit.crate_name != "api-bootstrap"
                 && path.last().is_some_and(|part| part == "new")
                 && path.iter().any(|part| part.starts_with("adapter_"))
@@ -511,36 +536,13 @@ fn use_leaves(tree: &UseTree) -> Vec<UseLeaf> {
     output
 }
 
-fn collect_item_aliases(items: &[Item]) -> HashMap<String, Vec<String>> {
-    let mut aliases = HashMap::new();
-    for item in items {
-        match item {
-            Item::Use(item) => {
-                for leaf in use_leaves(&item.tree) {
-                    if let Some(name) = leaf.name
-                        && name != "*"
-                        && name != "self"
-                    {
-                        aliases.insert(name, leaf.path);
-                    }
-                }
-            }
-            Item::ExternCrate(item) => {
-                let alias = item
-                    .rename
-                    .as_ref()
-                    .map_or_else(|| item.ident.to_string(), |(_, ident)| ident.to_string());
-                aliases.insert(alias, vec![item.ident.to_string()]);
-            }
-            Item::Type(item) => {
-                if let syn::Type::Path(target) = item.ty.as_ref() {
-                    aliases.insert(item.ident.to_string(), path_segments(&target.path));
-                }
-            }
-            _ => {}
-        }
+fn use_is_noncanonical(tree: &UseTree) -> bool {
+    match tree {
+        UseTree::Glob(_) | UseTree::Rename(_) => true,
+        UseTree::Path(path) => use_is_noncanonical(&path.tree),
+        UseTree::Group(group) => group.items.iter().any(use_is_noncanonical),
+        UseTree::Name(_) => false,
     }
-    aliases
 }
 
 fn collect_item_traits(items: &[Item]) -> HashMap<String, bool> {
@@ -554,19 +556,6 @@ fn collect_item_traits(items: &[Item]) -> HashMap<String, bool> {
             _ => None,
         })
         .collect()
-}
-
-
-fn collect_block_aliases(block: &Block) -> HashMap<String, Vec<String>> {
-    let items = block
-        .stmts
-        .iter()
-        .filter_map(|statement| match statement {
-            Stmt::Item(item) => Some(item.clone()),
-            Stmt::Local(_) | Stmt::Expr(_, _) | Stmt::Macro(_) => None,
-        })
-        .collect::<Vec<_>>();
-    collect_item_aliases(&items)
 }
 
 fn collect_block_traits(block: &Block) -> HashMap<String, bool> {
@@ -583,12 +572,7 @@ fn collect_block_traits(block: &Block) -> HashMap<String, bool> {
         .collect()
 }
 
-fn trait_is_public(
-    canonical: &[String],
-    module_path: &[String],
-    trait_scopes: &[HashMap<String, bool>],
-    qualified_traits: &HashMap<Vec<String>, bool>,
-) -> bool {
+fn trait_is_public(canonical: &[String], trait_scopes: &[HashMap<String, bool>]) -> bool {
     match canonical {
         [name] => trait_scopes
             .iter()
@@ -596,47 +580,8 @@ fn trait_is_public(
             .find_map(|traits| traits.get(name))
             .copied()
             .unwrap_or(true),
-        [root, rest @ ..] if root == "crate" => qualified_traits.get(rest).copied().unwrap_or(true),
-        [root, rest @ ..] if root == "self" => {
-            let mut identity = module_path.to_vec();
-            identity.extend_from_slice(rest);
-            qualified_traits.get(&identity).copied().unwrap_or(true)
-        }
-        [root, rest @ ..] if root == "super" => {
-            let count = canonical
-                .iter()
-                .take_while(|part| part.as_str() == "super")
-                .count();
-            if count > module_path.len() {
-                return true;
-            }
-            let mut identity = module_path[..module_path.len() - count].to_vec();
-            identity.extend_from_slice(&rest[count - 1..]);
-            qualified_traits.get(&identity).copied().unwrap_or(true)
-        }
         _ => true,
     }
-}
-
-fn canonicalize(path: &[String], alias_scopes: &[HashMap<String, Vec<String>>]) -> Vec<String> {
-    let mut result = path.to_vec();
-    let mut expanded = HashSet::new();
-    while let Some(first) = result.first().cloned() {
-        if !expanded.insert(first.clone()) {
-            break;
-        }
-        let Some(replacement) = alias_scopes
-            .iter()
-            .rev()
-            .find_map(|aliases| aliases.get(&first))
-        else {
-            break;
-        };
-        let mut next = replacement.clone();
-        next.extend_from_slice(&result[1..]);
-        result = next;
-    }
-    result
 }
 
 fn path_segments(path: &Path) -> Vec<String> {
@@ -756,7 +701,6 @@ fn imports_another_application_module(source: &[String], imported: &[String]) ->
         MODULES.contains(&module.as_str()) && Some(module.as_str()) != current
     })
 }
-
 
 fn source_module_components(path: &str) -> Vec<String> {
     let Some(relative) = path.split("/src/").nth(1) else {

@@ -141,6 +141,16 @@
       "state": "green",
       "commands": ["docker API harness: cargo test -p architecture-validator --test fixtures --test check --locked"],
       "result": "RED include! fixture and GREEN focused suite recorded; cross-file trait identity resolver deleted and replaced by fail-closed local boundary behavior."
+    },
+    {
+      "name": "canonical-alias-redesign-green",
+      "state": "green",
+      "commands": [
+        "Docker: cargo fmt --check",
+        "Docker: cargo test -p architecture-validator --test fixtures --test check --test policy --locked",
+        "Docker: cargo run -p xtask -- architecture check"
+      ],
+      "result": "After three same-cause semantic-resolution failures, Sol redesign replaced alias/export/trait provenance with direct canonical syntax rejection. Focused suite passed 33 tests and independent canonical architecture check exited 0."
     }
   ]
 }

@@ -162,86 +162,13 @@ fn parser_failure_is_fail_closed() {
     assert!(matches!(result, Err(ValidationError::Parse { .. })));
 }
 
-#[test]
-fn aliases_and_public_reexports_cannot_hide_violations() {
-    let fixtures = [
-        FailingFixture {
-            rule: "API-ARCH-001",
-            crate_name: "application",
-            path: "crates/application/src/unreachable.rs",
-            source: "use std::env as process_environment;\n",
-            line: 1,
-        },
-        FailingFixture {
-            rule: "API-ARCH-003",
-            crate_name: "application",
-            path: "crates/application/src/unreachable.rs",
-            source: "use aws_sdk_s3::Client as ObjectStoreClient;\n",
-            line: 1,
-        },
-        FailingFixture {
-            rule: "API-ARCH-004",
-            crate_name: "domain",
-            path: "crates/domain/src/unreachable.rs",
-            source: "pub use async_graphql::Context as RequestContext;\n",
-            line: 1,
-        },
-        FailingFixture {
-            rule: "API-ARCH-006",
-            crate_name: "application",
-            path: "crates/application/src/unreachable.rs",
-            source: "pub use adapter_postgres::Row as OwnerRow;\n",
-            line: 1,
-        },
-        FailingFixture {
-            rule: "API-ARCH-008",
-            crate_name: "adapter-graphql",
-            path: "crates/adapter-graphql/src/owner/query.rs",
-            source: "use adapter_postgres::Repository as OwnerStore;\n",
-            line: 1,
-        },
-        FailingFixture {
-            rule: "API-ARCH-009",
-            crate_name: "adapter-graphql",
-            path: "crates/adapter-graphql/src/unreachable.rs",
-            source: "use adapter_postgres::Repository as Store;\nfn wire() { Store::new(); }\n",
-            line: 2,
-        },
-        FailingFixture {
-            rule: "API-ARCH-010",
-            crate_name: "application",
-            path: "crates/application/src/owner/unreachable.rs",
-            source: "pub use crate::dog::Dog as RelatedDog;\n",
-            line: 1,
-        },
-    ];
-
-    for fixture in fixtures {
-        let diagnostics = analyze_source(SourceUnit {
-            crate_name: fixture.crate_name,
-            path: fixture.path,
-            source: fixture.source,
-            production: true,
-        })
-        .unwrap_or_else(|error| panic!("fixture must parse: {error}"));
-        assert!(
-            diagnostics.iter().any(|diagnostic| {
-                diagnostic.rule_id == fixture.rule && diagnostic.line == fixture.line
-            }),
-            "missing alias/re-export diagnostic {} for {}",
-            fixture.rule,
-            fixture.path
-        );
-    }
-}
-
 const STRUCTURAL_FIXTURES: [FailingFixture; 12] = [
     FailingFixture {
         rule: "API-ARCH-001",
         crate_name: "application",
         path: "crates/application/src/config.rs",
         source: "extern crate std as runtime;\nfn port() { let _ = runtime::env::var(\"PORT\"); }\n",
-        line: 2,
+        line: 1,
     },
     FailingFixture {
         rule: "API-ARCH-002",
@@ -293,11 +220,11 @@ const STRUCTURAL_FIXTURES: [FailingFixture; 12] = [
         line: 2,
     },
     FailingFixture {
-        rule: "API-ARCH-009",
+        rule: "API-ARCH-001",
         crate_name: "adapter-graphql",
         path: "crates/adapter-graphql/src/lib.rs",
         source: "use adapter_postgres as db;\nuse db::{Repository as Store};\nfn wire() { Store :: new(); }\n",
-        line: 3,
+        line: 1,
     },
     FailingFixture {
         rule: "API-ARCH-010",
@@ -370,35 +297,6 @@ fn public_impl_members_and_trait_impl_members_are_public_boundaries() {
             "public impl boundary was not enforced"
         );
     }
-}
-
-#[test]
-fn nested_scopes_resolve_adapter_and_logging_macro_aliases() {
-    let adapter = analyze_source(SourceUnit {
-        crate_name: "adapter-graphql",
-        path: "crates/adapter-graphql/src/lib.rs",
-        source: "fn wire() {\n    use adapter_postgres::Repository as Store;\n    Store::new();\n}\n",
-        production: true,
-    })
-    .expect("fixture must parse");
-    assert!(
-        adapter
-            .iter()
-            .any(|diagnostic| { diagnostic.rule_id == "API-ARCH-009" && diagnostic.line == 3 })
-    );
-
-    let logging = analyze_source(SourceUnit {
-        crate_name: "api-bootstrap",
-        path: "crates/api-bootstrap/src/log.rs",
-        source: "mod nested {\n    use tracing::info as audit;\n    fn record(token: &str) { audit!(access_token = token); }\n}\n",
-        production: true,
-    })
-    .expect("fixture must parse");
-    assert!(
-        logging
-            .iter()
-            .any(|diagnostic| { diagnostic.rule_id == "API-ARCH-012" && diagnostic.line == 3 })
-    );
 }
 
 #[test]
@@ -477,34 +375,6 @@ fn same_rule_nodes_on_one_line_remain_distinct() {
 }
 
 #[test]
-fn scoped_type_aliases_preserve_adapter_and_sql_provenance() {
-    let adapter = analyze_source(SourceUnit {
-        crate_name: "adapter-graphql",
-        path: "crates/adapter-graphql/src/lib.rs",
-        source: "mod wiring {\n    type Store = adapter_postgres::Repository;\n    fn wire() { Store::new(); }\n}\n",
-        production: true,
-    })
-    .expect("fixture must parse");
-    assert!(
-        adapter
-            .iter()
-            .any(|diagnostic| { diagnostic.rule_id == "API-ARCH-009" && diagnostic.line == 3 })
-    );
-
-    let sql = analyze_source(SourceUnit {
-        crate_name: "application",
-        path: "crates/application/src/query.rs",
-        source: "fn query() {\n    type Statement = sea_orm::Statement;\n    type Sql = Statement;\n    Sql::from_string((), \"UPDATE dogs SET name = 'Pochi'\");\n}\n",
-        production: true,
-    })
-    .expect("fixture must parse");
-    assert!(
-        sql.iter()
-            .any(|diagnostic| { diagnostic.rule_id == "API-ARCH-011" && diagnostic.line == 4 })
-    );
-}
-
-#[test]
 fn raw_sql_execution_apis_are_rejected_without_scanning_messages() {
     let cases = [
         "fn q() { sqlx::raw_sql(\"DELETE FROM dogs\").execute(&pool); }",
@@ -537,7 +407,11 @@ fn canonical_syntax_rejects_include_hiding_without_flagging_plain_local_code() {
         production: true,
     })
     .expect("fixture parses");
-    assert!(included.iter().any(|diagnostic| diagnostic.rule_id == "API-ARCH-001"));
+    assert!(
+        included
+            .iter()
+            .any(|diagnostic| diagnostic.rule_id == "API-ARCH-001")
+    );
 
     let local = analyze_source(SourceUnit {
         crate_name: "domain",
@@ -547,6 +421,45 @@ fn canonical_syntax_rejects_include_hiding_without_flagging_plain_local_code() {
     })
     .expect("fixture parses");
     assert!(local.is_empty());
+}
+
+#[test]
+fn canonical_syntax_rejects_hiding_forms_at_their_source_location() {
+    let cases = [
+        ("use std::env as environment;", "API-ARCH-001", 1, 1),
+        ("use std::env::*;", "API-ARCH-001", 1, 1),
+        ("pub use std::env::var;", "API-ARCH-001", 1, 5),
+        ("extern crate std as runtime;", "API-ARCH-001", 1, 14),
+        ("type Hidden = adapter_postgres::Row;", "API-ARCH-006", 1, 6),
+        ("include!(\"generated.rs\");", "API-ARCH-001", 1, 1),
+        ("#[cfg(any())]\nuse std::env;", "API-ARCH-001", 1, 1),
+    ];
+    for (source, rule, line, column) in cases {
+        let diagnostics = analyze_source(SourceUnit {
+            crate_name: "application",
+            path: "crates/application/src/lib.rs",
+            source,
+            production: true,
+        })
+        .expect("fixture parses");
+        assert!(
+            diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.rule_id == rule
+                    && diagnostic.path == "crates/application/src/lib.rs"
+                    && diagnostic.line == line
+                    && diagnostic.column == column),
+            "{source}: {diagnostics:?}"
+        );
+    }
+    let clean = analyze_source(SourceUnit {
+        crate_name: "application",
+        path: "crates/application/src/lib.rs",
+        source: "// use std::env as environment\npub struct Local; fn f() { let env = \"include! type Alias\"; let _ = env; }",
+        production: true,
+    })
+    .expect("fixture parses");
+    assert!(clean.is_empty());
 }
 
 #[test]
@@ -688,7 +601,11 @@ fn cross_file_trait_visibility_is_fail_closed_without_resolution() {
         production: false,
     })
     .expect("fixture must parse");
-    assert!(diagnostics.iter().any(|diagnostic| diagnostic.rule_id == "API-ARCH-006"));
+    assert!(
+        diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.rule_id == "API-ARCH-006")
+    );
 }
 
 #[test]

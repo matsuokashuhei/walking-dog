@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::error::Error;
 use std::fmt::{self, Display, Formatter};
 
@@ -52,6 +52,83 @@ pub fn validate_testcontainers_source(
         ));
     }
     validate_constants(&syntax.items)
+}
+
+/// Validates Testcontainers construction with crate-target-wide module exports.
+///
+/// # Errors
+///
+/// Rejects parse failures or any source that violates the closed image policy.
+pub fn validate_testcontainers_source_set(
+    sources: &[(&str, &str)],
+) -> Result<(), ImagePolicyError> {
+    let parsed = sources
+        .iter()
+        .map(|(path, source)| {
+            syn::parse_file(source)
+                .map(|syntax| (*path, syntax))
+                .map_err(|error| ImagePolicyError(format!("cannot parse {path}: {error}")))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let mut targets = BTreeMap::<String, Vec<usize>>::new();
+    for (index, (path, _)) in parsed.iter().enumerate() {
+        targets
+            .entry(target_namespace(path))
+            .or_default()
+            .push(index);
+    }
+    for indices in targets.values() {
+        let units = indices
+            .iter()
+            .map(|index| {
+                let (path, syntax) = &parsed[*index];
+                (&syntax.items[..], source_module_components(path))
+            })
+            .collect::<Vec<_>>();
+        let exports = build_export_index_units(&units);
+        for index in indices {
+            let (path, syntax) = &parsed[*index];
+            let mut findings = Findings::default();
+            analyze_module(
+                &syntax.items,
+                &[],
+                &source_module_components(path),
+                &exports,
+                &mut findings,
+            );
+            let factory = *path == "tools/harness-runtime/src/images.rs";
+            validate_findings(path, &syntax.items, factory, &findings)?;
+        }
+    }
+    Ok(())
+}
+
+fn validate_findings(
+    path: &str,
+    items: &[Item],
+    factory: bool,
+    findings: &Findings,
+) -> Result<(), ImagePolicyError> {
+    if !factory {
+        return (findings.references == 0 && findings.macro_escapes == 0)
+            .then_some(())
+            .ok_or_else(|| {
+                ImagePolicyError(format!(
+                    "Testcontainers image constructor reference outside approved factory: {path}"
+                ))
+            });
+    }
+    if findings.references != 1
+        || findings.calls.len() != 1
+        || findings.macro_escapes != 0
+        || findings.calls[0] != ("POSTGRES_NAME".to_owned(), "POSTGRES_TAG".to_owned())
+    {
+        return Err(ImagePolicyError(
+            "approved image factory must contain one direct closed constructor and no macro escape"
+                .to_owned(),
+        ));
+    }
+    validate_constants(items)
 }
 
 #[derive(Default)]
@@ -164,10 +241,16 @@ fn resolve_symbols(
 }
 
 fn build_export_index(items: &[Item]) -> ExportIndex {
+    build_export_index_units(&[(items, Vec::new())])
+}
+
+fn build_export_index_units(units: &[(&[Item], Vec<String>)]) -> ExportIndex {
     let mut exports = ExportIndex::new();
     loop {
         let previous = exports.len();
-        collect_module_exports(items, &[], &mut exports);
+        for (items, module_path) in units {
+            collect_module_exports(items, module_path, &mut exports);
+        }
         if exports.len() == previous {
             return exports;
         }
@@ -177,7 +260,7 @@ fn build_export_index(items: &[Item]) -> ExportIndex {
 fn collect_module_exports(items: &[Item], module_path: &[String], exports: &mut ExportIndex) {
     for item in items {
         match item {
-            Item::Use(item_use) if matches!(item_use.vis, syn::Visibility::Public(_)) => {
+            Item::Use(item_use) if !matches!(item_use.vis, syn::Visibility::Inherited) => {
                 let mut bindings = Vec::new();
                 collect_use_bindings(&item_use.tree, &[], &mut bindings);
                 for (name, source) in bindings {
@@ -233,6 +316,53 @@ fn absolute_path(segments: &[String], module_path: &[String]) -> Vec<String> {
         .collect()
 }
 
+fn target_namespace(path: &str) -> String {
+    let crate_root = ["/src/", "/tests/", "/examples/", "/benches/"]
+        .iter()
+        .find_map(|marker| path.split_once(marker).map(|(root, _)| root))
+        .unwrap_or(path);
+    for (directory, kind) in [
+        ("/tests/", "test"),
+        ("/examples/", "example"),
+        ("/benches/", "bench"),
+    ] {
+        if let Some(relative) = path.split(directory).nth(1) {
+            let target = relative
+                .split('/')
+                .next()
+                .unwrap_or_default()
+                .trim_end_matches(".rs");
+            return format!("{crate_root}|{kind}:{target}");
+        }
+    }
+    if let Some(relative) = path.split("/src/bin/").nth(1) {
+        let target = relative
+            .split('/')
+            .next()
+            .unwrap_or_default()
+            .trim_end_matches(".rs");
+        return format!("{crate_root}|bin:{target}");
+    }
+    if path.ends_with("/src/main.rs") {
+        return format!("{crate_root}|bin:main");
+    }
+    format!("{crate_root}|lib")
+}
+
+fn source_module_components(path: &str) -> Vec<String> {
+    let Some(relative) = path.split("/src/").nth(1) else {
+        return Vec::new();
+    };
+    let mut parts = relative.split('/').map(str::to_owned).collect::<Vec<_>>();
+    let Some(file) = parts.pop() else {
+        return parts;
+    };
+    if !matches!(file.as_str(), "lib.rs" | "main.rs" | "mod.rs") {
+        parts.push(file.trim_end_matches(".rs").to_owned());
+    }
+    parts
+}
+
 fn collect_use_bindings(
     tree: &UseTree,
     prefix: &[String],
@@ -280,7 +410,9 @@ fn canonical_type_path(
         .map(|part| part.ident.to_string())
         .collect::<Vec<_>>();
     let (scope, rest) = qualified_scope(&segments, symbols, parents);
-    exports.contains(&absolute_path(&segments, module_path))
+    let explicitly_qualified = segments.len() > 1
+        && !(segments.len() == 2 && segments.first().is_some_and(|part| part == "self"));
+    (explicitly_qualified && exports.contains(&absolute_path(&segments, module_path)))
         || rest == ["testcontainers", "GenericImage"]
         || (rest.len() == 2 && scope.modules.contains(&rest[0]) && rest[1] == "GenericImage")
         || (rest.len() == 1 && scope.types.contains(&rest[0]))

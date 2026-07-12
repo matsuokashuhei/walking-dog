@@ -1,4 +1,6 @@
-use architecture_validator::images::validate_testcontainers_source;
+use architecture_validator::images::{
+    validate_testcontainers_source, validate_testcontainers_source_set,
+};
 
 const FACTORY: &str = r#"
 use testcontainers::GenericImage;
@@ -165,4 +167,53 @@ fn noncanonical_sibling_module_export_is_clean() {
     let source = "mod canonical { pub use testcontainers::GenericImage as Image; } mod local { pub struct Image; impl Image { pub fn new() {} } } fn clean() { local::Image::new(); }";
     validate_testcontainers_source("crates/domain/src/lib.rs", source, false)
         .expect("qualified provenance does not leak across sibling modules");
+}
+
+#[test]
+fn cross_file_reexports_are_indexed_with_restricted_visibility() {
+    let sources = [
+        (
+            "crates/domain/src/lib.rs",
+            "mod shim; use shim::Image as Final; fn bad() { Final::new(\"redis\", \"7\"); }",
+        ),
+        (
+            "crates/domain/src/shim.rs",
+            "pub(crate) use testcontainers::GenericImage as Image;",
+        ),
+    ];
+    assert!(validate_testcontainers_source_set(&sources).is_err());
+
+    let super_sources = [
+        (
+            "crates/domain/src/lib.rs",
+            "mod parent; fn bad() { parent::Image::new(\"redis\", \"7\"); }",
+        ),
+        (
+            "crates/domain/src/parent.rs",
+            "pub(super) use testcontainers::GenericImage as Image;",
+        ),
+    ];
+    assert!(validate_testcontainers_source_set(&super_sources).is_err());
+}
+
+#[test]
+fn source_set_exports_do_not_cross_target_boundaries() {
+    let sources = [
+        (
+            "crates/domain/src/lib.rs",
+            "mod helper { pub struct Image; impl Image { pub fn new() {} } } fn clean() { helper::Image::new(); }",
+        ),
+        (
+            "crates/domain/tests/helper.rs",
+            "pub use testcontainers::GenericImage as Image;",
+        ),
+    ];
+    validate_testcontainers_source_set(&sources).expect("test exports do not pollute the library");
+}
+
+#[test]
+fn local_shadow_precedes_qualified_export_lookup() {
+    let source = "pub use testcontainers::GenericImage as Image; fn clean() { type Image = Local; struct Local; impl Local { fn new() {} } Image::new(); }";
+    validate_testcontainers_source("crates/domain/src/lib.rs", source, false)
+        .expect("local type alias shadows the root export index");
 }

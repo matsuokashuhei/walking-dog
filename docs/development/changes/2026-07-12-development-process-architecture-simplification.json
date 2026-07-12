@@ -175,6 +175,12 @@
         "Docker: cargo xtask architecture check --base origin/main --head HEAD"
       ],
       "result": "Integration verified architecture-validator focused suites 15/15 and xtask image catalog 2/2 green; image-policy covers grouped imports, build scripts, ignored target/.git, generated marker, and public opacity. Template assets are classified fail-closed without parsing unrelated placeholders."
+    },
+    {
+      "name": "paired-intent-redesign-green",
+      "state": "green",
+      "commands": ["Docker: cargo test -p architecture-validator --test intent --test check --locked"],
+      "result": "GREEN 17 tests: retained historical intent/diff pairs validate independently; base/head mode requires one complete matching current pair and compares its diff artifact bidirectionally to Git."
     }
   ]
 }

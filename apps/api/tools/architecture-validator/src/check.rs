@@ -160,33 +160,147 @@ fn validate_repository_files(
         .collect::<Vec<_>>();
     validate_exceptions(&exceptions, Utc::now().date_naive(), &observed).map_err(error)?;
 
-    let mut manifests = Vec::new();
-    for path in sorted_files(&root.join("architecture/intents"), "toml")? {
-        let manifest =
-            IntentManifest::parse(&fs::read_to_string(path).map_err(error)?).map_err(error)?;
-        manifests.push(manifest);
-    }
-    let mut changed_files = Vec::new();
-    for path in sorted_files(&root.join("architecture/diffs"), "toml")? {
-        let diff =
-            IntentDiff::parse_artifact(&fs::read_to_string(path).map_err(error)?).map_err(error)?;
-        changed_files.extend(diff.changed_files().iter().cloned());
-    }
-    let artifact_diff = IntentDiff::new(changed_files);
-    let diff = if let Some((base, head)) = revisions {
+    let pairs = intent_pairs(root)?;
+    if let Some((base, head)) = revisions {
         let actual = IntentDiff::from_git(root, base, head).map_err(error)?;
-        if actual != artifact_diff {
+        let stem = current_pair_stem(&actual)?;
+        let expected_intent = format!("architecture/intents/{stem}.toml");
+        let expected_diff = format!("architecture/diffs/{stem}.toml");
+        if !actual.changed_files().contains(&expected_intent)
+            || !actual.changed_files().contains(&expected_diff)
+        {
+            return Err(CheckError(
+                "changed intent/diff pair is incomplete".to_owned(),
+            ));
+        }
+        let (manifest, artifact) = pairs.get(&stem).ok_or_else(|| {
+            CheckError("changed intent/diff pair is missing or mismatched".to_owned())
+        })?;
+        if &actual != artifact {
             return Err(CheckError(
                 "checked-in intent diff artifact does not match the controller-defined Git diff"
                     .to_owned(),
             ));
         }
-        actual
+        validate_intents(std::slice::from_ref(manifest), artifact).map_err(error)?;
     } else {
-        artifact_diff
-    };
-    validate_intents(&manifests, &diff).map_err(error)?;
+        for (manifest, artifact) in pairs.values() {
+            validate_intents(std::slice::from_ref(manifest), artifact).map_err(error)?;
+        }
+    }
     unsuppressed_diagnostics(diagnostics, &exceptions)
+}
+
+fn intent_pairs(
+    root: &Path,
+) -> Result<std::collections::BTreeMap<String, (IntentManifest, IntentDiff)>, CheckError> {
+    let mut intents = std::collections::BTreeMap::new();
+    for path in sorted_files(&root.join("architecture/intents"), "toml")? {
+        let stem = path
+            .file_stem()
+            .and_then(|value| value.to_str())
+            .ok_or_else(|| CheckError("invalid intent filename".to_owned()))?
+            .to_owned();
+        intents.insert(
+            stem,
+            IntentManifest::parse(&fs::read_to_string(path).map_err(error)?).map_err(error)?,
+        );
+    }
+    let mut diffs = std::collections::BTreeMap::new();
+    for path in sorted_files(&root.join("architecture/diffs"), "toml")? {
+        let stem = path
+            .file_stem()
+            .and_then(|value| value.to_str())
+            .ok_or_else(|| CheckError("invalid diff filename".to_owned()))?
+            .to_owned();
+        diffs.insert(
+            stem,
+            IntentDiff::parse_artifact(&fs::read_to_string(path).map_err(error)?).map_err(error)?,
+        );
+    }
+    if intents.keys().collect::<Vec<_>>() != diffs.keys().collect::<Vec<_>>() {
+        return Err(CheckError(
+            "intent and diff artifacts must have one-to-one matching stems".to_owned(),
+        ));
+    }
+    let mut pairs = std::collections::BTreeMap::new();
+    for (stem, manifest) in intents {
+        let diff = diffs.remove(&stem).ok_or_else(|| {
+            CheckError("intent and diff artifacts must have one-to-one matching stems".to_owned())
+        })?;
+        pairs.insert(stem, (manifest, diff));
+    }
+    Ok(pairs)
+}
+
+fn pair_stem(path: &str) -> Option<String> {
+    for prefix in ["architecture/intents/", "architecture/diffs/"] {
+        if let Some(stem) = path
+            .strip_prefix(prefix)
+            .and_then(|value| value.strip_suffix(".toml"))
+        {
+            return Some(stem.to_owned());
+        }
+    }
+    None
+}
+
+fn current_pair_stem(diff: &IntentDiff) -> Result<String, CheckError> {
+    let stems = diff
+        .changed_files()
+        .iter()
+        .filter_map(|path| pair_stem(path))
+        .collect::<std::collections::BTreeSet<_>>();
+    if stems.len() != 1 {
+        return Err(CheckError(
+            "exactly one changed intent/diff pair is required".to_owned(),
+        ));
+    }
+    let stem = stems
+        .into_iter()
+        .next()
+        .ok_or_else(|| CheckError("changed intent/diff pair is missing".to_owned()))?;
+    for required in [
+        format!("architecture/intents/{stem}.toml"),
+        format!("architecture/diffs/{stem}.toml"),
+    ] {
+        if !diff.changed_files().contains(&required) {
+            return Err(CheckError(
+                "changed intent/diff pair is incomplete".to_owned(),
+            ));
+        }
+    }
+    Ok(stem)
+}
+
+#[cfg(test)]
+mod pair_tests {
+    use super::current_pair_stem;
+    use crate::intent::IntentDiff;
+
+    #[test]
+    fn current_pair_requires_exactly_one_complete_stem() {
+        assert!(current_pair_stem(&IntentDiff::new(["src/lib.rs"])).is_err());
+        assert!(current_pair_stem(&IntentDiff::new(["architecture/intents/a.toml"])).is_err());
+        assert!(
+            current_pair_stem(&IntentDiff::new([
+                "architecture/intents/a.toml",
+                "architecture/diffs/a.toml",
+                "architecture/intents/b.toml",
+                "architecture/diffs/b.toml"
+            ]))
+            .is_err()
+        );
+        assert_eq!(
+            current_pair_stem(&IntentDiff::new([
+                "src/lib.rs",
+                "architecture/intents/a.toml",
+                "architecture/diffs/a.toml"
+            ]))
+            .unwrap(),
+            "a"
+        );
+    }
 }
 
 fn discover_rust(

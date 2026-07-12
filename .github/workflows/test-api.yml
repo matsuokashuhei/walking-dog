@@ -25,6 +25,10 @@ jobs:
             api:
               - 'apps/api/**'
               - 'scripts/harness/**'
+              - 'infra/sakura/compose.yml'
+              - 'infra/sakura/deploy.sh'
+              - 'infra/sakura/.env.example'
+              - 'infra/sakura/README.md'
               - '.github/workflows/test-api.yml'
 
   architecture:

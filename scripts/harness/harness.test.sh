@@ -215,6 +215,9 @@ test_api_architecture_ci_maps_event_revisions_with_full_history() {
   assert_contains "$workflow" 'github.sha' "push head SHA must be explicit"
   assert_contains "$workflow" 'architecture check --base "$ARCHITECTURE_BASE" --head "$ARCHITECTURE_HEAD"' "architecture CI must validate the explicit revision pair"
   assert_contains "$workflow" 'git rev-parse "$ARCHITECTURE_HEAD^"' "initial push must resolve a real parent or fail"
+  for path in infra/sakura/compose.yml infra/sakura/deploy.sh infra/sakura/.env.example infra/sakura/README.md; do
+    assert_contains "$workflow" "- '$path'" "infra-only change must run required deployment gates: $path"
+  done
 }
 
 test_production_images_are_digest_pinned_and_worker_has_process_health() {
@@ -270,6 +273,25 @@ test_image_pin_validator_rejects_unpinned_and_malformed_references() {
   sed 's/@sha256:[0-9a-f]\{64\}/@sha256:abc/' "$repo_root/infra/sakura/compose.yml" > "$tmpdir/infra/sakura/compose.yml"
   output="$(run_script_expect_status 1 env PIN_ROOT_OVERRIDE="$tmpdir" "$repo_root/scripts/harness/validate-image-pins.sh")"
   assert_contains "$output" "unpinned Compose image" "short Compose digest must fail"
+
+  cp "$repo_root/infra/sakura/compose.yml" "$tmpdir/infra/sakura/compose.yml"
+  sed '1s/@sha256:[0-9a-f]\{64\}/@sha256:abc/' "$repo_root/apps/api/Dockerfile" > "$tmpdir/apps/api/Dockerfile"
+  output="$(run_script_expect_status 1 env PIN_ROOT_OVERRIDE="$tmpdir" "$repo_root/scripts/harness/validate-image-pins.sh")"
+  assert_contains "$output" "syntax frontend" "short frontend digest must fail"
+
+  cp "$repo_root/apps/api/Dockerfile" "$tmpdir/apps/api/Dockerfile"
+  printf '\nFROM alpine:3@sha256:abc\n' >> "$tmpdir/apps/api/Dockerfile"
+  output="$(run_script_expect_status 1 env PIN_ROOT_OVERRIDE="$tmpdir" "$repo_root/scripts/harness/validate-image-pins.sh")"
+  assert_contains "$output" "unpinned Dockerfile FROM" "short FROM digest must fail"
+
+  cp "$repo_root/apps/api/Dockerfile" "$tmpdir/apps/api/Dockerfile"
+  printf '\nfn extra() { let _ = GenericImage::new("redis", "7"); }\n' >> "$tmpdir/apps/api/tools/harness-runtime/src/lib.rs"
+  output="$(run_script_expect_status 1 env PIN_ROOT_OVERRIDE="$tmpdir" "$repo_root/scripts/harness/validate-image-pins.sh")"
+  assert_contains "$output" "unpinned Testcontainers image: redis:7" "second unpinned GenericImage must fail"
+
+  sed 's/@sha256:[0-9a-f]\{64\}/@sha256:abc/' "$repo_root/apps/api/tools/harness-runtime/src/lib.rs" > "$tmpdir/apps/api/tools/harness-runtime/src/lib.rs"
+  output="$(run_script_expect_status 1 env PIN_ROOT_OVERRIDE="$tmpdir" "$repo_root/scripts/harness/validate-image-pins.sh")"
+  assert_contains "$output" "unpinned Testcontainers image" "short GenericImage digest must fail"
 }
 
 test_harness_has_no_node_scripts_or_invocations() {

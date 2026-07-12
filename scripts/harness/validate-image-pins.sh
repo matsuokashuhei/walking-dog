@@ -10,6 +10,8 @@ digest='@sha256:[0-9a-f]{64}'
 head -n 1 "$dockerfile" | grep -Eq "^# syntax=[^[:space:]]+${digest}$" || {
   echo "unpinned Dockerfile syntax frontend" >&2; exit 1;
 }
+generic_images="$(perl -0777 -ne 'while (/GenericImage::new\s*\(\s*"([^"]+)"\s*,\s*"([^"]+)"/g) { print "$1:$2\n" }' "$runtime")"
+[[ -n "$generic_images" ]] || { echo "no Testcontainers images discovered" >&2; exit 1; }
 while IFS= read -r reference; do
   [[ "$reference" =~ ^[^[:space:]]+${digest}$ ]] || {
     echo "unpinned Dockerfile FROM: $reference" >&2; exit 1;
@@ -25,12 +27,14 @@ done < <(awk '
 ' "$dockerfile")
 
 while IFS= read -r reference; do
-  [[ "$reference" == *'${ECR_IMAGE}'* ]] && continue
+  [[ "$reference" == '${ECR_IMAGE}' ]] && continue
   [[ "$reference" =~ ^[^[:space:]]+${digest}$ ]] || {
     echo "unpinned Compose image: $reference" >&2; exit 1;
   }
 done < <(sed -n 's/^[[:space:]]*image:[[:space:]]*//p' "$compose")
 
-grep -Eq "16-alpine${digest}" "$runtime" || {
-  echo "unpinned Testcontainers image" >&2; exit 1;
-}
+while IFS= read -r reference; do
+  [[ "$reference" =~ ^[^[:space:]]+${digest}$ ]] || {
+    echo "unpinned Testcontainers image: $reference" >&2; exit 1;
+  }
+done <<< "$generic_images"

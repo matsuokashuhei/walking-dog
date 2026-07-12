@@ -106,3 +106,44 @@ fn unrelated_generic_image_names_are_clean() {
             .expect("unrelated provenance is clean");
     }
 }
+
+#[test]
+fn crate_and_reexport_alias_chains_are_canonical() {
+    for source in [
+        "use testcontainers as tc; use tc::GenericImage as First; use First as Final; fn bad() { Final::new(\"redis\", \"7\"); }",
+        "pub use testcontainers::GenericImage as Image; mod child { use super::Image as ChildImage; fn bad() { ChildImage::new(\"redis\", \"7\"); } }",
+        "pub use testcontainers::GenericImage as Image; fn bad() { crate::Image::new(\"redis\", \"7\"); self::Image::new(\"redis\", \"7\"); }",
+    ] {
+        assert!(validate_testcontainers_source("crates/domain/src/lib.rs", source, false).is_err());
+    }
+}
+
+#[test]
+fn macro_substitution_cannot_assemble_a_constructor() {
+    for source in [
+        "macro_rules! construct { ($image:path) => { $image::new(\"redis\", \"7\") } }",
+        "use testcontainers as tc; invoke!(tc::GenericImage);",
+        "use testcontainers::GenericImage as Image; invoke!(Image);",
+    ] {
+        assert!(validate_testcontainers_source("crates/domain/src/lib.rs", source, false).is_err());
+    }
+
+    validate_testcontainers_source(
+        "crates/domain/src/lib.rs",
+        "macro_rules! log_value { ($value:expr) => { println!(\"{}\", $value) } } fn clean() { log_value!(1); }",
+        false,
+    )
+    .expect("ordinary macros remain clean");
+}
+
+#[test]
+fn noncanonical_type_namespace_bindings_shadow_canonical_names() {
+    for source in [
+        "use testcontainers::GenericImage as Image; fn clean() { type Image = Local; struct Local; impl Local { fn new() {} } Image::new(); }",
+        "use testcontainers::GenericImage as Image; fn clean() { use local::Image; Image::new(); }",
+        "use testcontainers::GenericImage as Image; fn clean() { union Image { value: u8 } impl Image { fn new() {} } Image::new(); }",
+    ] {
+        validate_testcontainers_source("crates/domain/src/lib.rs", source, false)
+            .expect("local noncanonical type binding shadows the canonical name");
+    }
+}

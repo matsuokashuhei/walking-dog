@@ -60,17 +60,30 @@ struct Findings {
     macro_escapes: usize,
 }
 
-fn analyze_scope(items: &[Item], inherited: &BTreeSet<String>, findings: &mut Findings) {
-    let aliases = resolve_aliases(items, inherited);
+#[derive(Clone, Default)]
+struct ScopeSymbols {
+    types: BTreeSet<String>,
+    modules: BTreeSet<String>,
+}
+
+fn analyze_scope(items: &[Item], _inherited: &BTreeSet<String>, findings: &mut Findings) {
+    analyze_module(items, &[], findings);
+}
+
+fn analyze_module(items: &[Item], parents: &[ScopeSymbols], findings: &mut Findings) {
+    let symbols = resolve_symbols(items, &ScopeSymbols::default(), parents);
     let mut visitor = ScopeVisitor {
-        aliases: &aliases,
+        symbols: &symbols,
+        parents,
         findings,
     };
     for item in items {
         match item {
             Item::Mod(module) => {
                 if let Some((_, nested)) = &module.content {
-                    analyze_scope(nested, inherited, visitor.findings);
+                    let mut nested_parents = parents.to_vec();
+                    nested_parents.push(symbols.clone());
+                    analyze_module(nested, &nested_parents, visitor.findings);
                 }
             }
             _ => visitor.visit_item(item),
@@ -78,82 +91,133 @@ fn analyze_scope(items: &[Item], inherited: &BTreeSet<String>, findings: &mut Fi
     }
 }
 
-fn resolve_aliases(items: &[Item], inherited: &BTreeSet<String>) -> BTreeSet<String> {
-    let mut aliases = inherited.clone();
-    for item in items {
-        if let Item::Use(item_use) = item {
-            collect_canonical_use(&item_use.tree, false, &mut aliases);
-        }
-    }
-    loop {
-        let previous = aliases.len();
-        for item in items {
-            if let Item::Type(item_type) = item
-                && type_is_canonical(&item_type.ty, &aliases)
-            {
-                aliases.insert(item_type.ident.to_string());
-            }
-        }
-        if aliases.len() == previous {
-            break;
-        }
-    }
+fn resolve_symbols(items: &[Item], base: &ScopeSymbols, parents: &[ScopeSymbols]) -> ScopeSymbols {
+    let mut symbols = base.clone();
+    let mut bindings = Vec::new();
     for item in items {
         match item {
+            Item::Use(item_use) => collect_use_bindings(&item_use.tree, &[], &mut bindings),
+            Item::Type(item_type) => {
+                let Type::Path(path) = item_type.ty.as_ref() else {
+                    symbols.types.remove(&item_type.ident.to_string());
+                    continue;
+                };
+                bindings.push((item_type.ident.to_string(), path.path.clone()));
+            }
             Item::Struct(value) => {
-                aliases.remove(&value.ident.to_string());
+                symbols.types.remove(&value.ident.to_string());
             }
             Item::Enum(value) => {
-                aliases.remove(&value.ident.to_string());
+                symbols.types.remove(&value.ident.to_string());
+            }
+            Item::Union(value) => {
+                symbols.types.remove(&value.ident.to_string());
             }
             _ => {}
         }
     }
-    aliases
+    for (name, _) in &bindings {
+        symbols.types.remove(name);
+        symbols.modules.remove(name);
+    }
+    loop {
+        let previous = symbols.types.len() + symbols.modules.len();
+        for (name, path) in &bindings {
+            if canonical_type_path(path, &symbols, parents) {
+                symbols.types.insert(name.clone());
+            } else if canonical_module_path(path, &symbols, parents) {
+                symbols.modules.insert(name.clone());
+            }
+        }
+        if symbols.types.len() + symbols.modules.len() == previous {
+            break;
+        }
+    }
+    symbols
 }
 
-fn collect_canonical_use(
+fn collect_use_bindings(
     tree: &UseTree,
-    under_testcontainers: bool,
-    aliases: &mut BTreeSet<String>,
+    prefix: &[String],
+    bindings: &mut Vec<(String, syn::Path)>,
 ) {
     match tree {
-        UseTree::Path(path) => collect_canonical_use(
-            &path.tree,
-            under_testcontainers || path.ident == "testcontainers",
-            aliases,
-        ),
-        UseTree::Name(name) if under_testcontainers && name.ident == "GenericImage" => {
-            aliases.insert(name.ident.to_string());
+        UseTree::Path(path) => {
+            let mut nested = prefix.to_vec();
+            nested.push(path.ident.to_string());
+            collect_use_bindings(&path.tree, &nested, bindings);
         }
-        UseTree::Rename(rename) if under_testcontainers && rename.ident == "GenericImage" => {
-            aliases.insert(rename.rename.to_string());
+        UseTree::Name(name) => {
+            let mut source = prefix.to_vec();
+            source.push(name.ident.to_string());
+            bindings.push((name.ident.to_string(), path_from_segments(&source)));
+        }
+        UseTree::Rename(rename) => {
+            let mut source = prefix.to_vec();
+            source.push(rename.ident.to_string());
+            bindings.push((rename.rename.to_string(), path_from_segments(&source)));
         }
         UseTree::Group(group) => {
             for item in &group.items {
-                collect_canonical_use(item, under_testcontainers, aliases);
+                collect_use_bindings(item, prefix, bindings);
             }
         }
-        _ => {}
+        UseTree::Glob(_) => {}
     }
 }
 
-fn type_is_canonical(value: &Type, aliases: &BTreeSet<String>) -> bool {
-    let Type::Path(path) = value else {
-        return false;
-    };
+fn path_from_segments(segments: &[String]) -> syn::Path {
+    syn::parse_str(&segments.join("::")).expect("use path segments are valid Rust identifiers")
+}
+
+fn canonical_type_path(path: &syn::Path, symbols: &ScopeSymbols, parents: &[ScopeSymbols]) -> bool {
     let segments = path
-        .path
         .segments
         .iter()
         .map(|part| part.ident.to_string())
         .collect::<Vec<_>>();
-    segments.ends_with(&["testcontainers".to_owned(), "GenericImage".to_owned()])
-        || segments.last().is_some_and(|name| aliases.contains(name))
+    let (scope, rest) = qualified_scope(&segments, symbols, parents);
+    rest == ["testcontainers", "GenericImage"]
+        || (rest.len() == 2 && scope.modules.contains(&rest[0]) && rest[1] == "GenericImage")
+        || (rest.len() == 1 && scope.types.contains(&rest[0]))
+}
+
+fn canonical_module_path(
+    path: &syn::Path,
+    symbols: &ScopeSymbols,
+    parents: &[ScopeSymbols],
+) -> bool {
+    let segments = path
+        .segments
+        .iter()
+        .map(|part| part.ident.to_string())
+        .collect::<Vec<_>>();
+    let (scope, rest) = qualified_scope(&segments, symbols, parents);
+    rest == ["testcontainers"] || (rest.len() == 1 && scope.modules.contains(&rest[0]))
+}
+
+fn qualified_scope<'a>(
+    segments: &'a [String],
+    current: &'a ScopeSymbols,
+    parents: &'a [ScopeSymbols],
+) -> (&'a ScopeSymbols, &'a [String]) {
+    if segments.first().is_some_and(|part| part == "crate") {
+        return (parents.first().unwrap_or(current), &segments[1..]);
+    }
+    if segments.first().is_some_and(|part| part == "self") {
+        return (current, &segments[1..]);
+    }
+    let supers = segments.iter().take_while(|part| *part == "super").count();
+    if supers > 0 {
+        let index = parents.len().saturating_sub(supers);
+        return (parents.get(index).unwrap_or(current), &segments[supers..]);
+    }
+    (current, segments)
 }
 
 struct ScopeVisitor<'a> {
-    aliases: &'a BTreeSet<String>,
+    symbols: &'a ScopeSymbols,
+    parents: &'a [ScopeSymbols],
     findings: &'a mut Findings,
 }
 
@@ -167,9 +231,10 @@ impl Visit<'_> for ScopeVisitor<'_> {
                 _ => None,
             })
             .collect::<Vec<_>>();
-        let aliases = resolve_aliases(&items, self.aliases);
+        let symbols = resolve_symbols(&items, self.symbols, self.parents);
         let mut visitor = ScopeVisitor {
-            aliases: &aliases,
+            symbols: &symbols,
+            parents: self.parents,
             findings: self.findings,
         };
         for statement in &block.stmts {
@@ -178,7 +243,7 @@ impl Visit<'_> for ScopeVisitor<'_> {
     }
 
     fn visit_expr_path(&mut self, path: &ExprPath) {
-        if constructor_path(&path.path, self.aliases) {
+        if constructor_path(&path.path, self.symbols, self.parents) {
             self.findings.references += 1;
         }
         syn::visit::visit_expr_path(self, path);
@@ -186,7 +251,7 @@ impl Visit<'_> for ScopeVisitor<'_> {
 
     fn visit_expr_call(&mut self, call: &ExprCall) {
         if let Expr::Path(function) = call.func.as_ref()
-            && constructor_path(&function.path, self.aliases)
+            && constructor_path(&function.path, self.symbols, self.parents)
         {
             let values = call.args.iter().map(path_ident).collect::<Option<Vec<_>>>();
             self.findings.calls.push(match values {
@@ -198,13 +263,15 @@ impl Visit<'_> for ScopeVisitor<'_> {
     }
 
     fn visit_item_macro(&mut self, item: &ItemMacro) {
-        if macro_constructor_tokens(&item.mac.tokens, self.aliases) {
+        if unsafe_macro_definition(&item.mac.tokens)
+            || macro_constructor_tokens(&item.mac.tokens, self.symbols)
+        {
             self.findings.macro_escapes += 1;
         }
     }
 
     fn visit_expr_macro(&mut self, expression: &syn::ExprMacro) {
-        if macro_constructor_tokens(&expression.mac.tokens, self.aliases) {
+        if macro_constructor_tokens(&expression.mac.tokens, self.symbols) {
             self.findings.macro_escapes += 1;
         }
     }
@@ -212,31 +279,46 @@ impl Visit<'_> for ScopeVisitor<'_> {
     fn visit_item_mod(&mut self, _module: &syn::ItemMod) {}
 }
 
-fn constructor_path(path: &syn::Path, aliases: &BTreeSet<String>) -> bool {
+fn constructor_path(path: &syn::Path, symbols: &ScopeSymbols, parents: &[ScopeSymbols]) -> bool {
     let segments = path
         .segments
         .iter()
         .map(|part| part.ident.to_string())
         .collect::<Vec<_>>();
-    segments.len() >= 2
-        && segments.last().is_some_and(|name| name == "new")
-        && (aliases.contains(&segments[segments.len() - 2])
-            || segments.ends_with(&[
-                "testcontainers".to_owned(),
-                "GenericImage".to_owned(),
-                "new".to_owned(),
-            ]))
+    segments.last().is_some_and(|name| name == "new")
+        && canonical_type_path(
+            &syn::parse_str(&segments[..segments.len() - 1].join("::"))
+                .expect("expression path is valid"),
+            symbols,
+            parents,
+        )
 }
 
-fn macro_constructor_tokens(tokens: &TokenStream, aliases: &BTreeSet<String>) -> bool {
+fn unsafe_macro_definition(tokens: &TokenStream) -> bool {
+    let mut identifiers = Vec::new();
+    collect_token_idents(tokens, &mut identifiers);
+    identifiers
+        .iter()
+        .any(|value| value == "path" || value == "ty")
+        && identifiers.iter().any(|value| value == "new")
+}
+
+fn macro_constructor_tokens(tokens: &TokenStream, symbols: &ScopeSymbols) -> bool {
     let mut identifiers = Vec::new();
     collect_token_idents(tokens, &mut identifiers);
     identifiers
         .windows(2)
-        .any(|pair| pair[1] == "new" && aliases.contains(&pair[0]))
+        .any(|pair| pair[1] == "new" && symbols.types.contains(&pair[0]))
         || identifiers
             .windows(3)
             .any(|pair| pair == ["testcontainers", "GenericImage", "new"])
+        || identifiers.iter().any(|value| value == "testcontainers")
+        || identifiers
+            .iter()
+            .any(|value| symbols.types.contains(value))
+        || identifiers
+            .iter()
+            .any(|value| symbols.modules.contains(value))
 }
 
 fn collect_token_idents(tokens: &TokenStream, output: &mut Vec<String>) {

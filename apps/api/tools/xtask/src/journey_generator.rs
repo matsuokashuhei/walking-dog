@@ -322,7 +322,6 @@ pub fn generate(root: &Path, name: &str, spec_path: &Path) -> Result<(), String>
         let mut transaction = PublicationTransaction::new(&destination, &generated_root);
         let result = (|| {
             if std::env::var_os("XTASK_TEST_FAIL_AFTER_PLACEMENTS").is_some() {
-                rollback_destination(&destination, &generated_root)?;
                 return Err("injected post-publication failure".into());
             }
             let architecture = index_path.parent().ok_or("invalid index path")?;
@@ -333,38 +332,21 @@ pub fn generate(root: &Path, name: &str, spec_path: &Path) -> Result<(), String>
                 return Err("injected architecture creation failure".into());
             }
             fs::create_dir_all(architecture).map_err(|error| error.to_string())?;
-            let mut staged_index = match tempfile::NamedTempFile::new_in(architecture) {
-                Ok(file) => file,
-                Err(error) => {
-                    rollback_destination(&destination, &generated_root)?;
-                    cleanup_architecture(architecture, architecture_existed)?;
-                    return Err(format!("stage index creation failed: {error}"));
-                }
-            };
+            let mut staged_index = tempfile::NamedTempFile::new_in(architecture)
+                .map_err(|error| format!("stage index creation failed: {error}"))?;
             if std::env::var("XTASK_TEST_INDEX_FAILURE").as_deref() == Ok("write") {
-                rollback_destination(&destination, &generated_root)?;
-                drop(staged_index);
-                cleanup_architecture(architecture, architecture_existed)?;
                 return Err("injected index write failure".into());
             }
-            if let Err(error) = staged_index.write_all(index_body.as_bytes()) {
-                rollback_destination(&destination, &generated_root)?;
-                drop(staged_index);
-                cleanup_architecture(architecture, architecture_existed)?;
-                return Err(format!("stage index write failed: {error}"));
-            }
+            staged_index
+                .write_all(index_body.as_bytes())
+                .map_err(|error| format!("stage index write failed: {error}"))?;
             if std::env::var("XTASK_TEST_INDEX_FAILURE").as_deref() == Ok("sync") {
-                rollback_destination(&destination, &generated_root)?;
-                drop(staged_index);
-                cleanup_architecture(architecture, architecture_existed)?;
                 return Err("injected index sync failure".into());
             }
-            if let Err(error) = staged_index.as_file().sync_all() {
-                rollback_destination(&destination, &generated_root)?;
-                drop(staged_index);
-                cleanup_architecture(architecture, architecture_existed)?;
-                return Err(format!("stage index sync failed: {error}"));
-            }
+            staged_index
+                .as_file()
+                .sync_all()
+                .map_err(|error| format!("stage index sync failed: {error}"))?;
             if let Ok(owner) = std::env::var("XTASK_TEST_RACE_INDEX") {
                 fs::OpenOptions::new()
                     .append(true)
@@ -383,9 +365,6 @@ pub fn generate(root: &Path, name: &str, spec_path: &Path) -> Result<(), String>
                 None
             };
             if current_index != original_index {
-                rollback_destination(&destination, &generated_root)?;
-                drop(staged_index);
-                cleanup_architecture(architecture, architecture_existed)?;
                 return Err("independent index changed concurrently".into());
             }
             if let Ok(owner) = std::env::var("XTASK_TEST_BOUNDARY_LOCK_PROBE")
@@ -403,17 +382,11 @@ pub fn generate(root: &Path, name: &str, spec_path: &Path) -> Result<(), String>
                 fs::remove_file(&lock_path).map_err(|error| error.to_string())?;
             }
             if std::env::var("XTASK_TEST_INDEX_FAILURE").as_deref() == Ok("persist") {
-                rollback_destination(&destination, &generated_root)?;
-                drop(staged_index);
-                cleanup_architecture(architecture, architecture_existed)?;
                 return Err("injected index persist failure".into());
             }
-            if let Err(error) = staged_index.persist(&index_path) {
-                rollback_destination(&destination, &generated_root)?;
-                drop(error.file);
-                cleanup_architecture(architecture, architecture_existed)?;
-                return Err(format!("atomic index publish failed: {}", error.error));
-            }
+            staged_index
+                .persist(&index_path)
+                .map_err(|error| format!("atomic index publish failed: {}", error.error))?;
             Ok(())
         })();
         transaction.finalize(result)

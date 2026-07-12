@@ -330,6 +330,42 @@ fn guarded_failures_surface_rollback_failures_with_evidence() {
 }
 
 #[test]
+fn index_faults_preserve_operation_and_finalizer_rollback_errors() {
+    for (index_fault, rollback_fault, operation_text, rollback_text) in [
+        ("write", "artifact", "index write", "artifact rollback"),
+        (
+            "sync",
+            "architecture",
+            "index sync",
+            "architecture rollback",
+        ),
+        ("persist", "artifact", "index persist", "artifact rollback"),
+    ] {
+        let root = TempDir::new().unwrap();
+        let spec = valid_spec(&root);
+        let output = Command::new(env!("CARGO_BIN_EXE_xtask"))
+            .args([
+                "journey",
+                "new",
+                "start-walk",
+                "--spec",
+                spec.to_str().unwrap(),
+            ])
+            .env("XTASK_TEST_INDEX_FAILURE", index_fault)
+            .env("XTASK_TEST_ROLLBACK_FAILURE", rollback_fault)
+            .current_dir(root.path())
+            .output()
+            .unwrap();
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        assert!(!output.status.success());
+        assert!(
+            stderr.contains(operation_text) && stderr.contains(rollback_text),
+            "{stderr}"
+        );
+    }
+}
+
+#[test]
 fn stale_writer_lock_fails_closed_without_deletion() {
     let root = TempDir::new().unwrap();
     let spec = valid_spec(&root);

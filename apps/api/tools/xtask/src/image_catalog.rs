@@ -18,6 +18,10 @@ struct Image {
     digest: String,
 }
 
+/// Generates the opaque PostgreSQL runtime from the closed catalog.
+///
+/// # Errors
+/// Returns an error when the catalog, output path, or generated write is invalid.
 pub fn generate(root: &Path) -> Result<(), String> {
     let catalog: Catalog = serde_json::from_slice(
         &fs::read(root.join("architecture/test-images.json")).map_err(|error| error.to_string())?,
@@ -39,10 +43,17 @@ pub fn generate(root: &Path) -> Result<(), String> {
             &format!("{}@{}", catalog.postgres.tag, catalog.postgres.digest),
         );
     let path = root.join("tools/harness-runtime/src/generated_postgres.rs");
-    fs::create_dir_all(path.parent().unwrap()).map_err(|error| error.to_string())?;
+    let parent = path
+        .parent()
+        .ok_or_else(|| "generated image path has no parent".to_owned())?;
+    fs::create_dir_all(parent).map_err(|error| error.to_string())?;
     fs::write(path, output).map_err(|error| error.to_string())
 }
 
+/// Verifies that the checked-in generated runtime matches the closed catalog.
+///
+/// # Errors
+/// Returns an error when generated output is absent, unreadable, or drifts.
 pub fn verify(root: &Path) -> Result<(), String> {
     let path = root.join("tools/harness-runtime/src/generated_postgres.rs");
     let actual = fs::read(&path).map_err(|error| error.to_string())?;

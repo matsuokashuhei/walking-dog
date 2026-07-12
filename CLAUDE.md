@@ -28,6 +28,8 @@ Source of truth: [docs/product/principles.md](docs/product/principles.md)
 - Mobile details: [apps/mobile/CLAUDE.md](apps/mobile/CLAUDE.md)
 - Legal publishing: [infra/sakura/README.md](infra/sakura/README.md)
 - Cloudflare/Cognito email: [docs/cloudflare-cognito-email.md](docs/cloudflare-cognito-email.md)
+- Development process: [docs/agents/development-process.md](docs/agents/development-process.md)
+- Model routing: [docs/agents/model-routing.md](docs/agents/model-routing.md)
 
 ## Service Environments
 
@@ -70,18 +72,6 @@ Maestro flow from `apps/mobile/e2e/maestro/`. Broad journey-impacting changes
 require running all current Maestro flows. Static tooling, type-only, or
 unused-code cleanup may record "no affected journey" instead of running Maestro.
 
-## Harness Commands
-
-```bash
-scripts/harness/validate-knowledge.sh
-scripts/harness/validate-architecture.sh
-scripts/harness/validate-mobile-knip.sh
-scripts/harness/validate-all.sh
-HARNESS_ACCESS_TOKEN=<token> scripts/harness/run-api-journey.sh walk-lifecycle
-scripts/harness/query-observability.sh
-scripts/harness/score-quality.sh
-```
-
 ## Non-Negotiable Rules
 
 - Do not hide errors with optionalization, fallback values, or catch-and-ignore fixes.
@@ -98,6 +88,8 @@ scripts/harness/score-quality.sh
   user explicitly opts out, record that opt-out instead.
 - When a bug, review comment, stale doc, or confusing pattern appears, promote the
   learning into docs, a harness validator, a journey, or a project skill.
+- Use one active change manifest for each base/head change and never track
+  `.superpowers` scratch. See `docs/agents/development-process.md`.
 
 ## Skills
 

@@ -129,6 +129,12 @@
         "bash scripts/development/validate-change-manifest.sh"
       ],
       "result": "GREEN: one PR marker must bind the changed manifest, all approved task identities, successful test results, current head SHA, and a non-blocking independent Sol result."
+    },
+    {
+      "name": "process-docs-green",
+      "state": "green",
+      "commands": ["scripts/harness/validate-knowledge.sh", "bash scripts/development/validate-change-manifest.sh"],
+      "result": "GREEN: concise AGENTS index, process/routing docs, repository skill, lessons, and roadmap boundaries are linked and validated."
     }
   ]
 }

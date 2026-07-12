@@ -649,6 +649,18 @@ input/output audit is ready for human review.
 
 ## Rollback and merge discipline
 
+## Development-process gate boundaries
+
+| Boundary | Responsibility and interface | Acceptance / rollback / dependency |
+| --- | --- | --- |
+| PR2A | Manifest schema and history/PR validator expose one changed-manifest and external-evidence contract. | Fixture RED/GREEN; revert validator commit; precedes all later boundaries. |
+| PR2B | Routing docs, PR template, Harness CI, and local validation consume the contract. | Consumer audit passes; revert consumer wiring; depends on PR2A. |
+| PR2C | Canonical syntax contract removes semantic resolver behavior while retaining API-ARCH IDs and diagnostics. | Rule fixtures and SARIF pass; revert gate as a unit; depends on PR2B. |
+| PR3A | Closed image catalog and deterministic generated opaque runtime replace source resolver. | Generate twice clean and lifecycle proof; revert catalog/runtime together; depends on PR2C. |
+| PR3B | Cargo policy and CI enforce the generated-only Testcontainers surface. | Dependency/alias/build policy tests pass; rollback to PR3A runtime; depends on PR3A. |
+| PR11A | Full consumer audit and required verification bind all gates. | All listed checks pass; revert the change set; depends on PR2A–PR3B. |
+| PR11B | Frozen head receives independent external Sol evidence. | Exact SHA evidence only; new head requires new review; depends on PR11A. |
+
 - Merge PRs strictly in numeric order; never cherry-pick a later Feature onto an
   earlier foundation.
 - Tag the last green API image and Mobile build for each PR. Rollback selects the

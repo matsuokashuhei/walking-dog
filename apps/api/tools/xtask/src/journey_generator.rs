@@ -77,24 +77,77 @@ struct GeneratedJourney {
 
 struct WriterLock {
     path: std::path::PathBuf,
+    file: Option<fs::File>,
+    release_attempted: bool,
 }
 
 impl WriterLock {
     fn acquire(path: &Path) -> Result<Self, String> {
-        let mut file = fs::OpenOptions::new()
+        let file = fs::OpenOptions::new()
             .write(true)
             .create_new(true)
             .open(path)
             .map_err(|error| format!("generated index writer lock unavailable: {error}"))?;
-        writeln!(file, "pid={}", std::process::id()).map_err(|error| error.to_string())?;
-        file.sync_all().map_err(|error| error.to_string())?;
-        Ok(Self { path: path.into() })
+        let mut guard = Self {
+            path: path.into(),
+            file: Some(file),
+            release_attempted: false,
+        };
+        let initialization =
+            if std::env::var("XTASK_TEST_LOCK_INIT_FAILURE").as_deref() == Ok("write") {
+                Err("injected lock initialization write failure".into())
+            } else if let Err(error) = writeln!(
+                guard.file.as_mut().expect("lock file"),
+                "pid={}",
+                std::process::id()
+            ) {
+                Err(format!("lock initialization write failed: {error}"))
+            } else if std::env::var("XTASK_TEST_LOCK_INIT_FAILURE").as_deref() == Ok("sync") {
+                Err("injected lock initialization sync failure".into())
+            } else {
+                guard
+                    .file
+                    .as_ref()
+                    .expect("lock file")
+                    .sync_all()
+                    .map_err(|error| format!("lock initialization sync failed: {error}"))
+            };
+        if let Err(error) = initialization {
+            return match guard.release() {
+                Ok(()) => Err(error),
+                Err(release) => Err(format!("{error}; {release}")),
+            };
+        }
+        Ok(guard)
+    }
+
+    fn release(&mut self) -> Result<(), String> {
+        self.release_attempted = true;
+        drop(self.file.take());
+        if std::env::var_os("XTASK_TEST_LOCK_RELEASE_FAILURE").is_some() {
+            return Err("injected writer lock release failure".into());
+        }
+        fs::remove_file(&self.path).map_err(|error| format!("writer lock release failed: {error}"))
+    }
+
+    fn run<T>(path: &Path, operation: impl FnOnce() -> Result<T, String>) -> Result<T, String> {
+        let mut guard = Self::acquire(path)?;
+        let result = operation();
+        let release = guard.release();
+        match (result, release) {
+            (Ok(value), Ok(())) => Ok(value),
+            (Err(error), Ok(())) => Err(error),
+            (Ok(_), Err(release)) => Err(release),
+            (Err(error), Err(release)) => Err(format!("{error}; {release}")),
+        }
     }
 }
 
 impl Drop for WriterLock {
     fn drop(&mut self) {
-        let _removed = fs::remove_file(&self.path);
+        if !self.release_attempted {
+            let _removed = fs::remove_file(&self.path);
+        }
     }
 }
 
@@ -141,159 +194,162 @@ pub fn generate(root: &Path, name: &str, spec_path: &Path) -> Result<(), String>
         },
         std::path::PathBuf::from,
     );
-    let _writer_lock = WriterLock::acquire(&lock_path)?;
-    let generated_root = root.join("generated/journeys");
-    let destination = generated_root.join(name);
-    let index_path = root.join("architecture/generated-journeys.toml");
-    if destination.exists() {
-        return Err("generated Journey destination already exists".into());
-    }
-    let original_index = if index_path.exists() {
-        Some(fs::read(&index_path).map_err(|error| error.to_string())?)
-    } else {
-        None
-    };
-    let mut index = if let Some(bytes) = &original_index {
-        toml::from_str::<GeneratedIndex>(
-            std::str::from_utf8(bytes).map_err(|error| error.to_string())?,
-        )
-        .map_err(|error| error.to_string())?
-    } else {
-        GeneratedIndex {
-            marker: MARKER.into(),
-            generator_version: 1,
-            journeys: Vec::new(),
+    WriterLock::run(&lock_path, || {
+        let generated_root = root.join("generated/journeys");
+        let destination = generated_root.join(name);
+        let index_path = root.join("architecture/generated-journeys.toml");
+        if destination.exists() {
+            return Err("generated Journey destination already exists".into());
         }
-    };
-    if original_index.is_some() {
-        validate_index(&index)?;
-    }
-    if index
-        .journeys
-        .iter()
-        .any(|journey| journey.use_case == name)
-    {
-        return Err(format!("generated Journey already indexed: {name}"));
-    }
-    index.journeys.push(GeneratedJourney {
-        use_case: name.into(),
-        destination: format!("generated/journeys/{name}/artifacts"),
-        manifest: format!("generated/journeys/{name}/artifacts/{manifest_path}"),
-    });
-    let index_body = format!(
-        "# {MARKER}\n{}",
-        toml::to_string_pretty(&index).map_err(|error| error.to_string())?
-    );
-    let stage_parent = root.parent().unwrap_or(root);
-    let stage = tempfile::Builder::new()
-        .prefix(".journey-generator-")
-        .tempdir_in(stage_parent)
-        .map_err(|error| format!("create exclusive staging directory: {error}"))?;
-    for (relative, body) in &outputs {
-        let target = stage.path().join(relative);
-        fs::create_dir_all(target.parent().ok_or("invalid target")?).map_err(|e| e.to_string())?;
-        fs::write(&target, body).map_err(|e| e.to_string())?;
-    }
-    if let Ok(relative) = std::env::var("XTASK_TEST_RACE_DESTINATION") {
-        let raced = destination.join(relative);
-        fs::create_dir_all(raced.parent().ok_or("invalid raced destination")?)
-            .map_err(|error| error.to_string())?;
-        fs::write(raced, "racing owner\n").map_err(|error| error.to_string())?;
-    }
-    fs::create_dir_all(&generated_root).map_err(|error| error.to_string())?;
-    fs::create_dir(&destination)
-        .map_err(|error| format!("atomic destination reservation refused collision: {error}"))?;
-    let published_tree = destination.join("artifacts");
-    if let Err(error) = fs::rename(stage.path(), &published_tree) {
-        fs::remove_dir(&destination).map_err(|rollback| {
-            format!("atomic publish failed ({error}); reservation rollback failed ({rollback})")
+        let original_index = if index_path.exists() {
+            Some(fs::read(&index_path).map_err(|error| error.to_string())?)
+        } else {
+            None
+        };
+        let mut index = if let Some(bytes) = &original_index {
+            toml::from_str::<GeneratedIndex>(
+                std::str::from_utf8(bytes).map_err(|error| error.to_string())?,
+            )
+            .map_err(|error| error.to_string())?
+        } else {
+            GeneratedIndex {
+                marker: MARKER.into(),
+                generator_version: 1,
+                journeys: Vec::new(),
+            }
+        };
+        if original_index.is_some() {
+            validate_index(&index)?;
+        }
+        if index
+            .journeys
+            .iter()
+            .any(|journey| journey.use_case == name)
+        {
+            return Err(format!("generated Journey already indexed: {name}"));
+        }
+        index.journeys.push(GeneratedJourney {
+            use_case: name.into(),
+            destination: format!("generated/journeys/{name}/artifacts"),
+            manifest: format!("generated/journeys/{name}/artifacts/{manifest_path}"),
+        });
+        let index_body = format!(
+            "# {MARKER}\n{}",
+            toml::to_string_pretty(&index).map_err(|error| error.to_string())?
+        );
+        let stage_parent = root.parent().unwrap_or(root);
+        let stage = tempfile::Builder::new()
+            .prefix(".journey-generator-")
+            .tempdir_in(stage_parent)
+            .map_err(|error| format!("create exclusive staging directory: {error}"))?;
+        for (relative, body) in &outputs {
+            let target = stage.path().join(relative);
+            fs::create_dir_all(target.parent().ok_or("invalid target")?)
+                .map_err(|e| e.to_string())?;
+            fs::write(&target, body).map_err(|e| e.to_string())?;
+        }
+        if let Ok(relative) = std::env::var("XTASK_TEST_RACE_DESTINATION") {
+            let raced = destination.join(relative);
+            fs::create_dir_all(raced.parent().ok_or("invalid raced destination")?)
+                .map_err(|error| error.to_string())?;
+            fs::write(raced, "racing owner\n").map_err(|error| error.to_string())?;
+        }
+        fs::create_dir_all(&generated_root).map_err(|error| error.to_string())?;
+        fs::create_dir(&destination).map_err(|error| {
+            format!("atomic destination reservation refused collision: {error}")
         })?;
-        return Err(format!("atomic publish failed: {error}"));
-    }
-    if std::env::var_os("XTASK_TEST_FAIL_AFTER_PLACEMENTS").is_some() {
-        rollback_destination(&destination, &generated_root)?;
-        return Err("injected post-publication failure".into());
-    }
-    let architecture = index_path.parent().ok_or("invalid index path")?;
-    let architecture_existed = architecture.exists();
-    fs::create_dir_all(architecture).map_err(|error| error.to_string())?;
-    let mut staged_index = match tempfile::NamedTempFile::new_in(architecture) {
-        Ok(file) => file,
-        Err(error) => {
-            rollback_destination(&destination, &generated_root)?;
-            cleanup_architecture(architecture, architecture_existed)?;
-            return Err(format!("stage index creation failed: {error}"));
+        let published_tree = destination.join("artifacts");
+        if let Err(error) = fs::rename(stage.path(), &published_tree) {
+            fs::remove_dir(&destination).map_err(|rollback| {
+                format!("atomic publish failed ({error}); reservation rollback failed ({rollback})")
+            })?;
+            return Err(format!("atomic publish failed: {error}"));
         }
-    };
-    if std::env::var("XTASK_TEST_INDEX_FAILURE").as_deref() == Ok("write") {
-        rollback_destination(&destination, &generated_root)?;
-        drop(staged_index);
-        cleanup_architecture(architecture, architecture_existed)?;
-        return Err("injected index write failure".into());
-    }
-    if let Err(error) = staged_index.write_all(index_body.as_bytes()) {
-        rollback_destination(&destination, &generated_root)?;
-        drop(staged_index);
-        cleanup_architecture(architecture, architecture_existed)?;
-        return Err(format!("stage index write failed: {error}"));
-    }
-    if std::env::var("XTASK_TEST_INDEX_FAILURE").as_deref() == Ok("sync") {
-        rollback_destination(&destination, &generated_root)?;
-        drop(staged_index);
-        cleanup_architecture(architecture, architecture_existed)?;
-        return Err("injected index sync failure".into());
-    }
-    if let Err(error) = staged_index.as_file().sync_all() {
-        rollback_destination(&destination, &generated_root)?;
-        drop(staged_index);
-        cleanup_architecture(architecture, architecture_existed)?;
-        return Err(format!("stage index sync failed: {error}"));
-    }
-    if let Ok(owner) = std::env::var("XTASK_TEST_RACE_INDEX") {
-        fs::OpenOptions::new()
-            .append(true)
-            .open(&index_path)
-            .and_then(|mut file| writeln!(file, "# {owner}"))
-            .map_err(|error| error.to_string())?;
-    }
-    let current_index = if index_path.exists() {
-        Some(fs::read(&index_path).map_err(|error| error.to_string())?)
-    } else {
-        None
-    };
-    if current_index != original_index {
-        rollback_destination(&destination, &generated_root)?;
-        drop(staged_index);
-        cleanup_architecture(architecture, architecture_existed)?;
-        return Err("independent index changed concurrently".into());
-    }
-    if let Ok(owner) = std::env::var("XTASK_TEST_BOUNDARY_LOCK_PROBE")
-        && let Ok(mut concurrent) = fs::OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open(&lock_path)
-    {
-        writeln!(concurrent, "{owner}").map_err(|error| error.to_string())?;
-        fs::OpenOptions::new()
-            .append(true)
-            .open(&index_path)
-            .and_then(|mut file| writeln!(file, "# {owner}"))
-            .map_err(|error| error.to_string())?;
-        fs::remove_file(&lock_path).map_err(|error| error.to_string())?;
-    }
-    if std::env::var("XTASK_TEST_INDEX_FAILURE").as_deref() == Ok("persist") {
-        rollback_destination(&destination, &generated_root)?;
-        drop(staged_index);
-        cleanup_architecture(architecture, architecture_existed)?;
-        return Err("injected index persist failure".into());
-    }
-    if let Err(error) = staged_index.persist(&index_path) {
-        rollback_destination(&destination, &generated_root)?;
-        drop(error.file);
-        cleanup_architecture(architecture, architecture_existed)?;
-        return Err(format!("atomic index publish failed: {}", error.error));
-    }
-    Ok(())
+        if std::env::var_os("XTASK_TEST_FAIL_AFTER_PLACEMENTS").is_some() {
+            rollback_destination(&destination, &generated_root)?;
+            return Err("injected post-publication failure".into());
+        }
+        let architecture = index_path.parent().ok_or("invalid index path")?;
+        let architecture_existed = architecture.exists();
+        fs::create_dir_all(architecture).map_err(|error| error.to_string())?;
+        let mut staged_index = match tempfile::NamedTempFile::new_in(architecture) {
+            Ok(file) => file,
+            Err(error) => {
+                rollback_destination(&destination, &generated_root)?;
+                cleanup_architecture(architecture, architecture_existed)?;
+                return Err(format!("stage index creation failed: {error}"));
+            }
+        };
+        if std::env::var("XTASK_TEST_INDEX_FAILURE").as_deref() == Ok("write") {
+            rollback_destination(&destination, &generated_root)?;
+            drop(staged_index);
+            cleanup_architecture(architecture, architecture_existed)?;
+            return Err("injected index write failure".into());
+        }
+        if let Err(error) = staged_index.write_all(index_body.as_bytes()) {
+            rollback_destination(&destination, &generated_root)?;
+            drop(staged_index);
+            cleanup_architecture(architecture, architecture_existed)?;
+            return Err(format!("stage index write failed: {error}"));
+        }
+        if std::env::var("XTASK_TEST_INDEX_FAILURE").as_deref() == Ok("sync") {
+            rollback_destination(&destination, &generated_root)?;
+            drop(staged_index);
+            cleanup_architecture(architecture, architecture_existed)?;
+            return Err("injected index sync failure".into());
+        }
+        if let Err(error) = staged_index.as_file().sync_all() {
+            rollback_destination(&destination, &generated_root)?;
+            drop(staged_index);
+            cleanup_architecture(architecture, architecture_existed)?;
+            return Err(format!("stage index sync failed: {error}"));
+        }
+        if let Ok(owner) = std::env::var("XTASK_TEST_RACE_INDEX") {
+            fs::OpenOptions::new()
+                .append(true)
+                .open(&index_path)
+                .and_then(|mut file| writeln!(file, "# {owner}"))
+                .map_err(|error| error.to_string())?;
+        }
+        let current_index = if index_path.exists() {
+            Some(fs::read(&index_path).map_err(|error| error.to_string())?)
+        } else {
+            None
+        };
+        if current_index != original_index {
+            rollback_destination(&destination, &generated_root)?;
+            drop(staged_index);
+            cleanup_architecture(architecture, architecture_existed)?;
+            return Err("independent index changed concurrently".into());
+        }
+        if let Ok(owner) = std::env::var("XTASK_TEST_BOUNDARY_LOCK_PROBE")
+            && let Ok(mut concurrent) = fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&lock_path)
+        {
+            writeln!(concurrent, "{owner}").map_err(|error| error.to_string())?;
+            fs::OpenOptions::new()
+                .append(true)
+                .open(&index_path)
+                .and_then(|mut file| writeln!(file, "# {owner}"))
+                .map_err(|error| error.to_string())?;
+            fs::remove_file(&lock_path).map_err(|error| error.to_string())?;
+        }
+        if std::env::var("XTASK_TEST_INDEX_FAILURE").as_deref() == Ok("persist") {
+            rollback_destination(&destination, &generated_root)?;
+            drop(staged_index);
+            cleanup_architecture(architecture, architecture_existed)?;
+            return Err("injected index persist failure".into());
+        }
+        if let Err(error) = staged_index.persist(&index_path) {
+            rollback_destination(&destination, &generated_root)?;
+            drop(error.file);
+            cleanup_architecture(architecture, architecture_existed)?;
+            return Err(format!("atomic index publish failed: {}", error.error));
+        }
+        Ok(())
+    })
 }
 
 pub fn verify(root: &Path) -> Result<(), String> {

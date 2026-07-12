@@ -281,6 +281,55 @@ fn stale_writer_lock_fails_closed_without_deletion() {
 }
 
 #[test]
+fn lock_initialization_failures_release_without_workspace_changes() {
+    for fault in ["write", "sync"] {
+        let root = TempDir::new().unwrap();
+        let spec = valid_spec(&root);
+        let lock = root.path().join("writer.lock");
+        let before = workspace_files(&root);
+        let output = Command::new(env!("CARGO_BIN_EXE_xtask"))
+            .args([
+                "journey",
+                "new",
+                "start-walk",
+                "--spec",
+                spec.to_str().unwrap(),
+            ])
+            .env("XTASK_INDEX_LOCK_PATH", &lock)
+            .env("XTASK_TEST_LOCK_INIT_FAILURE", fault)
+            .current_dir(root.path())
+            .output()
+            .unwrap();
+        assert!(!output.status.success());
+        assert_eq!(workspace_files(&root), before);
+        assert!(!lock.exists());
+    }
+}
+
+#[test]
+fn lock_release_failure_is_reported_and_lock_remains_as_evidence() {
+    let root = TempDir::new().unwrap();
+    let spec = valid_spec(&root);
+    let lock = root.path().join("writer.lock");
+    let output = Command::new(env!("CARGO_BIN_EXE_xtask"))
+        .args([
+            "journey",
+            "new",
+            "start-walk",
+            "--spec",
+            spec.to_str().unwrap(),
+        ])
+        .env("XTASK_INDEX_LOCK_PATH", &lock)
+        .env("XTASK_TEST_LOCK_RELEASE_FAILURE", "1")
+        .current_dir(root.path())
+        .output()
+        .unwrap();
+    assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("release"));
+    assert!(lock.exists());
+}
+
+#[test]
 fn writer_reservation_is_held_at_compare_to_persist_boundary() {
     let root = TempDir::new().unwrap();
     let spec = valid_spec(&root);

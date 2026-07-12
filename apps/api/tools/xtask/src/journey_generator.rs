@@ -155,7 +155,7 @@ struct PublicationTransaction<'a> {
     destination: &'a Path,
     generated_root: &'a Path,
     architecture: Option<(&'a Path, bool)>,
-    committed: bool,
+    finalized: bool,
 }
 
 impl<'a> PublicationTransaction<'a> {
@@ -164,7 +164,7 @@ impl<'a> PublicationTransaction<'a> {
             destination,
             generated_root,
             architecture: None,
-            committed: false,
+            finalized: false,
         }
     }
 
@@ -172,14 +172,30 @@ impl<'a> PublicationTransaction<'a> {
         self.architecture = Some((path, existed));
     }
 
-    fn commit(&mut self) {
-        self.committed = true;
+    fn finalize<T>(&mut self, result: Result<T, String>) -> Result<T, String> {
+        self.finalized = true;
+        let operation_error = match result {
+            Ok(value) => return Ok(value),
+            Err(error) => error,
+        };
+        let artifact = rollback_destination(self.destination, self.generated_root);
+        let architecture = self.architecture.map_or(Ok(()), |(path, existed)| {
+            cleanup_architecture(path, existed)
+        });
+        let mut errors = vec![operation_error];
+        if let Err(error) = artifact {
+            errors.push(error);
+        }
+        if let Err(error) = architecture {
+            errors.push(error);
+        }
+        Err(errors.join("; "))
     }
 }
 
 impl Drop for PublicationTransaction<'_> {
     fn drop(&mut self) {
-        if self.committed {
+        if self.finalized {
             return;
         }
         let _artifact_rollback = rollback_destination(self.destination, self.generated_root);
@@ -304,99 +320,103 @@ pub fn generate(root: &Path, name: &str, spec_path: &Path) -> Result<(), String>
             return Err(format!("atomic publish failed: {error}"));
         }
         let mut transaction = PublicationTransaction::new(&destination, &generated_root);
-        if std::env::var_os("XTASK_TEST_FAIL_AFTER_PLACEMENTS").is_some() {
-            rollback_destination(&destination, &generated_root)?;
-            return Err("injected post-publication failure".into());
-        }
-        let architecture = index_path.parent().ok_or("invalid index path")?;
-        let architecture_existed = architecture.exists();
-        transaction.track_architecture(architecture, architecture_existed);
-        if std::env::var("XTASK_TEST_POST_PUBLICATION_FAILURE").as_deref() == Ok("architecture") {
-            return Err("injected architecture creation failure".into());
-        }
-        fs::create_dir_all(architecture).map_err(|error| error.to_string())?;
-        let mut staged_index = match tempfile::NamedTempFile::new_in(architecture) {
-            Ok(file) => file,
-            Err(error) => {
+        let result = (|| {
+            if std::env::var_os("XTASK_TEST_FAIL_AFTER_PLACEMENTS").is_some() {
                 rollback_destination(&destination, &generated_root)?;
-                cleanup_architecture(architecture, architecture_existed)?;
-                return Err(format!("stage index creation failed: {error}"));
+                return Err("injected post-publication failure".into());
             }
-        };
-        if std::env::var("XTASK_TEST_INDEX_FAILURE").as_deref() == Ok("write") {
-            rollback_destination(&destination, &generated_root)?;
-            drop(staged_index);
-            cleanup_architecture(architecture, architecture_existed)?;
-            return Err("injected index write failure".into());
-        }
-        if let Err(error) = staged_index.write_all(index_body.as_bytes()) {
-            rollback_destination(&destination, &generated_root)?;
-            drop(staged_index);
-            cleanup_architecture(architecture, architecture_existed)?;
-            return Err(format!("stage index write failed: {error}"));
-        }
-        if std::env::var("XTASK_TEST_INDEX_FAILURE").as_deref() == Ok("sync") {
-            rollback_destination(&destination, &generated_root)?;
-            drop(staged_index);
-            cleanup_architecture(architecture, architecture_existed)?;
-            return Err("injected index sync failure".into());
-        }
-        if let Err(error) = staged_index.as_file().sync_all() {
-            rollback_destination(&destination, &generated_root)?;
-            drop(staged_index);
-            cleanup_architecture(architecture, architecture_existed)?;
-            return Err(format!("stage index sync failed: {error}"));
-        }
-        if let Ok(owner) = std::env::var("XTASK_TEST_RACE_INDEX") {
-            fs::OpenOptions::new()
-                .append(true)
-                .open(&index_path)
-                .and_then(|mut file| writeln!(file, "# {owner}"))
-                .map_err(|error| error.to_string())?;
-        }
-        if std::env::var("XTASK_TEST_POST_PUBLICATION_FAILURE").as_deref() == Ok("live-index-read")
-        {
-            return Err("injected live index read failure".into());
-        }
-        let current_index = if index_path.exists() {
-            Some(fs::read(&index_path).map_err(|error| error.to_string())?)
-        } else {
-            None
-        };
-        if current_index != original_index {
-            rollback_destination(&destination, &generated_root)?;
-            drop(staged_index);
-            cleanup_architecture(architecture, architecture_existed)?;
-            return Err("independent index changed concurrently".into());
-        }
-        if let Ok(owner) = std::env::var("XTASK_TEST_BOUNDARY_LOCK_PROBE")
-            && let Ok(mut concurrent) = fs::OpenOptions::new()
-                .write(true)
-                .create_new(true)
-                .open(&lock_path)
-        {
-            writeln!(concurrent, "{owner}").map_err(|error| error.to_string())?;
-            fs::OpenOptions::new()
-                .append(true)
-                .open(&index_path)
-                .and_then(|mut file| writeln!(file, "# {owner}"))
-                .map_err(|error| error.to_string())?;
-            fs::remove_file(&lock_path).map_err(|error| error.to_string())?;
-        }
-        if std::env::var("XTASK_TEST_INDEX_FAILURE").as_deref() == Ok("persist") {
-            rollback_destination(&destination, &generated_root)?;
-            drop(staged_index);
-            cleanup_architecture(architecture, architecture_existed)?;
-            return Err("injected index persist failure".into());
-        }
-        if let Err(error) = staged_index.persist(&index_path) {
-            rollback_destination(&destination, &generated_root)?;
-            drop(error.file);
-            cleanup_architecture(architecture, architecture_existed)?;
-            return Err(format!("atomic index publish failed: {}", error.error));
-        }
-        transaction.commit();
-        Ok(())
+            let architecture = index_path.parent().ok_or("invalid index path")?;
+            let architecture_existed = architecture.exists();
+            transaction.track_architecture(architecture, architecture_existed);
+            if std::env::var("XTASK_TEST_POST_PUBLICATION_FAILURE").as_deref() == Ok("architecture")
+            {
+                return Err("injected architecture creation failure".into());
+            }
+            fs::create_dir_all(architecture).map_err(|error| error.to_string())?;
+            let mut staged_index = match tempfile::NamedTempFile::new_in(architecture) {
+                Ok(file) => file,
+                Err(error) => {
+                    rollback_destination(&destination, &generated_root)?;
+                    cleanup_architecture(architecture, architecture_existed)?;
+                    return Err(format!("stage index creation failed: {error}"));
+                }
+            };
+            if std::env::var("XTASK_TEST_INDEX_FAILURE").as_deref() == Ok("write") {
+                rollback_destination(&destination, &generated_root)?;
+                drop(staged_index);
+                cleanup_architecture(architecture, architecture_existed)?;
+                return Err("injected index write failure".into());
+            }
+            if let Err(error) = staged_index.write_all(index_body.as_bytes()) {
+                rollback_destination(&destination, &generated_root)?;
+                drop(staged_index);
+                cleanup_architecture(architecture, architecture_existed)?;
+                return Err(format!("stage index write failed: {error}"));
+            }
+            if std::env::var("XTASK_TEST_INDEX_FAILURE").as_deref() == Ok("sync") {
+                rollback_destination(&destination, &generated_root)?;
+                drop(staged_index);
+                cleanup_architecture(architecture, architecture_existed)?;
+                return Err("injected index sync failure".into());
+            }
+            if let Err(error) = staged_index.as_file().sync_all() {
+                rollback_destination(&destination, &generated_root)?;
+                drop(staged_index);
+                cleanup_architecture(architecture, architecture_existed)?;
+                return Err(format!("stage index sync failed: {error}"));
+            }
+            if let Ok(owner) = std::env::var("XTASK_TEST_RACE_INDEX") {
+                fs::OpenOptions::new()
+                    .append(true)
+                    .open(&index_path)
+                    .and_then(|mut file| writeln!(file, "# {owner}"))
+                    .map_err(|error| error.to_string())?;
+            }
+            if std::env::var("XTASK_TEST_POST_PUBLICATION_FAILURE").as_deref()
+                == Ok("live-index-read")
+            {
+                return Err("injected live index read failure".into());
+            }
+            let current_index = if index_path.exists() {
+                Some(fs::read(&index_path).map_err(|error| error.to_string())?)
+            } else {
+                None
+            };
+            if current_index != original_index {
+                rollback_destination(&destination, &generated_root)?;
+                drop(staged_index);
+                cleanup_architecture(architecture, architecture_existed)?;
+                return Err("independent index changed concurrently".into());
+            }
+            if let Ok(owner) = std::env::var("XTASK_TEST_BOUNDARY_LOCK_PROBE")
+                && let Ok(mut concurrent) = fs::OpenOptions::new()
+                    .write(true)
+                    .create_new(true)
+                    .open(&lock_path)
+            {
+                writeln!(concurrent, "{owner}").map_err(|error| error.to_string())?;
+                fs::OpenOptions::new()
+                    .append(true)
+                    .open(&index_path)
+                    .and_then(|mut file| writeln!(file, "# {owner}"))
+                    .map_err(|error| error.to_string())?;
+                fs::remove_file(&lock_path).map_err(|error| error.to_string())?;
+            }
+            if std::env::var("XTASK_TEST_INDEX_FAILURE").as_deref() == Ok("persist") {
+                rollback_destination(&destination, &generated_root)?;
+                drop(staged_index);
+                cleanup_architecture(architecture, architecture_existed)?;
+                return Err("injected index persist failure".into());
+            }
+            if let Err(error) = staged_index.persist(&index_path) {
+                rollback_destination(&destination, &generated_root)?;
+                drop(error.file);
+                cleanup_architecture(architecture, architecture_existed)?;
+                return Err(format!("atomic index publish failed: {}", error.error));
+            }
+            Ok(())
+        })();
+        transaction.finalize(result)
     })
 }
 
@@ -473,8 +493,13 @@ fn validate_index(index: &GeneratedIndex) -> Result<(), String> {
 }
 
 fn rollback_destination(destination: &Path, generated_root: &Path) -> Result<(), String> {
-    fs::remove_dir_all(destination)
-        .map_err(|error| format!("artifact rollback failed: {error}"))?;
+    if std::env::var("XTASK_TEST_ROLLBACK_FAILURE").as_deref() == Ok("artifact") {
+        return Err("injected artifact rollback failure".into());
+    }
+    if destination.exists() {
+        fs::remove_dir_all(destination)
+            .map_err(|error| format!("artifact rollback failed: {error}"))?;
+    }
     for directory in [
         generated_root,
         generated_root.parent().unwrap_or(generated_root),
@@ -493,6 +518,9 @@ fn rollback_destination(destination: &Path, generated_root: &Path) -> Result<(),
 }
 
 fn cleanup_architecture(directory: &Path, existed: bool) -> Result<(), String> {
+    if std::env::var("XTASK_TEST_ROLLBACK_FAILURE").as_deref() == Ok("architecture") {
+        return Err("injected architecture rollback failure".into());
+    }
     if !existed
         && directory.exists()
         && fs::read_dir(directory)

@@ -288,6 +288,48 @@ fn architecture_creation_and_live_index_read_failures_restore_exact_workspace() 
 }
 
 #[test]
+fn guarded_failures_surface_rollback_failures_with_evidence() {
+    let cases = [
+        (
+            "architecture",
+            "artifact",
+            "artifact rollback",
+            "generated/journeys/start-walk",
+        ),
+        (
+            "live-index-read",
+            "architecture",
+            "architecture rollback",
+            "architecture",
+        ),
+    ];
+    for (operation_fault, rollback_fault, diagnostic, evidence) in cases {
+        let root = TempDir::new().unwrap();
+        let spec = valid_spec(&root);
+        let output = Command::new(env!("CARGO_BIN_EXE_xtask"))
+            .args([
+                "journey",
+                "new",
+                "start-walk",
+                "--spec",
+                spec.to_str().unwrap(),
+            ])
+            .env("XTASK_TEST_POST_PUBLICATION_FAILURE", operation_fault)
+            .env("XTASK_TEST_ROLLBACK_FAILURE", rollback_fault)
+            .current_dir(root.path())
+            .output()
+            .unwrap();
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        assert!(!output.status.success());
+        assert!(
+            stderr.contains("injected") && stderr.contains(diagnostic),
+            "{stderr}"
+        );
+        assert!(root.path().join(evidence).exists());
+    }
+}
+
+#[test]
 fn stale_writer_lock_fails_closed_without_deletion() {
     let root = TempDir::new().unwrap();
     let spec = valid_spec(&root);

@@ -97,6 +97,22 @@ const validManifest = (overrides = {}) => ({
   ...overrides,
 });
 
+const validEvidence = (headSha = "abc") => {
+  const tasks = validManifest().tasks;
+  return {
+    manifestPath,
+    tasks: {
+      planner: { id: tasks[0].id, threadId: tasks[0].threadId },
+      inventory: { id: tasks[1].id, threadId: tasks[1].threadId },
+      implementation: { id: tasks[2].id, threadId: tasks[2].threadId },
+      finalReview: { id: tasks[3].id, threadId: tasks[3].threadId },
+    },
+    tests: [{ command: "node --test scripts/development/tests/validate-change-manifest.test.mjs", result: "passed" }],
+    headSha,
+    solReview: { approval: "approved", result: "No Critical or Important findings.", findings: [] },
+  };
+};
+
 async function fixture({ manifests = [{ path: manifestPath, value: validManifest() }], changedPaths = [manifestPath, "scripts/development/example.mjs"] } = {}) {
   const root = await mkdtemp(join(tmpdir(), "walking-dog-manifest-"));
   await mkdir(join(root, "docs", "development", "changes"), { recursive: true });
@@ -195,18 +211,24 @@ test("rejects every invalid role, model, thinking level, reused thread, and miss
 test("rejects malformed PR evidence and approval SHA mismatch", async (t) => {
   const value = await fixture();
   t.after(() => rm(value.root, { recursive: true }));
-  await assert.rejects(validateChangeManifest({ ...value, prEvidence: { approval: "approved" }, currentHead: "abc" }), /head SHA and approval/i);
-  await assert.rejects(validateChangeManifest({ ...value, prEvidence: { headSha: "abc" }, currentHead: "abc" }), /head SHA and approval/i);
-  await assert.rejects(validateChangeManifest({ ...value, prEvidence: { headSha: "abc", approval: "approved" }, currentHead: "def" }), /approval.*head/i);
-  await assert.doesNotReject(validateChangeManifest({ ...value, prEvidence: { headSha: "abc", approval: "approved" }, currentHead: "abc" }));
+  await assert.rejects(validateChangeManifest({ ...value, prEvidence: { ...validEvidence(), headSha: "" }, currentHead: "abc" }), /head SHA/i);
+  await assert.rejects(validateChangeManifest({ ...value, prEvidence: { ...validEvidence(), headSha: "abc" }, currentHead: "def" }), /approval.*head/i);
+  await assert.rejects(validateChangeManifest({ ...value, prEvidence: { ...validEvidence(), manifestPath: historicalPath }, currentHead: "abc" }), /manifestPath/i);
+  await assert.rejects(validateChangeManifest({ ...value, prEvidence: { ...validEvidence(), tasks: { ...validEvidence().tasks, finalReview: { id: "wrong", threadId: "wrong" } } }, currentHead: "abc" }), /task identity/i);
+  await assert.rejects(validateChangeManifest({ ...value, prEvidence: { ...validEvidence(), tests: [] }, currentHead: "abc" }), /test results/i);
+  await assert.rejects(validateChangeManifest({ ...value, prEvidence: { ...validEvidence(), tests: [{ command: "cargo test", result: "failed" }] }, currentHead: "abc" }), /test results/i);
+  await assert.rejects(validateChangeManifest({ ...value, prEvidence: { ...validEvidence(), solReview: { approval: "x", result: "review" } }, currentHead: "abc" }), /allowed independent Sol/i);
+  await assert.rejects(validateChangeManifest({ ...value, prEvidence: { ...validEvidence(), solReview: { approval: "changes-requested", result: "review", findings: [] } }, currentHead: "abc" }), /allowed independent Sol/i);
+  await assert.rejects(validateChangeManifest({ ...value, prEvidence: { ...validEvidence(), solReview: { approval: "approved-with-notes", result: "review", findings: [{ severity: "Important" }] } }, currentHead: "abc" }), /allowed independent Sol/i);
+  await assert.doesNotReject(validateChangeManifest({ ...value, prEvidence: validEvidence(), currentHead: "abc" }));
 });
 
 test("parses exactly one change-manifest evidence marker from PR Markdown", () => {
   assert.deepEqual(
-    parsePrEvidence("notes\n<!-- change-manifest-evidence: {\"headSha\":\"abc\",\"approval\":\"approved\"} -->"),
-    { headSha: "abc", approval: "approved" },
+    parsePrEvidence(`notes\n<!-- change-manifest-evidence: ${JSON.stringify(validEvidence())} -->`),
+    validEvidence(),
   );
   assert.throws(() => parsePrEvidence("no marker"), /exactly one/i);
   assert.throws(() => parsePrEvidence("<!-- change-manifest-evidence: {bad} -->"), /malformed/i);
-  assert.throws(() => parsePrEvidence("<!-- change-manifest-evidence: {\"headSha\":\"a\",\"approval\":\"ok\"} -->\n<!-- change-manifest-evidence: {\"headSha\":\"b\",\"approval\":\"ok\"} -->"), /exactly one/i);
+  assert.throws(() => parsePrEvidence("<!-- change-manifest-evidence: {\"headSha\":\"a\"} -->\n<!-- change-manifest-evidence: {\"headSha\":\"b\"} -->"), /exactly one/i);
 });

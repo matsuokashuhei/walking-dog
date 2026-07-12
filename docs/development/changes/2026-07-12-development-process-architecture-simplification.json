@@ -119,6 +119,16 @@
         "bash scripts/development/validate-change-manifest.sh"
       ],
       "result": "GREEN: schema is executed, stored-history and PR-diff modes are distinct, ownership is segment-aware, and PR marker evidence is deterministic."
+    },
+    {
+      "name": "pr-evidence-green",
+      "state": "green",
+      "commands": [
+        "node --test scripts/development/tests/validate-change-manifest.test.mjs",
+        "bash scripts/harness/harness.test.sh",
+        "bash scripts/development/validate-change-manifest.sh"
+      ],
+      "result": "GREEN: one PR marker must bind the changed manifest, all approved task identities, successful test results, current head SHA, and a non-blocking independent Sol result."
     }
   ]
 }

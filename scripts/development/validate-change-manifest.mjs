@@ -11,13 +11,14 @@ const THREAD_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}
 
 export async function validateChangeManifest({ root, changedPaths, prEvidence, currentHead } = {}) {
   if (!root) throw new Error("change manifest validation requires a repository root");
-  const manifest = loadExactlyOneChangedManifest(root, changedPaths ?? []);
+  const loaded = loadExactlyOneChangedManifest(root, changedPaths ?? []);
+  const { manifest } = loaded;
   const schema = loadSchema(root);
   const schemaErrors = validateJsonSchema(manifest, schema);
   if (schemaErrors.length > 0) throw new Error(`change manifest schema error: ${schemaErrors.join("; ")}`);
   validateTasks(manifest.tasks);
   validateOwnership(manifest.ownership, manifest.tasks, changedPaths ?? []);
-  validateEvidence(prEvidence, currentHead);
+  validateEvidence(prEvidence, currentHead, loaded);
   return manifest;
 }
 
@@ -47,7 +48,7 @@ function loadExactlyOneChangedManifest(root, changedPaths) {
   const path = join(root, manifests[0]);
   if (!existsSync(path)) throw new Error(`change manifest schema error: changed manifest is absent: ${manifests[0]}`);
   try {
-    return JSON.parse(readFileSync(path, "utf8"));
+    return { manifest: JSON.parse(readFileSync(path, "utf8")), path: manifests[0] };
   } catch (error) {
     throw new Error(`change manifest schema error: ${error.message}`);
   }
@@ -151,12 +152,31 @@ function ownershipPathsOverlap(first, second) {
     || (second.endsWith("/") && first.startsWith(second));
 }
 
-function validateEvidence(prEvidence, currentHead) {
+function validateEvidence(prEvidence, currentHead, { manifest, path }) {
   if (!prEvidence && !currentHead) return;
-  if (!prEvidence || typeof prEvidence.headSha !== "string" || prEvidence.headSha.length === 0 || typeof prEvidence.approval !== "string" || prEvidence.approval.length === 0 || typeof currentHead !== "string" || currentHead.length === 0) {
-    throw new Error("PR evidence requires head SHA and approval");
+  if (!prEvidence || typeof prEvidence.headSha !== "string" || prEvidence.headSha.length === 0 || typeof currentHead !== "string" || currentHead.length === 0) {
+    throw new Error("PR evidence requires a head SHA");
   }
   if (prEvidence.headSha !== currentHead) throw new Error("PR approval head SHA does not match current head");
+  if (prEvidence.manifestPath !== path) throw new Error("PR evidence manifestPath does not match the changed manifest");
+  if (!Array.isArray(prEvidence.tests) || prEvidence.tests.length === 0 || prEvidence.tests.some((entry) => !entry || typeof entry.command !== "string" || entry.command.length === 0 || !["passed", "no-affected-journey"].includes(entry.result))) {
+    throw new Error("PR evidence requires nonempty test results");
+  }
+  const expected = {
+    planner: manifest.tasks.find((task) => task.role === "planner" && task.model === "sol"),
+    inventory: manifest.tasks.find((task) => task.role === "inventory" && task.model === "luna"),
+    implementation: manifest.tasks.find((task) => task.role === "implementation" && task.model === "terra"),
+    finalReview: manifest.tasks.find((task) => task.role === "final-review" && task.model === "sol"),
+  };
+  for (const [role, task] of Object.entries(expected)) {
+    const actual = prEvidence.tasks?.[role];
+    if (!task || actual?.id !== task.id || actual?.threadId !== task.threadId) throw new Error(`PR evidence task identity does not match manifest ${role}`);
+  }
+  const review = prEvidence.solReview;
+  const hasBlockingFinding = review?.findings?.some((finding) => ["Critical", "Important"].includes(finding?.severity));
+  if (!expected.finalReview.independentOf || !["approved", "approved-with-notes"].includes(review?.approval) || typeof review?.result !== "string" || review.result.length === 0 || !Array.isArray(review.findings) || hasBlockingFinding) {
+    throw new Error("PR evidence requires an allowed independent Sol approval and result");
+  }
 }
 
 function changedPaths(root, base, head) {

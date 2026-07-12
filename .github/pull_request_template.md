@@ -37,7 +37,7 @@
 - [ ] Base/head validation command and result:
 - [ ] No affected journey (or affected journey evidence):
 
-<!-- change-manifest-evidence: {"headSha":"","approval":""} -->
+<!-- change-manifest-evidence: {"manifestPath":"","tasks":{"planner":{"id":"","threadId":""},"inventory":{"id":"","threadId":""},"implementation":{"id":"","threadId":""},"finalReview":{"id":"","threadId":""}},"tests":[{"command":"","result":"passed"}],"headSha":"","solReview":{"approval":"approved","result":"","findings":[]}} -->
 
 The independent Sol approval/result is external PR or CI evidence. Its `headSha`
 must equal the current PR head. Editing this PR reruns Harness validation; a

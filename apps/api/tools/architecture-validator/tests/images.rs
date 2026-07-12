@@ -357,3 +357,43 @@ fn local_module_alias_export_stays_noncanonical_across_files() {
     ];
     validate_testcontainers_source_set(&sources).expect("local module capability is not canonical");
 }
+
+#[test]
+fn macro_arguments_resolve_cross_file_canonical_exports() {
+    for (root, child) in [
+        (
+            "pub(crate) use ::testcontainers as first; pub(super) use first as tc; mod child;",
+            "make!(crate::tc::GenericImage);",
+        ),
+        ("mod shim; mod child;", "invoke!(crate::shim::Image);"),
+    ] {
+        let sources = [
+            ("crates/domain/src/lib.rs", root),
+            ("crates/domain/src/child.rs", child),
+            (
+                "crates/domain/src/shim.rs",
+                "pub(crate) use ::testcontainers::GenericImage as Image;",
+            ),
+        ];
+        assert!(validate_testcontainers_source_set(&sources).is_err());
+    }
+}
+
+#[test]
+fn macro_arguments_with_local_exports_are_clean() {
+    let sources = [
+        (
+            "crates/domain/src/lib.rs",
+            "mod testcontainers; pub use testcontainers as tc; mod child;",
+        ),
+        (
+            "crates/domain/src/testcontainers.rs",
+            "pub struct GenericImage;",
+        ),
+        (
+            "crates/domain/src/child.rs",
+            "inspect!(crate::tc::GenericImage);",
+        ),
+    ];
+    validate_testcontainers_source_set(&sources).expect("local macro argument is noncanonical");
+}

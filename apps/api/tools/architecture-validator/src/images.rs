@@ -663,14 +663,24 @@ impl Visit<'_> for ScopeVisitor<'_> {
 
     fn visit_item_macro(&mut self, item: &ItemMacro) {
         if unsafe_macro_definition(&item.mac.tokens)
-            || macro_constructor_tokens(&item.mac.tokens, self.symbols)
+            || macro_constructor_tokens(
+                &item.mac.tokens,
+                self.symbols,
+                self.module_path,
+                self.exports,
+            )
         {
             self.findings.macro_escapes += 1;
         }
     }
 
     fn visit_expr_macro(&mut self, expression: &syn::ExprMacro) {
-        if macro_constructor_tokens(&expression.mac.tokens, self.symbols) {
+        if macro_constructor_tokens(
+            &expression.mac.tokens,
+            self.symbols,
+            self.module_path,
+            self.exports,
+        ) {
             self.findings.macro_escapes += 1;
         }
     }
@@ -710,7 +720,12 @@ fn unsafe_macro_definition(tokens: &TokenStream) -> bool {
         && identifiers.iter().any(|value| value == "new")
 }
 
-fn macro_constructor_tokens(tokens: &TokenStream, symbols: &ScopeSymbols) -> bool {
+fn macro_constructor_tokens(
+    tokens: &TokenStream,
+    symbols: &ScopeSymbols,
+    module_path: &[String],
+    exports: &ExportIndex,
+) -> bool {
     let mut identifiers = Vec::new();
     collect_token_idents(tokens, &mut identifiers);
     identifiers
@@ -726,6 +741,54 @@ fn macro_constructor_tokens(tokens: &TokenStream, symbols: &ScopeSymbols) -> boo
         || identifiers
             .iter()
             .any(|value| symbols.modules.contains(value))
+        || token_paths(tokens)
+            .iter()
+            .any(|path| canonical_export_token_path(path, module_path, exports))
+}
+
+fn canonical_export_token_path(
+    path: &[String],
+    module_path: &[String],
+    exports: &ExportIndex,
+) -> bool {
+    if exports.contains(&absolute_path(path, module_path)) {
+        return true;
+    }
+    if path.last().is_some_and(|part| part == "GenericImage") {
+        let mut module = absolute_path(&path[..path.len() - 1], module_path);
+        module.push("<module>".to_owned());
+        return exports.contains(&module);
+    }
+    false
+}
+
+fn token_paths(tokens: &TokenStream) -> Vec<Vec<String>> {
+    let trees = tokens.clone().into_iter().collect::<Vec<_>>();
+    let mut paths = Vec::new();
+    for (start, tree) in trees.iter().enumerate() {
+        if let TokenTree::Group(group) = tree {
+            paths.extend(token_paths(&group.stream()));
+        }
+        let TokenTree::Ident(first) = tree else {
+            continue;
+        };
+        let mut path = vec![first.to_string()];
+        let mut cursor = start + 1;
+        while cursor + 2 < trees.len()
+            && matches!(&trees[cursor], TokenTree::Punct(value) if value.as_char() == ':')
+            && matches!(&trees[cursor + 1], TokenTree::Punct(value) if value.as_char() == ':')
+        {
+            let TokenTree::Ident(next) = &trees[cursor + 2] else {
+                break;
+            };
+            path.push(next.to_string());
+            cursor += 3;
+        }
+        if path.len() > 1 {
+            paths.push(path);
+        }
+    }
+    paths
 }
 
 fn collect_token_idents(tokens: &TokenStream, output: &mut Vec<String>) {

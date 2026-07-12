@@ -17,7 +17,7 @@ jobs:
     outputs:
       api: ${{ steps.filter.outputs.api }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: dorny/paths-filter@v3
         id: filter
         with:
@@ -37,7 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - if: needs.changes.outputs.api == 'true'
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - if: needs.changes.outputs.api == 'true'
@@ -67,7 +67,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - if: needs.changes.outputs.api == 'true'
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - if: needs.changes.outputs.api == 'true'
         uses: dtolnay/rust-toolchain@1.96.0
       - if: needs.changes.outputs.api == 'true'
@@ -82,7 +82,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - if: needs.changes.outputs.api == 'true'
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - if: needs.changes.outputs.api == 'true'
         uses: dtolnay/rust-toolchain@1.96.0
       - if: needs.changes.outputs.api == 'true'
@@ -97,7 +97,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - if: needs.changes.outputs.api == 'true'
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - if: needs.changes.outputs.api == 'true'
         uses: dtolnay/rust-toolchain@1.96.0
       - if: needs.changes.outputs.api == 'true'
@@ -111,7 +111,7 @@ jobs:
     needs: changes
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - if: needs.changes.outputs.api == 'true'
         uses: dtolnay/rust-toolchain@1.96.0
       - if: needs.changes.outputs.api == 'true'

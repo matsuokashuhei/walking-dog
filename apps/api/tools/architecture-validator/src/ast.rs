@@ -87,6 +87,7 @@ fn analyze_parsed(unit: SourceUnit<'_>, file: &syn::File) -> Vec<Diagnostic> {
         seen: HashSet::new(),
         public_boundary: false,
         trait_impl: false,
+        resolver_boundary: false,
         trait_scopes: vec![trait_scope],
         module_path: source_module_components(unit.path),
     };
@@ -100,6 +101,7 @@ struct Analyzer<'a> {
     seen: HashSet<(&'static str, usize, usize, String)>,
     public_boundary: bool,
     trait_impl: bool,
+    resolver_boundary: bool,
     trait_scopes: Vec<HashMap<String, bool>>,
     module_path: Vec<String>,
 }
@@ -133,6 +135,14 @@ impl Analyzer<'_> {
     fn inspect_path(&mut self, path: &Path) {
         let raw = path_segments(path);
         self.inspect_segments(&raw, path.span(), raw.last().map_or("path", String::as_str));
+        if self.resolver_boundary && is_forbidden_resolver_capability_path(&raw) {
+            self.report(
+                "API-ARCH-008",
+                path.span(),
+                raw.join("::"),
+                "delegate orchestration to an application use case",
+            );
+        }
     }
 
     fn inspect_segments(&mut self, segments: &[String], span: Span, symbol: &str) {
@@ -324,12 +334,16 @@ impl<'ast> Visit<'ast> for Analyzer<'_> {
     fn visit_item_impl(&mut self, node: &'ast ItemImpl) {
         self.inspect_attributes(&node.attrs);
         let previous = self.trait_impl;
+        let previous_resolver_boundary = self.resolver_boundary;
         self.trait_impl = node.trait_.as_ref().is_some_and(|(_, path, _)| {
             let canonical = path_segments(path);
             trait_is_public(&canonical, &self.trait_scopes)
         });
+        self.resolver_boundary = self.unit.crate_name == "adapter-graphql"
+            && node.attrs.iter().any(resolver_surface_attribute);
         visit::visit_item_impl(self, node);
         self.trait_impl = previous;
+        self.resolver_boundary = previous_resolver_boundary;
     }
 
     fn visit_impl_item_fn(&mut self, node: &'ast ImplItemFn) {
@@ -415,16 +429,6 @@ impl<'ast> Visit<'ast> for Analyzer<'_> {
     fn visit_expr_call(&mut self, node: &'ast ExprCall) {
         if let syn::Expr::Path(function) = node.func.as_ref() {
             let path = path_segments(&function.path);
-            if is_declared_resolver_boundary(self.unit)
-                && is_declared_resolver_orchestration_path(&path)
-            {
-                self.report(
-                    "API-ARCH-008",
-                    function.path.span(),
-                    "adapter-postgres transaction",
-                    "delegate orchestration to an application use case",
-                );
-            }
             if self.unit.crate_name != "api-bootstrap"
                 && path.last().is_some_and(|part| part == "new")
                 && path.iter().any(|part| part.starts_with("adapter_"))
@@ -679,68 +683,36 @@ fn meta_hides_cfg(meta: &Meta) -> bool {
         })
 }
 
-const DECLARED_GRAPHQL_RESOLVER_BOUNDARIES: &[&str] = &[
-    "crates/adapter-graphql/src/resolver.rs",
-    "crates/adapter-graphql/src/resolver/owner.rs",
-    "crates/adapter-graphql/src/resolver/dog.rs",
-    "crates/adapter-graphql/src/resolver/walk.rs",
-    "crates/adapter-graphql/src/resolver/walk_recording.rs",
-    "crates/adapter-graphql/src/resolver/walk_event.rs",
-    "crates/adapter-graphql/src/resolver/walk_insight.rs",
-    "crates/adapter-graphql/src/identity/resolver.rs",
-    "crates/adapter-graphql/src/identity/query.rs",
-    "crates/adapter-graphql/src/identity/mutation.rs",
-    "crates/adapter-graphql/src/owner/resolver.rs",
-    "crates/adapter-graphql/src/owner/query.rs",
-    "crates/adapter-graphql/src/owner/mutation.rs",
-    "crates/adapter-graphql/src/dog/resolver.rs",
-    "crates/adapter-graphql/src/dog/query.rs",
-    "crates/adapter-graphql/src/dog/mutation.rs",
-    "crates/adapter-graphql/src/walk/resolver.rs",
-    "crates/adapter-graphql/src/walk/query.rs",
-    "crates/adapter-graphql/src/walk/mutation.rs",
-    "crates/adapter-graphql/src/walk_recording/resolver.rs",
-    "crates/adapter-graphql/src/walk_recording/query.rs",
-    "crates/adapter-graphql/src/walk_recording/mutation.rs",
-    "crates/adapter-graphql/src/walk_event/resolver.rs",
-    "crates/adapter-graphql/src/walk_event/query.rs",
-    "crates/adapter-graphql/src/walk_event/mutation.rs",
-    "crates/adapter-graphql/src/walk_insight/resolver.rs",
-    "crates/adapter-graphql/src/walk_insight/query.rs",
-    "crates/adapter-graphql/src/walk_insight/mutation.rs",
-];
-
-const FORBIDDEN_RESOLVER_ORCHESTRATION_CALLS: &[&[&str]] = &[
-    &["adapter_postgres", "Repository", "begin_transaction"],
-    &["adapter_postgres", "Repository", "load"],
-    &["adapter_postgres", "Repository", "read"],
-    &["adapter_postgres", "Repository", "retry"],
-    &["adapter_postgres", "Storage", "store"],
-    &["adapter_postgres", "Storage", "put"],
-    &["adapter_postgres", "Storage", "delete"],
-    &["adapter_postgres", "Transaction", "commit"],
-    &["adapter_postgres", "Transaction", "rollback"],
-    &["adapter_postgres", "Transaction", "finish"],
-    &["application", "Clock", "now"],
-    &["application", "Retry", "run"],
-    &["aws_sdk_s3", "Client", "get_object"],
-    &["aws_sdk_s3", "Client", "put_object"],
-    &["aws_sdk_sqs", "Client", "send_message"],
-];
-
-fn is_declared_resolver_boundary(unit: SourceUnit<'_>) -> bool {
-    unit.crate_name == "adapter-graphql"
-        && DECLARED_GRAPHQL_RESOLVER_BOUNDARIES.contains(&unit.path)
+fn resolver_surface_attribute(attribute: &Attribute) -> bool {
+    let path = path_segments(attribute.path());
+    let supported_surface = matches!(
+        path.last().map(String::as_str),
+        Some("Object" | "ComplexObject" | "Subscription")
+    );
+    supported_surface
+        && (path.len() == 1
+            || (path.len() == 2 && path.first().is_some_and(|root| root == "async_graphql")))
 }
 
-fn is_declared_resolver_orchestration_path(path: &[String]) -> bool {
-    FORBIDDEN_RESOLVER_ORCHESTRATION_CALLS
-        .iter()
-        .any(|forbidden| {
-            path.iter()
-                .map(String::as_str)
-                .eq(forbidden.iter().copied())
-        })
+fn is_forbidden_resolver_capability_path(path: &[String]) -> bool {
+    match path {
+        [root, ..]
+            if path.len() >= 2
+                && (root.starts_with("adapter_") || root.starts_with("aws_sdk_")) =>
+        {
+            true
+        }
+        [root, capability, ..]
+            if root == "application"
+                && matches!(
+                    capability.as_str(),
+                    "Repository" | "Storage" | "Transaction" | "Clock" | "Retry"
+                ) =>
+        {
+            true
+        }
+        _ => false,
+    }
 }
 
 fn imports_another_application_module(source: &[String], imported: &[String]) -> bool {

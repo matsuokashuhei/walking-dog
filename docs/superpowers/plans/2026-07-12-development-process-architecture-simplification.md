@@ -73,7 +73,8 @@ replacement tests are RED.
 
 - [ ] Add failing fixtures for governed alias/glob/re-export/`extern crate`/
   `include!`/`cfg` syntax with ID/path/line/column; preserve 005/006/012 and
-  declared resolver/raw-SQL boundaries. Run focused tests and record RED.
+  syntax-local async-graphql resolver/raw-SQL boundaries. Run focused tests and
+  record RED.
 - [ ] Replace cross-file/export/alias/trait resolution and lexical SQL inference
   with syntax-local checks plus noncanonical-form rejection. Keep fail-closed
   parse/I/O/metadata/exceptions/intent/diff/human/SARIF contracts.

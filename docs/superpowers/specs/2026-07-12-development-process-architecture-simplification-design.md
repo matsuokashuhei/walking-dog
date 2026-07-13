@@ -64,7 +64,12 @@ the dependency constraints formerly duplicated by AST checks. Clippy owns
 `unwrap`/`expect` where it is equivalent. The shallow gate retains explicit
 source checks for environment/I/O/feature paths, raw SQL, sensitive logging, and
 the resolver boundary. Rules 005, 006, and 012 remain protected; Rule 008 becomes
-a declared resolver boundary rather than word/path inference.
+an async-graphql `Object`/`ComplexObject`/`Subscription` impl-attribute boundary
+rather than a file-name, word, or method-name inference. Within that syntax-local
+boundary, direct `adapter_*`/`aws_sdk_*` capability paths and the closed
+`application::{Repository,Storage,Transaction,Clock,Retry}` prefixes are rejected
+regardless of following method name. Alias resolution, macro expansion, and type
+inference remain forbidden.
 
 ## Closed Testcontainers design
 

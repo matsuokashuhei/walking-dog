@@ -57,8 +57,8 @@ const INITIAL_FIXTURES: [FailingFixture; 11] = [
         rule: "API-ARCH-008",
         crate_name: "adapter-graphql",
         path: "crates/adapter-graphql/src/resolver.rs",
-        source: "fn resolve() {\n    adapter_postgres::Repository::begin_transaction();\n}\n",
-        line: 2,
+        source: "#[Object]\nimpl Query {\n    fn resolve() { adapter_postgres::Repository::begin_transaction(); }\n}\n",
+        line: 3,
     },
     FailingFixture {
         rule: "API-ARCH-009",
@@ -202,8 +202,8 @@ const STRUCTURAL_FIXTURES: [FailingFixture; 11] = [
         rule: "API-ARCH-008",
         crate_name: "adapter-graphql",
         path: "crates/adapter-graphql/src/resolver.rs",
-        source: "fn resolve() { adapter_postgres::Repository::begin_transaction(); }\n",
-        line: 1,
+        source: "#[Object]\nimpl Query { fn resolve() { adapter_postgres::Repository::begin_transaction(); } }\n",
+        line: 2,
     },
     FailingFixture {
         rule: "API-ARCH-001",
@@ -449,35 +449,51 @@ fn canonical_syntax_rejects_hiding_forms_at_their_source_location() {
 }
 
 #[test]
-fn resolver_boundaries_reject_closed_direct_orchestration_surface_without_inference() {
+fn resolver_attributes_reject_structural_direct_capabilities_without_filename_or_method_catalogs() {
     let forbidden = [
         (
-            "crates/adapter-graphql/src/resolver.rs",
-            "adapter_postgres::Repository::begin_transaction()",
+            "#[Object]",
+            "crates/adapter-graphql/src/new_domain.rs",
+            "adapter_postgres::Repository::save()",
         ),
         (
-            "crates/adapter-graphql/src/resolver/owner.rs",
-            "adapter_postgres::Repository::read()",
+            "#[async_graphql::Object]",
+            "crates/adapter-graphql/src/new_domain.rs",
+            "adapter_s3::Client::remove()",
         ),
         (
-            "crates/adapter-graphql/src/resolver/walk.rs",
-            "adapter_postgres::Storage::put()",
+            "#[ComplexObject]",
+            "crates/adapter-graphql/src/another_domain.rs",
+            "aws_sdk_s3::Client::elapsed()",
         ),
         (
-            "crates/adapter-graphql/src/owner/resolver.rs",
-            "adapter_postgres::Transaction::finish()",
+            "#[async_graphql::Subscription]",
+            "crates/adapter-graphql/src/another_domain.rs",
+            "application::Repository::save()",
         ),
         (
-            "crates/adapter-graphql/src/walk/resolver.rs",
-            "application::Clock::now()",
+            "#[Object]",
+            "crates/adapter-graphql/src/new_domain.rs",
+            "application::Storage::remove()",
         ),
         (
-            "crates/adapter-graphql/src/resolver.rs",
-            "application::Retry::run()",
+            "#[Subscription]",
+            "crates/adapter-graphql/src/new_domain.rs",
+            "application::Transaction::elapsed()",
+        ),
+        (
+            "#[Object]",
+            "crates/adapter-graphql/src/new_domain.rs",
+            "application::Clock::elapsed()",
+        ),
+        (
+            "#[Object]",
+            "crates/adapter-graphql/src/new_domain.rs",
+            "application::Retry::elapsed()",
         ),
     ];
-    for (path, call) in forbidden {
-        let source = format!("fn resolve() {{ {call}; }}");
+    for (attribute, path, call) in forbidden {
+        let source = format!("{attribute}\nimpl Resolver {{\n    fn field() {{ {call}; }}\n}}\n");
         let diagnostics = analyze_source(SourceUnit {
             crate_name: "adapter-graphql",
             path,
@@ -489,25 +505,25 @@ fn resolver_boundaries_reject_closed_direct_orchestration_surface_without_infere
             diagnostics.iter().any(|diagnostic| {
                 diagnostic.rule_id == "API-ARCH-008"
                     && diagnostic.path == path
-                    && diagnostic.line == 1
-                    && diagnostic.column == 16
+                    && diagnostic.line == 3
+                    && diagnostic.column == 18
             }),
-            "closed resolver boundary must reject {path} {call}: {diagnostics:?}"
+            "resolver attribute must reject {path} {call}: {diagnostics:?}"
         );
     }
 
     for (path, source) in [
         (
-            "crates/adapter-graphql/src/resolver_helpers.rs",
-            "fn resolve() { adapter_postgres::Repository::begin_transaction(); }",
+            "crates/adapter-graphql/src/new_domain.rs",
+            "fn helper() { adapter_postgres::Repository::save(); }",
         ),
         (
-            "crates/adapter-graphql/src/resolver.rs",
-            "fn resolve(repository: Store) { repository.begin_transaction(); }",
+            "crates/adapter-graphql/src/new_domain.rs",
+            "#[SimpleObject]\nstruct GraphqlHelper;\nfn helper() { let repository = \"adapter_postgres::Repository::save\"; let _ = repository; }",
         ),
         (
-            "crates/adapter-graphql/src/resolver.rs",
-            "fn resolve() { adapter_postgres::Repository::begin_transaction_named(); }",
+            "crates/adapter-graphql/src/new_domain.rs",
+            "// adapter_postgres::Repository::save\nfn helper() { let storage = \"application::Storage::remove\"; let _ = storage; }",
         ),
     ] {
         let diagnostics = analyze_source(SourceUnit {
@@ -521,7 +537,7 @@ fn resolver_boundaries_reject_closed_direct_orchestration_surface_without_infere
             diagnostics
                 .iter()
                 .all(|diagnostic| diagnostic.rule_id != "API-ARCH-008"),
-            "only closed direct paths in declared boundaries are governed: {diagnostics:?}"
+            "only direct paths inside official resolver attributes are governed: {diagnostics:?}"
         );
     }
 }

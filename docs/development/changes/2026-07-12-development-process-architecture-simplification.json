@@ -303,6 +303,22 @@
         "Freeze: Docker mounted-Git cargo xtask architecture check --base origin/main --head HEAD"
       ],
       "result": "After three same-cause API-ARCH-008 failures, Sol redesign replaced the 28-file resolver catalog and 15-method table with syntax-local state from official async-graphql Object, ComplexObject, and Subscription impl attributes. RED observed that a new-domain #[Object] impl using adapter_postgres::Repository::save() produced no API-ARCH-008 diagnostic. GREEN: structural prefixes reject any direct adapter_* or aws_sdk_* capability path and application::{Repository,Storage,Transaction,Clock,Retry} regardless of method name; fixtures cover new files/domains, qualified attributes, save/remove/elapsed, exact path/line/column, boundary-outside helpers, SimpleObject types, local identifiers, strings, and comments. No cross-file resolution, alias expansion, macro expansion, or type inference was added. architecture-validator all targets passed 56 tests, manifest 10/10, Harness 19/19, fmt, approved strict Clippy scopes, and working-tree architecture check passed. Mounted-Git validation runs against the frozen commit without a post-freeze manifest change."
+    },
+    {
+      "name": "final-integration-freeze-green",
+      "state": "green",
+      "commands": [
+        "RED: Docker cargo clippy -p architecture-validator --all-targets --locked -- -D warnings exposed a new test helper using unwrap and confirmed that the repository's production/test lint split must be used",
+        "GREEN: Docker cargo test -p architecture-validator --all-targets --locked",
+        "GREEN: Docker cargo clippy -p architecture-validator --lib --bins --examples --all-features --locked -- -D warnings",
+        "GREEN: Docker cargo clippy -p architecture-validator --tests --all-features --locked -- -D warnings -A clippy::unwrap_used -A clippy::expect_used",
+        "GREEN: Docker cargo fmt --all -- --check",
+        "GREEN: node --test scripts/development/tests/validate-change-manifest.test.mjs",
+        "GREEN: bash scripts/harness/harness.test.sh",
+        "Freeze: Docker mounted-Git cargo xtask architecture check --base origin/main --head HEAD",
+        "Compare approved plan, design, active manifest, origin/main...HEAD paths, CI consumers, prior Sol findings, API-ARCH-001..012 outputs, and image-catalog guarantees"
+      ],
+      "result": "Integration Sol self-review found and removed unwrap/expect from the new paired-intent test without changing behavior, then verified 56 architecture-validator tests, production and test Clippy scopes, formatting, 10 manifest tests, 19 Harness contracts, and the exact mounted-Git base/head architecture gate. Input/output comparison found no remaining Critical or Important issue; the independent Sol review remains external and must approve the resulting exact frozen SHA."
     }
   ]
 }

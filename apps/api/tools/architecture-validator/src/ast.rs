@@ -679,15 +679,68 @@ fn meta_hides_cfg(meta: &Meta) -> bool {
         })
 }
 
+const DECLARED_GRAPHQL_RESOLVER_BOUNDARIES: &[&str] = &[
+    "crates/adapter-graphql/src/resolver.rs",
+    "crates/adapter-graphql/src/resolver/owner.rs",
+    "crates/adapter-graphql/src/resolver/dog.rs",
+    "crates/adapter-graphql/src/resolver/walk.rs",
+    "crates/adapter-graphql/src/resolver/walk_recording.rs",
+    "crates/adapter-graphql/src/resolver/walk_event.rs",
+    "crates/adapter-graphql/src/resolver/walk_insight.rs",
+    "crates/adapter-graphql/src/identity/resolver.rs",
+    "crates/adapter-graphql/src/identity/query.rs",
+    "crates/adapter-graphql/src/identity/mutation.rs",
+    "crates/adapter-graphql/src/owner/resolver.rs",
+    "crates/adapter-graphql/src/owner/query.rs",
+    "crates/adapter-graphql/src/owner/mutation.rs",
+    "crates/adapter-graphql/src/dog/resolver.rs",
+    "crates/adapter-graphql/src/dog/query.rs",
+    "crates/adapter-graphql/src/dog/mutation.rs",
+    "crates/adapter-graphql/src/walk/resolver.rs",
+    "crates/adapter-graphql/src/walk/query.rs",
+    "crates/adapter-graphql/src/walk/mutation.rs",
+    "crates/adapter-graphql/src/walk_recording/resolver.rs",
+    "crates/adapter-graphql/src/walk_recording/query.rs",
+    "crates/adapter-graphql/src/walk_recording/mutation.rs",
+    "crates/adapter-graphql/src/walk_event/resolver.rs",
+    "crates/adapter-graphql/src/walk_event/query.rs",
+    "crates/adapter-graphql/src/walk_event/mutation.rs",
+    "crates/adapter-graphql/src/walk_insight/resolver.rs",
+    "crates/adapter-graphql/src/walk_insight/query.rs",
+    "crates/adapter-graphql/src/walk_insight/mutation.rs",
+];
+
+const FORBIDDEN_RESOLVER_ORCHESTRATION_CALLS: &[&[&str]] = &[
+    &["adapter_postgres", "Repository", "begin_transaction"],
+    &["adapter_postgres", "Repository", "load"],
+    &["adapter_postgres", "Repository", "read"],
+    &["adapter_postgres", "Repository", "retry"],
+    &["adapter_postgres", "Storage", "store"],
+    &["adapter_postgres", "Storage", "put"],
+    &["adapter_postgres", "Storage", "delete"],
+    &["adapter_postgres", "Transaction", "commit"],
+    &["adapter_postgres", "Transaction", "rollback"],
+    &["adapter_postgres", "Transaction", "finish"],
+    &["application", "Clock", "now"],
+    &["application", "Retry", "run"],
+    &["aws_sdk_s3", "Client", "get_object"],
+    &["aws_sdk_s3", "Client", "put_object"],
+    &["aws_sdk_sqs", "Client", "send_message"],
+];
+
 fn is_declared_resolver_boundary(unit: SourceUnit<'_>) -> bool {
-    unit.crate_name == "adapter-graphql" && unit.path == "crates/adapter-graphql/src/resolver.rs"
+    unit.crate_name == "adapter-graphql"
+        && DECLARED_GRAPHQL_RESOLVER_BOUNDARIES.contains(&unit.path)
 }
 
 fn is_declared_resolver_orchestration_path(path: &[String]) -> bool {
-    matches!(path, [adapter, repository, transaction]
-        if adapter == "adapter_postgres"
-            && repository == "Repository"
-            && transaction == "begin_transaction")
+    FORBIDDEN_RESOLVER_ORCHESTRATION_CALLS
+        .iter()
+        .any(|forbidden| {
+            path.iter()
+                .map(String::as_str)
+                .eq(forbidden.iter().copied())
+        })
 }
 
 fn imports_another_application_module(source: &[String], imported: &[String]) -> bool {

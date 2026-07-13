@@ -449,19 +449,52 @@ fn canonical_syntax_rejects_hiding_forms_at_their_source_location() {
 }
 
 #[test]
-fn resolver_boundary_is_declared_and_uses_only_explicit_call_targets() {
-    let declared = analyze_source(SourceUnit {
-        crate_name: "adapter-graphql",
-        path: "crates/adapter-graphql/src/resolver.rs",
-        source: "fn resolve() { adapter_postgres::Repository::begin_transaction(); }",
-        production: true,
-    })
-    .expect("fixture parses");
-    assert!(declared.iter().any(|diagnostic| {
-        diagnostic.rule_id == "API-ARCH-008"
-            && diagnostic.path == "crates/adapter-graphql/src/resolver.rs"
-            && diagnostic.line == 1
-    }));
+fn resolver_boundaries_reject_closed_direct_orchestration_surface_without_inference() {
+    let forbidden = [
+        (
+            "crates/adapter-graphql/src/resolver.rs",
+            "adapter_postgres::Repository::begin_transaction()",
+        ),
+        (
+            "crates/adapter-graphql/src/resolver/owner.rs",
+            "adapter_postgres::Repository::read()",
+        ),
+        (
+            "crates/adapter-graphql/src/resolver/walk.rs",
+            "adapter_postgres::Storage::put()",
+        ),
+        (
+            "crates/adapter-graphql/src/owner/resolver.rs",
+            "adapter_postgres::Transaction::finish()",
+        ),
+        (
+            "crates/adapter-graphql/src/walk/resolver.rs",
+            "application::Clock::now()",
+        ),
+        (
+            "crates/adapter-graphql/src/resolver.rs",
+            "application::Retry::run()",
+        ),
+    ];
+    for (path, call) in forbidden {
+        let source = format!("fn resolve() {{ {call}; }}");
+        let diagnostics = analyze_source(SourceUnit {
+            crate_name: "adapter-graphql",
+            path,
+            source: &source,
+            production: true,
+        })
+        .expect("fixture parses");
+        assert!(
+            diagnostics.iter().any(|diagnostic| {
+                diagnostic.rule_id == "API-ARCH-008"
+                    && diagnostic.path == path
+                    && diagnostic.line == 1
+                    && diagnostic.column == 16
+            }),
+            "closed resolver boundary must reject {path} {call}: {diagnostics:?}"
+        );
+    }
 
     for (path, source) in [
         (
@@ -471,6 +504,10 @@ fn resolver_boundary_is_declared_and_uses_only_explicit_call_targets() {
         (
             "crates/adapter-graphql/src/resolver.rs",
             "fn resolve(repository: Store) { repository.begin_transaction(); }",
+        ),
+        (
+            "crates/adapter-graphql/src/resolver.rs",
+            "fn resolve() { adapter_postgres::Repository::begin_transaction_named(); }",
         ),
     ] {
         let diagnostics = analyze_source(SourceUnit {
@@ -484,7 +521,7 @@ fn resolver_boundary_is_declared_and_uses_only_explicit_call_targets() {
             diagnostics
                 .iter()
                 .all(|diagnostic| diagnostic.rule_id != "API-ARCH-008"),
-            "declared syntax, not partial paths or names, controls API-ARCH-008: {diagnostics:?}"
+            "only closed direct paths in declared boundaries are governed: {diagnostics:?}"
         );
     }
 }

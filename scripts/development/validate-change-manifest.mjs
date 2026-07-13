@@ -180,8 +180,37 @@ function validateEvidence(prEvidence, currentHead, { manifest, path }) {
 }
 
 function changedPaths(root, base, head) {
-  const output = execFileSync("git", ["diff", "--name-only", "--diff-filter=ACMRD", `${base}...${head}`], { cwd: root, encoding: "utf8" });
-  return output.split("\n").filter(Boolean);
+  const output = execFileSync(
+    "git",
+    ["diff", "--name-status", "-z", "--find-renames", "--find-copies-harder", `${base}...${head}`],
+    { cwd: root, encoding: "utf8" },
+  );
+  return parseChangedPaths(output);
+}
+
+function parseChangedPaths(output) {
+  const fields = output.split("\0");
+  const paths = new Set();
+  let index = 0;
+  while (index < fields.length - 1) {
+    const status = fields[index++];
+    if (!status) continue;
+    const kind = status[0];
+    if (kind === "R" || kind === "C") {
+      const oldPath = fields[index++];
+      const newPath = fields[index++];
+      if (!oldPath || !newPath) throw new Error(`cannot parse git ${kind === "R" ? "rename" : "copy"} paths`);
+      paths.add(oldPath);
+      paths.add(newPath);
+      continue;
+    }
+    const path = fields[index++];
+    if (!path || !["A", "D", "M", "T", "U", "X", "B"].includes(kind)) {
+      throw new Error(`cannot parse git change status ${status}`);
+    }
+    paths.add(path);
+  }
+  return [...paths];
 }
 
 function parseArgs(args) {

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -137,7 +137,7 @@ function git(root, args) {
 }
 
 function commit(root, message) {
-  git(root, ["add", "."]);
+  git(root, ["add", "--all", "--force"]);
   git(root, ["-c", "user.email=tests@example.invalid", "-c", "user.name=Manifest tests", "commit", "-m", message]);
 }
 
@@ -222,6 +222,55 @@ test("PR diff permits an owned deletion but rejects a deleted manifest fail clos
     () => validatePrDiff(deletedManifest.root, manifestBase),
     /changed manifest was deleted/i,
   );
+});
+
+test("PR diff accounts for both rename and copy paths during ownership validation", async (t) => {
+  const renamed = await fixture();
+  t.after(() => rm(renamed.root, { recursive: true }));
+  const renamedSource = join(renamed.root, "unowned", "renamed.rs");
+  await mkdir(join(renamedSource, ".."), { recursive: true });
+  await writeFile(renamedSource, "pub struct Renamed;\n");
+  git(renamed.root, ["init"]);
+  commit(renamed.root, "rename base");
+  const renameBase = git(renamed.root, ["rev-parse", "HEAD"]);
+  await writeFile(join(renamed.root, manifestPath), JSON.stringify(changedManifest()));
+  await mkdir(join(renamed.root, "scripts", "development"), { recursive: true });
+  await rename(renamedSource, join(renamed.root, "scripts", "development", "renamed.mjs"));
+  commit(renamed.root, "rename unowned source");
+  assert.throws(
+    () => validatePrDiff(renamed.root, renameBase),
+    /unowned changed path: unowned\/renamed\.rs/i,
+  );
+
+  const copied = await fixture();
+  t.after(() => rm(copied.root, { recursive: true }));
+  const copiedSource = join(copied.root, "unowned", "copied.rs");
+  await mkdir(join(copiedSource, ".."), { recursive: true });
+  await writeFile(copiedSource, "pub struct Copied;\n");
+  git(copied.root, ["init"]);
+  commit(copied.root, "copy base");
+  const copyBase = git(copied.root, ["rev-parse", "HEAD"]);
+  await writeFile(join(copied.root, manifestPath), JSON.stringify(changedManifest()));
+  await mkdir(join(copied.root, "scripts", "development"), { recursive: true });
+  await writeFile(join(copied.root, "scripts", "development", "copied.mjs"), "pub struct Copied;\n");
+  commit(copied.root, "copy unowned source");
+  assert.throws(
+    () => validatePrDiff(copied.root, copyBase),
+    /unowned changed path: unowned\/copied\.rs/i,
+  );
+
+  const ownedCopy = await fixture();
+  t.after(() => rm(ownedCopy.root, { recursive: true }));
+  const ownedSource = join(ownedCopy.root, "scripts", "development", "copy-source.mjs");
+  await mkdir(join(ownedSource, ".."), { recursive: true });
+  await writeFile(ownedSource, "export const source = true;\n");
+  git(ownedCopy.root, ["init"]);
+  commit(ownedCopy.root, "owned copy base");
+  const ownedCopyBase = git(ownedCopy.root, ["rev-parse", "HEAD"]);
+  await writeFile(join(ownedCopy.root, manifestPath), JSON.stringify(changedManifest()));
+  await writeFile(join(ownedCopy.root, "scripts", "development", "copy-target.mjs"), "export const source = true;\n");
+  commit(ownedCopy.root, "owned copy");
+  assert.doesNotThrow(() => validatePrDiff(ownedCopy.root, ownedCopyBase));
 });
 
 test("rejects schema-invalid manifest and every required empty field", async (t) => {

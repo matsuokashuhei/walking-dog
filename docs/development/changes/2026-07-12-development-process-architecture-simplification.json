@@ -91,8 +91,8 @@
         { "name": ".vscode/tasks.json", "disposition": "updated", "decision": "Expose image-catalog verification for local editor users." },
         { "name": "apps/api/README.md and docs/runbooks/local-harness.md", "disposition": "updated", "decision": "Document deterministic catalog generation and verification before architecture validation." },
         { "name": "apps/api/Cargo.toml and Cargo.lock", "disposition": "checked", "decision": "Keep catalog dependencies isolated to xtask and the canonical runtime dependency isolated to harness-runtime." },
-        { "name": "scripts/development/validate-change-manifest.mjs", "disposition": "updated", "decision": "Include deleted base/head paths in exact ownership checks and fail closed when the only changed manifest is deleted." },
-        { "name": "apps/api/tools/architecture-validator", "disposition": "updated", "decision": "Reject cfg_attr conditional hiding locally, use an exact declared resolver target instead of path/word inference, and retain only direct raw-SQL AST checks." },
+        { "name": "scripts/development/validate-change-manifest.mjs", "disposition": "updated", "decision": "Account every base/head path, including both sides of renames and copies, in exact ownership checks; fail closed when the only changed manifest is deleted." },
+        { "name": "apps/api/tools/architecture-validator", "disposition": "updated", "decision": "Reject cfg_attr conditional hiding locally; apply API-ARCH-008 to a closed declaration of resolver files and direct orchestration calls rather than path/word inference; retain only direct raw-SQL AST checks." },
         { "name": "apps/api/Cargo.toml and .github/workflows/test-api.yml", "disposition": "updated", "decision": "Deny unwrap_used and expect_used for production lib/bin/example targets while retaining strict test linting with only those two test-target exceptions." },
         { "name": "apps/api/architecture/exceptions.toml and docs/adr", "disposition": "updated", "decision": "Preserve Unix SIGTERM and non-Unix shutdown behavior through two exact 30-day cfg exceptions rather than a broad conditional-compilation allow." },
         { "name": "apps/api/tools/xtask", "disposition": "updated", "decision": "Expose deterministic image-catalog generate and verify commands." },
@@ -100,7 +100,7 @@
         { "name": "tracked scratch", "disposition": "checked", "decision": "No .superpowers scratch is tracked." },
         { "name": "PR evidence", "disposition": "checked", "decision": "Require one structured marker that binds task identities, test states, Sol result, and final head SHA." }
       ],
-      "enforcement": { "layer": "schema", "rejectedSimplerAlternatives": ["Archival prose without machine validation", "Semantic compiler emulation", "Ignoring deleted diff paths", "Resolver path or vocabulary inference", "Custom unwrap or expect method-name AST", "Broad cfg platform allow"] },
+      "enforcement": { "layer": "schema", "rejectedSimplerAlternatives": ["Archival prose without machine validation", "Semantic compiler emulation", "Ignoring deleted or rename/copy source diff paths", "Resolver path or vocabulary inference", "Custom unwrap or expect method-name AST", "Broad cfg platform allow"] },
       "rollback": "Revert Terra implementation milestones as a coherent set."
     },
     {
@@ -270,6 +270,23 @@
         "GREEN: Docker cargo xtask architecture check"
       ],
       "result": "Independent Sol Important findings fixed by Terra TDD. RED proved ACMR omitted deletions, deleted manifests had no dedicated failure, cfg_attr and resolver naming/path bypasses passed, workspace Clippy policy was absent, and all-target Clippy found two production xtask expects. GREEN: deletion ownership and deleted-manifest failure are exact; cfg_attr is syntax-local; API-ARCH-008 uses only the declared resolver path plus exact direct adapter-postgres transaction target; API-ARCH-005 is workspace Clippy for production with an explicit test-target scope; xtask lock initialization preserves write/sync failure behavior without expect. Two existing platform cfg branches use exact 30-day fingerprinted exceptions linked to dedicated removal issue #387 to preserve graceful shutdown and portability."
+    },
+    {
+      "name": "independent-sol-rereview-green",
+      "state": "green",
+      "commands": [
+        "RED: node --test scripts/development/tests/validate-change-manifest.test.mjs",
+        "RED: Docker cargo test -p architecture-validator --test fixtures --locked",
+        "GREEN: node --test scripts/development/tests/validate-change-manifest.test.mjs",
+        "GREEN: bash scripts/harness/harness.test.sh",
+        "GREEN: bash scripts/development/validate-change-manifest.sh",
+        "GREEN: Docker cargo test -p architecture-validator --test fixtures --test check --test policy --test workspace --test intent --locked",
+        "GREEN: Docker cargo fmt --all -- --check",
+        "GREEN: Docker cargo clippy -p architecture-validator --lib --bins --examples --all-features --locked -- -D warnings; cargo clippy -p architecture-validator --tests --all-features --locked -- -D warnings -A clippy::unwrap_used -A clippy::expect_used",
+        "GREEN: Docker cargo xtask architecture check",
+        "Freeze: Docker mounted-Git cargo xtask architecture check --base origin/main --head HEAD"
+      ],
+      "result": "RED observed: --name-only omitted a renamed source path from ownership, and API-ARCH-008 did not cover declared resolver submodules or the closed repository/storage/transaction direct-call surface. GREEN: NUL name-status parsing now accounts both rename and copy paths (including an unowned source rejection and owned-copy pass); API-ARCH-008 uses a closed full-path resolver declaration and structured direct call list covering repository, storage, transaction, clock, retry, and SDK operations. Fixtures lock resolver submodules, direct operations with names such as read/put/finish, exact locations, and boundary-outside/no-alias-inference controls. Harness 19/19, manifest 10/10, validator focused 44/44, formatting, approved production/test Clippy scopes, and working-tree architecture check passed. Mounted-Git validation is recorded externally against the frozen commit because updating this manifest after that check would change the reviewed head."
     }
   ]
 }

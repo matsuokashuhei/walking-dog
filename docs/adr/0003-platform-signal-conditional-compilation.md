@@ -8,5 +8,5 @@ or dropping portable compilation.
 
 The architecture gate rejects conditional hiding by default. The two exact,
 fingerprinted exceptions in `apps/api/architecture/exceptions.toml` are limited
-to 30 days and issue #380. The follow-up must replace this platform split with
+to 30 days and issue #387. The follow-up must replace this platform split with
 an explicit portable signal boundary or remove the non-Unix support claim.

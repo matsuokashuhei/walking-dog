@@ -291,15 +291,15 @@ mod pair_tests {
             ]))
             .is_err()
         );
-        assert_eq!(
+        assert!(matches!(
             current_pair_stem(&IntentDiff::new([
                 "src/lib.rs",
                 "architecture/intents/a.toml",
                 "architecture/diffs/a.toml"
             ]))
-            .unwrap(),
-            "a"
-        );
+            .as_deref(),
+            Ok("a")
+        ));
     }
 }
 
@@ -482,12 +482,9 @@ mod tests {
     fn directory_entry_error_is_not_skipped() {
         let entries = vec![Ok("known.rs"), Err("unreadable entry")];
         let result = collect_fail_closed(entries);
-        assert!(result.is_err());
-        assert!(
-            result
-                .expect_err("must fail closed")
-                .to_string()
-                .contains("unreadable entry")
-        );
+        assert!(matches!(
+            result,
+            Err(error) if error.to_string().contains("unreadable entry")
+        ));
     }
 }

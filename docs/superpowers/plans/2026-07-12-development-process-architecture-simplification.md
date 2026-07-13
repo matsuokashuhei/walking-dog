@@ -77,7 +77,9 @@ replacement tests are RED.
   record RED.
 - [ ] Replace cross-file/export/alias/trait resolution and lexical SQL inference
   with syntax-local checks plus noncanonical-form rejection. Keep fail-closed
-  parse/I/O/metadata/exceptions/intent/diff/human/SARIF contracts.
+  parse/I/O/metadata/exceptions/intent/diff/human/SARIF contracts. Apply the
+  Rule 008 capability-prefix check to canonical adapter-graphql `use` leaves as
+  well as resolver impl paths, without resolving imports.
 - [ ] Move equivalent unwrap/expect enforcement to strict Clippy configuration.
   Re-run focused tests and commit.
 

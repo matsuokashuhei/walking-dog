@@ -543,6 +543,70 @@ fn resolver_attributes_reject_structural_direct_capabilities_without_filename_or
 }
 
 #[test]
+fn graphql_capability_imports_are_rejected_without_import_resolution() {
+    let forbidden = [
+        (
+            "crates/adapter-graphql/src/new_domain.rs",
+            "use application::Repository;\nfn helper() {}\n",
+            1,
+            18,
+        ),
+        (
+            "crates/adapter-graphql/src/new_domain.rs",
+            "#[Object]\nimpl Query {\n    async fn dog(&self) {\n        use adapter_postgres::Repository;\n        Repository::save();\n    }\n}\n",
+            4,
+            31,
+        ),
+    ];
+    for (path, source, line, column) in forbidden {
+        let diagnostics = analyze_source(SourceUnit {
+            crate_name: "adapter-graphql",
+            path,
+            source,
+            production: true,
+        })
+        .expect("fixture parses");
+        assert!(
+            diagnostics.iter().any(|diagnostic| {
+                diagnostic.rule_id == "API-ARCH-008"
+                    && diagnostic.path == path
+                    && diagnostic.line == line
+                    && diagnostic.column == column
+            }),
+            "forbidden capability import must report API-ARCH-008: {diagnostics:?}"
+        );
+    }
+
+    let alias = analyze_source(SourceUnit {
+        crate_name: "adapter-graphql",
+        path: "crates/adapter-graphql/src/new_domain.rs",
+        source: "use application::Repository as Store;\n",
+        production: true,
+    })
+    .expect("fixture parses");
+    assert!(alias.iter().any(|diagnostic| {
+        diagnostic.rule_id == "API-ARCH-001" && diagnostic.line == 1 && diagnostic.column == 1
+    }));
+    assert!(
+        alias
+            .iter()
+            .any(|diagnostic| diagnostic.rule_id == "API-ARCH-008")
+    );
+
+    let clean = analyze_source(SourceUnit {
+        crate_name: "adapter-graphql",
+        path: "crates/adapter-graphql/src/new_domain.rs",
+        source: "use application::owner::UpdateOwner;\nfn helper() { let repository = \"application::Repository\"; let _ = repository; }\n// adapter_postgres::Repository\n",
+        production: true,
+    })
+    .expect("fixture parses");
+    assert!(
+        clean.is_empty(),
+        "use-case imports and non-code text stay clean"
+    );
+}
+
+#[test]
 fn repeated_super_paths_cannot_cross_application_roots() {
     let diagnostics = analyze_source(SourceUnit {
         crate_name: "application",

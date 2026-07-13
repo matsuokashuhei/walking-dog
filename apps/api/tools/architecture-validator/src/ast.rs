@@ -303,6 +303,16 @@ impl<'ast> Visit<'ast> for Analyzer<'_> {
             let previous = self.public_boundary;
             self.public_boundary = public;
             self.inspect_segments(&canonical, leaf.span, leaf.name.as_deref().unwrap_or("use"));
+            if self.unit.crate_name == "adapter-graphql"
+                && is_forbidden_resolver_capability_path(&canonical)
+            {
+                self.report(
+                    "API-ARCH-008",
+                    leaf.span,
+                    canonical.join("::"),
+                    "delegate orchestration to an application use case",
+                );
+            }
             self.public_boundary = previous;
         }
     }

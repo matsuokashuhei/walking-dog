@@ -69,7 +69,10 @@ rather than a file-name, word, or method-name inference. Within that syntax-loca
 boundary, direct `adapter_*`/`aws_sdk_*` capability paths and the closed
 `application::{Repository,Storage,Transaction,Clock,Retry}` prefixes are rejected
 regardless of following method name. Alias resolution, macro expansion, and type
-inference remain forbidden.
+inference remain forbidden. The same structural prefix check rejects ordinary
+canonical `use` leaves in `adapter-graphql`, so importing a capability type cannot
+shorten and bypass a resolver call; ordinary application use-case imports remain
+outside that closed prefix set.
 
 ## Closed Testcontainers design
 

@@ -4,10 +4,13 @@ The API kernel uses Testcontainers as the only development and test service
 topology. Production Compose under `infra/sakura/compose.yml` is deployment-only
 and must not be used as a local test harness. Required tests never call live AWS.
 
-Run the architecture compiler from the API workspace:
+Generate and verify the closed Testcontainers catalog before running the
+architecture compiler from the API workspace:
 
 ```bash
 cd apps/api
+cargo xtask image-catalog generate
+cargo xtask image-catalog verify
 cargo xtask architecture check
 ```
 

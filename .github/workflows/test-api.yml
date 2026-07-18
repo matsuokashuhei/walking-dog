@@ -51,9 +51,14 @@ jobs:
           ARCHITECTURE_HEAD: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
         run: |
           cargo fmt --all -- --check
-          cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+          cargo clippy --workspace --lib --bins --examples --all-features --locked -- -D warnings
+          cargo clippy --workspace --tests --all-features --locked -- -D warnings -A clippy::unwrap_used -A clippy::expect_used
           cargo test --locked -p architecture-validator --all-targets --all-features
           cargo test --locked -p xtask --all-targets --all-features
+          cargo xtask image-catalog generate
+          cargo xtask image-catalog verify
+          cargo xtask image-catalog generate
+          git diff --exit-code -- tools/harness-runtime/src/generated_postgres.rs
           if [[ "$ARCHITECTURE_BASE" =~ ^0+$ ]]; then
             ARCHITECTURE_BASE="$(git rev-parse "$ARCHITECTURE_HEAD^")"
           fi

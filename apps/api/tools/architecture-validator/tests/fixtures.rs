@@ -10,7 +10,7 @@ struct FailingFixture {
     line: usize,
 }
 
-const INITIAL_FIXTURES: [FailingFixture; 12] = [
+const INITIAL_FIXTURES: [FailingFixture; 11] = [
     FailingFixture {
         rule: "API-ARCH-001",
         crate_name: "application",
@@ -40,13 +40,6 @@ const INITIAL_FIXTURES: [FailingFixture; 12] = [
         line: 1,
     },
     FailingFixture {
-        rule: "API-ARCH-005",
-        crate_name: "application",
-        path: "crates/application/src/lib.rs",
-        source: "fn value(v: Option<u8>) {\n    let _ = v.unwrap();\n}\n",
-        line: 2,
-    },
-    FailingFixture {
         rule: "API-ARCH-006",
         crate_name: "application",
         path: "crates/application/src/lib.rs",
@@ -63,9 +56,9 @@ const INITIAL_FIXTURES: [FailingFixture; 12] = [
     FailingFixture {
         rule: "API-ARCH-008",
         crate_name: "adapter-graphql",
-        path: "crates/adapter-graphql/src/walk/resolver.rs",
-        source: "fn resolve() {\n    repository.begin_transaction();\n}\n",
-        line: 2,
+        path: "crates/adapter-graphql/src/resolver.rs",
+        source: "#[Object]\nimpl Query {\n    fn resolve() { adapter_postgres::Repository::begin_transaction(); }\n}\n",
+        line: 3,
     },
     FailingFixture {
         rule: "API-ARCH-009",
@@ -162,86 +155,13 @@ fn parser_failure_is_fail_closed() {
     assert!(matches!(result, Err(ValidationError::Parse { .. })));
 }
 
-#[test]
-fn aliases_and_public_reexports_cannot_hide_violations() {
-    let fixtures = [
-        FailingFixture {
-            rule: "API-ARCH-001",
-            crate_name: "application",
-            path: "crates/application/src/unreachable.rs",
-            source: "use std::env as process_environment;\n",
-            line: 1,
-        },
-        FailingFixture {
-            rule: "API-ARCH-003",
-            crate_name: "application",
-            path: "crates/application/src/unreachable.rs",
-            source: "use aws_sdk_s3::Client as ObjectStoreClient;\n",
-            line: 1,
-        },
-        FailingFixture {
-            rule: "API-ARCH-004",
-            crate_name: "domain",
-            path: "crates/domain/src/unreachable.rs",
-            source: "pub use async_graphql::Context as RequestContext;\n",
-            line: 1,
-        },
-        FailingFixture {
-            rule: "API-ARCH-006",
-            crate_name: "application",
-            path: "crates/application/src/unreachable.rs",
-            source: "pub use adapter_postgres::Row as OwnerRow;\n",
-            line: 1,
-        },
-        FailingFixture {
-            rule: "API-ARCH-008",
-            crate_name: "adapter-graphql",
-            path: "crates/adapter-graphql/src/owner/query.rs",
-            source: "use adapter_postgres::Repository as OwnerStore;\n",
-            line: 1,
-        },
-        FailingFixture {
-            rule: "API-ARCH-009",
-            crate_name: "adapter-graphql",
-            path: "crates/adapter-graphql/src/unreachable.rs",
-            source: "use adapter_postgres::Repository as Store;\nfn wire() { Store::new(); }\n",
-            line: 2,
-        },
-        FailingFixture {
-            rule: "API-ARCH-010",
-            crate_name: "application",
-            path: "crates/application/src/owner/unreachable.rs",
-            source: "pub use crate::dog::Dog as RelatedDog;\n",
-            line: 1,
-        },
-    ];
-
-    for fixture in fixtures {
-        let diagnostics = analyze_source(SourceUnit {
-            crate_name: fixture.crate_name,
-            path: fixture.path,
-            source: fixture.source,
-            production: true,
-        })
-        .unwrap_or_else(|error| panic!("fixture must parse: {error}"));
-        assert!(
-            diagnostics.iter().any(|diagnostic| {
-                diagnostic.rule_id == fixture.rule && diagnostic.line == fixture.line
-            }),
-            "missing alias/re-export diagnostic {} for {}",
-            fixture.rule,
-            fixture.path
-        );
-    }
-}
-
-const STRUCTURAL_FIXTURES: [FailingFixture; 12] = [
+const STRUCTURAL_FIXTURES: [FailingFixture; 11] = [
     FailingFixture {
         rule: "API-ARCH-001",
         crate_name: "application",
         path: "crates/application/src/config.rs",
         source: "extern crate std as runtime;\nfn port() { let _ = runtime::env::var(\"PORT\"); }\n",
-        line: 2,
+        line: 1,
     },
     FailingFixture {
         rule: "API-ARCH-002",
@@ -265,13 +185,6 @@ const STRUCTURAL_FIXTURES: [FailingFixture; 12] = [
         line: 1,
     },
     FailingFixture {
-        rule: "API-ARCH-005",
-        crate_name: "application",
-        path: "crates/application/src/use_case.rs",
-        source: "fn value(v: Option<u8>) { let _ = v.unwrap (); }\n",
-        line: 1,
-    },
-    FailingFixture {
         rule: "API-ARCH-006",
         crate_name: "application",
         path: "crates/application/src/ports.rs",
@@ -288,16 +201,16 @@ const STRUCTURAL_FIXTURES: [FailingFixture; 12] = [
     FailingFixture {
         rule: "API-ARCH-008",
         crate_name: "adapter-graphql",
-        path: "crates/adapter-graphql/src/owner/resolver.rs",
-        source: "use adapter_postgres::{\n    Repository as OwnerStore,\n};\n",
+        path: "crates/adapter-graphql/src/resolver.rs",
+        source: "#[Object]\nimpl Query { fn resolve() { adapter_postgres::Repository::begin_transaction(); } }\n",
         line: 2,
     },
     FailingFixture {
-        rule: "API-ARCH-009",
+        rule: "API-ARCH-001",
         crate_name: "adapter-graphql",
         path: "crates/adapter-graphql/src/lib.rs",
         source: "use adapter_postgres as db;\nuse db::{Repository as Store};\nfn wire() { Store :: new(); }\n",
-        line: 3,
+        line: 1,
     },
     FailingFixture {
         rule: "API-ARCH-010",
@@ -373,35 +286,6 @@ fn public_impl_members_and_trait_impl_members_are_public_boundaries() {
 }
 
 #[test]
-fn nested_scopes_resolve_adapter_and_logging_macro_aliases() {
-    let adapter = analyze_source(SourceUnit {
-        crate_name: "adapter-graphql",
-        path: "crates/adapter-graphql/src/lib.rs",
-        source: "fn wire() {\n    use adapter_postgres::Repository as Store;\n    Store::new();\n}\n",
-        production: true,
-    })
-    .expect("fixture must parse");
-    assert!(
-        adapter
-            .iter()
-            .any(|diagnostic| { diagnostic.rule_id == "API-ARCH-009" && diagnostic.line == 3 })
-    );
-
-    let logging = analyze_source(SourceUnit {
-        crate_name: "api-bootstrap",
-        path: "crates/api-bootstrap/src/log.rs",
-        source: "mod nested {\n    use tracing::info as audit;\n    fn record(token: &str) { audit!(access_token = token); }\n}\n",
-        production: true,
-    })
-    .expect("fixture must parse");
-    assert!(
-        logging
-            .iter()
-            .any(|diagnostic| { diagnostic.rule_id == "API-ARCH-012" && diagnostic.line == 3 })
-    );
-}
-
-#[test]
 fn fully_qualified_cross_application_paths_are_rejected() {
     let diagnostics = analyze_source(SourceUnit {
         crate_name: "application",
@@ -459,52 +343,6 @@ fn graphql_names_and_sql_words_require_forbidden_provenance_or_execution() {
 }
 
 #[test]
-fn same_rule_nodes_on_one_line_remain_distinct() {
-    let diagnostics = analyze_source(SourceUnit {
-        crate_name: "application",
-        path: "crates/application/src/use_case.rs",
-        source: "fn values(a: Option<u8>, b: Option<u8>) { a.unwrap(); b.unwrap(); }\n",
-        production: true,
-    })
-    .expect("fixture must parse");
-    assert_eq!(
-        diagnostics
-            .iter()
-            .filter(|diagnostic| diagnostic.rule_id == "API-ARCH-005")
-            .count(),
-        2
-    );
-}
-
-#[test]
-fn scoped_type_aliases_preserve_adapter_and_sql_provenance() {
-    let adapter = analyze_source(SourceUnit {
-        crate_name: "adapter-graphql",
-        path: "crates/adapter-graphql/src/lib.rs",
-        source: "mod wiring {\n    type Store = adapter_postgres::Repository;\n    fn wire() { Store::new(); }\n}\n",
-        production: true,
-    })
-    .expect("fixture must parse");
-    assert!(
-        adapter
-            .iter()
-            .any(|diagnostic| { diagnostic.rule_id == "API-ARCH-009" && diagnostic.line == 3 })
-    );
-
-    let sql = analyze_source(SourceUnit {
-        crate_name: "application",
-        path: "crates/application/src/query.rs",
-        source: "fn query() {\n    type Statement = sea_orm::Statement;\n    type Sql = Statement;\n    Sql::from_string((), \"UPDATE dogs SET name = 'Pochi'\");\n}\n",
-        production: true,
-    })
-    .expect("fixture must parse");
-    assert!(
-        sql.iter()
-            .any(|diagnostic| { diagnostic.rule_id == "API-ARCH-011" && diagnostic.line == 4 })
-    );
-}
-
-#[test]
 fn raw_sql_execution_apis_are_rejected_without_scanning_messages() {
     let cases = [
         "fn q() { sqlx::raw_sql(\"DELETE FROM dogs\").execute(&pool); }",
@@ -526,6 +364,246 @@ fn raw_sql_execution_apis_are_rejected_without_scanning_messages() {
             "raw execution API escaped: {source}"
         );
     }
+}
+
+#[test]
+fn canonical_syntax_rejects_include_hiding_without_flagging_plain_local_code() {
+    let included = analyze_source(SourceUnit {
+        crate_name: "domain",
+        path: "crates/domain/src/lib.rs",
+        source: "include!(\"generated.rs\");",
+        production: true,
+    })
+    .expect("fixture parses");
+    assert!(
+        included
+            .iter()
+            .any(|diagnostic| diagnostic.rule_id == "API-ARCH-001")
+    );
+
+    let local = analyze_source(SourceUnit {
+        crate_name: "domain",
+        path: "crates/domain/src/lib.rs",
+        source: "pub struct WalkMinutes(pub u16);",
+        production: true,
+    })
+    .expect("fixture parses");
+    assert!(local.is_empty());
+}
+
+#[test]
+fn canonical_syntax_rejects_hiding_forms_at_their_source_location() {
+    let cases = [
+        ("use std::env as environment;", "API-ARCH-001", 1, 1),
+        ("use std::env::*;", "API-ARCH-001", 1, 1),
+        ("pub use std::env::var;", "API-ARCH-001", 1, 5),
+        ("extern crate std as runtime;", "API-ARCH-001", 1, 14),
+        ("type Hidden = adapter_postgres::Row;", "API-ARCH-006", 1, 6),
+        ("include!(\"generated.rs\");", "API-ARCH-001", 1, 1),
+        ("#[cfg(any())]\nuse std::env;", "API-ARCH-001", 1, 1),
+        (
+            "#[cfg_attr(any(), cfg(any()))]\nuse std::env;",
+            "API-ARCH-001",
+            1,
+            1,
+        ),
+        (
+            "#[cfg_attr(any(), cfg(any()))]\nmod hidden {}",
+            "API-ARCH-001",
+            1,
+            1,
+        ),
+        (
+            "#[cfg_attr(any(), cfg(any()))]\nfn hidden() {}",
+            "API-ARCH-001",
+            1,
+            1,
+        ),
+    ];
+    for (source, rule, line, column) in cases {
+        let diagnostics = analyze_source(SourceUnit {
+            crate_name: "application",
+            path: "crates/application/src/lib.rs",
+            source,
+            production: true,
+        })
+        .expect("fixture parses");
+        assert!(
+            diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.rule_id == rule
+                    && diagnostic.path == "crates/application/src/lib.rs"
+                    && diagnostic.line == line
+                    && diagnostic.column == column),
+            "{source}: {diagnostics:?}"
+        );
+    }
+    let clean = analyze_source(SourceUnit {
+        crate_name: "application",
+        path: "crates/application/src/lib.rs",
+        source: "// use std::env as environment\npub struct Local; fn f() { let env = \"include! type Alias\"; let _ = env; }",
+        production: true,
+    })
+    .expect("fixture parses");
+    assert!(clean.is_empty());
+}
+
+#[test]
+fn resolver_attributes_reject_structural_direct_capabilities_without_filename_or_method_catalogs() {
+    let forbidden = [
+        (
+            "#[Object]",
+            "crates/adapter-graphql/src/new_domain.rs",
+            "adapter_postgres::Repository::save()",
+        ),
+        (
+            "#[async_graphql::Object]",
+            "crates/adapter-graphql/src/new_domain.rs",
+            "adapter_s3::Client::remove()",
+        ),
+        (
+            "#[ComplexObject]",
+            "crates/adapter-graphql/src/another_domain.rs",
+            "aws_sdk_s3::Client::elapsed()",
+        ),
+        (
+            "#[async_graphql::Subscription]",
+            "crates/adapter-graphql/src/another_domain.rs",
+            "application::Repository::save()",
+        ),
+        (
+            "#[Object]",
+            "crates/adapter-graphql/src/new_domain.rs",
+            "application::Storage::remove()",
+        ),
+        (
+            "#[Subscription]",
+            "crates/adapter-graphql/src/new_domain.rs",
+            "application::Transaction::elapsed()",
+        ),
+        (
+            "#[Object]",
+            "crates/adapter-graphql/src/new_domain.rs",
+            "application::Clock::elapsed()",
+        ),
+        (
+            "#[Object]",
+            "crates/adapter-graphql/src/new_domain.rs",
+            "application::Retry::elapsed()",
+        ),
+    ];
+    for (attribute, path, call) in forbidden {
+        let source = format!("{attribute}\nimpl Resolver {{\n    fn field() {{ {call}; }}\n}}\n");
+        let diagnostics = analyze_source(SourceUnit {
+            crate_name: "adapter-graphql",
+            path,
+            source: &source,
+            production: true,
+        })
+        .expect("fixture parses");
+        assert!(
+            diagnostics.iter().any(|diagnostic| {
+                diagnostic.rule_id == "API-ARCH-008"
+                    && diagnostic.path == path
+                    && diagnostic.line == 3
+                    && diagnostic.column == 18
+            }),
+            "resolver attribute must reject {path} {call}: {diagnostics:?}"
+        );
+    }
+
+    for (path, source) in [
+        (
+            "crates/adapter-graphql/src/new_domain.rs",
+            "fn helper() { adapter_postgres::Repository::save(); }",
+        ),
+        (
+            "crates/adapter-graphql/src/new_domain.rs",
+            "#[SimpleObject]\nstruct GraphqlHelper;\nfn helper() { let repository = \"adapter_postgres::Repository::save\"; let _ = repository; }",
+        ),
+        (
+            "crates/adapter-graphql/src/new_domain.rs",
+            "// adapter_postgres::Repository::save\nfn helper() { let storage = \"application::Storage::remove\"; let _ = storage; }",
+        ),
+    ] {
+        let diagnostics = analyze_source(SourceUnit {
+            crate_name: "adapter-graphql",
+            path,
+            source,
+            production: true,
+        })
+        .expect("fixture parses");
+        assert!(
+            diagnostics
+                .iter()
+                .all(|diagnostic| diagnostic.rule_id != "API-ARCH-008"),
+            "only direct paths inside official resolver attributes are governed: {diagnostics:?}"
+        );
+    }
+}
+
+#[test]
+fn graphql_capability_imports_are_rejected_without_import_resolution() {
+    let forbidden = [
+        (
+            "crates/adapter-graphql/src/new_domain.rs",
+            "use application::Repository;\nfn helper() {}\n",
+            1,
+            18,
+        ),
+        (
+            "crates/adapter-graphql/src/new_domain.rs",
+            "#[Object]\nimpl Query {\n    async fn dog(&self) {\n        use adapter_postgres::Repository;\n        Repository::save();\n    }\n}\n",
+            4,
+            31,
+        ),
+    ];
+    for (path, source, line, column) in forbidden {
+        let diagnostics = analyze_source(SourceUnit {
+            crate_name: "adapter-graphql",
+            path,
+            source,
+            production: true,
+        })
+        .expect("fixture parses");
+        assert!(
+            diagnostics.iter().any(|diagnostic| {
+                diagnostic.rule_id == "API-ARCH-008"
+                    && diagnostic.path == path
+                    && diagnostic.line == line
+                    && diagnostic.column == column
+            }),
+            "forbidden capability import must report API-ARCH-008: {diagnostics:?}"
+        );
+    }
+
+    let alias = analyze_source(SourceUnit {
+        crate_name: "adapter-graphql",
+        path: "crates/adapter-graphql/src/new_domain.rs",
+        source: "use application::Repository as Store;\n",
+        production: true,
+    })
+    .expect("fixture parses");
+    assert!(alias.iter().any(|diagnostic| {
+        diagnostic.rule_id == "API-ARCH-001" && diagnostic.line == 1 && diagnostic.column == 1
+    }));
+    assert!(
+        alias
+            .iter()
+            .any(|diagnostic| diagnostic.rule_id == "API-ARCH-008")
+    );
+
+    let clean = analyze_source(SourceUnit {
+        crate_name: "adapter-graphql",
+        path: "crates/adapter-graphql/src/new_domain.rs",
+        source: "use application::owner::UpdateOwner;\nfn helper() { let repository = \"application::Repository\"; let _ = repository; }\n// adapter_postgres::Repository\n",
+        production: true,
+    })
+    .expect("fixture parses");
+    assert!(
+        clean.is_empty(),
+        "use-case imports and non-code text stay clean"
+    );
 }
 
 #[test]
@@ -659,34 +737,19 @@ fn private_trait_impl_is_not_a_public_boundary_but_public_trait_impl_is() {
 }
 
 #[test]
-fn cross_file_trait_visibility_uses_qualified_source_set_identity() {
-    for (visibility, should_report) in [("pub ", true), ("", false)] {
-        let declaration =
-            format!("{visibility}trait Port {{ fn row(&self) -> adapter_postgres::Row; }}\n");
-        let units = [
-            SourceUnit {
-                crate_name: "application",
-                path: "crates/application/src/ports.rs",
-                source: &declaration,
-                production: false,
-            },
-            SourceUnit {
-                crate_name: "application",
-                path: "crates/application/src/owner/service.rs",
-                source: "struct Service;\nimpl crate::ports::Port for Service { fn row(&self) -> adapter_postgres::Row { loop {} } }\n",
-                production: false,
-            },
-        ];
-        let diagnostics = analyze_source_set(&units).expect("fixtures must parse");
-        assert_eq!(
-            diagnostics.iter().any(|diagnostic| {
-                diagnostic.rule_id == "API-ARCH-006"
-                    && diagnostic.path == "crates/application/src/owner/service.rs"
-                    && diagnostic.line == 2
-            }),
-            should_report
-        );
-    }
+fn cross_file_trait_visibility_is_fail_closed_without_resolution() {
+    let diagnostics = analyze_source(SourceUnit {
+        crate_name: "application",
+        path: "crates/application/src/owner/service.rs",
+        source: "struct Service;\nimpl crate::ports::Port for Service { fn row(&self) -> adapter_postgres::Row { loop {} } }\n",
+        production: false,
+    })
+    .expect("fixture must parse");
+    assert!(
+        diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.rule_id == "API-ARCH-006")
+    );
 }
 
 #[test]
@@ -727,7 +790,7 @@ fn sea_orm_raw_statement_constructors_are_closed() {
 }
 
 #[test]
-fn test_target_trait_collision_cannot_change_production_visibility() {
+fn test_target_trait_collision_cannot_bypass_fail_closed_boundary() {
     let units = [
         SourceUnit {
             crate_name: "application",
@@ -749,9 +812,9 @@ fn test_target_trait_collision_cannot_change_production_visibility() {
         },
     ];
     let diagnostics = analyze_source_set(&units).expect("fixtures must parse");
-    assert!(diagnostics.iter().all(|diagnostic| {
-        diagnostic.rule_id != "API-ARCH-006"
-            || diagnostic.path != "crates/application/src/owner/service.rs"
+    assert!(diagnostics.iter().any(|diagnostic| {
+        diagnostic.rule_id == "API-ARCH-006"
+            && diagnostic.path == "crates/application/src/owner/service.rs"
     }));
 }
 

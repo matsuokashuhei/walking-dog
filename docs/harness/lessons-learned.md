@@ -28,3 +28,10 @@ Date: 2026-06-13.
   present, otherwise use the default, and pass the value straight to
   `ConsumerOptions`. Avoid wrapper config structs and custom validation fallback
   helpers unless the worker gains a real shared configuration boundary.
+- Prefer Cargo policy, Clippy, schemas, and code generation over validator logic.
+  A syntax-local AST check is the final option; compiler-semantic emulation grows
+  adversarial cases without adding a trustworthy guarantee.
+- Freeze integration evidence before independent review. Shared-file conflicts,
+  compile-only CI, tracked scratch, and remote drift are process defects: record
+  ownership, consumer decisions, executable tests, ignored scratch, and base/head
+  evidence in the active manifest.

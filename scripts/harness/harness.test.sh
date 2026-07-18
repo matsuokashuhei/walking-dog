@@ -193,6 +193,27 @@ test_validate_all_includes_mobile_knip_gate() {
   assert_contains "$source" "validate_mobile_knip" "expected validate-all to run mobile Knip validator"
 }
 
+test_validate_all_includes_change_manifest_gate() {
+  local source
+  source="$(cat "$repo_root/scripts/harness/validate-all.sh")"
+
+  assert_contains "$source" "validate-change-manifest.sh" "expected validate-all to source change manifest validator"
+  assert_contains "$source" "validate_change_manifest" "expected validate-all to run change manifest validator"
+}
+
+test_change_manifest_history_mode_succeeds_without_a_diff() {
+  local output
+  output="$(run_script_expect_status 0 bash "$repo_root/scripts/development/validate-change-manifest.sh" "$repo_root")"
+  [[ -z "$output" ]] || fail "expected history validation to be silent; got $output"
+}
+
+test_change_manifest_pr_mode_rejects_zero_changed_manifests() {
+  local output head
+  head="$(git -C "$repo_root" rev-parse HEAD)"
+  output="$(run_script_expect_status 1 bash "$repo_root/scripts/development/validate-change-manifest.sh" --pr "$repo_root" "$head" "$head" "<!-- change-manifest-evidence: {\"headSha\":\"$head\",\"approval\":\"approved\"} -->")"
+  assert_contains "$output" "exactly one changed manifest" "expected PR mode to reject a zero-manifest diff"
+}
+
 test_validate_all_propagates_validator_failure() {
   local source
   source="$(cat "$repo_root/scripts/harness/validate-all.sh")"
@@ -214,8 +235,13 @@ test_api_architecture_ci_maps_event_revisions_with_full_history() {
   assert_contains "$workflow" 'github.event.before' "push base SHA must be explicit"
   assert_contains "$workflow" 'github.sha' "push head SHA must be explicit"
   assert_contains "$workflow" 'architecture check --base "$ARCHITECTURE_BASE" --head "$ARCHITECTURE_HEAD"' "architecture CI must validate the explicit revision pair"
+  assert_contains "$workflow" 'cargo clippy --workspace --lib --bins --examples --all-features --locked -- -D warnings' "architecture CI must deny unwrap and expect in production targets"
+  assert_contains "$workflow" 'cargo clippy --workspace --tests --all-features --locked -- -D warnings -A clippy::unwrap_used -A clippy::expect_used' "architecture CI must keep tests strict while scoping unwrap and expect to production"
   assert_contains "$workflow" 'cargo test --locked -p architecture-validator --all-targets --all-features' "architecture CI must execute validator fixtures"
   assert_contains "$workflow" 'cargo test --locked -p xtask --all-targets --all-features' "architecture CI must execute journey-generator fixtures"
+  assert_contains "$workflow" 'cargo xtask image-catalog generate' "architecture CI must regenerate the closed image catalog"
+  assert_contains "$workflow" 'cargo xtask image-catalog verify' "architecture CI must verify the closed image catalog"
+  [[ "$(grep -Fc 'cargo xtask image-catalog generate' <<<"$workflow")" -eq 2 ]] || fail "architecture CI must prove a second generation is clean"
   assert_contains "$workflow" 'verify-production-images.sh walking-dog-api-kernel:ci' "required CI must preserve the production image lifecycle gate"
   assert_contains "$workflow" 'git rev-parse "$ARCHITECTURE_HEAD^"' "initial push must resolve a real parent or fail"
   for path in infra/sakura/compose.yml infra/sakura/deploy.sh infra/sakura/.env.example infra/sakura/README.md; do
@@ -228,7 +254,7 @@ test_production_images_are_digest_pinned_and_worker_has_process_health() {
   dockerfile="$(cat "$repo_root/apps/api/Dockerfile")"
   compose="$(cat "$repo_root/infra/sakura/compose.yml")"
   deploy="$(cat "$repo_root/infra/sakura/deploy.sh")"
-  runtime="$(cat "$repo_root/apps/api/tools/harness-runtime/src/images.rs")"
+  runtime="$(cat "$repo_root/apps/api/tools/harness-runtime/src/generated_postgres.rs")"
 
   assert_contains "$dockerfile" '# syntax=docker/dockerfile:1@sha256:' "Dockerfile frontend must be digest pinned"
   [[ "$(grep -c '^FROM .*@sha256:[0-9a-f]\{64\}' "$repo_root/apps/api/Dockerfile")" -eq 2 ]] || fail "every external Dockerfile FROM must be digest pinned"
@@ -265,7 +291,7 @@ test_image_pin_validator_rejects_unpinned_and_malformed_references() {
   mkdir -p "$tmpdir/apps/api/tools/harness-runtime/src" "$tmpdir/apps/api/crates/domain/src" "$tmpdir/infra/sakura"
   cp "$repo_root/apps/api/Dockerfile" "$tmpdir/apps/api/Dockerfile"
   cp "$repo_root/apps/api/tools/harness-runtime/src/lib.rs" "$tmpdir/apps/api/tools/harness-runtime/src/lib.rs"
-  cp "$repo_root/apps/api/tools/harness-runtime/src/images.rs" "$tmpdir/apps/api/tools/harness-runtime/src/images.rs"
+  cp "$repo_root/apps/api/tools/harness-runtime/src/generated_postgres.rs" "$tmpdir/apps/api/tools/harness-runtime/src/generated_postgres.rs"
   cp "$repo_root/infra/sakura/compose.yml" "$tmpdir/infra/sakura/compose.yml"
   PIN_ROOT_OVERRIDE="$tmpdir" "$repo_root/scripts/harness/validate-image-pins.sh"
 

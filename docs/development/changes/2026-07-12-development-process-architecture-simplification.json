@@ -1,0 +1,340 @@
+{
+  "schemaVersion": 1,
+  "change": {
+    "slug": "development-process-architecture-simplification",
+    "base": "origin/main",
+    "singleResponsibility": "Establish a live change-record gate and simplify the API architecture gate without weakening its approved contracts.",
+    "nonTargets": [
+      "Product behavior or UI",
+      "Maestro journey migration",
+      "docs/tmp-testcases migration",
+      "Unrelated wayfinder cleanup"
+    ],
+    "noAffectedJourney": true,
+    "sameCauseFailureThreshold": 3,
+    "rollback": "Revert the coherent milestone commits in reverse order; generated runtime and catalog return together with the previous gate."
+  },
+  "ownership": [
+    { "path": ".codex/skills/pr-development/", "task": "terra-implementation" },
+    { "path": ".github/pull_request_template.md", "task": "terra-implementation" },
+    { "path": ".github/workflows/harness.yml", "task": "terra-implementation" },
+    { "path": ".github/workflows/test-api.yml", "task": "terra-implementation" },
+    { "path": ".vscode/tasks.json", "task": "terra-implementation" },
+    { "path": "CLAUDE.md", "task": "terra-implementation" },
+    { "path": "apps/api/Cargo.lock", "task": "terra-implementation" },
+    { "path": "apps/api/Cargo.toml", "task": "terra-implementation" },
+    { "path": "apps/api/README.md", "task": "terra-implementation" },
+    { "path": "apps/api/architecture/", "task": "terra-implementation" },
+    { "path": "apps/api/tools/architecture-validator/", "task": "terra-implementation" },
+    { "path": "apps/api/tools/harness-runtime/", "task": "terra-implementation" },
+    { "path": "apps/api/tools/xtask/", "task": "terra-implementation" },
+    { "path": "docs/agents/", "task": "terra-implementation" },
+    { "path": "docs/adr/0003-platform-signal-conditional-compilation.md", "task": "terra-implementation" },
+    { "path": "docs/adr/0004-non-unix-signal-fallback.md", "task": "terra-implementation" },
+    { "path": "docs/development/", "task": "terra-implementation" },
+    { "path": "docs/harness/lessons-learned.md", "task": "terra-implementation" },
+    { "path": "docs/roadmaps/2026-07-11-api-mobile-replacement-implementation-plan.md", "task": "terra-implementation" },
+    { "path": "docs/runbooks/local-harness.md", "task": "terra-implementation" },
+    { "path": "docs/superpowers/", "task": "terra-implementation" },
+    { "path": "scripts/development/", "task": "terra-implementation" },
+    { "path": "scripts/harness/harness.test.sh", "task": "terra-implementation" },
+    { "path": "scripts/harness/validate-all.sh", "task": "terra-implementation" },
+    { "path": "scripts/harness/validate-architecture.sh", "task": "terra-implementation" }
+  ],
+  "tasks": [
+    {
+      "id": "sol-planning-integration",
+      "role": "planner",
+      "model": "sol",
+      "thinking": "high",
+      "threadId": "019f505b-e7ba-7ae3-8b77-1d77c8882475",
+      "owner": "019f505b-e7ba-7ae3-8b77-1d77c8882475",
+      "responsibility": "Own the approved design, integration constraints, and manifest contract corrections.",
+      "dependencies": [],
+      "acceptance": ["Approved design and implementation plan are committed before production changes."],
+      "consumers": [{ "name": "docs/superpowers", "disposition": "updated", "decision": "Record the approved design and executable plan before production edits." }],
+      "enforcement": { "layer": "documentation", "rejectedSimplerAlternatives": ["Untracked conversational routing"] },
+      "rollback": "Revert only the planning documentation commit if the implementation is abandoned."
+    },
+    {
+      "id": "luna-read-only-inventory",
+      "role": "inventory",
+      "model": "luna",
+      "thinking": "medium",
+      "threadId": "019f54f5-eaaf-74d0-9901-77673361c3a9",
+      "owner": "019f54f5-eaaf-74d0-9901-77673361c3a9",
+      "responsibility": "Supply the approved read-only current-state inventory; it owns no files.",
+      "dependencies": ["sol-planning-integration"],
+      "acceptance": ["The supplied read-only inventory is reflected in the approved design and regression scope."],
+      "consumers": [{ "name": "apps/api/tools/architecture-validator", "disposition": "checked", "decision": "Preserve fail-closed exception, intent, diff, diagnostic, and rule guarantees." }],
+      "enforcement": { "layer": "documentation", "rejectedSimplerAlternatives": ["Ad hoc source exploration"] },
+      "rollback": "No tracked repository change belongs to the inventory role."
+    },
+    {
+      "id": "terra-implementation",
+      "role": "implementation",
+      "model": "terra",
+      "thinking": "high",
+      "threadId": "019f54fa-a2de-79b1-b4b1-c22c3630f176",
+      "owner": "019f54fa-a2de-79b1-b4b1-c22c3630f176",
+      "responsibility": "Implement and verify every tracked change in the Terra thread without using internal agents as routing evidence.",
+      "dependencies": ["sol-planning-integration", "luna-read-only-inventory"],
+      "acceptance": ["Manifest, canonical syntax, catalog, lifecycle, and consumer checks pass their recorded GREEN commands."],
+      "consumers": [
+        { "name": "AGENTS.md / CLAUDE.md", "disposition": "checked", "decision": "Keep the compact index pointing to the manifest-driven process and model-routing documents." },
+        { "name": ".github/pull_request_template.md", "disposition": "checked", "decision": "Keep the structured PR-evidence marker and exact-head Sol approval contract." },
+        { "name": "scripts/harness/validate-all.sh", "disposition": "updated", "decision": "Compose manifest validation with existing harness gates." },
+        { "name": ".github/workflows/harness.yml", "disposition": "updated", "decision": "Validate PR evidence and changed manifest in Harness CI." },
+        { "name": ".github/workflows/test-api.yml", "disposition": "updated", "decision": "Generate, verify, regenerate, then reject generated-runtime drift in API CI." },
+        { "name": "scripts/harness/harness.test.sh", "disposition": "updated", "decision": "Keep production-image contract fixtures aligned with the generated PostgreSQL runtime." },
+        { "name": "scripts/harness/validate-architecture.sh", "disposition": "checked", "decision": "Retain the xtask architecture entry point." },
+        { "name": ".vscode/tasks.json", "disposition": "updated", "decision": "Expose image-catalog verification for local editor users." },
+        { "name": "apps/api/README.md and docs/runbooks/local-harness.md", "disposition": "updated", "decision": "Document deterministic catalog generation and verification before architecture validation." },
+        { "name": "apps/api/Cargo.toml and Cargo.lock", "disposition": "checked", "decision": "Keep catalog dependencies isolated to xtask and the canonical runtime dependency isolated to harness-runtime." },
+        { "name": "scripts/development/validate-change-manifest.mjs", "disposition": "updated", "decision": "Account every base/head path, including both sides of renames and copies, in exact ownership checks; fail closed when the only changed manifest is deleted." },
+        { "name": "apps/api/tools/architecture-validator", "disposition": "updated", "decision": "Reject cfg_attr conditional hiding locally; apply API-ARCH-008 to structural capability prefixes inside official async-graphql resolver impl attributes and ordinary canonical adapter-graphql use leaves, rather than file, path-word, method-name, or import-resolution inference; retain only direct raw-SQL AST checks." },
+        { "name": "apps/api/Cargo.toml and .github/workflows/test-api.yml", "disposition": "updated", "decision": "Deny unwrap_used and expect_used for production lib/bin/example targets while retaining strict test linting with only those two test-target exceptions." },
+        { "name": "apps/api/architecture/exceptions.toml and docs/adr", "disposition": "updated", "decision": "Preserve Unix SIGTERM and non-Unix shutdown behavior through two exact 30-day cfg exceptions rather than a broad conditional-compilation allow." },
+        { "name": "apps/api/tools/xtask", "disposition": "updated", "decision": "Expose deterministic image-catalog generate and verify commands." },
+        { "name": "generated runtime and catalog", "disposition": "checked", "decision": "Verify checked-in generated output against the single fixed template." },
+        { "name": "tracked scratch", "disposition": "checked", "decision": "No .superpowers scratch is tracked." },
+        { "name": "PR evidence", "disposition": "checked", "decision": "Require one structured marker that binds task identities, test states, Sol result, and final head SHA." }
+      ],
+      "enforcement": { "layer": "schema", "rejectedSimplerAlternatives": ["Archival prose without machine validation", "Semantic compiler emulation", "Ignoring deleted or rename/copy source diff paths", "Resolver file catalogs, vocabulary inference, method tables, or import resolution", "Custom unwrap or expect method-name AST", "Broad cfg platform allow"] },
+      "rollback": "Revert Terra implementation milestones as a coherent set."
+    },
+    {
+      "id": "sol-independent-final-review",
+      "role": "final-review",
+      "model": "sol",
+      "thinking": "medium",
+      "threadId": "019f54f9-cd15-72a2-8d04-b0cad89b700b",
+      "owner": "019f54f9-cd15-72a2-8d04-b0cad89b700b",
+      "responsibility": "Independently review the frozen Terra head only; own no files and do not create a post-review manifest commit.",
+      "dependencies": ["terra-implementation"],
+      "independentOf": "terra-implementation",
+      "evidence": { "channel": "pr-body-or-ci", "required": ["headSha", "approval"] },
+      "acceptance": ["Independent Sol result is recorded in PR body or CI evidence against the exact frozen head SHA."],
+      "consumers": [{ "name": "pull request body", "disposition": "updated", "decision": "Store exact SHA approval externally so prose-only edits rerun validation without invalidating a matching approval." }],
+      "enforcement": { "layer": "ci", "rejectedSimplerAlternatives": ["Trusting a review without SHA binding"] },
+      "rollback": "A changed head creates a new freeze and independent review; never mutate the frozen manifest after review."
+    }
+  ],
+  "milestones": [
+    {
+      "name": "manifest-red",
+      "state": "red",
+      "commands": ["node --test scripts/development/tests/validate-change-manifest.test.mjs"],
+      "result": "RED observed: the audit-expanded suite failed because the prior implementation selected historical manifests and did not execute the schema."
+    },
+    {
+      "name": "manifest-green",
+      "state": "green",
+      "commands": [
+        "node --test scripts/development/tests/validate-change-manifest.test.mjs",
+        "bash scripts/harness/harness.test.sh",
+        "bash scripts/development/validate-change-manifest.sh"
+      ],
+      "result": "GREEN: schema is executed, stored-history and PR-diff modes are distinct, ownership is segment-aware, and PR marker evidence is deterministic."
+    },
+    {
+      "name": "pr-evidence-green",
+      "state": "green",
+      "commands": [
+        "node --test scripts/development/tests/validate-change-manifest.test.mjs",
+        "bash scripts/harness/harness.test.sh",
+        "bash scripts/development/validate-change-manifest.sh"
+      ],
+      "result": "GREEN: one PR marker must bind the changed manifest, all approved task identities, successful test results, current head SHA, and a non-blocking independent Sol result."
+    },
+    {
+      "name": "process-docs-green",
+      "state": "green",
+      "commands": ["scripts/harness/validate-knowledge.sh", "bash scripts/development/validate-change-manifest.sh"],
+      "result": "GREEN: concise AGENTS index, process/routing docs, repository skill, lessons, and roadmap boundaries are linked and validated."
+    },
+    {
+      "name": "canonical-trait-resolution-green",
+      "state": "green",
+      "commands": ["docker API harness: cargo test -p architecture-validator --test fixtures --test check --locked"],
+      "result": "RED include! fixture and GREEN focused suite recorded; cross-file trait identity resolver deleted and replaced by fail-closed local boundary behavior."
+    },
+    {
+      "name": "canonical-alias-redesign-green",
+      "state": "green",
+      "commands": [
+        "Docker: cargo fmt --check",
+        "Docker: cargo test -p architecture-validator --test fixtures --test check --test policy --locked",
+        "Docker: cargo run -p xtask -- architecture check"
+      ],
+      "result": "After three same-cause semantic-resolution failures, Sol redesign replaced alias/export/trait provenance with direct canonical syntax rejection. Focused suite passed 33 tests and independent canonical architecture check exited 0."
+    },
+    {
+      "name": "image-catalog-red-green",
+      "state": "green",
+      "commands": [
+        "Docker: cargo test -p xtask --test image_catalog --locked",
+        "Docker: cargo xtask image-catalog generate",
+        "Docker: cargo xtask image-catalog verify",
+        "Docker: cargo xtask image-catalog generate"
+      ],
+      "result": "RED unresolved xtask generator surface; GREEN 2 catalog tests including malformed digest/unknown-field rejection, deterministic generation, drift detection, and second-generation byte equality."
+    },
+    {
+      "name": "image-policy-freeze",
+      "state": "green",
+      "commands": [
+        "Docker: cargo fmt --check",
+        "Docker: cargo clippy -p architecture-validator -p xtask -p harness-runtime --all-targets --all-features --locked -- -D warnings",
+        "Docker: cargo test -p architecture-validator --test image_policy --test check --test policy --locked",
+        "Docker: cargo test -p xtask --test image_catalog --locked",
+        "Docker: cargo xtask image-catalog generate; verify; generate",
+        "Docker: cargo xtask architecture check --base origin/main --head HEAD"
+      ],
+      "result": "Integration verified architecture-validator focused suites 15/15 and xtask image catalog 2/2 green; image-policy covers grouped imports, build scripts, ignored target/.git, generated marker, and public opacity. Template assets are classified fail-closed without parsing unrelated placeholders."
+    },
+    {
+      "name": "paired-intent-redesign-green",
+      "state": "green",
+      "commands": ["Docker: cargo test -p architecture-validator --test intent --test check --locked"],
+      "result": "GREEN 17 tests: retained historical intent/diff pairs validate independently; base/head mode requires one complete matching current pair and compares its diff artifact bidirectionally to Git."
+    },
+    {
+      "name": "task-5-freeze-green",
+      "state": "green",
+      "commands": [
+        "Docker: cargo clippy -p architecture-validator -p xtask -p harness-runtime --all-targets --all-features --locked -- -D warnings",
+        "Docker mounted-Git: cargo xtask architecture check --base origin/main --head HEAD",
+        "Docker: architecture focused suites 15/15; intent/check/lib 19/19; xtask image catalog 2/2",
+        "Docker: cargo test -p adapter-postgres --test migrations --locked"
+      ],
+      "result": "GREEN: strict Clippy passed; exact mounted-Git architecture check passed; focused validator/catalog suites passed; generated opaque runtime migration lifecycle passed 1/1."
+    },
+    {
+      "name": "consumer-audit-green",
+      "state": "green",
+      "commands": [
+        "bash scripts/harness/harness.test.sh",
+        "node --test scripts/development/tests/validate-change-manifest.test.mjs",
+        "bash scripts/development/validate-change-manifest.sh",
+        "Docker: cargo xtask image-catalog verify",
+        "node -e JSON.parse(.vscode/tasks.json)",
+        "git ls-files | rg '(^|/)\\.superpowers(/|$)'",
+        "git diff --check"
+      ],
+      "result": "GREEN: audited AGENTS/CLAUDE, PR evidence/template, Harness and API workflows, validation entry points, VS Code, API documentation/runbook, Cargo/xtask, generated artifacts, and tracked scratch. Harness contract suite passed 19/19, manifest suite passed 7/7, generated catalog verification passed, no tracked .superpowers scratch or whitespace errors remained. API CI now generates, verifies, generates again, and rejects runtime drift; local editor/docs expose the same catalog check."
+    },
+    {
+      "name": "task-7-nondocker-green",
+      "state": "green",
+      "commands": [
+        "bash scripts/harness/harness.test.sh",
+        "node --test scripts/development/tests/validate-change-manifest.test.mjs",
+        "bash scripts/development/validate-change-manifest.sh",
+        "bash scripts/development/validate-change-manifest.sh --pr $PWD origin/main HEAD '' (expected evidence rejection)",
+        "scripts/harness/validate-knowledge.sh; scripts/harness/score-quality.sh; scripts/harness/validate-mobile-knip.sh",
+        "apps/mobile: npm ci; npm test -- --runInBand; npm run typecheck; npm run lint; npm run knip",
+        "Ruby YAML parse of .github/workflows/*.yml",
+        "Docker: cargo xtask image-catalog generate; verify; generate; clean generated-runtime diff",
+        "scripts/harness/validate-all.sh (host-Cargo limitation recorded)",
+        "git diff --check; git status --short; git ls-files | rg '(^|/)\\.superpowers(/|$)'"
+      ],
+      "result": "GREEN non-Docker evidence: Harness shell contracts passed 19/19; manifest tests passed 7/7 and history validation passed. PR base/head mode without final evidence correctly rejected zero markers. Knowledge, quality, mobile Knip wrapper, mobile Jest (123 suites/744 tests), typecheck, lint, and Knip passed; all four workflow YAML files parsed. Docker catalog generate/verify/generate left generated_postgres.rs clean. validate-all.sh itself exited only because host cargo is absent in validate-architecture; its other validators passed independently, while the recorded Task 5 mounted-Git Docker architecture evidence remains authoritative. No tracked .superpowers scratch or whitespace errors were found."
+    },
+    {
+      "name": "integration-sol-self-review-green",
+      "state": "green",
+      "commands": [
+        "Compare approved plan, design, manifest, origin/main...HEAD diff, CI consumers, API-ARCH-001..012 fixtures, and image-policy guarantees",
+        "bash scripts/harness/harness.test.sh",
+        "node --test scripts/development/tests/validate-change-manifest.test.mjs",
+        "bash scripts/development/validate-change-manifest.sh",
+        "git diff --check; git status --short"
+      ],
+      "result": "GREEN after correction: self-review found the roadmap split existed only as an appendix while executable headings still grouped PR 2, PR 3, and PR 11. The roadmap body now defines PR 2A/2B/2C, 3A/3B, and 11A/11B with direct interfaces, acceptance, rollback, and dependency order. Process/manifest tests and clean-diff checks passed; independent Sol review remains external and pending on the resulting frozen SHA."
+    },
+    {
+      "name": "independent-sol-important-fixes-green",
+      "state": "green",
+      "commands": [
+        "RED: node --test scripts/development/tests/validate-change-manifest.test.mjs",
+        "RED: Docker cargo test -p architecture-validator --test fixtures --test workspace --locked",
+        "RED: Docker cargo clippy --workspace --all-targets --all-features --locked -- -D warnings",
+        "RED: bash scripts/harness/harness.test.sh",
+        "GREEN: node --test scripts/development/tests/validate-change-manifest.test.mjs",
+        "GREEN: bash scripts/harness/harness.test.sh",
+        "GREEN: Docker cargo test -p architecture-validator --test fixtures --test check --test policy --test workspace --locked",
+        "GREEN: Docker cargo test -p xtask --test journey_generator --locked",
+        "GREEN: Docker cargo fmt --all -- --check",
+        "GREEN: Docker cargo clippy --workspace --lib --bins --examples --all-features --locked -- -D warnings; cargo clippy --workspace --tests --all-features --locked -- -D warnings -A clippy::unwrap_used -A clippy::expect_used",
+        "GREEN: Docker cargo xtask architecture check"
+      ],
+      "result": "Independent Sol Important findings fixed by Terra TDD. RED proved ACMR omitted deletions, deleted manifests had no dedicated failure, cfg_attr and resolver naming/path bypasses passed, workspace Clippy policy was absent, and all-target Clippy found two production xtask expects. GREEN: deletion ownership and deleted-manifest failure are exact; cfg_attr is syntax-local; API-ARCH-008 uses only the declared resolver path plus exact direct adapter-postgres transaction target; API-ARCH-005 is workspace Clippy for production with an explicit test-target scope; xtask lock initialization preserves write/sync failure behavior without expect. Two existing platform cfg branches use exact 30-day fingerprinted exceptions linked to dedicated removal issue #387 to preserve graceful shutdown and portability."
+    },
+    {
+      "name": "independent-sol-rereview-green",
+      "state": "green",
+      "commands": [
+        "RED: node --test scripts/development/tests/validate-change-manifest.test.mjs",
+        "RED: Docker cargo test -p architecture-validator --test fixtures --locked",
+        "GREEN: node --test scripts/development/tests/validate-change-manifest.test.mjs",
+        "GREEN: bash scripts/harness/harness.test.sh",
+        "GREEN: bash scripts/development/validate-change-manifest.sh",
+        "GREEN: Docker cargo test -p architecture-validator --test fixtures --test check --test policy --test workspace --test intent --locked",
+        "GREEN: Docker cargo fmt --all -- --check",
+        "GREEN: Docker cargo clippy -p architecture-validator --lib --bins --examples --all-features --locked -- -D warnings; cargo clippy -p architecture-validator --tests --all-features --locked -- -D warnings -A clippy::unwrap_used -A clippy::expect_used",
+        "GREEN: Docker cargo xtask architecture check",
+        "Freeze: Docker mounted-Git cargo xtask architecture check --base origin/main --head HEAD"
+      ],
+      "result": "RED observed: --name-only omitted a renamed source path from ownership, and API-ARCH-008 did not cover declared resolver submodules or the closed repository/storage/transaction direct-call surface. GREEN: NUL name-status parsing now accounts both rename and copy paths (including an unowned source rejection and owned-copy pass); API-ARCH-008 uses a closed full-path resolver declaration and structured direct call list covering repository, storage, transaction, clock, retry, and SDK operations. Fixtures lock resolver submodules, direct operations with names such as read/put/finish, exact locations, and boundary-outside/no-alias-inference controls. Harness 19/19, manifest 10/10, validator focused 44/44, formatting, approved production/test Clippy scopes, and working-tree architecture check passed. Mounted-Git validation is recorded externally against the frozen commit because updating this manifest after that check would change the reviewed head."
+    },
+    {
+      "name": "independent-sol-rule-008-redesign-green",
+      "state": "green",
+      "commands": [
+        "RED: Docker cargo test -p architecture-validator --test fixtures --locked",
+        "GREEN: Docker cargo test -p architecture-validator --all-targets --locked",
+        "GREEN: node --test scripts/development/tests/validate-change-manifest.test.mjs",
+        "GREEN: bash scripts/harness/harness.test.sh",
+        "GREEN: bash scripts/development/validate-change-manifest.sh",
+        "GREEN: Docker cargo fmt --all -- --check",
+        "GREEN: Docker cargo clippy -p architecture-validator --lib --bins --examples --all-features --locked -- -D warnings; cargo clippy -p architecture-validator --tests --all-features --locked -- -D warnings -A clippy::unwrap_used -A clippy::expect_used",
+        "GREEN: Docker cargo xtask architecture check",
+        "Freeze: Docker mounted-Git cargo xtask architecture check --base origin/main --head HEAD"
+      ],
+      "result": "After three same-cause API-ARCH-008 failures, Sol redesign replaced the 28-file resolver catalog and 15-method table with syntax-local state from official async-graphql Object, ComplexObject, and Subscription impl attributes. RED observed that a new-domain #[Object] impl using adapter_postgres::Repository::save() produced no API-ARCH-008 diagnostic. GREEN: structural prefixes reject any direct adapter_* or aws_sdk_* capability path and application::{Repository,Storage,Transaction,Clock,Retry} regardless of method name; fixtures cover new files/domains, qualified attributes, save/remove/elapsed, exact path/line/column, boundary-outside helpers, SimpleObject types, local identifiers, strings, and comments. No cross-file resolution, alias expansion, macro expansion, or type inference was added. architecture-validator all targets passed 56 tests, manifest 10/10, Harness 19/19, fmt, approved strict Clippy scopes, and working-tree architecture check passed. Mounted-Git validation runs against the frozen commit without a post-freeze manifest change."
+    },
+    {
+      "name": "final-integration-freeze-green",
+      "state": "green",
+      "commands": [
+        "RED: Docker cargo clippy -p architecture-validator --all-targets --locked -- -D warnings exposed a new test helper using unwrap and confirmed that the repository's production/test lint split must be used",
+        "GREEN: Docker cargo test -p architecture-validator --all-targets --locked",
+        "GREEN: Docker cargo clippy -p architecture-validator --lib --bins --examples --all-features --locked -- -D warnings",
+        "GREEN: Docker cargo clippy -p architecture-validator --tests --all-features --locked -- -D warnings -A clippy::unwrap_used -A clippy::expect_used",
+        "GREEN: Docker cargo fmt --all -- --check",
+        "GREEN: node --test scripts/development/tests/validate-change-manifest.test.mjs",
+        "GREEN: bash scripts/harness/harness.test.sh",
+        "Freeze: Docker mounted-Git cargo xtask architecture check --base origin/main --head HEAD",
+        "Compare approved plan, design, active manifest, origin/main...HEAD paths, CI consumers, prior Sol findings, API-ARCH-001..012 outputs, and image-catalog guarantees"
+      ],
+      "result": "Integration Sol self-review found and removed unwrap/expect from the new paired-intent test without changing behavior, then verified 56 architecture-validator tests, production and test Clippy scopes, formatting, 10 manifest tests, 19 Harness contracts, and the exact mounted-Git base/head architecture gate. Input/output comparison found no remaining Critical or Important issue; the independent Sol review remains external and must approve the resulting exact frozen SHA."
+    },
+    {
+      "name": "independent-sol-import-bypass-green",
+      "state": "green",
+      "commands": [
+        "RED: Docker cargo test -p architecture-validator --test fixtures --locked",
+        "GREEN: Docker cargo test -p architecture-validator --all-targets --locked",
+        "GREEN: node --test scripts/development/tests/validate-change-manifest.test.mjs",
+        "GREEN: bash scripts/harness/harness.test.sh",
+        "GREEN: bash scripts/development/validate-change-manifest.sh",
+        "GREEN: Docker cargo fmt --all -- --check",
+        "GREEN: Docker cargo clippy -p architecture-validator --lib --bins --examples --all-features --locked -- -D warnings; cargo clippy -p architecture-validator --tests --all-features --locked -- -D warnings -A clippy::unwrap_used -A clippy::expect_used",
+        "GREEN: Docker cargo xtask architecture check",
+        "Freeze: Docker mounted-Git cargo xtask architecture check --base origin/main --head HEAD"
+      ],
+      "result": "Independent Sol exact-SHA review found that API-ARCH-008 inspected only resolver paths: module-level use application::Repository and block-local use adapter_postgres::Repository could shorten a forbidden capability path without import resolution. RED observed no API-ARCH-008 diagnostic for the module-level fixture. GREEN: adapter-graphql now applies the existing structural capability-prefix predicate to canonical normal-use leaves, preserving API-ARCH-001 for aliases/globs/re-exports and allowing an ordinary application::owner::UpdateOwner use-case import. The import layer neither builds an alias table nor resolves imports across items/files. Fixtures fix both import diagnostics at rule/path/line/column and retain direct resolver, boundary-outside helper, local, string, and comment controls. architecture-validator all targets passed 57 tests, manifest 10/10, Harness 19/19, fmt, approved strict Clippy scopes, and working-tree architecture check passed. Mounted-Git validation runs against the frozen commit without a post-freeze manifest change."
+    }
+  ]
+}

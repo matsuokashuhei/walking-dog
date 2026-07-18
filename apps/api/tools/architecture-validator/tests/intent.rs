@@ -1,5 +1,4 @@
 use architecture_validator::intent::{IntentDiff, IntentError, IntentManifest, validate_intents};
-use std::path::Path;
 
 #[allow(
     dead_code,
@@ -115,22 +114,6 @@ changed_files = ["Cargo.toml", "crates/domain/src/lib.rs"]
         validate_intents(&[claimed], &diff),
         Err(IntentError::OwnershipOfUnchangedFile { .. })
     ));
-}
-
-#[test]
-fn checked_in_diff_artifact_matches_real_pr_base() {
-    let api_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let actual = IntentDiff::from_git(
-        &api_root,
-        "93db6a3ce552f010db3059f8b130694c1da24774",
-        "HEAD",
-    )
-    .expect("real PR diff");
-    let artifact = IntentDiff::parse_artifact(include_str!(
-        "../../../architecture/diffs/20260711-api-kernel.toml"
-    ))
-    .expect("checked-in artifact");
-    assert_eq!(actual.changed_files(), artifact.changed_files());
 }
 
 #[test]
@@ -323,20 +306,13 @@ fn adapter_changes_require_a_named_seam_and_integration_evidence() {
 }
 
 #[test]
-fn checked_in_kernel_intent_owns_only_existing_kernel_files_and_no_journey() {
+fn checked_in_kernel_intent_remains_historically_self_consistent() {
     let source = include_str!("../../../architecture/intents/20260711-api-kernel.toml");
     let manifest = IntentManifest::parse(source).expect("checked-in intent uses the closed schema");
     let diff = IntentDiff::parse_artifact(include_str!(
         "../../../architecture/diffs/20260711-api-kernel.toml"
     ))
     .expect("checked-in diff artifact uses the closed schema");
-    let api_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
-    for file in diff.changed_files() {
-        assert!(
-            api_root.join(file).is_file(),
-            "expected PR-stage file must exist: {file}"
-        );
-    }
     validate_intents(&[manifest], &diff).expect("checked-in intent is internally consistent");
 }
 

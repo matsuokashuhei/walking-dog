@@ -7,10 +7,11 @@ source "$script_dir/validate-knowledge.sh"
 source "$script_dir/validate-architecture.sh"
 source "$script_dir/score-quality.sh"
 source "$script_dir/validate-mobile-knip.sh"
+source "$script_dir/../development/validate-change-manifest.sh"
 
 validate_all() {
   local root="${1:-$HARNESS_REPO_ROOT}" messages="" output status=0
-  for validator in validate_knowledge validate_architecture score_quality validate_mobile_knip; do
+  for validator in validate_knowledge validate_architecture score_quality validate_mobile_knip validate_change_manifest; do
     if output="$($validator "$root" 2>&1)"; then
       :
     else

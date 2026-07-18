@@ -6,8 +6,9 @@ use proc_macro2::{Span, TokenStream, TokenTree};
 use syn::spanned::Spanned;
 use syn::visit::{self, Visit};
 use syn::{
-    Block, ExprCall, ExprMacro, ExprMethodCall, ImplItemConst, ImplItemFn, ImplItemType, Item,
-    ItemExternCrate, ItemFn, ItemImpl, ItemMod, ItemUse, Macro, Path, Stmt, UseTree, Visibility,
+    Attribute, Block, ExprCall, ExprMacro, ExprMethodCall, ImplItemConst, ImplItemFn, ImplItemType,
+    Item, ItemExternCrate, ItemFn, ItemImpl, ItemMod, ItemUse, Macro, Meta, Path, Stmt, UseTree,
+    Visibility,
 };
 
 #[derive(Clone, Copy, Debug)]
@@ -71,50 +72,23 @@ pub fn analyze_source_set(units: &[SourceUnit<'_>]) -> Result<Vec<Diagnostic>, V
                 })
         })
         .collect::<Result<Vec<_>, _>>()?;
-    let mut trait_index = HashMap::new();
-    for (unit, file) in &parsed {
-        let prefix = source_module_components(unit.path);
-        for (identity, public) in collect_qualified_traits(&file.items, &prefix) {
-            trait_index.insert(
-                (
-                    unit.crate_name.to_owned(),
-                    target_namespace(unit.path),
-                    identity,
-                ),
-                public,
-            );
-        }
-    }
     let mut diagnostics = Vec::new();
     for (unit, file) in &parsed {
-        diagnostics.extend(analyze_parsed(*unit, file, &trait_index));
+        diagnostics.extend(analyze_parsed(*unit, file));
     }
     Ok(diagnostics)
 }
 
-fn analyze_parsed(
-    unit: SourceUnit<'_>,
-    file: &syn::File,
-    trait_index: &HashMap<(String, String, Vec<String>), bool>,
-) -> Vec<Diagnostic> {
-    let aliases = collect_item_aliases(&file.items);
+fn analyze_parsed(unit: SourceUnit<'_>, file: &syn::File) -> Vec<Diagnostic> {
     let trait_scope = collect_item_traits(&file.items);
-    let qualified_traits = trait_index
-        .iter()
-        .filter(|((crate_name, namespace, _), _)| {
-            crate_name == unit.crate_name && namespace == &target_namespace(unit.path)
-        })
-        .map(|((_, _, identity), public)| (identity.clone(), *public))
-        .collect();
     let mut analyzer = Analyzer {
         unit,
-        alias_scopes: vec![aliases],
         diagnostics: Vec::new(),
         seen: HashSet::new(),
         public_boundary: false,
         trait_impl: false,
+        resolver_boundary: false,
         trait_scopes: vec![trait_scope],
-        qualified_traits,
         module_path: source_module_components(unit.path),
     };
     analyzer.visit_file(file);
@@ -123,13 +97,12 @@ fn analyze_parsed(
 
 struct Analyzer<'a> {
     unit: SourceUnit<'a>,
-    alias_scopes: Vec<HashMap<String, Vec<String>>>,
     diagnostics: Vec<Diagnostic>,
     seen: HashSet<(&'static str, usize, usize, String)>,
     public_boundary: bool,
     trait_impl: bool,
+    resolver_boundary: bool,
     trait_scopes: Vec<HashMap<String, bool>>,
-    qualified_traits: HashMap<Vec<String>, bool>,
     module_path: Vec<String>,
 }
 
@@ -161,20 +134,21 @@ impl Analyzer<'_> {
 
     fn inspect_path(&mut self, path: &Path) {
         let raw = path_segments(path);
-        let canonical = canonicalize(&raw, &self.alias_scopes);
-        self.inspect_segments(
-            &canonical,
-            path.span(),
-            raw.last().map_or("path", String::as_str),
-        );
+        self.inspect_segments(&raw, path.span(), raw.last().map_or("path", String::as_str));
+        if self.resolver_boundary && is_forbidden_resolver_capability_path(&raw) {
+            self.report(
+                "API-ARCH-008",
+                path.span(),
+                raw.join("::"),
+                "delegate orchestration to an application use case",
+            );
+        }
     }
 
     fn inspect_segments(&mut self, segments: &[String], span: Span, symbol: &str) {
         let joined = segments.join("::");
         let root = segments.first().map(String::as_str).unwrap_or_default();
-        if self.unit.crate_name != "api-bootstrap"
-            && (joined.starts_with("std::env") || matches!(root, "env" | "option_env"))
-        {
+        if self.unit.crate_name != "api-bootstrap" && joined.starts_with("std::env") {
             self.report(
                 "API-ARCH-001",
                 span,
@@ -233,17 +207,6 @@ impl Analyzer<'_> {
                 "express external capabilities as application ports",
             );
         }
-        if self.unit.crate_name == "adapter-graphql"
-            && is_resolver_path(self.unit.path)
-            && segments.iter().any(|part| is_resolver_concern(part))
-        {
-            self.report(
-                "API-ARCH-008",
-                span,
-                symbol,
-                "delegate orchestration to an application use case",
-            );
-        }
         if self.unit.crate_name == "application"
             && imports_another_application_module(&self.module_path, segments)
         {
@@ -257,8 +220,16 @@ impl Analyzer<'_> {
     }
 
     fn inspect_macro(&mut self, node: &Macro) {
-        let path = canonicalize(&path_segments(&node.path), &self.alias_scopes);
+        let path = path_segments(&node.path);
         let name = path.last().map(String::as_str).unwrap_or_default();
+        if name == "include" {
+            self.report(
+                "API-ARCH-001",
+                node.path.span(),
+                "include!",
+                "keep governed source explicit; include! cannot hide architecture-relevant syntax",
+            );
+        }
         if self.unit.production && matches!(name, "panic" | "todo" | "unimplemented") {
             self.report(
                 "API-ARCH-005",
@@ -289,6 +260,23 @@ impl Analyzer<'_> {
             );
         }
     }
+
+    fn inspect_attributes(&mut self, attributes: &[Attribute]) {
+        for attribute in attributes {
+            if attribute_hides_cfg(attribute) {
+                self.report(
+                    "API-ARCH-001",
+                    attribute.span(),
+                    if attribute.path().is_ident("cfg") {
+                        "cfg"
+                    } else {
+                        "cfg_attr"
+                    },
+                    "cfg and cfg_attr cannot hide governed architecture syntax",
+                );
+            }
+        }
+    }
 }
 
 impl<'ast> Visit<'ast> for Analyzer<'_> {
@@ -300,54 +288,76 @@ impl<'ast> Visit<'ast> for Analyzer<'_> {
     }
 
     fn visit_item_use(&mut self, node: &'ast ItemUse) {
+        self.inspect_attributes(&node.attrs);
+        if use_is_noncanonical(&node.tree) || !matches!(node.vis, Visibility::Inherited) {
+            self.report(
+                "API-ARCH-001",
+                node.use_token.span,
+                "noncanonical use",
+                "use direct canonical paths; aliases, globs, and re-exports are forbidden",
+            );
+        }
         let public = !matches!(node.vis, Visibility::Inherited);
         for leaf in use_leaves(&node.tree) {
-            let canonical = canonicalize(&leaf.path, &self.alias_scopes);
+            let canonical = leaf.path;
             let previous = self.public_boundary;
             self.public_boundary = public;
             self.inspect_segments(&canonical, leaf.span, leaf.name.as_deref().unwrap_or("use"));
+            if self.unit.crate_name == "adapter-graphql"
+                && is_forbidden_resolver_capability_path(&canonical)
+            {
+                self.report(
+                    "API-ARCH-008",
+                    leaf.span,
+                    canonical.join("::"),
+                    "delegate orchestration to an application use case",
+                );
+            }
             self.public_boundary = previous;
         }
     }
 
+    fn visit_attribute(&mut self, node: &'ast syn::Attribute) {
+        self.inspect_attributes(std::slice::from_ref(node));
+        visit::visit_attribute(self, node);
+    }
+
     fn visit_item_mod(&mut self, node: &'ast ItemMod) {
+        self.inspect_attributes(&node.attrs);
         let Some((_, items)) = &node.content else {
             visit::visit_item_mod(self, node);
             return;
         };
-        self.alias_scopes.push(collect_item_aliases(items));
         self.trait_scopes.push(collect_item_traits(items));
         self.module_path.push(node.ident.to_string());
         visit::visit_item_mod(self, node);
         self.module_path.pop();
         self.trait_scopes.pop();
-        self.alias_scopes.pop();
     }
 
     fn visit_block(&mut self, node: &'ast Block) {
-        self.alias_scopes.push(collect_block_aliases(node));
         self.trait_scopes.push(collect_block_traits(node));
         visit::visit_block(self, node);
         self.trait_scopes.pop();
-        self.alias_scopes.pop();
     }
 
     fn visit_item_impl(&mut self, node: &'ast ItemImpl) {
+        self.inspect_attributes(&node.attrs);
         let previous = self.trait_impl;
+        let previous_resolver_boundary = self.resolver_boundary;
         self.trait_impl = node.trait_.as_ref().is_some_and(|(_, path, _)| {
-            let canonical = canonicalize(&path_segments(path), &self.alias_scopes);
-            trait_is_public(
-                &canonical,
-                &self.module_path,
-                &self.trait_scopes,
-                &self.qualified_traits,
-            )
+            let canonical = path_segments(path);
+            trait_is_public(&canonical, &self.trait_scopes)
         });
+        self.resolver_boundary = self.unit.crate_name == "adapter-graphql"
+            && node.attrs.iter().any(resolver_surface_attribute);
         visit::visit_item_impl(self, node);
         self.trait_impl = previous;
+        self.resolver_boundary = previous_resolver_boundary;
     }
 
     fn visit_impl_item_fn(&mut self, node: &'ast ImplItemFn) {
+        self.inspect_attributes(&node.attrs);
         let previous = self.public_boundary;
         self.public_boundary = self.trait_impl || !matches!(node.vis, Visibility::Inherited);
         visit::visit_signature(self, &node.sig);
@@ -373,6 +383,7 @@ impl<'ast> Visit<'ast> for Analyzer<'_> {
     }
 
     fn visit_item_fn(&mut self, node: &'ast ItemFn) {
+        self.inspect_attributes(&node.attrs);
         let previous = self.public_boundary;
         self.public_boundary = !matches!(node.vis, Visibility::Inherited);
         visit::visit_signature(self, &node.sig);
@@ -382,8 +393,26 @@ impl<'ast> Visit<'ast> for Analyzer<'_> {
     }
 
     fn visit_item_extern_crate(&mut self, node: &'ast ItemExternCrate) {
+        self.inspect_attributes(&node.attrs);
+        self.report(
+            "API-ARCH-001",
+            node.ident.span(),
+            "extern crate",
+            "extern crate is forbidden in governed source",
+        );
         let path = vec![node.ident.to_string()];
         self.inspect_segments(&path, node.ident.span(), &node.ident.to_string());
+    }
+
+    fn visit_item_type(&mut self, node: &'ast syn::ItemType) {
+        self.inspect_attributes(&node.attrs);
+        self.report(
+            "API-ARCH-006",
+            node.ident.span(),
+            "type alias",
+            "type aliases cannot hide governed boundary types",
+        );
+        visit::visit_item_type(self, node);
     }
 
     fn visit_path(&mut self, node: &'ast Path) {
@@ -393,25 +422,6 @@ impl<'ast> Visit<'ast> for Analyzer<'_> {
 
     fn visit_expr_method_call(&mut self, node: &'ast ExprMethodCall) {
         let method = node.method.to_string();
-        if self.unit.production && matches!(method.as_str(), "unwrap" | "expect") {
-            self.report(
-                "API-ARCH-005",
-                node.method.span(),
-                method.clone(),
-                "return a typed error instead of aborting a production target",
-            );
-        }
-        if self.unit.crate_name == "adapter-graphql"
-            && is_resolver_path(self.unit.path)
-            && is_resolver_concern(&method)
-        {
-            self.report(
-                "API-ARCH-008",
-                node.method.span(),
-                method.clone(),
-                "delegate orchestration to an application use case",
-            );
-        }
         if self.unit.crate_name == "adapter-postgres"
             && !raw_sql_location_is_allowed(self.unit)
             && matches!(method.as_str(), "execute" | "execute_unprepared")
@@ -428,7 +438,7 @@ impl<'ast> Visit<'ast> for Analyzer<'_> {
 
     fn visit_expr_call(&mut self, node: &'ast ExprCall) {
         if let syn::Expr::Path(function) = node.func.as_ref() {
-            let path = canonicalize(&path_segments(&function.path), &self.alias_scopes);
+            let path = path_segments(&function.path);
             if self.unit.crate_name != "api-bootstrap"
                 && path.last().is_some_and(|part| part == "new")
                 && path.iter().any(|part| part.starts_with("adapter_"))
@@ -528,36 +538,13 @@ fn use_leaves(tree: &UseTree) -> Vec<UseLeaf> {
     output
 }
 
-fn collect_item_aliases(items: &[Item]) -> HashMap<String, Vec<String>> {
-    let mut aliases = HashMap::new();
-    for item in items {
-        match item {
-            Item::Use(item) => {
-                for leaf in use_leaves(&item.tree) {
-                    if let Some(name) = leaf.name
-                        && name != "*"
-                        && name != "self"
-                    {
-                        aliases.insert(name, leaf.path);
-                    }
-                }
-            }
-            Item::ExternCrate(item) => {
-                let alias = item
-                    .rename
-                    .as_ref()
-                    .map_or_else(|| item.ident.to_string(), |(_, ident)| ident.to_string());
-                aliases.insert(alias, vec![item.ident.to_string()]);
-            }
-            Item::Type(item) => {
-                if let syn::Type::Path(target) = item.ty.as_ref() {
-                    aliases.insert(item.ident.to_string(), path_segments(&target.path));
-                }
-            }
-            _ => {}
-        }
+fn use_is_noncanonical(tree: &UseTree) -> bool {
+    match tree {
+        UseTree::Glob(_) | UseTree::Rename(_) => true,
+        UseTree::Path(path) => use_is_noncanonical(&path.tree),
+        UseTree::Group(group) => group.items.iter().any(use_is_noncanonical),
+        UseTree::Name(_) => false,
     }
-    aliases
 }
 
 fn collect_item_traits(items: &[Item]) -> HashMap<String, bool> {
@@ -571,47 +558,6 @@ fn collect_item_traits(items: &[Item]) -> HashMap<String, bool> {
             _ => None,
         })
         .collect()
-}
-
-fn collect_qualified_traits(items: &[Item], prefix: &[String]) -> HashMap<Vec<String>, bool> {
-    fn walk(
-        items: &[Item],
-        module_path: &mut Vec<String>,
-        traits: &mut HashMap<Vec<String>, bool>,
-    ) {
-        for item in items {
-            match item {
-                Item::Trait(item) => {
-                    let mut identity = module_path.clone();
-                    identity.push(item.ident.to_string());
-                    traits.insert(identity, !matches!(item.vis, Visibility::Inherited));
-                }
-                Item::Mod(item) => {
-                    if let Some((_, items)) = &item.content {
-                        module_path.push(item.ident.to_string());
-                        walk(items, module_path, traits);
-                        module_path.pop();
-                    }
-                }
-                _ => {}
-            }
-        }
-    }
-    let mut traits = HashMap::new();
-    walk(items, &mut prefix.to_vec(), &mut traits);
-    traits
-}
-
-fn collect_block_aliases(block: &Block) -> HashMap<String, Vec<String>> {
-    let items = block
-        .stmts
-        .iter()
-        .filter_map(|statement| match statement {
-            Stmt::Item(item) => Some(item.clone()),
-            Stmt::Local(_) | Stmt::Expr(_, _) | Stmt::Macro(_) => None,
-        })
-        .collect::<Vec<_>>();
-    collect_item_aliases(&items)
 }
 
 fn collect_block_traits(block: &Block) -> HashMap<String, bool> {
@@ -628,12 +574,7 @@ fn collect_block_traits(block: &Block) -> HashMap<String, bool> {
         .collect()
 }
 
-fn trait_is_public(
-    canonical: &[String],
-    module_path: &[String],
-    trait_scopes: &[HashMap<String, bool>],
-    qualified_traits: &HashMap<Vec<String>, bool>,
-) -> bool {
+fn trait_is_public(canonical: &[String], trait_scopes: &[HashMap<String, bool>]) -> bool {
     match canonical {
         [name] => trait_scopes
             .iter()
@@ -641,47 +582,8 @@ fn trait_is_public(
             .find_map(|traits| traits.get(name))
             .copied()
             .unwrap_or(true),
-        [root, rest @ ..] if root == "crate" => qualified_traits.get(rest).copied().unwrap_or(true),
-        [root, rest @ ..] if root == "self" => {
-            let mut identity = module_path.to_vec();
-            identity.extend_from_slice(rest);
-            qualified_traits.get(&identity).copied().unwrap_or(true)
-        }
-        [root, rest @ ..] if root == "super" => {
-            let count = canonical
-                .iter()
-                .take_while(|part| part.as_str() == "super")
-                .count();
-            if count > module_path.len() {
-                return true;
-            }
-            let mut identity = module_path[..module_path.len() - count].to_vec();
-            identity.extend_from_slice(&rest[count - 1..]);
-            qualified_traits.get(&identity).copied().unwrap_or(true)
-        }
         _ => true,
     }
-}
-
-fn canonicalize(path: &[String], alias_scopes: &[HashMap<String, Vec<String>>]) -> Vec<String> {
-    let mut result = path.to_vec();
-    let mut expanded = HashSet::new();
-    while let Some(first) = result.first().cloned() {
-        if !expanded.insert(first.clone()) {
-            break;
-        }
-        let Some(replacement) = alias_scopes
-            .iter()
-            .rev()
-            .find_map(|aliases| aliases.get(&first))
-        else {
-            break;
-        };
-        let mut next = replacement.clone();
-        next.extend_from_slice(&result[1..]);
-        result = next;
-    }
-    result
 }
 
 fn path_segments(path: &Path) -> Vec<String> {
@@ -757,18 +659,70 @@ fn aws_location_is_allowed(crate_name: &str, sdk: &str) -> bool {
         .any(|(expected_sdk, owner)| sdk == *expected_sdk && crate_name == *owner)
 }
 
-fn is_resolver_path(path: &str) -> bool {
-    ["/resolver", "/query", "/mutation"]
-        .iter()
-        .any(|part| path.contains(part))
+fn attribute_hides_cfg(attribute: &Attribute) -> bool {
+    if attribute.path().is_ident("cfg") {
+        return true;
+    }
+    if !attribute.path().is_ident("cfg_attr") {
+        return false;
+    }
+    let Ok(meta) = attribute.meta.require_list() else {
+        return true;
+    };
+    let Ok(arguments) =
+        meta.parse_args_with(syn::punctuated::Punctuated::<Meta, syn::Token![,]>::parse_terminated)
+    else {
+        return true;
+    };
+    arguments.iter().skip(1).any(meta_hides_cfg)
 }
 
-fn is_resolver_concern(value: &str) -> bool {
-    let value = value.to_ascii_lowercase();
-    ["transaction", "retry", "clock", "repository", "storage"]
-        .iter()
-        .any(|part| value.contains(part))
-        || value.starts_with("aws_sdk_")
+fn meta_hides_cfg(meta: &Meta) -> bool {
+    if meta.path().is_ident("cfg") {
+        return true;
+    }
+    let Meta::List(list) = meta else {
+        return false;
+    };
+    if !list.path.is_ident("cfg_attr") {
+        return false;
+    }
+    list.parse_args_with(syn::punctuated::Punctuated::<Meta, syn::Token![,]>::parse_terminated)
+        .map_or(true, |arguments| {
+            arguments.iter().skip(1).any(meta_hides_cfg)
+        })
+}
+
+fn resolver_surface_attribute(attribute: &Attribute) -> bool {
+    let path = path_segments(attribute.path());
+    let supported_surface = matches!(
+        path.last().map(String::as_str),
+        Some("Object" | "ComplexObject" | "Subscription")
+    );
+    supported_surface
+        && (path.len() == 1
+            || (path.len() == 2 && path.first().is_some_and(|root| root == "async_graphql")))
+}
+
+fn is_forbidden_resolver_capability_path(path: &[String]) -> bool {
+    match path {
+        [root, ..]
+            if path.len() >= 2
+                && (root.starts_with("adapter_") || root.starts_with("aws_sdk_")) =>
+        {
+            true
+        }
+        [root, capability, ..]
+            if root == "application"
+                && matches!(
+                    capability.as_str(),
+                    "Repository" | "Storage" | "Transaction" | "Clock" | "Retry"
+                ) =>
+        {
+            true
+        }
+        _ => false,
+    }
 }
 
 fn imports_another_application_module(source: &[String], imported: &[String]) -> bool {
@@ -800,35 +754,6 @@ fn imports_another_application_module(source: &[String], imported: &[String]) ->
     resolved.first().is_some_and(|module| {
         MODULES.contains(&module.as_str()) && Some(module.as_str()) != current
     })
-}
-
-fn target_namespace(path: &str) -> String {
-    for (directory, kind) in [
-        ("/tests/", "test"),
-        ("/examples/", "example"),
-        ("/benches/", "bench"),
-    ] {
-        if let Some(relative) = path.split(directory).nth(1) {
-            let target = relative
-                .split('/')
-                .next()
-                .unwrap_or_default()
-                .trim_end_matches(".rs");
-            return format!("{kind}:{target}");
-        }
-    }
-    if let Some(relative) = path.split("/src/bin/").nth(1) {
-        let target = relative
-            .split('/')
-            .next()
-            .unwrap_or_default()
-            .trim_end_matches(".rs");
-        return format!("bin:{target}");
-    }
-    if path.ends_with("/src/main.rs") {
-        return "bin:main".to_owned();
-    }
-    "lib".to_owned()
 }
 
 fn source_module_components(path: &str) -> Vec<String> {

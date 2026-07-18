@@ -1,0 +1,5 @@
+# Rebuild Projections
+
+運用者は新しいprojection generationを作成し、各providerのevent logを順序どおり再生します。既存generationはquery提供を継続し、rebuild完了と整合性検証後に読み取りaliasを原子的に切り替えます。
+
+rebuildはsource contextのDBを直接読みません。checkpointはprovider stream、partition、offset、最後のeventIdを持ちます。event gap、未知version、hash不一致があれば切替せず`failed`にします。

@@ -23,6 +23,16 @@
 4. 直接利用する公開契約
 5. 境界をまたぐ変更だけcross-context journey
 
+## Specification Index
+
+- [Context Map](architecture/context-map.md)
+- [Contract Registry](contracts/registry.md)
+- [Cross-context Journeys](journeys/README.md)
+- [Platform Requirements](platform/README.md)
+- [Product Decisions](decisions/product-decisions.md)
+- [Requirement Traceability](decisions/requirement-traceability.md)
+- [Current Product Gaps](decisions/current-product-gaps.md)
+
 ## Contexts
 
 | Prefix | Context | Entry point |
@@ -59,4 +69,3 @@
 - コンテキストを越える外部キーを作らない。
 - 公開API、バージョン付きイベント、不透明IDだけで連携する。
 - 公開契約を守れば、コンテキスト内部を単独で置き換えられるようにする。
-

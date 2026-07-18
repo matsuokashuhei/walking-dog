@@ -1,0 +1,32 @@
+schema_version: 1
+logical_name: users
+physical_name_pattern: walking-dog-{environment}-users
+username_attributes:
+  - email
+auto_verified_attributes:
+  - email
+required_attributes:
+  - email
+optional_attributes:
+  - name
+authentication:
+  application_flow:
+    - EMAIL_OTP
+  provider_internal_fallback:
+    - PASSWORD
+  application_password_ui: false
+mfa: 'OFF'
+app_client:
+  generate_secret: false
+  explicit_auth_flows:
+    - ALLOW_USER_AUTH
+  forbidden_auth_flows:
+    - ALLOW_REFRESH_TOKEN_AUTH
+  refresh_token_rotation:
+    enabled: true
+    retry_grace_period_seconds: 10
+token_validity:
+  access_token_hours: 24
+  id_token_hours: 24
+  refresh_token_days: 3650
+

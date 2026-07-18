@@ -1,0 +1,5 @@
+# History Data Lifecycle
+
+projectionはsource eventから再構築可能ですが、通常queryの可用性のため保持します。retired generationはrollback期間後に削除できます。active/building generationは削除しません。
+
+利用者無効化後の匿名化・削除はIdentity eventをtriggerにしますが、保持期間と法的要件が決まるまで物理削除を自動化しません。署名付きMedia URLやraw routeを永続化しません。

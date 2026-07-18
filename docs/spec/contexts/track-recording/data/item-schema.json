@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TrackRecordingItem",
+  "oneOf": [
+    { "$ref": "#/$defs/state" },
+    { "$ref": "#/$defs/point" },
+    { "$ref": "#/$defs/summary" },
+    { "$ref": "#/$defs/idempotency" },
+    { "$ref": "#/$defs/outbox" }
+  ],
+  "$defs": {
+    "base": {
+      "type": "object",
+      "required": ["walk_id", "record_key", "item_type"],
+      "properties": {
+        "walk_id": { "type": "string", "format": "uuid" },
+        "record_key": { "type": "string", "minLength": 1 },
+        "item_type": { "type": "string" }
+      }
+    },
+    "state": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "required": ["status", "user_id", "started_at", "version"],
+          "properties": {
+            "record_key": { "const": "STATE" },
+            "item_type": { "const": "state" },
+            "status": { "enum": ["initializing", "recording", "finalizing", "finalized"] },
+            "user_id": { "type": "string", "format": "uuid" },
+            "started_at": { "type": "string", "format": "date-time" },
+            "finished_at": { "type": "string", "format": "date-time" },
+            "version": { "type": "integer", "minimum": 1 }
+          }
+        }
+      ]
+    },
+    "point": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "required": ["sequence", "recorded_at", "latitude", "longitude", "horizontal_accuracy_meters", "source", "accepted_for_distance", "payload_hash"],
+          "properties": {
+            "record_key": { "pattern": "^POINT#[0-9]{12}$" },
+            "item_type": { "const": "point" },
+            "sequence": { "type": "integer", "minimum": 1 },
+            "recorded_at": { "type": "string", "format": "date-time" },
+            "latitude": { "type": "number", "minimum": -90, "maximum": 90 },
+            "longitude": { "type": "number", "minimum": -180, "maximum": 180 },
+            "horizontal_accuracy_meters": { "type": "number", "minimum": 0 },
+            "altitude_meters": { "type": "number" },
+            "speed_meters_per_second": { "type": "number", "minimum": 0 },
+            "source": { "enum": ["foreground", "background"] },
+            "accepted_for_distance": { "type": "boolean" },
+            "rejection_reason": { "type": "string" },
+            "payload_hash": { "type": "string", "minLength": 1 }
+          }
+        }
+      ]
+    },
+    "summary": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "required": ["summary_version", "distance_meters", "accepted_point_count", "rejected_point_count", "finalized_at"],
+          "properties": {
+            "record_key": { "pattern": "^SUMMARY#[0-9]{6}$" },
+            "item_type": { "const": "summary" },
+            "summary_version": { "type": "integer", "minimum": 1 },
+            "distance_meters": { "type": "integer", "minimum": 0 },
+            "accepted_point_count": { "type": "integer", "minimum": 0 },
+            "rejected_point_count": { "type": "integer", "minimum": 0 },
+            "first_recorded_at": { "type": "string", "format": "date-time" },
+            "last_recorded_at": { "type": "string", "format": "date-time" },
+            "finalized_at": { "type": "string", "format": "date-time" }
+          }
+        }
+      ]
+    },
+    "idempotency": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "required": ["request_id", "input_hash", "response", "created_at"],
+          "properties": {
+            "record_key": { "pattern": "^IDEMPOTENCY#" },
+            "item_type": { "const": "idempotency" },
+            "request_id": { "type": "string", "format": "uuid" },
+            "input_hash": { "type": "string", "minLength": 1 },
+            "response": { "type": "object" },
+            "created_at": { "type": "string", "format": "date-time" }
+          }
+        }
+      ]
+    },
+    "outbox": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "required": ["event_id", "event_type", "payload", "occurred_at"],
+          "properties": {
+            "record_key": { "pattern": "^OUTBOX#" },
+            "item_type": { "const": "outbox" },
+            "event_id": { "type": "string", "format": "uuid" },
+            "event_type": { "type": "string", "minLength": 1 },
+            "payload": { "type": "object" },
+            "occurred_at": { "type": "string", "format": "date-time" },
+            "published_at": { "type": "string", "format": "date-time" }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,19 @@
+schema_version: 1
+bucket_name_pattern: walking-dog-{environment}-media
+source_key_pattern: source/{owner_user_id}/{media_asset_id}/{nonce}
+normalized_key_pattern: normalized/{owner_user_id}/{media_asset_id}/{version}
+accepted_source_types:
+  - image/jpeg
+  - image/png
+  - image/heic
+normalized_types:
+  - image/jpeg
+  - image/png
+required_upload_headers:
+  - content-type
+  - content-length
+  - x-amz-checksum-sha256
+encryption:
+  at_rest: provider-managed
+  in_transit: TLS-1.2-or-newer
+public_access: blocked

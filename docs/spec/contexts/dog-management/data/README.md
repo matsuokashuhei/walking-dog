@@ -1,0 +1,5 @@
+# Dog Management Data Ownership
+
+PostgreSQL `dog_management` schemaはdogs、user roles、goal historyを所有します。UserIdとMediaAssetIdは外部参照でforeign keyを張りません。WalkとHistoryのtableを参照しません。
+
+goal期間のexclusion constraintに必要な`btree_gist` extensionはplatformがdatabase作成時に有効化し、このcontextだけがconstraintを所有します。

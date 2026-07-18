@@ -16,6 +16,8 @@ Source of truth: [docs/product/principles.md](docs/product/principles.md)
 
 ## Required Reading By Task
 
+- Product specification: [docs/spec/README.md](docs/spec/README.md)
+- Product context map: [docs/spec/architecture/context-map.md](docs/spec/architecture/context-map.md)
 - Harness process: [docs/harness/README.md](docs/harness/README.md)
 - Domain rules: [docs/harness/domain-rules.md](docs/harness/domain-rules.md)
 - Architecture overview: [docs/architecture/harness-first-development.md](docs/architecture/harness-first-development.md)

@@ -1,0 +1,4 @@
+# User Profile Authorization
+
+全operationはauthenticated User本人だけが利用できます。inputでUserIdを受け取らずaccess tokenから解決します。MediaAssetの関連付け前にMedia Catalogでownerとpurposeを検証します。HistoryやIdentityの内部dataへアクセスしません。
+

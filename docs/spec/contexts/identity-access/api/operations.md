@@ -17,13 +17,13 @@ signOut(input: SignOutInput!): SignOutResult!
 
 ```graphql
 identityUser(userId: UUID!): IdentityUserStatus!
+myIdentity: MyIdentity!
 ```
 
-返すのは`userId`、`status`、`revision`だけです。email、provider subject、token claimsは他contextへ公開しません。
+`identityUser`が返すのは`userId`、`status`、`revision`だけです。`myIdentity`は認証User本人に限り`userId`、現在email、statusを返します。provider subjectとtoken claimsは公開しません。
 
 ## Events
 
 - `UserRegistered.v1`: event ID、UserId、occurredAt、revision
 - `UserEmailChanged.v1`: event ID、UserId、occurredAt、revision。email値は含めない
 - `UserDisabled.v1`: event ID、UserId、occurredAt、revision、reason category
-

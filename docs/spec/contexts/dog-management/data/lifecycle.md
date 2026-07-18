@@ -1,0 +1,6 @@
+# Dog Management Data Lifecycle
+
+Dog removeはsoft deleteです。roleとgoal historyは過去Walk/Historyの説明に必要な期間保持します。User PII deletion時はUserIdをirreversible surrogateへ置換できますが、Dog ownershipが他にない場合の扱いを先に解決します。
+
+MediaDeleted受信後はavatar referenceを外します。DogRemoved event consumerが過去snapshotを保持できるまでDog rowをhard deleteしません。
+

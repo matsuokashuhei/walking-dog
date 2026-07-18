@@ -7,4 +7,3 @@
 - Outbox eventとUser mutationは同じtransactionです。
 - challenge、OTP、access token、refresh tokenはPostgreSQLへ保存しません。
 - PII削除後もevent IDとUserId tombstoneは重複防止期間中保持できます。
-

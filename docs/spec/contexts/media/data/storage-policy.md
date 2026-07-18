@@ -9,4 +9,3 @@
 animated inputはfirst frameへnormalizeします。alphaが必要な画像だけPNGを使用し、それ以外はorientation適用済みJPEGにします。EXIF、ICC以外のmetadata、source filenameを除去します。
 
 bucketはpublic accessを無効化します。deliveryは認可後の短時間signed URLまたは同等のauthenticated CDN tokenを使います。
-

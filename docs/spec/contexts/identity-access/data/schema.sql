@@ -36,4 +36,3 @@ CREATE TABLE identity_access.outbox_events (
 CREATE INDEX identity_outbox_unpublished_idx
     ON identity_access.outbox_events (occurred_at, event_id)
     WHERE published_at IS NULL;
-

@@ -19,4 +19,3 @@ mutationは`requestId`、update/removeは`expectedVersion`を持ちます。
 ## Events
 
 DogRegistered、DogUpdated、DogRemoved、DogWalkGoalChangedのv1 eventはDog snapshotまたはgoal snapshot、revision、occurredAtを含みます。
-

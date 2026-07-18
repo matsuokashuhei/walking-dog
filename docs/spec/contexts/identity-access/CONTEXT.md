@@ -33,4 +33,3 @@ Cognito adapter、mail delivery、clock、cryptography、observability。
 ## Reading Scope
 
 このcontextと利用するCognito仕様だけを読みます。
-

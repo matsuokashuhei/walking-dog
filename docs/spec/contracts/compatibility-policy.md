@@ -7,4 +7,3 @@
 - event consumerは重複、遅延、再送を安全に処理する。
 - providerと登録consumerは同じcontract fixtureで検証する。
 - deprecated contractは利用consumerが0になってから削除する。
-

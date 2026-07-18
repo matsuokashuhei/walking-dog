@@ -33,4 +33,3 @@ Identity Directory v1。
 ## Reading Scope
 
 このcontextとIdentityの公開contractだけを読みます。
-

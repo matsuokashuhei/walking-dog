@@ -10,4 +10,3 @@
 - `USR-A08`: Avatar upload失敗後も元のavatarと入力名を保持する。
 - `USR-A09`: SettingsからIdentity-owned Change EmailとSign Outへ遷移する。
 - `USR-A10`: Dynamic Type、VoiceOver、日本語・英語、Light・Darkで操作できる。
-

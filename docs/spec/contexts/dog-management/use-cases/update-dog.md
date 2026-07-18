@@ -5,4 +5,3 @@
 name、breed、gender、birthday、avatarを更新できます。変更なしinputはeventを発行しません。MediaDeleted受信時はavatar referenceをnullへ変更してDogUpdatedを発行します。
 
 walker roleは閲覧だけで更新できません。
-

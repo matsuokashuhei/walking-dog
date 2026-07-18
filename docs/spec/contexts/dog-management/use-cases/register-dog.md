@@ -9,4 +9,3 @@
 5. `DogRegistered v1`と必要な`DogWalkGoalChanged v1`をOutboxへ追加します。
 
 同名Dogを許可し、DogIdで区別します。request ID再送は同じDogを返します。
-

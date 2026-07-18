@@ -15,4 +15,3 @@ email field、Create Account、Sign In導線、Terms、Privacyを表示します
 ## Change Email
 
 現在email、新email、OTP step、完了状態を表示します。現在emailと同じ値では続行できません。
-

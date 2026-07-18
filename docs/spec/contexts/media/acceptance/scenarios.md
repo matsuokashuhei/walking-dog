@@ -10,4 +10,3 @@
 - `MED-A08`: storage unavailableを0-byte成功やfallback URLに変換しない。
 - `MED-A09`: avatarとwalk photoに異なるsize/dimension policyを適用する。
 - `MED-A10`: object key、signed URL、checksumをevent/logへ出さない。
-

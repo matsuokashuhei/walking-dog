@@ -19,4 +19,3 @@
 ## Failure
 
 形式不正は送信前に拒否します。provider unavailable、rate limited、expired code、invalid code、attempts exhaustedを区別します。失敗時にUser rowだけを残しません。
-

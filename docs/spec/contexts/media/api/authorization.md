@@ -5,4 +5,3 @@
 - walk photoのviewer authorizationはHistory/Walk、dog avatarはDog、user avatarはUser Profileが所有します。
 - Mediaは他context DBを読んでauthorizationを補完しません。
 - IdentityでdisabledのUserへ新しいupload grantを発行しません。
-

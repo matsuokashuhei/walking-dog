@@ -14,4 +14,3 @@
 | removed | Dogs tabへreplace、古いdetailへ戻さない |
 
 同名Dogはnameだけでなくbreed/gender/avatarをaccessibility labelへ含めて区別します。
-

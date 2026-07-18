@@ -40,4 +40,3 @@ current-email
 ```
 
 provider更新後にdirectory更新が一時失敗した場合はoutbox recoveryで再試行し、UIは`completion-pending`を表示します。旧emailへ戻したと偽装しません。
-

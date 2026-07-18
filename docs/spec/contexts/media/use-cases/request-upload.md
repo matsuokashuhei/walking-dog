@@ -8,4 +8,3 @@
 4. size、content type、checksum headerを制約した15分のupload URLを返します。
 
 同じrequest IDの再送は同じMediaAssetIdを返します。別payloadでは`IDEMPOTENCY_CONFLICT`です。
-

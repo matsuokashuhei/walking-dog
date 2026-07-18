@@ -15,4 +15,3 @@ consumerはproviderのdatabase name、schema、table、index、object key規則�
 ## Frontend Dependencies
 
 featureはApp Shellへroute manifestを登録します。他featureのscreen、component、hook、cache、GraphQL documentを直接importしません。共有visual primitivesはDesign Systemから利用できます。
-

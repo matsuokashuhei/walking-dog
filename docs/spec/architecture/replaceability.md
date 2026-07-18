@@ -9,4 +9,3 @@ contextは次を満たすとき単独で再構築可能です。
 - correlation IDから境界内の失敗を診断できる。
 
 置き換え時にconsumerへdatabase migrationや内部型変更を要求した場合、境界違反です。
-

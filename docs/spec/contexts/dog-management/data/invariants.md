@@ -6,4 +6,3 @@
 - goal rangeは同じDog内で重複しません。
 - birthday validationはUser timezoneに依存せずcalendar dateで行います。
 - DogId、createdAtはimmutableです。
-

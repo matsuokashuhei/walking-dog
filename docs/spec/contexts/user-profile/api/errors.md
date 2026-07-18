@@ -10,4 +10,3 @@
 | `DEPENDENCY_UNAVAILABLE` | required Identity/Media contract unavailable |
 
 dependency failureをvalidation errorや空値へ変換しません。
-

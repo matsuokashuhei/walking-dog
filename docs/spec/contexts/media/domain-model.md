@@ -27,4 +27,3 @@ Upload GrantはMediaAssetId、single-use upload URL、required headers、maximum
 - `MED-012`: 同じMediaAssetIdのpurposeとownerは変更できません。
 - `MED-013`: rejected/deleted Assetはreadyへ戻りません。
 - `MED-014`: normalized objectからEXIF、embedded profile、unexpected metadataを除去します。
-

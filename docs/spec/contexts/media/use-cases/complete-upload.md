@@ -10,4 +10,3 @@
 6. normalized metadataを保存し、`MediaReady v1`をOutboxへ追加します。
 
 source objectはnormalization完了後に削除します。失敗時は`rejected`へ進め、consumerへURLを返しません。
-

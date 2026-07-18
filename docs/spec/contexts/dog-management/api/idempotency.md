@@ -5,4 +5,3 @@
 - request IDを別Dog/payloadへ再利用すると`IDEMPOTENCY_CONFLICT`です。
 - removed Dogのremove再送は成功です。
 - eventはaggregate revisionごとに一つです。
-

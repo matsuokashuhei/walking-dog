@@ -7,4 +7,3 @@
 - MediaReady/MediaDeletedとstate mutationは同じtransactionのOutboxへ入ります。
 - storage deleteはat-least-onceで安全です。
 - raw EXIF、raw GPS、source filenameを永続metadataへ保存しません。
-

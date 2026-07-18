@@ -14,4 +14,3 @@
 6. 新しいclaimsを含むtokensを再発行してclientへ返します。
 
 同時変更はexpected user versionで競合検出します。完了後のサインインemailは新emailだけです。
-

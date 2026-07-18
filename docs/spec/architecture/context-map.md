@@ -31,4 +31,3 @@ Identity ─┬─> User Profile ─────────────┐
 ## App Shell
 
 App Shellは8番目のdomain contextではありません。認証状態の配布、route registration、tab/deep-link composition、theme bootstrapだけを担当し、feature screenやdomain decisionを持ちません。
-

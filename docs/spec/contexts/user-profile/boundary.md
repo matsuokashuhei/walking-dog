@@ -1,4 +1,3 @@
 # User Profile Boundary
 
 email変更はIdentity画面への導線だけを提供します。MediaAssetIdをprofile avatarとして関連付けますが、uploadやobject keyを知りません。Historyの集計値を保存しません。
-

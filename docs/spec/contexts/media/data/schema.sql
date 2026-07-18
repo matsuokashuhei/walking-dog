@@ -56,4 +56,3 @@ CREATE TABLE media.outbox_events (
 CREATE INDEX media_outbox_unpublished_idx
     ON media.outbox_events (occurred_at, event_id)
     WHERE published_at IS NULL;
-

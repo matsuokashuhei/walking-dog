@@ -13,4 +13,3 @@
 | `STORAGE_UNAVAILABLE` | object storage temporary failure |
 | `STORAGE_INCONSISTENT` | ready metadata and object disagree |
 | `IDEMPOTENCY_CONFLICT` | request ID reused with another payload |
-

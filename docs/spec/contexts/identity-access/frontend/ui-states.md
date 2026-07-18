@@ -12,4 +12,3 @@
 | authenticated | route replacement、no duplicate transition |
 
 Dynamic Type、VoiceOver、英語・日本語、Light・Darkでprimary action、error、destination、resend timeを識別できます。
-

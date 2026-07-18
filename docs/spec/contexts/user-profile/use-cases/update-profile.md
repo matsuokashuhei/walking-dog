@@ -8,4 +8,3 @@
 4. `UserProfileUpdated v1`を同じtransactionのOutboxへ追加します。
 
 変更がないinputは成功として現在Profileを返し、eventを発行しません。Avatar削除は`avatarAssetId: null`で表現し、Media Asset自体の削除は別commandです。
-

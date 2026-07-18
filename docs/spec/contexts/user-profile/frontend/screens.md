@@ -13,4 +13,3 @@ avatar picker、display name、Cancel、Saveを表示します。phone、locatio
 Language、Units、Notifications、Appearance、Terms、Privacy、About、Sign Outを表示します。Change passwordは表示しません。Sign OutはIdentity commandです。
 
 Achievementsとself-service account deletionは初期scope外です。
-

@@ -3,4 +3,3 @@
 ProfileはUser lifetime中保持します。UserDisabled受信時はmutationを停止します。User PII deletion開始時にdisplay nameとavatar referenceを消去し、projection consumerへProfileUpdated tombstoneを発行します。
 
 PreferencesはProfileと同じlifecycleです。History aggregatesやIdentity emailはProfile deletion対象に含めず、各owner contextが処理します。
-

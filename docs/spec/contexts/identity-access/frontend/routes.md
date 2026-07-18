@@ -7,4 +7,3 @@
 | `/settings/email` | authenticated | verified email change |
 
 authenticated Userがauth routeを開いた場合はApp ShellのWalk tabへreplaceします。unauthenticated Userがprotected routeを開いた場合は元のdeep linkを保持してloginへreplaceします。
-

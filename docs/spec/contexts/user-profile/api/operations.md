@@ -13,4 +13,3 @@ mutation inputは`requestId`と`expectedVersion`を持ちます。
 
 - `UserProfileUpdated.v1`: UserId、displayName、avatarAssetId、revision、occurredAt
 - `UserPreferencesUpdated.v1`: UserId、locale、unitSystem、appearance、notificationsEnabled、revision、occurredAt
-

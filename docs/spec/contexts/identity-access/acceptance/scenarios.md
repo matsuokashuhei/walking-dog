@@ -12,4 +12,3 @@
 - `IDA-A10`: token、OTP、challenge、full emailをapplication logへ出さない。
 - `IDA-A11`: authenticated Userがauth routeを開くとWalk tabへ一度だけreplaceする。
 - `IDA-A12`: TermsとPrivacyを開けない場合もcrashせず、auth formへ戻れる。
-

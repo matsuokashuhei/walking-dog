@@ -9,4 +9,3 @@
 | `/dogs/{dogId}/goal` | time-based goal |
 
 direct linkでBack historyがない場合はDogs tabへ戻ります。
-

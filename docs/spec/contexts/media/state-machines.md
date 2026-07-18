@@ -12,4 +12,3 @@ ready -> deleted
 `completeUpload`はobject存在とdeclared checksumを確認して`processing`へ進めます。decoder、content sniffing、pixel bounds、malware scan、normalizationが成功したときだけ`ready`です。
 
 同じcompletion requestの再送は現在stateを返します。terminal stateから別terminal stateへ暗黙遷移しません。
-

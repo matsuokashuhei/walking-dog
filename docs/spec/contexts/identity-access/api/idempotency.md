@@ -6,4 +6,3 @@
 - OTP requestの再送で新しいemailを送信しません。
 - verification成功後の再送は同じUserIdを返し、Userを追加作成しません。
 - sign-out再送は既に失効済みでも成功です。
-

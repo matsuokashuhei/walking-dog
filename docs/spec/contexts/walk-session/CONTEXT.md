@@ -33,4 +33,3 @@ Identity Directory v1、Dog Directory v1、Media Catalog v1、Track Recorder v1�
 ## Reading Scope
 
 このcontextと直接利用する4契約だけを読みます。
-

@@ -7,4 +7,3 @@
 - Outbox event: publication確認後90日でarchive可能
 
 consumer reference countをMedia内部で推測しません。semantic owner contextがDelete commandを送るまでready Assetを保持します。
-

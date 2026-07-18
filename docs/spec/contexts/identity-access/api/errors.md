@@ -14,4 +14,3 @@
 | `TOKEN_RESPONSE_INCOMPLETE` | sign in again | rotated token response missing required token |
 
 GraphQL transport errorsにprovider session、OTP、token、full emailを含めません。
-

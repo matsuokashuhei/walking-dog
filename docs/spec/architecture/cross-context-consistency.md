@@ -19,4 +19,3 @@ user actionが即時結果を必要とするときだけ同期APIを使います
 ## Observability
 
 request、command、eventはcorrelation IDとcausation IDを引き継ぎます。token、OTP、raw GPS、signed URL、email本文はlogへ記録しません。
-

@@ -8,4 +8,3 @@
 4. object deleteを非同期で再試行します。
 
 object delete失敗でもAssetをreadyへ戻しません。consumerはMediaDeleted受信後に関連を外すかplaceholderを表示します。
-

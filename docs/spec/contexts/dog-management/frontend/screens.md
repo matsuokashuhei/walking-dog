@@ -15,4 +15,3 @@ hero、name、age/breed/gender、History-owned stats/goal progress/recent walks�
 ## Goal
 
 Daily/Weekly、minutes、effective dateを表示し、distance入力を持ちません。
-

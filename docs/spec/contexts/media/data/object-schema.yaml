@@ -17,4 +17,3 @@ encryption:
   at_rest: provider-managed
   in_transit: TLS-1.2-or-newer
 public_access: blocked
-

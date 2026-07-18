@@ -8,4 +8,3 @@
 | Change Email | `/settings/email` | Identity & Access |
 
 Me tabからChange Emailへ進むとIdentity-owned screenを開きます。route implementationをUser Profileへ複製しません。
-

@@ -20,4 +20,3 @@ Design Systemはcolor、spacing、typography、icons、surface、form controls�
 - Walk Session: walk ready、active walk、finish summary
 - History & Insights: walk history、walk detail、stats
 - Media: picker/upload states embedded in owner screens
-

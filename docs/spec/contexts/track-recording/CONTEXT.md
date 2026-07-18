@@ -33,4 +33,3 @@ WalkStarted v1とWalkFinished v1。
 ## Reading Scope
 
 このcontextとWalk Sessionの公開eventだけを読みます。
-

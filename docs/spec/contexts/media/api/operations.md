@@ -16,4 +16,3 @@ mutation inputは`requestId: UUID!`を持ちます。MediaAssetはID、purpose�
 - `MediaDeleted.v1`: event ID、MediaAssetId、owner UserId、purpose、revision
 
 signed URL、object key、checksumはeventへ含めません。
-

@@ -36,4 +36,3 @@ access tokenとrefresh tokenはclient secure storageだけへ保存します。r
 - `IDA-012`: provider subjectをAPI、event、logへ公開しません。
 - `IDA-013`: 同じUserIdを別provider subjectへ再関連付けするときは明示的な管理migrationを必要とします。
 - `IDA-014`: disabled Userへ新しいsessionを発行しません。
-

@@ -8,4 +8,3 @@
 - raw token、OTP、provider session: persistent storage禁止
 
 User deletion仕様を追加する場合は、IdentityがUserDisabledを先に発行し、consumer deletion acknowledgement後にPIIを消去します。初期仕様はself-service account deletionを提供しません。
-

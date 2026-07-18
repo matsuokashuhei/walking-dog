@@ -35,4 +35,3 @@ CREATE TABLE user_profile.outbox_events (
 CREATE INDEX user_profile_outbox_unpublished_idx
     ON user_profile.outbox_events (occurred_at, event_id)
     WHERE published_at IS NULL;
-

@@ -13,4 +13,3 @@
 5. clientはtokensをsecure storageへatomically保存してApp Shellへauthenticated状態を通知します。
 
 登録されていないemail、disabled User、provider subject不一致は同じ外部error category `AUTHENTICATION_REJECTED`にします。内部diagnosticだけを区別します。
-

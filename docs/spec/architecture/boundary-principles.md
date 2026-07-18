@@ -16,4 +16,3 @@
 ## Replacement Test
 
 あるcontextを内部から全削除しても、公開contract、owned data migration、consumer contract testsを満たせば他contextを変更せず置き換えられることを境界の完成条件とします。
-

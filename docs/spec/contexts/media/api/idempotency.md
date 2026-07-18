@@ -5,4 +5,3 @@
 - Complete再送は現在Asset stateを返し、再normalizeしません。
 - Delete再送はobjectが既にない場合も成功です。
 - MediaReady/MediaDeleted eventはAsset revisionごとに一つです。
-

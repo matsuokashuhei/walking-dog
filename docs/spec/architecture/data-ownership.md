@@ -27,4 +27,3 @@
 - DynamoDB: Track-owned `dynamodb-table.yaml`と`item-schema.json`
 - Object storage: Media-owned `object-schema.yaml`と`storage-policy.md`
 - Integration events: provider-owned versioned schemas
-

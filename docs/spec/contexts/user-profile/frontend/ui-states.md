@@ -13,4 +13,3 @@
 | saved | Meへreplaceし最新versionを表示 |
 
 Dynamic Type最大時もSave、Cancel、Settings rowsへscroll到達できます。Avatarにはdisplay nameを含むaccessibility labelを付けます。
-

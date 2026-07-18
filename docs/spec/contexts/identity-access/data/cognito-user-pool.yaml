@@ -29,4 +29,3 @@ token_validity:
   access_token_hours: 24
   id_token_hours: 24
   refresh_token_days: 3650
-

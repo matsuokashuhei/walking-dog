@@ -33,4 +33,3 @@ Identity Directory v1、Media Catalog v1。
 ## Reading Scope
 
 このcontextとIdentity/Mediaの公開contractだけを読みます。
-

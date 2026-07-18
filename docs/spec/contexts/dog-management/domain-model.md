@@ -27,4 +27,3 @@
 | `effective_to` | inclusive、optional |
 
 同じDogのgoal期間は重複しません。distanceはgoal primitiveではありません。
-

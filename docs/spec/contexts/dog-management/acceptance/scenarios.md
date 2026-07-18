@@ -12,4 +12,3 @@
 - `DOG-A10`: Dog detailでHistory失敗を0 statsへ変換しない。
 - `DOG-A11`: 同名DogをVoiceOver labelで区別できる。
 - `DOG-A12`: 日本語・英語、Light・Dark、Dynamic Typeで主要操作へ到達できる。
-

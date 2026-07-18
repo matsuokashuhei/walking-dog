@@ -26,4 +26,3 @@ emailはIdentity、walk statisticsはHistory、image bytesはMediaが所有し�
 - `USR-011`: avatarは同じUser所有のready `user_avatar`だけです。
 - `USR-012`: email、phone、location、bio、sharing state、achievementはProfile dataに含めません。
 - `USR-013`: updateはexpected version一致時だけ成功します。
-

@@ -12,4 +12,3 @@
 | `MEDIA_NOT_READY` | avatar invalid |
 | `VERSION_CONFLICT` | concurrent update |
 | `IDEMPOTENCY_CONFLICT` | request ID reused |
-

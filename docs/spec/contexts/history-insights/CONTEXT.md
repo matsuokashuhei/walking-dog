@@ -33,4 +33,3 @@ User、Dog、Walk、Track、Mediaの公開events。
 ## Reading Scope
 
 このcontextとsource eventsだけを読みます。
-

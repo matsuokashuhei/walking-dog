@@ -1,0 +1,5 @@
+# Walk Session Data Lifecycle
+
+completed/abandoned Walkは監査と履歴再構築のため削除せず保持します。将来の利用者削除ではIdentityの無効化eventを受け、法的保持期間に従う匿名化workflowを別decisionで定義します。
+
+idempotency recordは少なくとも30日保持します。outboxはpublished後も再配信監査期間を保持します。期間を短縮する場合、Historyのrebuild可能性を壊さないことを先に証明します。

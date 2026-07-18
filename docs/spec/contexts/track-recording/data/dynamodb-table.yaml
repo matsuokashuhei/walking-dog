@@ -1,0 +1,17 @@
+TableName: walking-dog-${environment}-track-recording
+BillingMode: PAY_PER_REQUEST
+AttributeDefinitions:
+  - AttributeName: walk_id
+    AttributeType: S
+  - AttributeName: record_key
+    AttributeType: S
+KeySchema:
+  - AttributeName: walk_id
+    KeyType: HASH
+  - AttributeName: record_key
+    KeyType: RANGE
+PointInTimeRecoverySpecification:
+  PointInTimeRecoveryEnabled: true
+SSESpecification:
+  SSEEnabled: true
+DeletionProtectionEnabled: true

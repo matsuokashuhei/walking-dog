@@ -22,7 +22,7 @@ RUN cargo build --release --locked -p api-bootstrap \
     --bin api --bin track-point-worker --bin schema --bin migrate
 
 # --- Runtime Stage ---
-FROM public.ecr.aws/debian/debian:stable-slim@sha256:f6beb142597164872b0182176972052ade2466c516a922cc9a9388f0e2eb615e AS runtime
+FROM public.ecr.aws/debian/debian:stable-slim@sha256:4881d81e670b92a79e612b45eb43c604370ae539de67f7a00b90abc13078ebe6 AS runtime
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl \
     && update-ca-certificates \

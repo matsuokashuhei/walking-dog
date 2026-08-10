@@ -41,7 +41,7 @@ jobs:
         with:
           fetch-depth: 0
       - if: needs.changes.outputs.api == 'true'
-        uses: dtolnay/rust-toolchain@1.96.0
+        uses: dtolnay/rust-toolchain@1.100.0
         with:
           components: clippy,rustfmt
       - if: needs.changes.outputs.api == 'true'
@@ -69,7 +69,7 @@ jobs:
       - if: needs.changes.outputs.api == 'true'
         uses: actions/checkout@v6
       - if: needs.changes.outputs.api == 'true'
-        uses: dtolnay/rust-toolchain@1.96.0
+        uses: dtolnay/rust-toolchain@1.100.0
       - if: needs.changes.outputs.api == 'true'
         working-directory: apps/api
         run: cargo test --locked -p domain -p application
@@ -84,7 +84,7 @@ jobs:
       - if: needs.changes.outputs.api == 'true'
         uses: actions/checkout@v6
       - if: needs.changes.outputs.api == 'true'
-        uses: dtolnay/rust-toolchain@1.96.0
+        uses: dtolnay/rust-toolchain@1.100.0
       - if: needs.changes.outputs.api == 'true'
         working-directory: apps/api
         run: cargo test --locked -p adapter-postgres -p integration-test-support -p harness-runtime
@@ -99,7 +99,7 @@ jobs:
       - if: needs.changes.outputs.api == 'true'
         uses: actions/checkout@v6
       - if: needs.changes.outputs.api == 'true'
-        uses: dtolnay/rust-toolchain@1.96.0
+        uses: dtolnay/rust-toolchain@1.100.0
       - if: needs.changes.outputs.api == 'true'
         working-directory: apps/api
         run: cargo test --locked -p adapter-graphql -p api-bootstrap
@@ -113,7 +113,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - if: needs.changes.outputs.api == 'true'
-        uses: dtolnay/rust-toolchain@1.96.0
+        uses: dtolnay/rust-toolchain@1.100.0
       - if: needs.changes.outputs.api == 'true'
         uses: actions/setup-node@v6
         with:
